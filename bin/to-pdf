@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+
+pandoc -t pdf --pdf-engine=xelatex -o "$1.pdf" --template latex.template "$1.md"
