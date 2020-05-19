@@ -2,7 +2,21 @@
 
 Basic setup for working with Pandoc and TeX.
 
-To work on the book, you need to [install Nix][install] and then run `nix-shell`. The first time you do this, it will take a while to download and install all the packages it needs.
+## Installation
+
+To work on the book, you need to [install Nix][install]. Do this by running:
+
+```
+> curl -L https://nixos.org/nix/install | sh
+```
+
+then following the instructions from the script.
+
+Once you have Nix installed, run `nix-shell` to get access to Pandoc, LaTeX and all the other tools you need. The first time you run `nix-shell` will take a while to finish as it downloads and installs all the packages you need.
+
+[install]: https://nixos.org/download.html
+
+## Development
 
 Once inside the Nix shell, you'll have access to Pandoc and you'll be able to generate PDFs with XeTeX. The `to-pdf` script does this for a single Markdown file:
 
