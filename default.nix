@@ -23,6 +23,8 @@ pkgs.stdenv.mkDerivation {
     pkgs.graphviz
     pkgs.pandoc
     pkgs.watchexec
+
+    pkgs.python38
   ];
 
   FONTCONFIG_FILE = fonts;
