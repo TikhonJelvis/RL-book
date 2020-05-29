@@ -1,4 +1,4 @@
-# RL Book
+# RL Book Setup
 
 Basic setup for working with Pandoc and TeX.
 
