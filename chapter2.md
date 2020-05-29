@@ -23,9 +23,9 @@ traded stocks held by all banks in the U.S. at the end of a week.
 
 ## Markov States
 
-We will be learning about Markov Processes in thi chapter and these processes
+We will be learning about Markov Processes in this chapter and these processes
 have what are called *Markov States*. So we will now learn about the *Markov
-Property*. Before we provide the formal definition of the Markov Property, let
+Property* of *States*. Before we provide the formal definition of the Markov Property, let
 us develop intuition for this concept with some examples of random evolution
 of stock prices over time. 
 
