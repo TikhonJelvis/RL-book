@@ -27,6 +27,25 @@ class Model2:
         return Model2.State(price=state.price + up_move * 2 - 1,
                             previous_direction=bool(up_move))
 
+@dataclass
+class Model3:
+    @dataclass
+    class State:
+        price: int
+        num_up_moves: int
+        num_down_moves: int
+
+
+    def up_prob(self, state: State):
+        return num_down_moves / (num_up_moves + num_down_moves) if (num_up_moves + num_down_moves) else 0.5
+
+    def next_state(self, state: State) -> State:
+        up_move: int = binomial(1, self.up_prob(state), 1)[0]
+        return Model3.State(
+            price=state.price + num_up_moves * 2 - 1,
+            num_up_moves=state.num_up_moves + up_move,
+            num_down_moves=state.num_down_moves + 1 - up_move
+        )
 
 def simulation(model, start_state):
     state = start_state
