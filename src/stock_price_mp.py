@@ -11,6 +11,21 @@ handy_map: Mapping[Optional[bool], int] = {True: -1, False: 1, None: 0}
 
 
 @dataclass
+class Model1:
+    @dataclass
+    class State:
+        price: int
+
+    level_param: int = 100
+
+    def up_prob(self, state: State):
+        return 1. / (1 + exp(state.price - self.level_param))
+
+    def next_state(self, state: State) -> State:
+        up_move: int = binomial(1, self.up_prob(state), 1)[0]
+        return Model1.State(price=state.price + up_move * 2 - 1)
+
+@dataclass
 class Model2:
     @dataclass
     class State:
