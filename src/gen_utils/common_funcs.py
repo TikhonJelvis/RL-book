@@ -3,10 +3,12 @@ import numpy as np
 VSML = 1e-8
 
 
+# noinspection PyShadowingNames,PyShadowingNames
 def get_logistic_func(alpha: float) -> Callable[[float], float]:
     return lambda x, alpha=alpha: 1. / (1 + np.exp(-alpha * x))
 
 
+# noinspection PyShadowingNames,PyShadowingNames
 def get_unit_sigmoid_func(alpha: float) -> Callable[[float], float]:
     return lambda x, alpha=alpha: 1. / (1 + (1 / np.where(x == 0, VSML, x) - 1) ** alpha)
 
@@ -20,7 +22,7 @@ if __name__ == '__main__':
     x_vals = np.arange(-3.0, 3.01, 0.01)
     y_vals = [f(x_vals) for f in logistics]
     plot_list_of_curves(
-        x_vals,
+        [x_vals] * len(logistics),
         y_vals,
         colors,
         labels,
@@ -34,7 +36,7 @@ if __name__ == '__main__':
     x_vals = np.arange(0.0, 1.01, 0.01)
     y_vals = [f(x_vals) for f in unit_sigmoids]
     plot_list_of_curves(
-        x_vals,
+        [x_vals] * len(logistics),
         y_vals,
         colors,
         labels,

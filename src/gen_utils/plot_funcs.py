@@ -3,7 +3,7 @@ import numpy as np
 
 
 def plot_list_of_curves(
-        x_vals,
+        list_of_x_vals,
         list_of_y_vals,
         list_of_colors,
         list_of_curve_labels,
@@ -12,16 +12,16 @@ def plot_list_of_curves(
         title=None
 ):
     plt.figure(figsize=(11, 7))
-    for i, y_vals in enumerate(list_of_y_vals):
+    for i, x_vals in enumerate(list_of_x_vals):
         plt.plot(
             x_vals,
-            y_vals,
+            list_of_y_vals[i],
             list_of_colors[i],
             label=list_of_curve_labels[i]
         )
     plt.axis((
-        min(x_vals),
-        max(x_vals),
+        min(map(min, list_of_x_vals)),
+        max(map(max, list_of_x_vals)),
         min(map(min, list_of_y_vals)),
         max(map(max, list_of_y_vals))
     ))
@@ -42,7 +42,7 @@ if __name__ == '__main__':
     colors = ["r", "b", "g"]
     labels = ["Linear", "Quadratic", "Log"]
     plot_list_of_curves(
-        x,
+        [x, x, x],
         y,
         colors,
         labels,

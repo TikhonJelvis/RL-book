@@ -1,9 +1,12 @@
 from dataclasses import dataclass
-from typing import Optional, Mapping, Callable
-import numpy as np
+from typing import Optional, Mapping, Callable, Sequence, Tuple
+from collections import Counter
 from numpy.random import binomial
 import itertools
+from operator import itemgetter
 from gen_utils.common_funcs import get_logistic_func, get_unit_sigmoid_func
+
+PriceSeq = Sequence[int]
 
 handy_map: Mapping[Optional[bool], int] = {True: -1, False: 1, None: 0}
 
@@ -15,7 +18,7 @@ class Process1:
         price: int
 
     level_param: int = 100  # level to which price mean-reverts
-    alpha1: float = 1.0  # strength of mean-reversion (value should be non-negative)
+    alpha1: float = 1.0  # strength of mean-reversion (non-negative value)
     logistic_f: Callable[[float], float] = get_logistic_func(alpha1)
 
     def up_prob(self, state: State):
@@ -33,7 +36,7 @@ class Process2:
         price: int
         previous_direction: Optional[bool]
 
-    alpha2: float = 0.7  # strength of reverse-pull(value in closed interval [0,1])
+    alpha2: float = 0.7  # strength of reverse-pull (value in  [0,1])
 
     def up_prob(self, state: State):
         return 0.5 * (1 + self.alpha2 * handy_map[state.previous_direction])
@@ -53,12 +56,13 @@ class Process3:
         num_up_moves: int
         num_down_moves: int
 
-    alpha3: float = 1.0  # strength of reverse-pull(value should be non-negative value)
+    alpha3: float = 1.0  # strength of reverse-pull (non-negative value)
     unit_sigmoid_f: Callable[[float], float] = get_unit_sigmoid_func(alpha3)
 
     def up_prob(self, state: State):
         total = state.num_up_moves + state.num_down_moves
-        return self.unit_sigmoid_f(state.num_down_moves / total) if total else 0.5
+        return self.unit_sigmoid_f(state.num_down_moves / total) if total\
+            else 0.5
 
     def next_state(self, state: State) -> State:
         up_move: int = binomial(1, self.up_prob(state), 1)[0]
@@ -75,37 +79,81 @@ def simulation(process, start_state):
         state = process.next_state(state)
 
 
-if __name__ == '__main__':
-    start_price: int = 100
-    steps = 100
+# noinspection PyShadowingNames
+def process1_price_traces(
+        start_price: int = 100,
+        level_param: int = 100,
+        alpha1: float = 1.0,
+        time_steps: int = 100,
+        num_traces: int = 100
+) -> Sequence[PriceSeq]:
+    process = Process1(level_param=level_param, alpha1=alpha1)
+    start_state = Process1.State(price=start_price)
+    return [[s.price for s in itertools.islice(simulation(process, start_state),
+                                               time_steps + 1)]
+            for _ in range(num_traces)]
 
-    process1 = Process1(level_param=100, alpha1=1.0)
-    process2 = Process2(alpha2=0.7)
-    process3 = Process3(alpha3=1.0)
 
-    process1_start_state = Process1.State(price=start_price)
-    process2_start_state = Process2.State(
-        price=start_price,
-        previous_direction=None
-    )
-    process3_start_state = Process3.State(
-        num_up_moves=0,
-        num_down_moves=0
-    )
+# noinspection PyShadowingNames
+def process2_price_traces(
+        start_price: int = 100,
+        alpha2: float = 0.7,
+        time_steps: int = 100,
+        num_traces: int = 100
+) -> Sequence[PriceSeq]:
+    process = Process2(alpha2=alpha2)
+    start_state = Process2.State(price=start_price, previous_direction=None)
+    return [[s.price for s in itertools.islice(simulation(process, start_state),
+                                               time_steps + 1)]
+            for _ in range(num_traces)]
 
-    sim1_gen = simulation(process1, process1_start_state)
-    sim2_gen = simulation(process2, process2_start_state)
-    sim3_gen = simulation(process3, process3_start_state)
 
-    sim1_prices = [s.price for s in itertools.islice(sim1_gen, steps + 1)]
-    sim2_prices = [s.price for s in itertools.islice(sim2_gen, steps + 1)]
-    sim3_prices = [start_price + s.num_up_moves - s.num_down_moves
-                   for s in itertools.islice(sim3_gen, steps + 1)]
+# noinspection PyShadowingNames
+def process3_price_traces(
+        start_price: int = 100,
+        alpha3: float = 1.0,
+        time_steps: int = 100,
+        num_traces: int = 100
+) -> Sequence[PriceSeq]:
+    process = Process3(alpha3=alpha3)
+    start_state = Process3.State(num_up_moves=0, num_down_moves=0)
+    return [[start_price + s.num_up_moves - s.num_down_moves for s
+             in itertools.islice(simulation(process, start_state), time_steps + 1)]
+            for _ in range(num_traces)]
 
+
+# noinspection PyShadowingNames
+def plot_single_trace_all_processes(
+        start_price: int = 100,
+        level_param: int = 100,
+        alpha1: float = 1.0,
+        alpha2: float = 0.7,
+        alpha3: float = 1.0,
+        time_steps: int = 100
+) -> None:
     from gen_utils.plot_funcs import plot_list_of_curves
+    s1 = process1_price_traces(
+        start_price=start_price,
+        level_param=level_param,
+        alpha1=alpha1,
+        time_steps=time_steps,
+        num_traces=1
+    )[0]
+    s2 = process2_price_traces(
+        start_price=start_price,
+        alpha2=alpha2,
+        time_steps=time_steps,
+        num_traces=1
+    )[0]
+    s3 = process3_price_traces(
+        start_price=start_price,
+        alpha3=alpha3,
+        time_steps=time_steps,
+        num_traces=1
+    )[0]
     plot_list_of_curves(
-        range(steps + 1),
-        [sim1_prices, sim2_prices, sim3_prices],
+        [range(time_steps + 1)] * 3,
+        [s1, s2, s3],
         ["r", "b", "g"],
         [
             "Based on Current Price",
@@ -114,5 +162,97 @@ if __name__ == '__main__':
         ],
         "Time Steps",
         "Stock Price",
-        "Simulation for 3 Processes"
+        "Single-Trace Simulation for Each Process"
     )
+
+
+def get_terminal_hist(
+        price_traces: Sequence[PriceSeq]
+) -> Tuple[Sequence[int], Sequence[int]]:
+    pairs = sorted(
+        list(Counter([s[-1] for s in price_traces]).items()),
+        key=itemgetter(0)
+    )
+    return [x for x, _ in pairs], [y for _, y in pairs]
+
+
+# noinspection PyShadowingNames
+def plot_distribution_at_time_all_processes(
+        start_price: int = 100,
+        level_param: int = 100,
+        alpha1: float = 1.0,
+        alpha2: float = 0.7,
+        alpha3: float = 1.0,
+        time_step: int = 100,
+        num_traces: int = 100
+) -> None:
+    from gen_utils.plot_funcs import plot_list_of_curves
+    s1 = process1_price_traces(
+        start_price=start_price,
+        level_param=level_param,
+        alpha1=alpha1,
+        time_steps=time_step,
+        num_traces=num_traces
+    )
+    x1, y1 = get_terminal_hist(s1)
+
+    s2 = process2_price_traces(
+        start_price=start_price,
+        alpha2=alpha2,
+        time_steps=time_step,
+        num_traces=num_traces
+    )
+    x2, y2 = get_terminal_hist(s2)
+
+    s3 = process3_price_traces(
+        start_price=start_price,
+        alpha3=alpha3,
+        time_steps=time_step,
+        num_traces=num_traces
+    )
+    x3, y3 = get_terminal_hist(s3)
+
+    plot_list_of_curves(
+        [x1, x2, x3],
+        [y1, y2, y3],
+        ["r", "b", "g"],
+        [
+            "Based on Current Price",
+            "Based on Previous Move",
+            "Based on Entire History"
+        ],
+        "Terminal Stock Price",
+        "Counts",
+        "Terminal Stock Price Counts (t=%d, %d traces)" % (time_steps, num_traces)
+    )
+
+
+if __name__ == '__main__':
+    start_price: int = 100
+    level_param: int = 100
+    alpha1: float = 1.0
+    alpha2: float = 0.7
+    alpha3: float = 1.0
+    time_steps: int = 100
+
+    plot_single_trace_all_processes(
+        start_price=start_price,
+        level_param=level_param,
+        alpha1=alpha1,
+        alpha2=alpha2,
+        alpha3=alpha3,
+        time_steps=time_steps
+    )
+
+    num_traces: int = 1000
+
+    plot_distribution_at_time_all_processes(
+        start_price=start_price,
+        level_param=level_param,
+        alpha1=alpha1,
+        alpha2=alpha2,
+        alpha3=alpha3,
+        time_step=time_steps,
+        num_traces=num_traces
+    )
+
