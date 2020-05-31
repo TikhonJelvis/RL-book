@@ -9,7 +9,7 @@ handy_map: Mapping[Optional[bool], int] = {True: -1, False: 1, None: 0}
 
 
 @dataclass
-class Model1:
+class Process1:
     @dataclass
     class State:
         price: int
@@ -23,11 +23,11 @@ class Model1:
 
     def next_state(self, state: State) -> State:
         up_move: int = binomial(1, self.up_prob(state), 1)[0]
-        return Model1.State(price=state.price + up_move * 2 - 1)
+        return Process1.State(price=state.price + up_move * 2 - 1)
 
 
 @dataclass
-class Model2:
+class Process2:
     @dataclass
     class State:
         price: int
@@ -40,14 +40,14 @@ class Model2:
 
     def next_state(self, state: State) -> State:
         up_move: int = binomial(1, self.up_prob(state), 1)[0]
-        return Model2.State(
+        return Process2.State(
             price=state.price + up_move * 2 - 1,
             previous_direction=bool(up_move)
         )
 
 
 @dataclass
-class Model3:
+class Process3:
     @dataclass
     class State:
         num_up_moves: int
@@ -62,40 +62,40 @@ class Model3:
 
     def next_state(self, state: State) -> State:
         up_move: int = binomial(1, self.up_prob(state), 1)[0]
-        return Model3.State(
+        return Process3.State(
             num_up_moves=state.num_up_moves + up_move,
             num_down_moves=state.num_down_moves + 1 - up_move
         )
 
 
-def simulation(model, start_state):
+def simulation(process, start_state):
     state = start_state
     while True:
         yield state
-        state = model.next_state(state)
+        state = process.next_state(state)
 
 
 if __name__ == '__main__':
     start_price: int = 100
     steps = 100
 
-    model1 = Model1(level_param=100, alpha1=1.0)
-    model2 = Model2(alpha2=0.7)
-    model3 = Model3(alpha3=1.0)
+    process1 = Process1(level_param=100, alpha1=1.0)
+    process2 = Process2(alpha2=0.7)
+    process3 = Process3(alpha3=1.0)
 
-    model1_start_state = Model1.State(price=start_price)
-    model2_start_state = Model2.State(
+    process1_start_state = Process1.State(price=start_price)
+    process2_start_state = Process2.State(
         price=start_price,
         previous_direction=None
     )
-    model3_start_state = Model3.State(
+    process3_start_state = Process3.State(
         num_up_moves=0,
         num_down_moves=0
     )
 
-    sim1_gen = simulation(model1, model1_start_state)
-    sim2_gen = simulation(model2, model2_start_state)
-    sim3_gen = simulation(model3, model3_start_state)
+    sim1_gen = simulation(process1, process1_start_state)
+    sim2_gen = simulation(process2, process2_start_state)
+    sim3_gen = simulation(process3, process3_start_state)
 
     sim1_prices = [s.price for s in itertools.islice(sim1_gen, steps + 1)]
     sim2_prices = [s.price for s in itertools.islice(sim2_gen, steps + 1)]
