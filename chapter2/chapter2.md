@@ -72,3 +72,4 @@ f(\frac {D_t} {U_t + D_t}; \alpha_3) & \text{if }U_{t+1} = U_t + 1, D_{t+1} = D_
 f(\frac {U_t} {U_t + D_t}; \alpha_3) & \text{if }U_{t+1} = U_t, D_{t+1} = D_t + 1 
 \end{cases}
 $$
+It is important to note that unlike Processes 1 and 2, the stock price $X_t$ is actually not part of the state $S_t$ in Process 3. This is because $U_t$ and $D_t$ provide sufficient information to obtain the stock price $X_t$ (since $X_t = X_0 + U_t - D_t$, note $X_0$ is provided as a constant).
