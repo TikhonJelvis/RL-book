@@ -17,12 +17,12 @@ class Process1:
     class State:
         price: int
 
-    level_param: int = 100  # level to which price mean-reverts
-    alpha1: float = 1.0  # strength of mean-reversion (non-negative value)
-    logistic_f: Callable[[float], float] = get_logistic_func(alpha1)
+    level_param: int  # level to which price mean-reverts
+    alpha1: float = 0.25  # strength of mean-reversion (non-negative value)
+    # logistic_f: Callable[[float], float] = get_logistic_func(alpha1)
 
     def up_prob(self, state: State):
-        return self.logistic_f(self.level_param - state.price)
+        return get_logistic_func(self.alpha1)(self.level_param - state.price)
 
     def next_state(self, state: State) -> State:
         up_move: int = binomial(1, self.up_prob(state), 1)[0]
@@ -36,7 +36,7 @@ class Process2:
         price: int
         previous_direction: Optional[bool]
 
-    alpha2: float = 0.7  # strength of reverse-pull (value in  [0,1])
+    alpha2: float = 0.75  # strength of reverse-pull (value in  [0,1])
 
     def up_prob(self, state: State):
         return 0.5 * (1 + self.alpha2 * handy_map[state.previous_direction])
@@ -57,11 +57,11 @@ class Process3:
         num_down_moves: int
 
     alpha3: float = 1.0  # strength of reverse-pull (non-negative value)
-    unit_sigmoid_f: Callable[[float], float] = get_unit_sigmoid_func(alpha3)
+    # unit_sigmoid_f: Callable[[float], float] = get_unit_sigmoid_func(alpha3)
 
     def up_prob(self, state: State):
         total = state.num_up_moves + state.num_down_moves
-        return self.unit_sigmoid_f(state.num_down_moves / total) if total\
+        return get_unit_sigmoid_func(alpha3)(state.num_down_moves / total) if total\
             else 0.5
 
     def next_state(self, state: State) -> State:
@@ -81,11 +81,11 @@ def simulation(process, start_state):
 
 # noinspection PyShadowingNames
 def process1_price_traces(
-        start_price: int = 100,
-        level_param: int = 100,
-        alpha1: float = 1.0,
-        time_steps: int = 100,
-        num_traces: int = 100
+        start_price: int,
+        level_param: int,
+        alpha1: float,
+        time_steps: int,
+        num_traces: int
 ) -> Sequence[PriceSeq]:
     process = Process1(level_param=level_param, alpha1=alpha1)
     start_state = Process1.State(price=start_price)
@@ -96,10 +96,10 @@ def process1_price_traces(
 
 # noinspection PyShadowingNames
 def process2_price_traces(
-        start_price: int = 100,
-        alpha2: float = 0.7,
-        time_steps: int = 100,
-        num_traces: int = 100
+        start_price: int,
+        alpha2: float,
+        time_steps: int,
+        num_traces: int
 ) -> Sequence[PriceSeq]:
     process = Process2(alpha2=alpha2)
     start_state = Process2.State(price=start_price, previous_direction=None)
@@ -110,10 +110,10 @@ def process2_price_traces(
 
 # noinspection PyShadowingNames
 def process3_price_traces(
-        start_price: int = 100,
-        alpha3: float = 1.0,
-        time_steps: int = 100,
-        num_traces: int = 100
+        start_price: int,
+        alpha3: float,
+        time_steps: int,
+        num_traces: int
 ) -> Sequence[PriceSeq]:
     process = Process3(alpha3=alpha3)
     start_state = Process3.State(num_up_moves=0, num_down_moves=0)
@@ -124,12 +124,12 @@ def process3_price_traces(
 
 # noinspection PyShadowingNames
 def plot_single_trace_all_processes(
-        start_price: int = 100,
-        level_param: int = 100,
-        alpha1: float = 1.0,
-        alpha2: float = 0.7,
-        alpha3: float = 1.0,
-        time_steps: int = 100
+        start_price: int,
+        level_param: int,
+        alpha1: float,
+        alpha2: float,
+        alpha3: float,
+        time_steps: int
 ) -> None:
     from gen_utils.plot_funcs import plot_list_of_curves
     s1 = process1_price_traces(
@@ -178,13 +178,13 @@ def get_terminal_hist(
 
 # noinspection PyShadowingNames
 def plot_distribution_at_time_all_processes(
-        start_price: int = 100,
-        level_param: int = 100,
-        alpha1: float = 1.0,
-        alpha2: float = 0.7,
-        alpha3: float = 1.0,
-        time_step: int = 100,
-        num_traces: int = 100
+        start_price: int,
+        level_param: int,
+        alpha1: float,
+        alpha2: float,
+        alpha3: float,
+        time_step: int,
+        num_traces: int
 ) -> None:
     from gen_utils.plot_funcs import plot_list_of_curves
     s1 = process1_price_traces(
@@ -230,8 +230,8 @@ def plot_distribution_at_time_all_processes(
 if __name__ == '__main__':
     start_price: int = 100
     level_param: int = 100
-    alpha1: float = 1.0
-    alpha2: float = 0.7
+    alpha1: float = 0.25
+    alpha2: float = 0.75
     alpha3: float = 1.0
     time_steps: int = 100
 
