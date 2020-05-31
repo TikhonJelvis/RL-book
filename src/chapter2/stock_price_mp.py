@@ -1,8 +1,9 @@
 from dataclasses import dataclass
-from typing import Optional, Mapping
+from typing import Optional, Mapping, Callable
 import numpy as np
 from numpy.random import binomial
 import itertools
+from gen_utils.common_funcs import get_logistic_func, get_unit_sigmoid_func
 
 handy_map: Mapping[Optional[bool], int] = {True: -1, False: 1, None: 0}
 
@@ -15,9 +16,10 @@ class Model1:
 
     level_param: int = 100  # level to which price mean-reverts
     alpha1: float = 1.0  # strength of mean-reversion (value should be non-negative)
+    logistic_f: Callable[[float], float] = get_logistic_func(alpha1)
 
     def up_prob(self, state: State):
-        return 1. / (1 + np.exp(state.price - self.level_param))
+        return self.logistic_f(self.level_param - state.price)
 
     def next_state(self, state: State) -> State:
         up_move: int = binomial(1, self.up_prob(state), 1)[0]
@@ -48,21 +50,19 @@ class Model2:
 class Model3:
     @dataclass
     class State:
-        price: int
         num_up_moves: int
         num_down_moves: int
 
     alpha3: float = 1.0  # strength of reverse-pull(value should be non-negative value)
+    unit_sigmoid_f: Callable[[float], float] = get_unit_sigmoid_func(alpha3)
 
     def up_prob(self, state: State):
         total = state.num_up_moves + state.num_down_moves
-        arg: float = state.num_down_moves / total if total else 0.5
-        return
+        return self.unit_sigmoid_f(state.num_down_moves / total) if total else 0.5
 
     def next_state(self, state: State) -> State:
         up_move: int = binomial(1, self.up_prob(state), 1)[0]
         return Model3.State(
-            price=state.price + up_move * 2 - 1,
             num_up_moves=state.num_up_moves + up_move,
             num_down_moves=state.num_down_moves + 1 - up_move
         )
@@ -81,7 +81,7 @@ if __name__ == '__main__':
 
     model1 = Model1(level_param=100, alpha1=1.0)
     model2 = Model2(alpha2=0.7)
-    model3 = Model3()
+    model3 = Model3(alpha3=1.0)
 
     model1_start_state = Model1.State(price=start_price)
     model2_start_state = Model2.State(
@@ -89,7 +89,6 @@ if __name__ == '__main__':
         previous_direction=None
     )
     model3_start_state = Model3.State(
-        price=start_price,
         num_up_moves=0,
         num_down_moves=0
     )
@@ -100,7 +99,8 @@ if __name__ == '__main__':
 
     sim1_prices = [s.price for s in itertools.islice(sim1_gen, steps + 1)]
     sim2_prices = [s.price for s in itertools.islice(sim2_gen, steps + 1)]
-    sim3_prices = [s.price for s in itertools.islice(sim3_gen, steps + 1)]
+    sim3_prices = [start_price + s.num_up_moves - s.num_down_moves
+                   for s in itertools.islice(sim3_gen, steps + 1)]
 
     from gen_utils.plot_funcs import plot_list_of_curves
     plot_list_of_curves(
