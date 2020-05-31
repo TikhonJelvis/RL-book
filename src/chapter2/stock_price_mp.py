@@ -19,7 +19,7 @@ class Process1:
     level_param: int  # level to which price mean-reverts
     alpha1: float = 0.25  # strength of mean-reversion (non-negative value)
 
-    def up_prob(self, state: State):
+    def up_prob(self, state: State) -> float:
         return get_logistic_func(self.alpha1)(self.level_param - state.price)
 
     def next_state(self, state: State) -> State:
@@ -36,7 +36,7 @@ class Process2:
 
     alpha2: float = 0.75  # strength of reverse-pull (value in  [0,1])
 
-    def up_prob(self, state: State):
+    def up_prob(self, state: State) -> float:
         return 0.5 * (1 + self.alpha2 * handy_map[state.is_prev_move_up])
 
     def next_state(self, state: State) -> State:
@@ -56,7 +56,7 @@ class Process3:
 
     alpha3: float = 1.0  # strength of reverse-pull (non-negative value)
 
-    def up_prob(self, state: State):
+    def up_prob(self, state: State) -> float:
         total = state.num_up_moves + state.num_down_moves
         return get_unit_sigmoid_func(self.alpha3)(state.num_down_moves / total)\
             if total else 0.5
