@@ -159,9 +159,9 @@ def plot_single_trace_all_processes(
         [s1, s2, s3],
         ["r", "b", "g"],
         [
-            "Based on Current Price",
-            "Based on Previous Move",
-            "Based on Entire History"
+            r"Process 1 ($\alpha_1=0.25$)",
+            r"Process 2 ($\alpha_2=0.75$)",
+            r"Process 3 ($\alpha_3=1.0$)"
         ],
         "Time Steps",
         "Stock Price",
@@ -220,13 +220,13 @@ def plot_distribution_at_time_all_processes(
         [y1, y2, y3],
         ["r", "b", "g"],
         [
-            "Based on Current Price",
-            "Based on Previous Move",
-            "Based on Entire History"
+            r"Process 1 ($\alpha_1=0.25$)",
+            r"Process 2 ($\alpha_2=0.75$)",
+            r"Process 3 ($\alpha_3=1.0$)"
         ],
         "Terminal Stock Price",
         "Counts",
-        "Terminal Stock Price Counts (t=%d, %d traces)" % (time_steps, num_traces)
+        "Terminal Price Counts (T=%d, Traces=%d)" % (time_steps, num_traces)
     )
 
 
