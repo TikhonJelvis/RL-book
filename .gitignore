@@ -6,3 +6,9 @@
 
 # Python
 .venv
+
+# LaTeX files
+*.aux
+*.dvi
+*.log
+*.out.ps
