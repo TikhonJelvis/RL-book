@@ -6,6 +6,7 @@ cycler==0.10.0
 decorator==4.4.2
 defusedxml==0.6.0
 entrypoints==0.3
+graphviz==0.14
 ipykernel==5.3.0
 ipython==7.14.0
 ipython-genutils==0.2.0
