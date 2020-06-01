@@ -17,6 +17,15 @@
 % electrical engineering diagrams, musical notation, exotic currency symbols,
 % the unspeakable rites of freemasonry etc.
 
+\usepackage{amsthm}
+
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{corollary}{Corollary}[theorem]
+\newtheorem{lemma}[theorem]{Lemma}
+\theoremstyle{definition}
+\newtheorem{definition}{Definition}[section]
+\theoremstyle{remark}
+\newtheorem*{remark}{Remark}
 
 % `babel`: 
 % The `babel` package, among other things, lets you determine what 

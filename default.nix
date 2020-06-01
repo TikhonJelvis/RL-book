@@ -6,6 +6,7 @@ let
       scheme-medium
       footmisc
       titling
+      xpatch
       noto;
   };
   fonts = pkgs.makeFontsConf {
