@@ -6,6 +6,7 @@
 
 # Python
 .venv
+.mypy_cache
 
 # LaTeX files
 *.aux
