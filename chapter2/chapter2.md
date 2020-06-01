@@ -234,9 +234,10 @@ As suggested for Process 1, you can plot graphs of simulation traces of the stoc
 
 Having developed the intuition for the Markov Property of States, we are now ready to formalize the notion of Markov Processes (some of the literature refers to Markov Processes as Markov Chains, but we will stick with the term Markov Processes).
 
-## Formalism of Markov Processes
+## Formal Definitions
 Here we will consider discrete-time Markov Processes, where time moves forward in discrete time steps $t=0, 1, 2, \ldots$. This book will also consider a few cases of continuous-time Markov Processes, where time is  continuous variable (this leads to stochastic calculus, which is the foundation of some of the ground-breaking work in Mathematical Finance). However, for now, we define discrete-time Markov Processes as they are fairly common and also much easier to develop intuition for.
 
+### Discrete-Time Markov Processes
 \begin{definition}[Discrete-Time Markov Process]
 A Discrete-Time Markov Process consists of:
 \begin{itemize}
@@ -246,6 +247,22 @@ A Discrete-Time Markov Process consists of:
  \end{itemize}
  \end{definition}
 
-There's a few nuances to understand here.
+### Discrete-Time Stationary Markov Processes
+- Stationary MP is a MP with the additional property that $\mathbb{P}[S_{t+1}=s'|S_t=s]$ is independent of $t$
+- Then we can write $\mathcal{P}(s,s') : \mathcal{S} \times \mathcal{S} \rightarrow [0,1]$ with the property that $\sum_{s'\in \mathcal{S}} \mathcal{P}(s,s') = 1$ for all $s \in \mathcal{S}$ 
+- Including time in State auotmatically makes it a stationary markov process
+- So by default when we say Markov Process, we mean a Discrete-Time Stationary Markov Process and work with the $\mathcal{P}(s,s')$ function
+
+### Initial Distribution
+
+### Absorbing States
+- $s$ is an absorbing state if $\mathcal{P}(s,s) = 1$
+
+### Finite states
+- Data structure representation
+- Tabular algorithms
+
+### Stationary Distribution
+- Conditions under which a Stationary Distribution exists
 
 ## An Inventory Example of a Markov Process
