@@ -52,7 +52,7 @@ class Process1:
 
 Next, we write a simple simulator using Python's generator functionality (using `yield') as follows:
 
-```
+```python
 def simulation(process, start_state):
     state = start_state
     while True:
@@ -62,7 +62,7 @@ def simulation(process, start_state):
 
 Now we can use this simulator function to generate simulation traces. In the following code, we generate `num_traces` number of simulation traces over `time_steps` number of time steps starting from a price $X_0$ of `start_price`. The use of Python's generator feature lets us do this "lazily" (on-demand) using the ``itertools.islice`` function.
 
-```
+```python
 def process1_price_traces(
         start_price: int,
         level_param: int,
@@ -101,7 +101,7 @@ Note that if we had modeled the state $S_t$ as the entire stock price history $(
  
  The corresponding dataclass for Process 2 is shown below:
  
- ```
+ ```python
 @dataclass
 class Process2:
     @dataclass
@@ -124,7 +124,7 @@ class Process2:
 
 The code for generation of simulation traces of the stock price is almost identical to the code we wrote for Process 1.
 
-```
+```python
 def process2_price_traces(
         start_price: int,
         alpha2: float,
@@ -174,7 +174,7 @@ It is important to note that unlike Processes 1 and 2, the stock price $X_t$ is 
 
 The corresponding dataclass for Process 2 is shown below:
 
-```
+```python
 @dataclass
 class Process3:
     @dataclass
@@ -202,7 +202,7 @@ class Process3:
 ```
 The code for generation of simulation traces of the stock price is shown below:
 
-```
+```python
 def process3_price_traces(
         start_price: int,
         alpha3: float,
