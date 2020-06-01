@@ -237,12 +237,14 @@ Having developed the intuition for the Markov Property of States, we are now rea
 ## Formalism of Markov Processes
 Here we will consider discrete-time Markov Processes, where time moves forward in discrete time steps $t=0, 1, 2, \ldots$. This book will also consider a few cases of continuous-time Markov Processes, where time is  continuous variable (this leads to stochastic calculus, which is the foundation of some of the ground-breaking work in Mathematical Finance). However, for now, we define discrete-time Markov Processes as they are fairly common and also much easier to develop intuition for.
 
-A **Discrete-Time Markov Process** consists of:
+\begin{definition}[Discrete-Time Markov Process]
+A Discrete-Time Markov Process consists of:
 \begin{itemize}
 \item A countable set of states $\mathcal{S}$
  \item A time-indexed sequence of random variables $S_t$ for each time $t=0, 1, 2, \ldots$, with each $S_t$ taking values in the set $\mathcal{S}$
  \item $\mathbb{P}[S_{t+1}|S_t, S_{t-1}, \ldots, S_0] = \mathbb{P}[S_{t+1}|S_t]$ for all $t \geq 0$
  \end{itemize}
+ \end{definition}
 
 There's a few nuances to understand here.
 
