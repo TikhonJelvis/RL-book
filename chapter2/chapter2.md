@@ -278,7 +278,7 @@ We say that a Markov Process is fully specified by $\mathcal{P}$ in the sense th
 Thinking about games might make you wonder how we'd represent the fact that games have *ending rules* (rules for winning or losing the game). This brings up the notion of "terminal states". "Terminal states" might occur at any of a variety of time steps (like in the games examples), or like we will see in many financial application examples, termination might occur after a fixed number of time steps. So do we need to specify that certain states are "terminal states"? Yes, we do, but we won't explicitly mark them as "terminal states". Instead, we will build this "termination" feature in $\mathcal{P}$ as follows (note that the technical term for "terminal states" is *Absorbing States* due to the following construction of $\mathcal{P}$).
 
 \begin{definition}[Absorbing States]
-A state $s\in \mathcal{S}$ is an *Absorbing State* if $\mathcal{P}(s,s) = 1$
+A state $s\in \mathcal{S}$ is an {\em Absorbing State} if $\mathcal{P}(s,s) = 1$
 \end{definition}
 
 So instead of thinking of the Markov Process as "terminating", we can simply imagine that the Markov Process keeps cycling with 100% probability at this "terminal state". This notion of being trapped in the state (not being able to escape to another state) is the reason we call it an Absorbing State. 
@@ -305,6 +305,71 @@ We leave it as an exercise for you to work out the state transition probabilitie
 ![Simple Inventory Markov Process \label{fig:dining_table_mp}](./chapter2/simple_inv_mp.png "Simple Inventory Markov Process")
 </div>
 
-### Stationary Distribution
-* Conditions under which a Stationary Distribution exists
+Now let's represent this Markov Process in code. First we order the states in a list of $(OH, OO)$ pairs as follows:
+
+```python
+states = [
+    (0, 0),
+    (0, 1),
+    (1, 0),
+    (1, 1),
+    (2, 0)
+]
+```
+Next, we represent the transition probabilities as a numpy 2D array (5 x 5 matrix) whose rows are the source states, columns are the destination states and the matrix entries are the probabilities of transition from source state to destination state (probabilities correspond to what we see in Figure \ref{fig:dining_table.png}. Note that the sum of each row equals 1.
+
+```python
+transition_probabilities = np.array(
+    [
+        [0., 1., 0., 0., 0.],
+        [0., .8, 0., .2, 0.],
+        [.8, 0., .2, 0., 0.],
+        [.2, 0., .6, 0., .2],
+        [.2, 0., .6, 0., .2]
+    ]
+)
+```
+We can perform a number of interesting experiments and calculations with this simple Markov Process and indeed, there is a rich and interesting theory for such finite states Markov Processes. However, we will not get into this theory as our coverage of Markov Processes so far is a sufficient building block to take us to the incremental topics of Markov Reward Processes and Markov Decision Processes. However, before we move on, we'd like to show just a glimpse of the rich theory with the calculation of *Stationary Probabilities* for the above simple inventory Markov Process.
+
+### Stationary Distribution of a Finite-States Markov Process
+\begin{definition} 
+ The {\em Stationary Distribution} of a Finite-States (Stationary) Markov Process with state space $\mathcal{S}$ (with $|\mathcal{S}| = n$) and transition probabilities function $\mathcal{P}: \mathcal{S} \times \mathcal{S} \rightarrow [0, 1]$ is a probability distribution function $\pi: \mathcal{S} \rightarrow [0, 1]$ such that:
+  $$\sum_{i=1}^n \pi(s_i) \cdot \mathcal{P}(s_i, s_j) = \pi(s_j) \text{ for all } j = 1, 2, \ldots n$$
+\end{definition}
+
+The intuitive view of the stationary distribution is that if we let the Markov Process run forever, then in the long run the states occur with relative frequencies (probabilities) given by $\pi$. If we take a particular state $s_j$, then probability of occurrence of $s_j$ at a time step far out in the future (asymptotic in time) should be equal to the sum-product of probabilities of occurrence of all the states at the previous time step and the transition probabilities from those states to $s_j$. This should hold for all states $s_j$, and that is exactly the statement of the definition of *Stationary Distribution*.
+
+Abusing notation, let us refer to $\pi$ as a column vector of length $n$ and let us refer to $\mathcal{P}$ as the $n \times n$ transition probabilities matrix. Then, the statement of the above definition can be succinctly expressed as:
+
+$$\pi^T \cdot \mathcal{P} = \pi^T$$
+which can be re-written as:
+$$\mathcal{P}^T \cdot \pi = \pi$$
+But this is simply saying that $\pi$ is an eigenvector of $\mathcal{P}^T$ with eigenvalue of 1. So then, it should be easy to infer the stationary distribution from an eigenvectors and eigenvalues calculation of $\mathcal{P}^T$. Let us do this calculation for the matrix we set up above for the simple inventory Markov Process.
+
+```python
+eig_vals, eig_vecs = np.linalg.eig(transition_probabilities.T)
+```
+
+We will skip the theory that tells us about the conditions under which a stationary distribution is well-defined, or the conditions under which there is a unique stationary distribution. Instead, we will just go ahead with this calculation here assuming this Markov Process satisfies those conditions (it does!). So, we seek the index of the `eig_vals` vector with eigenvalue equal to 1 (accounting for floating-point error).
+
+```python
+index_of_first_unit_eig_val = np.where(np.abs(eig_vals - 1) < 1e-8)[0][0]
+```
+Next, we pull out the column of the ``eig_vecs`` matrix at the ```eig_val``` index calculated above, and convert it into a real-valued vector (eigenvectors/eigenvalues calculations are in general complex numbers calculations, see the reference for the ``np.linalg.eig`` function). So this gives us the real-valued eigenvector with eigenvalue equal to 1.
+
+```python
+eig_vec_of_unit_eig_val = np.real(eig_vecs[:, index_of_first_unit_eig_val])
+```
+
+And finally, we have to normalize the eigenvector so it's values add up to 1 (since, we want probabilities), and arrange these probabilities as values in a dictionary whose keys are the corresponding states.
+
+```python
+stationary_probabilities = {states[i]: ev for i, ev in
+                            enumerate(eig_vec_of_unit_eig_val /
+                                      sum(eig_vec_of_unit_eig_val))}
+```
+
+Now we are ready to move to our next topic: *Markov Reward Processes*
+
+## Markov Reward Processes
 
