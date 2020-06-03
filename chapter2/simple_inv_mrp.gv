@@ -1,0 +1,36 @@
+digraph simple_inventory
+{
+  /*
+  Sequence of events in a day:
+  1: Observe State (On-hand, On-Order) denoted as (OH, OO)
+  2: Take Action (denoted as O): Order 1 unit if OH=0, otherwise order 0
+  3: Record Reward as negative of holding cost of 1 per unit of on-hand inventory
+  4: Received order quantity that was placed the previous day
+  5: Experience random demand with probabilities:  P(0) = 0.2, P(1) = 0.6, P(2) = 0.2
+  6: Record Reward as negative of stockout cost of 10 per unit of missed sale from demand
+  */
+  layout="circo"
+  A [label="OH=0,OO=0", color=Red, fontcolor=Red]
+  B [label="OH=1,OO=0", color=Blue, fontcolor=Blue]
+  C [label="OH=2,OO=0", color=darkgreen, fontcolor=darkgreen]
+  D [label="OH=0,OO=1", color=Brown, fontcolor=Brown]
+  E [label="OH=1,OO=1", color=Purple, fontcolor=Purple]
+
+  A->D [label="p = 1\nr = -10", color=Red, fontcolor=Red]
+
+  B->A [label="p = 0.8\nr = -3.5", color=Blue, fontcolor=Blue]
+  B->B [label="p = 0.2\nr = -1", color=Blue, fontcolor=Blue]
+
+  C->A [label="p = 0.2\nr = -2", color=darkgreen, fontcolor=darkgreen]
+  C->B [label="p = 0.6\nr = -2", color=darkgreen, fontcolor=darkgreen]
+  C->C [label="p = 0.2\nr = -2", color=darkgreen, fontcolor=darkgreen]
+
+  D->D [label="p = 0.8\nr = -2.5", color=Brown, fontcolor=Brown]
+  D->E [label="p = 0.2\nr = 0", color=Brown, fontcolor=Brown]
+  
+  E->A [label="p = 0.2\nr = -1", color=Purple, fontcolor=Purple]
+  E->B [label="p = 0.6\nr = -1", color=Purple, fontcolor=Purple]
+  E->C [label="p = 0.2\nr = -1", color=Purple, fontcolor=Purple]
+}
+
+
