@@ -235,34 +235,76 @@ As suggested for Process 1, you can plot graphs of simulation traces of the stoc
 Having developed the intuition for the Markov Property of States, we are now ready to formalize the notion of Markov Processes (some of the literature refers to Markov Processes as Markov Chains, but we will stick with the term Markov Processes).
 
 ## Formal Definitions
-Here we will consider discrete-time Markov Processes, where time moves forward in discrete time steps $t=0, 1, 2, \ldots$. This book will also consider a few cases of continuous-time Markov Processes, where time is  continuous variable (this leads to stochastic calculus, which is the foundation of some of the ground-breaking work in Mathematical Finance). However, for now, we define discrete-time Markov Processes as they are fairly common and also much easier to develop intuition for.
+
+Here we will consider Discrete-Time Markov Processes, where time moves forward in discrete time steps $t=0, 1, 2, \ldots$. This book will also consider a few cases of continuous-time Markov Processes, where time is a continuous variable (this leads to stochastic calculus, which is the foundation of some of the ground-breaking work in Mathematical Finance). However, for now, we will formally define Discrete-Time Markov Processes as they are fairly common and also much easier to develop intuition for.
 
 ### Discrete-Time Markov Processes
-\begin{definition}[Discrete-Time Markov Process]
-A Discrete-Time Markov Process consists of:
+
+\begin{definition}
+A {\em Discrete-Time Markov Process} consists of:
 \begin{itemize}
 \item A countable set of states $\mathcal{S}$
  \item A time-indexed sequence of random variables $S_t$ for each time $t=0, 1, 2, \ldots$, with each $S_t$ taking values in the set $\mathcal{S}$
  \item $\mathbb{P}[S_{t+1}|S_t, S_{t-1}, \ldots, S_0] = \mathbb{P}[S_{t+1}|S_t]$ for all $t \geq 0$
  \end{itemize}
  \end{definition}
+ 
+ We refer to $\mathbb{P}[S_{t+1}|S_t]$ as the transition probabilities for time $t$.
 
 ### Discrete-Time Stationary Markov Processes
-- Stationary MP is a MP with the additional property that $\mathbb{P}[S_{t+1}=s'|S_t=s]$ is independent of $t$
-- Then we can write $\mathcal{P}(s,s') : \mathcal{S} \times \mathcal{S} \rightarrow [0,1]$ with the property that $\sum_{s'\in \mathcal{S}} \mathcal{P}(s,s') = 1$ for all $s \in \mathcal{S}$ 
-- Including time in State auotmatically makes it a stationary markov process
-- So by default when we say Markov Process, we mean a Discrete-Time Stationary Markov Process and work with the $\mathcal{P}(s,s')$ function
 
-### Initial Distribution
+\begin{definition}
+A {\em Discrete-Time Stationary Markov Process} is a Discrete-Time Markov Process with the additional property that
+$\mathbb{P}[S_{t+1}|S_t]$ is independent of $t$.
+ \end{definition}
+ 
+ This means, the dynamics of a Discrete-Time Stationary Markov Process can be fully specified with the function $$\mathcal{P}: \mathcal{S} \times \mathcal{S} \rightarrow [0,1]$$ such that $\mathcal{P}(s, s') = \mathbb{P}[S_{t+1}=s'|S_t=s]$ for all $s, s' \in \mathcal{S}$. Hence, $\sum_{s'\in \mathcal{S}} \mathcal{P}(s,s') = 1$ for all $s \in \mathcal{S}$. We refer to the function $\mathcal{P}$ as the transition probabilities function of the Stationary Markov Process, with the first argument to $\mathcal{P}$ to be thought of as the "source" state and the second argument as the "destination" state.
+ 
+Note that this specification is devoid of the time index $t$ (hence, the term *Stationary* which means "time-invariant"). Moreover, note that a non-Stationary Markov Process can be converted to a Stationary Markov Process by augmenting all states with the time index $t$. This means if the original state space of a non-Stationary Markov Process was $\mathcal{S}$, then the state space of the corresponding Stationary Markov Process is $\mathbb{Z}_{\geq 0} \times \mathcal{S}$ (where $\mathbb{Z}_{\geq 0}$ denotes the domain of the time index). This is because each time step has it's own unique set of (augmented) states, which means the entire set of states in $\mathbb{Z}_{\geq 0} \times \mathcal{S}$ can be covered by time-invariant transition probabilities, thus qualifying as a Stationary Markov Process. Therefore, henceforth, any time we say *Markov Process*, assume we are refering to a Discrete-Time Stationary Markov Process (unless explicitly specified otherwise), which in turn will be characterized by the transition probabilities function $\mathcal{P}$. Note that the stock price examples (all 3 of the Processes we covered) are examples of a (Discrete-Time Stationary) Markov Process, even without requiring augmenting the state with the time index.
+
+### Starting States
+
+Now it's natural to ask the question how do we "start" the Markov Process (in the stock price examples, this was the notion of the start state). More generally, we'd like to specify a probability distribution of start states so we can perform simulations and (let's say) compute the probability distribution of states at specific future time steps. While this is a relevant question, we'd like to separate the following two specifications:
+
+* Specification of the transition probability function $\mathcal{P}$
+* Specification of the probability distribution of start states (denote this as $\mu: \mathcal{S} \rightarrow [0,1]$)
+
+We say that a Markov Process is fully specified by $\mathcal{P}$ in the sense that this gives us the transition probabilities that govern the complete dynamics of the Markov Process. A way to understand this is to relate specification of $\mathcal{P}$ to the specification of rules in a game (such as chess or monopoly). These games are specified with a finite (in fact, fairly compact) set of rules that is easy for a newbie to the game to understand. However, when we want to *actually play* the game, we need to specify the starting position (one could start these games at arbitrary, but legal, starting positions and not just at some canonical starting position). The specification of the start state of the game is analogous to the specification of $\mu$. Given $\mu$ together with $\mathcal{P}$ enables us to generate simulate traces of the Markov Process (analogously, *play* games like chess or monopoly). These simulation traces typically result in a wide range of outcomes due to sampling and long-running of the Markov Process (versus compact specification of transition probabilities). These simulation traces enable us to answer questions such as probability distribution of states at specific future time steps or expected time of first occurrence of a specific state etc., given a certain starting probability distribution $\mu$.
+ 
+ Thinking about the separation between specifying the rules of the game versus actually playing the game helps us understand the need to separate the notion of dynamics specification $\mathcal{P}$ (fundamental to the stationary character of the Markov Chain) and the notion of starting distribution $\mu$ (required to perform simulation traces). Hence, the separation of concerns between $\mathcal{P}$ and $\mu$ is key to the conceptualization of Markov Chains. Likewise, we separate concerns in our code design as well, as evidenced by how we separated the ``next state`` method in the Process dataclasses and the ``simulation`` function.
 
 ### Absorbing States
-- $s$ is an absorbing state if $\mathcal{P}(s,s) = 1$
 
-### Finite states
-- Data structure representation
-- Tabular algorithms
+Thinking about games might make you wonder how we'd represent the fact that games have *ending rules* (rules for winning or losing the game). This brings up the notion of "terminal states". "Terminal states" might occur at any of a variety of time steps (like in the games examples), or like we will see in many financial application examples, termination might occur after a fixed number of time steps. So do we need to specify that certain states are "terminal states"? Yes, we do, but we won't explicitly mark them as "terminal states". Instead, we will build this "termination" feature in $\mathcal{P}$ as follows (note that the technical term for "terminal states" is *Absorbing States* due to the following construction of $\mathcal{P}$).
+
+\begin{definition}[Absorbing States]
+A state $s\in \mathcal{S}$ is an *Absorbing State* if $\mathcal{P}(s,s) = 1$
+\end{definition}
+
+So instead of thinking of the Markov Process as "terminating", we can simply imagine that the Markov Process keeps cycling with 100% probability at this "terminal state". This notion of being trapped in the state (not being able to escape to another state) is the reason we call it an Absorbing State. 
+
+When we consider some of the financial applications later in this book, we will find that the Markov Process "terminates" after a fixed number of time steps, say $T$. In these applications, the time index $t$ is part of the state and each state with the time index $t=T$ will be constructed to be an absorbing state. All other states with time index $t<T$ will transition to states with time index $t+1$. In fact, you could take each of the 3 Processes seen earlier for stock price movement and add a feature that the forward movement in time terminates at some fixed time step $T$. Then, we'd have to include $t$ in the state representation simply to specify that states with time index $T$ will transition to themselves with 100% probability (note that in these examples the time index $t$ doesn't influence the transition probabilities for states with $t<T$, so these processes are stationary until $t=T-1$.)
+
+### Finite State Space
+Now let us consider the case of the state space being finite, i.e., $\mathcal{S} = \{s_1, s_2, \ldots, s_n\}$. Finite state space enables us to represent $\mathcal{P}$ in a finite data structure in our code, as a dictionary or as a matrix or as a directed graph. This is rather convenient for visualization and also for performing certain types of calculations involving Markov Processes. The directed graph view is quite common in helping visualize Markov Processes. Also, the $n \times n$ matrix representation (representing transition probabilities as the elements in the matrix) is very useful in answering common questions about the dynamics of a Markov Process (we shall soon see examples of this). 
+
+To help conceptualize this, let us consider a simple inventory example involving just 5 states. Assume you are the store manager for a furniture store and tasked with controlling the ordering of inventory from a supplier. Let us focus on the inventory of a particular type of dining table. Assume that each day there is random demand (denoted as $D$) for the dining table with the probabilities of demand as follows:
+$$\mathbb{P}[D=0] = 0.2, \mathbb{P}[D=0] = 0.6, \mathbb{P}[D=2] = 0.2$$
+Assume that you can order only a single dining table on any day because the delivery truck cannot carry more than one dining table. Each evening at 6pm when your store closes, you decide to either order a single dining table or not order. If you order, the dining table delivery will arrive 36 hours later (at 6am the day after the day after you order - we refer to this as *delivery lead time* of 36 hours). Assume your ordering policy is as follows: you don't order if you have at least one dining table in your store and you order a single dining table if you have no dining tables left in your store. This inventory system can be modeled as a Markov Chain where tha *State* is given by a pair of integers $(OH, OO)$ where $OH$ refers to the on-hand units of the dining table on a given evening at 6pm ($OH=0$ or $1$ or $2$) and $OO$ refers to the on-order units of the dining table ($OO=0$ or $1$). If $OO=1$, this means a single unit of the dining table was ordered 24 hours ago and that now it's on a truck due to arrive 12 hours later (at 6am the next morning). The sequence of events is:
+
+* Observe the $(OH, OO)$ *State* at 6pm
+* Order according to the policy described above
+* Receive a dining table at 6am if you had ordered a dining table 36 hours ago
+* Open your store at 8am
+* Experience random demand from customers according to demand probabilities listed above (sales units for the day is the minimum of demand on the day and inventory at store opening on the day)
+* Close your store at 6pm
+
+We leave it as an exercise for you to work out the state transition probabilities, given the above-specified demand probabilities and according to the above-specified ordering policy. You should obtain a Markov Process as depicted in Figure \ref{fig:dining_table_mp}. The nodes are the states, labeled with their corresponding $OH$ and $OO$ values. The directed edges are the probabilistic state transitions from 6pm on a day to 6pm on the next day, with the transition probabilities labeled on the directed edges.
+
+<div style="text-align:center" markdown="1">
+![Simple Inventory Markov Process \label{fig:dining_table_mp}](./chapter2/simple_inv_mp.png "Simple Inventory Markov Process")
+</div>
 
 ### Stationary Distribution
-- Conditions under which a Stationary Distribution exists
+* Conditions under which a Stationary Distribution exists
 
-## An Inventory Example of a Markov Process
