@@ -17,16 +17,18 @@ transition_probabilities = np.array(
     ]
 )
 
-eig_vals, eig_vecs = np.linalg.eig(
-    transition_probabilities.T
-)
+eig_vals, eig_vecs = np.linalg.eig(transition_probabilities.T)
 
 index_of_first_unit_eig_val = np.where(np.abs(eig_vals - 1) < 1e-8)[0][0]
 
 eig_vec_of_unit_eig_val = np.real(eig_vecs[:, index_of_first_unit_eig_val])
 
-stationary_probabilities = eig_vec_of_unit_eig_val / sum(eig_vec_of_unit_eig_val)
+stationary_probabilities = {states[i]: ev for i, ev in
+                            enumerate(eig_vec_of_unit_eig_val /
+                                      sum(eig_vec_of_unit_eig_val))}
 
 print(stationary_probabilities)
+
+
 
 
