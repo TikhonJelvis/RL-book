@@ -27,8 +27,31 @@ stationary_probabilities = {states[i]: ev for i, ev in
                             enumerate(eig_vec_of_unit_eig_val /
                                       sum(eig_vec_of_unit_eig_val))}
 
+print("Stationary Probabilities")
 print(stationary_probabilities)
 
+transition_rewards = np.array(
+    [
+        [0., -10., 0., 0., 0.],
+        [0., -2.5, 0., 0., 0.],
+        [-3.5, 0., -1., 0., 0.],
+        [-1., 0., -1., 0., -1.],
+        [-2., 0., -2., 0., -2.]
+    ]
+)
+rewards = np.sum(transition_probabilities * transition_rewards, axis=1)
+rewards_function = {states[i]: r for i, r in enumerate(rewards)}
+print("Rewards Function")
+print(rewards_function)
 
+gamma = 0.9
 
+inverse_matrix = np.linalg.inv(
+    np.eye(len(states)) - gamma * transition_probabilities
+)
+value_function = {states[i]: v for i, v in
+                  enumerate(inverse_matrix.dot(rewards))}
+
+print("Value Function (as a vector)")
+print(value_function)
 
