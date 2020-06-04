@@ -1,8 +1,10 @@
 from abc import ABC, abstractmethod
 import random
-from typing import Generic, List, Tuple, TypeVar
+from typing import Callable, Generic, List, Tuple, TypeVar
 
 A = TypeVar('A')
+
+B = TypeVar('B')
 
 
 class Distribution(ABC, Generic[A]):
