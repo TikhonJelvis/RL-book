@@ -516,4 +516,4 @@ This produces the following output for the Value Function $V$:
 }
 ```
 
-This works if the state space is not too large (matrix to be inverted has size equal to state space size). When the state space is large, this direct matrix-inversion method doesn't work and we have to resort to numerical methods to solve the recursive Bellman equation. This is the topic of Dynamic Programming and Reinforcement Learning algorithms that we shall learn in this book.
+This computation works if the state space is not too large (matrix to be inverted has size equal to state space size). When the state space is large, this direct matrix-inversion method doesn't work and we have to resort to numerical methods to solve the recursive Bellman equation. This is the topic of Dynamic Programming and Reinforcement Learning algorithms that we shall learn in this book.
