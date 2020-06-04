@@ -24,7 +24,7 @@ where $L$ is an arbitrary reference level and $\alpha_1 \in \mathbb{R}_{\geq 0}$
 
 We can model the state $S_t = X_t$ and note that the probabilities of the next state $S_{t+1}$ depend only on the current state $S_t$ and not on the previous states $S_0, S_1, \ldots, S_{t-1}$. Informally, we phrase this property as: "The future is independent of the past given the present". Formally, we can state this property of the states as:
 $$\mathbb{P}[S_{t+1}|S_t, S_{t-1}, \ldots, S_0] = \mathbb{P}[S_{t+1}|S_t]\text{ for all } t \geq 0$$
-This is a highly desirable property since it helps make the mathematics of such processes much easier and the computations much more tractable. We call this the *Markov Property* of States, or simply that these are *Markov States*.
+This is a highly desirable property since it helps make the mathematics of such processes much easier and the computations much more tractable. We call this the *Markov Property* of States, or simply that these are *Markov States*. 
  
  Let us now code this up. First, we will create a dataclass to represent the dynamics of this process. As you can see in the code below, the dataclass `Process1` contains two data members `level_param: int` and `alpha1: float = 0.25` to represent $L$ and $\alpha_1$ respectively. It contains the method `up_prob` to calculate $\mathbb{P}[X_{t+1} = X_t + 1]$ and the method `next_state`, which samples from a Bernoulli distribution (whose probability is obtained from the method `up_prob`) and creates the next state $S_{t+1}$ from the current state $S_t$. Also, note the nested dataclass `State` meant to represent the state of Process 1 (it's only data member `price: int` reflects the fact that the state consists of only the current price, which is an integer).
  
@@ -381,7 +381,7 @@ This produces the following output for the Stationary Probability Distribution $
 }
 ```
 
-Now we are ready to move to our next topic of *Markov Reward Processes*.
+Now we are ready to move to our next topic of *Markov Reward Processes*. We'd like to finish this section by stating that the Markov Property owes its name to a mathematician from a century ago - [Andrey Markov](https://en.wikipedia.org/wiki/Andrey_Markov). Although the Markov Property seems like a simple enough concept, the concept has had profound implications on our ability to compute or reason with systems involving time-sequenced uncertaintya in practice.
 
 ## Markov Reward Processes
 
@@ -449,17 +449,19 @@ Finally, we define the rewards function:
 $$\mathcal{R}: \mathcal{S} \rightarrow \mathbb{R} \text{ as }$$
 $$\mathcal{R}(s) = \mathbb{E}[R_{t+1}|S_t=s] = \sum_{s' \in \mathcal{S}} \mathcal{P}(s,s') \cdot \mathcal{TR}(s,s')$$
 
-With this formalism in place, we are now ready to formally define the main problem involving Markov Reward Processes. As we said earlier, we'd like to compute the "accumulated rewards" from any given state. However, if we simply add up the rewards in a simulation trace following time step $t$ as $\sum_{i=t+1}^{\infty} R_i = R_{t+1} + R_{t+2} + \ldots$, the sum would often diverge to infinity. This is where the discount factor comes into play. We define the (random) *Returns* $G_t$ as the "discounted accumulation of future rewards" following time step $t$. Formally,
+With this formalism in place, we are now ready to formally define the main problem involving Markov Reward Processes. As we said earlier, we'd like to compute the "accumulated rewards" from any given state. However, if we simply add up the rewards in a simulation trace following time step $t$ as $\sum_{i=t+1}^{\infty} R_i = R_{t+1} + R_{t+2} + \ldots$, the sum would often diverge to infinity. This is where the discount factor comes into play. We define the (random) *Return* $G_t$ as the "discounted accumulation of future rewards" following time step $t$. Formally,
 $$G_t = \sum_{i=t+1}^{\infty} \gamma^{i-t-1} \cdot R_i = R_{t+1} + \gamma \cdot R_{t+2} + \gamma^2 \cdot R_{t+3} + \ldots$$
 
-TODO: Talk about why discounting matters in practice. Myopic ($\gamma = 0$) and Far-Sighted ($\gamma = 1$). Also, talk about how $\gamma = 1$ works if all sequences terminate.
+Note that $\gamma$ can range from a value of 0 on one extreme (called "myopic") to a value of 1 on another extreme (called "far-sighted"). Myopic means the Return is the same as Reward (no accumulation of future Rewards in the Return). As explained above, far-sighted is applicable only if all random sequences of the Process end in an absorbing state AND the rewards associated with the infinite looping at the absorbing state needs to be 0 (otherwise, the Return will diverge to infinity). 
 
-The main problem involving a Markov Reward Process is to compute the "Expected Return". Formally, we are interested in computing the *Value Function*
+Apart from the Return divergence consideration, $\gamma < 1$ helps algorithms become more tractable (as we shall see later when we get to Reinforcement Learning). We should also point out that the reason to have $\gamma < 1$ is not just for mathematical convenience - there are valid modeling reasons to discount Rewards when accumulating to a Return. When Reward is modeled as a financial quantity (revenues, costs, profits etc.) as will be the case in most financial applications, it makes sense to incorporate [time-value-of-money](https://en.wikipedia.org/wiki/Time_value_of_money) which is a fundamental concept in Economics/Finance that says there is greater benefit in receiving a dollar now versus later (which is the economic reason why interest is paid or earned). So it is common to set $\gamma$ to be the discounting based on the prevailing interest rate ($\gamma = \frac 1 {1+r}$ where $r$ is the interest rate over a single time step). Another technical reason for setting $\gamma < 1$ is that our models often don't fully capture future uncertainty and so, discounting with $\gamma$ acts to undermine future rewards that might not be accurate (due to future uncertainty modeling limitations). Lastly, from an AI perspective, if we want to build machines that acts like humans, psychologists have indeed demonstrated that human/animal behavior prefers immediate reward over future reward.
+
+As you might imagine now, we'd want to identify states with large expected returns and states with small expected returns. This, in fact, is the main problem involving a Markov Reward Process - to compute the "Expected Return" associated with each state in the Markov Reward Process. Formally, we are interested in computing the *Value Function*
 $$V: \mathcal{S} \rightarrow \mathbb{R}$$
 defined as:
 $$V(s) = \mathbb{E}[G_t|S_t=s] \text{ for all } s \in \mathcal{S} \text{ for all } t = 0, 1, 2, \ldots$$
 
-Now we show a creative piece of mathematics due to [Richard Bellman](https://en.wikipedia.org/wiki/Richard_E._Bellman). He noted that the Value Function has a recursive structure. Specifically, 
+Now we show a creative piece of mathematics due to [Richard Bellman](https://en.wikipedia.org/wiki/Richard_E._Bellman). Bellman noted that the Value Function has a recursive structure. Specifically, 
 
 $$V(s) = \mathbb{E}[R_{t+1}|S_t=s] + \gamma \cdot \sum_{s' \in \mathcal{S}} \mathcal{P}(s, s') \cdot \mathbb{E}[G_{t+1}|S_{t+1}=s'] \text{ for all } s \in \mathcal{S} \text{ for all } t = 0, 1, 2, \ldots$$
 
@@ -516,4 +518,9 @@ This produces the following output for the Value Function $V$:
 }
 ```
 
-This computation works if the state space is not too large (matrix to be inverted has size equal to state space size). When the state space is large, this direct matrix-inversion method doesn't work and we have to resort to numerical methods to solve the recursive Bellman equation. This is the topic of Dynamic Programming and Reinforcement Learning algorithms that we shall learn in this book.
+This computation works if the state space is not too large (matrix to be inverted has size equal to state space size). When the state space is large, this direct matrix-inversion method doesn't work and we have to resort to numerical methods to solve the recursive Bellman equation. This is the topic of Dynamic Programming and Reinforcement Learning algorithms that we shall learn in this book. 
+
+Before we end this chapter, we'd like to highlight the two highly important concepts we learnt in this chapter:
+
+* Markov Property: A concept that enables us to reason effectively and compute efficiently in practical systems involving sequential uncertainty
+* Bellman Equation: A mathematical insight that enables us to express the Value Function recursively - this equation (and its Optimality version covered in the next chapter) is in fact the core idea within all Dynamic Programming and Reinforcement Learning algorithms.
