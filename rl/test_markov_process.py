@@ -1,4 +1,5 @@
 import itertools
+import numpy as np
 from typing import Tuple
 import unittest
 

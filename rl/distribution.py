@@ -96,9 +96,9 @@ class Categorical(FiniteDistribution[A]):
             self.probabilities += [probability]
 
     def sample(self) -> A:
-        return np.random.default_rng().choice(self.outcomes,
-                                              size=1,
-                                              p=self.probabilities)[0]
+        rng = np.random.default_rng()
+        sample = rng.choice(self.outcomes, size=1, p=self.probabilities)
+        return sample.item()
 
     def to_pdf(self) -> List[Tuple[A, float]]:
         return list(zip(self.outcomes, self.probabilities))
