@@ -90,7 +90,7 @@ class Categorical(FiniteDistribution[A]):
     def __init__(self, distribution: Iterable[Tuple[A, float]]):
         self.outcomes = []
         self.probabilities = []
-        
+
         for outcome, probability in distribution:
             self.outcomes += [outcome]
             self.probabilities += [probability]

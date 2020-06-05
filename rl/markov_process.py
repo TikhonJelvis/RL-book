@@ -1,8 +1,8 @@
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
 from typing import Dict, Iterable, Generic, List, Tuple, TypeVar
 
-from rl.distribution import Categorical, Bernoulli, Distribution, FiniteDistribution, SampledDistribution
+from rl.distribution import (Categorical, Distribution, FiniteDistribution,
+                             SampledDistribution)
 
 S = TypeVar('S')
 
@@ -22,7 +22,8 @@ class MarkovProcess(ABC, Generic[S]):
         pass
 
     def transition(self) -> Distribution[S]:
-        '''Given the current state of the process, returns a distribution of the next states.
+        '''Given the current state of the process, returns a distribution of
+        the next states.
 
         '''
         return SampledDistribution(self.simulate_transition)
@@ -76,8 +77,9 @@ class MarkovRewardProcess(MarkovProcess[S]):
 
     @abstractmethod
     def simulate_transition_reward(self) -> Tuple[S, float]:
-        '''Transition the process, providing both the next transition and the reward for
-        that transition.
+        '''Transition the process, providing both the next transition and the
+        reward for that transition.
+
         '''
         pass
 
@@ -91,6 +93,7 @@ class MarkovRewardProcess(MarkovProcess[S]):
             next_state, reward = self.transition_reward().sample()
             self.state = next_state
             yield next_state, reward
+
 
 class FiniteMarkovRewardProcess(MarkovRewardProcess[S],
                                 FiniteMarkovProcess[S]):
@@ -111,70 +114,3 @@ class FiniteMarkovRewardProcess(MarkovRewardProcess[S],
                  _), probability in self.transition_reward_matrix[state].items(
                  ):
                 self.transition_matrix[state][next_state] = probability
-
-
-# Example classes:
-class FlipFlop(MarkovProcess[bool]):
-    '''A simple example Markov chain with two states, flipping from one to
-    the other with probability p and staying at the same state with
-    probability 1 - p.
-
-    '''
-
-    state: bool
-
-    p: float
-
-    def __init__(self, p, start_state=True):
-        self.p = p
-        self.state = start_state
-
-    def simulate_transition(self) -> bool:
-        switch_states = Bernoulli(self.p).sample()
-
-        if switch_states:
-            return not self.state
-        else:
-            return self.state
-
-
-class FiniteFlipFlop(FiniteMarkovProcess[bool]):
-    ''' A version of FlipFlop implemented with the FiniteMarkovProcess machinery.
-
-    '''
-    def __init__(self, p, start_state=True):
-        self.state = start_state
-
-        self.state_space = [False, True]
-
-        self.transition_matrix = {
-            True: {
-                False: p,
-                True: 1 - p
-            },
-            False: {
-                False: 1 - p,
-                True: p
-            }
-        }
-
-
-class RewardFlipFlop(MarkovRewardProcess[bool]):
-    state: bool
-
-    p: float
-
-    def __init__(self, p, start_state=True):
-        self.p = p
-
-        self.state = start_state
-
-    def simulate_transition_reward(self) -> Tuple[bool, float]:
-        switch_states = Bernoulli(self.p).sample()
-
-        if switch_states:
-            next_state = not self.state
-            reward = 1 if self.state else 0.5
-            return (next_state, reward)
-        else:
-            return (self.state, 0.5)
