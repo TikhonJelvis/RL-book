@@ -83,6 +83,13 @@ class TestMarkovProcess(unittest.TestCase):
 
         self.assertTrue(all(isinstance(outcome, bool) for outcome in trace))
 
+        longer_trace = itertools.islice(self.flip_flop.simulate(), 10000)
+        count_trues = len(list(outcome for outcome in longer_trace if outcome))
+
+        # If the code is correct, this should fail with a vanishingly
+        # small probability
+        self.assertTrue(1000 < count_trues < 9000)
+
 
 class TestFiniteMarkovProcess(unittest.TestCase):
     def setUp(self):
@@ -92,6 +99,13 @@ class TestFiniteMarkovProcess(unittest.TestCase):
         trace = list(itertools.islice(self.flip_flop.simulate(), 10))
 
         self.assertTrue(all(isinstance(outcome, bool) for outcome in trace))
+
+        longer_trace = itertools.islice(self.flip_flop.simulate(), 10000)
+        count_trues = len(list(outcome for outcome in longer_trace if outcome))
+
+        # If the code is correct, this should fail with a vanishingly
+        # small probability
+        self.assertTrue(1000 < count_trues < 9000)
 
 
 class TestRewardMarkovProcess(unittest.TestCase):
