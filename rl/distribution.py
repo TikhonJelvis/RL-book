@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
+import numpy as np
 import random
-from typing import Callable, Generic, List, Tuple, TypeVar
+from typing import Callable, Generic, Iterable, List, Tuple, TypeVar
 
 A = TypeVar('A')
 
@@ -23,7 +24,6 @@ class SampledDistribution(Distribution[A]):
     '''A distribution defined by a function to sample it.
 
     '''
-
     def __init__(self, sampler: Callable[[], A]):
         self.sampler = sampler
 
@@ -64,6 +64,9 @@ class Choose(FiniteDistribution[A]):
     '''Select an element of the given list uniformly at random.
 
     '''
+
+    options: List[A]
+
     def __init__(self, options: List[A]):
         self.options = options
 
@@ -73,3 +76,29 @@ class Choose(FiniteDistribution[A]):
     def to_pdf(self) -> List[Tuple[A, float]]:
         length = len(self.options)
         return [(x, 1.0 / length) for x in self.options]
+
+
+class Categorical(FiniteDistribution[A]):
+    '''Select from a finite set of outcomes with the specified
+    probabilities.
+
+    '''
+
+    outcomes: List[A]
+    probabilities: List[float]
+
+    def __init__(self, distribution: Iterable[Tuple[A, float]]):
+        self.outcomes = []
+        self.probabilities = []
+        
+        for outcome, probability in distribution:
+            self.outcomes += [outcome]
+            self.probabilities += [probability]
+
+    def sample(self) -> A:
+        return np.random.default_rng().choice(self.outcomes,
+                                              size=1,
+                                              p=self.probabilities)[0]
+
+    def to_pdf(self) -> List[Tuple[A, float]]:
+        return list(zip(self.outcomes, self.probabilities))
