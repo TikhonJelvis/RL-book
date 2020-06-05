@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Iterable, Generic, Tuple, TypeVar
 
-from rl.distribution import Bernoulli, Distribution
+from rl.distribution import Bernoulli, Distribution, SampledDistribution
 
 S = TypeVar('S')
 
@@ -14,9 +14,18 @@ class MarkovProcess(ABC, Generic[S]):
 
     state: S
 
+    def __init__(self, start_state: S):
+        self.state = start_state
+
     @abstractmethod
-    def step(self) -> S:
+    def simulate_transition(self) -> S:
         pass
+
+    def transition(self) -> Distribution[S]:
+        '''Given the current state of the process, returns a distribution of the next states.
+
+        '''
+        return SampledDistribution(self.simulate_transition)
 
     def simulate(self) -> Iterable[S]:
         '''Run a simulation trace of this Markov process, generating the
@@ -29,21 +38,21 @@ class MarkovProcess(ABC, Generic[S]):
 
         while True:
             yield self.state
-            self.state = self.step()
+            self.state = self.transition().sample()
 
 
 class MarkovRewardProcess(MarkovProcess[S]):
-    def step(self) -> S:
-        '''Steps the Markov Reward Process, ignoring the generated reward
+    def simulate_transition(self) -> S:
+        '''Transitions the Markov Reward Process, ignoring the generated reward
         (which makes this just a normal Markov Process).
 
         '''
-        self.step_reward()[0]
+        return self.transition_reward()[0]
 
     @abstractmethod
-    def step_reward(self) -> Tuple[S, float]:
-        '''Step the process, providing both the next step and the reward for
-        that step.
+    def transition_reward(self) -> Tuple[S, float]:
+        '''Transition the process, providing both the next transition and the reward for
+        that transition.
         '''
         pass
 
@@ -61,7 +70,7 @@ class FlipFlop(MarkovProcess[bool]):
         self.p = p
         self.state = start_state
 
-    def step(self):
+    def simulate_transition(self) -> bool:
         switch_states = Bernoulli(self.p).sample()
 
         if switch_states:

@@ -19,6 +19,18 @@ class Distribution(ABC, Generic[A]):
         pass
 
 
+class SampledDistribution(Distribution[A]):
+    '''A distribution defined by a function to sample it.
+
+    '''
+
+    def __init__(self, sampler: Callable[[], A]):
+        self.sampler = sampler
+
+    def sample(self):
+        return self.sampler()
+
+
 class FiniteDistribution(Distribution[A], ABC):
     '''A probability distribution with a finite number of outcomes, which
     means we can render it as a PDF or CDF table.
