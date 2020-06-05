@@ -24,9 +24,9 @@ where $L$ is an arbitrary reference level and $\alpha_1 \in \mathbb{R}_{\geq 0}$
 
 We can model the state $S_t = X_t$ and note that the probabilities of the next state $S_{t+1}$ depend only on the current state $S_t$ and not on the previous states $S_0, S_1, \ldots, S_{t-1}$. Informally, we phrase this property as: "The future is independent of the past given the present". Formally, we can state this property of the states as:
 $$\mathbb{P}[S_{t+1}|S_t, S_{t-1}, \ldots, S_0] = \mathbb{P}[S_{t+1}|S_t]\text{ for all } t \geq 0$$
-This is a highly desirable property since it helps make the mathematics of such processes much easier and the computations much more tractable. We call this the *Markov Property* of States, or simply that these are *Markov States*.
+This is a highly desirable property since it helps make the mathematics of such processes much easier and the computations much more tractable. We call this the *Markov Property* of States, or simply that these are *Markov States*. 
  
- Let us now code this up. First, we will create a dataclass to represent the dynamics of this process. As you can see in the code below, the dataclass `Process1` contains two data members `level_param: int` and `alpha1: float = 0.25` to represent $L$ and $\alpha_3$ respectively. It contains the method `up_prob` to calculate $\mathbb{P}[X_{t+1} = X_t + 1]$ and the method `next_state`, which samples from a Bernoulli distribution (whose probability is obtained from the method `up_prob`) and creates the next state $S_{t+1}$ from the current state $S_t$. Also, note the nested dataclass `State` meant to represent the state of Process 1 (it's only data member `price: int` reflects the fact that the state consists of only the current price, which is an integer).
+ Let us now code this up. First, we will create a dataclass to represent the dynamics of this process. As you can see in the code below, the dataclass `Process1` contains two data members `level_param: int` and `alpha1: float = 0.25` to represent $L$ and $\alpha_1$ respectively. It contains the method `up_prob` to calculate $\mathbb{P}[X_{t+1} = X_t + 1]$ and the method `next_state`, which samples from a Bernoulli distribution (whose probability is obtained from the method `up_prob`) and creates the next state $S_{t+1}$ from the current state $S_t$. Also, note the nested dataclass `State` meant to represent the state of Process 1 (it's only data member `price: int` reflects the fact that the state consists of only the current price, which is an integer).
  
  
 ```python
@@ -42,7 +42,7 @@ class Process1:
     alpha1: float = 0.25  # strength of mean-reversion (non-negative value)
 
     def up_prob(self, state: State) -> float:
-        return 1. / (1 + np.exp(-alpha * (self.level_param - state.price)))
+        return 1. / (1 + np.exp(-self.alpha1 * (self.level_param - state.price)))
 
     def next_state(self, state: State) -> State:
         up_move: int = np.random.binomial(1, self.up_prob(state), 1)[0]
@@ -235,34 +235,292 @@ As suggested for Process 1, you can plot graphs of simulation traces of the stoc
 Having developed the intuition for the Markov Property of States, we are now ready to formalize the notion of Markov Processes (some of the literature refers to Markov Processes as Markov Chains, but we will stick with the term Markov Processes).
 
 ## Formal Definitions
-Here we will consider discrete-time Markov Processes, where time moves forward in discrete time steps $t=0, 1, 2, \ldots$. This book will also consider a few cases of continuous-time Markov Processes, where time is  continuous variable (this leads to stochastic calculus, which is the foundation of some of the ground-breaking work in Mathematical Finance). However, for now, we define discrete-time Markov Processes as they are fairly common and also much easier to develop intuition for.
+
+Here we will consider Discrete-Time Markov Processes, where time moves forward in discrete time steps $t=0, 1, 2, \ldots$. This book will also consider a few cases of continuous-time Markov Processes, where time is a continuous variable (this leads to stochastic calculus, which is the foundation of some of the ground-breaking work in Mathematical Finance). However, for now, we will formally define Discrete-Time Markov Processes as they are fairly common and also much easier to develop intuition for.
 
 ### Discrete-Time Markov Processes
-\begin{definition}[Discrete-Time Markov Process]
-A Discrete-Time Markov Process consists of:
+
+\begin{definition}
+A {\em Discrete-Time Markov Process} consists of:
 \begin{itemize}
 \item A countable set of states $\mathcal{S}$
  \item A time-indexed sequence of random variables $S_t$ for each time $t=0, 1, 2, \ldots$, with each $S_t$ taking values in the set $\mathcal{S}$
- \item $\mathbb{P}[S_{t+1}|S_t, S_{t-1}, \ldots, S_0] = \mathbb{P}[S_{t+1}|S_t]$ for all $t \geq 0$
+ \item Markov Property: $\mathbb{P}[S_{t+1}|S_t, S_{t-1}, \ldots, S_0] = \mathbb{P}[S_{t+1}|S_t]$ for all $t \geq 0$
  \end{itemize}
  \end{definition}
+ 
+ We refer to $\mathbb{P}[S_{t+1}|S_t]$ as the transition probabilities for time $t$.
 
 ### Discrete-Time Stationary Markov Processes
-- Stationary MP is a MP with the additional property that $\mathbb{P}[S_{t+1}=s'|S_t=s]$ is independent of $t$
-- Then we can write $\mathcal{P}(s,s') : \mathcal{S} \times \mathcal{S} \rightarrow [0,1]$ with the property that $\sum_{s'\in \mathcal{S}} \mathcal{P}(s,s') = 1$ for all $s \in \mathcal{S}$ 
-- Including time in State auotmatically makes it a stationary markov process
-- So by default when we say Markov Process, we mean a Discrete-Time Stationary Markov Process and work with the $\mathcal{P}(s,s')$ function
 
-### Initial Distribution
+\begin{definition}
+A {\em Discrete-Time Stationary Markov Process} is a Discrete-Time Markov Process with the additional property that
+$\mathbb{P}[S_{t+1}|S_t]$ is independent of $t$.
+ \end{definition}
+ 
+ This means, the dynamics of a Discrete-Time Stationary Markov Process can be fully specified with the function $$\mathcal{P}: \mathcal{S} \times \mathcal{S} \rightarrow [0,1]$$ such that $\mathcal{P}(s, s') = \mathbb{P}[S_{t+1}=s'|S_t=s]$ for all $s, s' \in \mathcal{S}$. Hence, $\sum_{s'\in \mathcal{S}} \mathcal{P}(s,s') = 1$ for all $s \in \mathcal{S}$. We refer to the function $\mathcal{P}$ as the transition probabilities function of the Stationary Markov Process, with the first argument to $\mathcal{P}$ to be thought of as the "source" state and the second argument as the "destination" state.
+ 
+Note that this specification is devoid of the time index $t$ (hence, the term *Stationary* which means "time-invariant"). Moreover, note that a non-Stationary Markov Process can be converted to a Stationary Markov Process by augmenting all states with the time index $t$. This means if the original state space of a non-Stationary Markov Process was $\mathcal{S}$, then the state space of the corresponding Stationary Markov Process is $\mathbb{Z}_{\geq 0} \times \mathcal{S}$ (where $\mathbb{Z}_{\geq 0}$ denotes the domain of the time index). This is because each time step has it's own unique set of (augmented) states, which means the entire set of states in $\mathbb{Z}_{\geq 0} \times \mathcal{S}$ can be covered by time-invariant transition probabilities, thus qualifying as a Stationary Markov Process. Therefore, henceforth, any time we say *Markov Process*, assume we are refering to a Discrete-Time Stationary Markov Process (unless explicitly specified otherwise), which in turn will be characterized by the transition probabilities function $\mathcal{P}$. Note that the stock price examples (all 3 of the Processes we covered) are examples of a (Discrete-Time Stationary) Markov Process, even without requiring augmenting the state with the time index.
+
+### Starting States
+
+Now it's natural to ask the question how do we "start" the Markov Process (in the stock price examples, this was the notion of the start state). More generally, we'd like to specify a probability distribution of start states so we can perform simulations and (let's say) compute the probability distribution of states at specific future time steps. While this is a relevant question, we'd like to separate the following two specifications:
+
+* Specification of the transition probability function $\mathcal{P}$
+* Specification of the probability distribution of start states (denote this as $\mu: \mathcal{S} \rightarrow [0,1]$)
+
+We say that a Markov Process is fully specified by $\mathcal{P}$ in the sense that this gives us the transition probabilities that govern the complete dynamics of the Markov Process. A way to understand this is to relate specification of $\mathcal{P}$ to the specification of rules in a game (such as chess or monopoly). These games are specified with a finite (in fact, fairly compact) set of rules that is easy for a newbie to the game to understand. However, when we want to *actually play* the game, we need to specify the starting position (one could start these games at arbitrary, but legal, starting positions and not just at some canonical starting position). The specification of the start state of the game is analogous to the specification of $\mu$. Given $\mu$ together with $\mathcal{P}$ enables us to generate simulate traces of the Markov Process (analogously, *play* games like chess or monopoly). These simulation traces typically result in a wide range of outcomes due to sampling and long-running of the Markov Process (versus compact specification of transition probabilities). These simulation traces enable us to answer questions such as probability distribution of states at specific future time steps or expected time of first occurrence of a specific state etc., given a certain starting probability distribution $\mu$.
+ 
+ Thinking about the separation between specifying the rules of the game versus actually playing the game helps us understand the need to separate the notion of dynamics specification $\mathcal{P}$ (fundamental to the stationary character of the Markov Chain) and the notion of starting distribution $\mu$ (required to perform simulation traces). Hence, the separation of concerns between $\mathcal{P}$ and $\mu$ is key to the conceptualization of Markov Chains. Likewise, we separate concerns in our code design as well, as evidenced by how we separated the ``next state`` method in the Process dataclasses and the ``simulation`` function.
 
 ### Absorbing States
-- $s$ is an absorbing state if $\mathcal{P}(s,s) = 1$
 
-### Finite states
-- Data structure representation
-- Tabular algorithms
+Thinking about games might make you wonder how we'd represent the fact that games have *ending rules* (rules for winning or losing the game). This brings up the notion of "terminal states". "Terminal states" might occur at any of a variety of time steps (like in the games examples), or like we will see in many financial application examples, termination might occur after a fixed number of time steps. So do we need to specify that certain states are "terminal states"? Yes, we do, but we won't explicitly mark them as "terminal states". Instead, we will build this "termination" feature in $\mathcal{P}$ as follows (note that the technical term for "terminal states" is *Absorbing States* due to the following construction of $\mathcal{P}$).
 
-### Stationary Distribution
-- Conditions under which a Stationary Distribution exists
+\begin{definition}[Absorbing States]
+A state $s\in \mathcal{S}$ is an {\em Absorbing State} if $\mathcal{P}(s,s) = 1$
+\end{definition}
 
-## An Inventory Example of a Markov Process
+So instead of thinking of the Markov Process as "terminating", we can simply imagine that the Markov Process keeps cycling with 100% probability at this "terminal state". This notion of being trapped in the state (not being able to escape to another state) is the reason we call it an Absorbing State. 
+
+When we consider some of the financial applications later in this book, we will find that the Markov Process "terminates" after a fixed number of time steps, say $T$. In these applications, the time index $t$ is part of the state and each state with the time index $t=T$ will be constructed to be an absorbing state. All other states with time index $t<T$ will transition to states with time index $t+1$. In fact, you could take each of the 3 Processes seen earlier for stock price movement and add a feature that the forward movement in time terminates at some fixed time step $T$. Then, we'd have to include $t$ in the state representation simply to specify that states with time index $T$ will transition to themselves with 100% probability (note that in these examples the time index $t$ doesn't influence the transition probabilities for states with $t<T$, so these processes are stationary until $t=T-1$.)
+
+### Finite State Space
+Now let us consider the case of the state space being finite, i.e., $\mathcal{S} = \{s_1, s_2, \ldots, s_n\}$. Finite state space enables us to represent $\mathcal{P}$ in a finite data structure in our code, as a dictionary or as a matrix or as a directed graph. This is rather convenient for visualization and also for performing certain types of calculations involving Markov Processes. The directed graph view is quite common in helping visualize Markov Processes. Also, the $n \times n$ matrix representation (representing transition probabilities as the elements in the matrix) is very useful in answering common questions about the dynamics of a Markov Process (we shall soon see examples of this). 
+
+To help conceptualize this, let us consider a simple inventory example involving just 5 states. Assume you are the store manager for a furniture store and tasked with controlling the ordering of inventory from a supplier. Let us focus on the inventory of a particular type of dining table. Assume that each day there is random demand (denoted as $D$) for the dining table with the probabilities of demand as follows:
+$$\mathbb{P}[D=0] = 0.2, \mathbb{P}[D=0] = 0.6, \mathbb{P}[D=2] = 0.2$$
+Assume that you can order only a single dining table on any day because the delivery truck cannot carry more than one dining table. Each evening at 6pm when your store closes, you decide to either order a single dining table or not order. If you order, the dining table delivery will arrive 36 hours later (at 6am the day after the day after you order - we refer to this as *delivery lead time* of 36 hours). Assume your ordering policy is as follows: you don't order if you have at least one dining table in your store and you order a single dining table if you have no dining tables left in your store. This inventory system can be modeled as a Markov Chain where tha *State* is given by a pair of integers $(OH, OO)$ where $OH$ refers to the on-hand units of the dining table on a given evening at 6pm ($OH=0$ or $1$ or $2$) and $OO$ refers to the on-order units of the dining table ($OO=0$ or $1$). If $OO=1$, this means a single unit of the dining table was ordered 24 hours ago and that now it's on a truck due to arrive 12 hours later (at 6am the next morning). The sequence of events is:
+
+* Observe the $(OH, OO)$ *State* at 6pm
+* Order according to the policy described above
+* Receive a dining table at 6am if you had ordered a dining table 36 hours ago
+* Open your store at 8am
+* Experience random demand from customers according to demand probabilities listed above (sales units for the day is the minimum of demand on the day and inventory at store opening on the day)
+* Close your store at 6pm
+
+We leave it as an exercise for you to work out the state transition probabilities, given the above-specified demand probabilities and according to the above-specified ordering policy. You should obtain a Markov Process as depicted in Figure \ref{fig:dining_table_mp}. The nodes are the states, labeled with their corresponding $OH$ and $OO$ values. The directed edges are the probabilistic state transitions from 6pm on a day to 6pm on the next day, with the transition probabilities labeled on the directed edges.
+
+<div style="text-align:center" markdown="1">
+![Simple Inventory Markov Process \label{fig:dining_table_mp}](./chapter2/simple_inv_mp.png "Simple Inventory Markov Process")
+</div>
+
+Now let's represent this Markov Process in code. First we order the states in a list of $(OH, OO)$ pairs as follows:
+
+```python
+states = [
+    (0, 0),
+    (0, 1),
+    (1, 0),
+    (1, 1),
+    (2, 0)
+]
+```
+Next, we represent the transition probabilities as a numpy 2D array (5 x 5 matrix) whose rows are the source states, columns are the destination states and the matrix entries are the probabilities of transition from source state to destination state (probabilities correspond to what we see in Figure \ref{fig:dining_table.png}. Note that the sum of each row equals 1.
+
+```python
+transition_probabilities = np.array(
+    [
+        [0., 1., 0., 0., 0.],
+        [0., .8, 0., .2, 0.],
+        [.8, 0., .2, 0., 0.],
+        [.2, 0., .6, 0., .2],
+        [.2, 0., .6, 0., .2]
+    ]
+)
+```
+We can perform a number of interesting experiments and calculations with this simple Markov Process and indeed, there is a rich and interesting theory for such finite states Markov Processes. However, we will not get into this theory as our coverage of Markov Processes so far is a sufficient building block to take us to the incremental topics of Markov Reward Processes and Markov Decision Processes. However, before we move on, we'd like to show just a glimpse of the rich theory with the calculation of *Stationary Probabilities* and apply it for the case of the above simple inventory Markov Process.
+
+### Stationary Distribution of a Markov Process
+\begin{definition} 
+ The {\em Stationary Distribution} of a (Stationary) Markov Process with state space $\mathcal{S}$ and transition probabilities function $\mathcal{P}: \mathcal{S} \times \mathcal{S} \rightarrow [0, 1]$ is a probability distribution function $\pi: \mathcal{S} \rightarrow [0, 1]$ such that:
+  $$\pi(s) = \sum_{s'\in \mathcal{S}} \pi(s) \cdot \mathcal{P}(s', s) \text{ for all } s \in \mathcal{S}$$
+\end{definition}
+
+The intuitive view of the stationary distribution $\pi$ is that (under specific conditions we are not listing here) if we let the Markov Process run forever, then in the long run the states occur at specific time steps with relative frequencies (probabilities) given by a distribution $\pi$ that is independent of the time step. The probability of occurrence of a specific state $s$ at a time step (asymptotically far out in the future) should be equal to the sum-product of probabilities of occurrence of all the states at the previous time step and the transition probabilities from those states to $s$. But since the states occurrence probabilities are invariant in time, the $\pi$ distribution for the previous time step is the same as the $\pi$ distribution for the time step we considered. This argument holds for all states $s$, and that is exactly the statement of the definition of *Stationary Distribution* formalized above.
+
+If we specialize this definition of *Stationary Distribution* to Finite-States Stationary Markov Processes with state space $\mathcal{S} = \{s_1, s_2, \ldots, s_n\}$, then we can express the Stationary Distribution $\mu$ as follows:
+$$\pi(s_j) = \sum_{i=1}^n \pi(s_i) \cdot \mathcal{P}(s_i, s_j) \text{ for all } j = 1, 2, \ldots n$$. Abusing notation, let us refer to $\pi$ as a column vector of length $n$ and let us refer to $\mathcal{P}$ as the $n \times n$ transition probabilities matrix. Then, the statement of the above definition can be succinctly expressed as:
+
+$$\pi^T = \pi^T \cdot \mathcal{P}$$
+which can be re-written as:
+$$\mathcal{P}^T \cdot \pi = \pi$$
+But this is simply saying that $\pi$ is an eigenvector of $\mathcal{P}^T$ with eigenvalue of 1. So then, it should be easy to infer the stationary distribution from an eigenvectors and eigenvalues calculation of $\mathcal{P}^T$. Let us do this calculation for the matrix we set up above for the simple inventory Markov Process.
+
+```python
+eig_vals, eig_vecs = np.linalg.eig(transition_probabilities.T)
+```
+
+We will skip the theory that tells us about the conditions under which a stationary distribution is well-defined, or the conditions under which there is a unique stationary distribution. Instead, we will just go ahead with this calculation here assuming this Markov Process satisfies those conditions (it does!). So, we seek the index of the `eig_vals` vector with eigenvalue equal to 1 (accounting for floating-point error).
+
+```python
+index_of_first_unit_eig_val = np.where(np.abs(eig_vals - 1) < 1e-8)[0][0]
+```
+Next, we pull out the column of the ``eig_vecs`` matrix at the ```eig_val``` index calculated above, and convert it into a real-valued vector (eigenvectors/eigenvalues calculations are in general complex numbers calculations, see the reference for the ``np.linalg.eig`` function). So this gives us the real-valued eigenvector with eigenvalue equal to 1.
+
+```python
+eig_vec_of_unit_eig_val = np.real(eig_vecs[:, index_of_first_unit_eig_val])
+```
+
+And finally, we have to normalize the eigenvector so it's values add up to 1 (since, we want probabilities), and arrange these probabilities as values in a dictionary whose keys are the corresponding states.
+
+```python
+stationary_probabilities = {states[i]: ev for i, ev in
+                            enumerate(eig_vec_of_unit_eig_val /
+                                      sum(eig_vec_of_unit_eig_val))}
+```
+This produces the following output for the Stationary Probability Distribution $\pi$ for this simple inventory example:
+
+```
+{
+  (0, 0): 0.122,
+  (0, 1): 0.611,
+  (1, 0): 0.115,
+  (1, 1): 0.122,
+  (2, 0): 0.031
+}
+```
+
+Now we are ready to move to our next topic of *Markov Reward Processes*. We'd like to finish this section by stating that the Markov Property owes its name to a mathematician from a century ago - [Andrey Markov](https://en.wikipedia.org/wiki/Andrey_Markov). Although the Markov Property seems like a simple enough concept, the concept has had profound implications on our ability to compute or reason with systems involving time-sequenced uncertaintya in practice.
+
+## Markov Reward Processes
+
+As we've talked about earlier, the reason we covered Markov Processes is because we want to make our way to Markov Decision Processes (the framework for Reinforcement Learning algorithms) by adding incremental features to Markov Processes. This section covers an intermediate framework between Markov Processes and Markov Decision Processes, and is known as Markov Reward Processes. We essentially just include the notion of a "reward" ("costs" can be considered negative rewards) to a Markov Process each time we transition from one state to the next. These rewards will be random, and all we need is to specify the probability distributions of these rewards as we make state transitions. The main problem to solve with Markov Reward Processes is to identify how much total reward we might obtain (on an expected basis) if we let the Markov Reward Process run forever. We will soon formalize this notion, but let us first develop some intuition by revisiting the simple inventory example and embellishing it with a reward structure to turn it into a Markov Reward Process.
+
+### Simple Inventory Example with Rewards (Negative Costs)
+
+In the simple inventory example, let us assume that your business incurs two types of costs:
+
+- Holding cost of 1 for each dining table that remains in your store overnight. Think of this as "interest on inventory" - each day your dining table remains unsold, you lose the opportunity to gain interest on the cash you paid to buy the dining table. Holding cost also includes the cost of upkeep of inventory.
+- Stockout cost of 10 for each unit of "missed demand", i.e., for each customer wanting to buy a dining table that you could not satisfy, eg: if 3 customers show up during the day wanting to buy a dining table each, and you have only 1 dining table at 8am (store opening time), then you lost two units of demand, incurring a cost of -20. Think of the cost of 10 per unit as the lost revenue plus disappointment for the customer.
+
+We leave it as an exercise for you to work out the rewards (negative of above costs) for each transition from one state to the next. You should obtain a Markov Reward Process as depicted in Figure \ref{fig:dining_table_mrp}. The directed edges are now labeled with probabilities as well as the rewards (probabilities marked as $p$ and rewards marked as $r$).
+
+<div style="text-align:center" markdown="1">
+![Simple Inventory Markov Reward Process \label{fig:dining_table_mrp}](./chapter2/simple_inv_mrp.png "Simple Inventory Markov Reward Process")
+</div>
+
+Now let's represent these rewards as a numpy 2D array (5 x 5 matrix) whose rows are the source states, columns are the destination states and the matrix entries are the rewards (i.e., negative costs) obtained when transitioning from source state to destination state.
+
+```python
+transition_rewards = np.array(
+    [
+        [0., -10., 0., 0., 0.],
+        [0., -2.5, 0., 0., 0.],
+        [-3.5, 0., -1., 0., 0.],
+        [-1., 0., -1., 0., -1.],
+        [-2., 0., -2., 0., -2.]
+    ]
+)
+```
+Our main problem with Markov Reward Processes is to figure out how much reward we would accumulate (starting from each of the states) if we let the Process run indefinitely, bearing in mind that future rewards need to be discounted appropriately (otherwise the sum of rewards can blow up to $\infty$). In our code, let us assume a discount factor of:
+
+ ```python
+gamma = 0.9
+```
+
+If we denote the discount factor as $\gamma$, then the reward obtained after $n$ time steps has to be discounted by a factor of $\gamma^n$. In order to solve the problem of calculating accumulative rewards from each state, we will first set up some formalism for general Markov Reward Processes, develop some (elegant) theory on calculating rewards accumulation, and then apply the theory to the simple inventory example.
+
+### Formalism of Markov Reward Processes
+
+\begin{definition}
+A {\em Discrete-Time Markov Reward Process} is a Discrete-Time Markov Process, along with:
+\begin{itemize}
+\item A time-indexed sequence of {\em Reward} random variables $R_t \in \mathbb{R}$ for each time $t=1, 2, \ldots$
+ \item Markov Property for Rewards: $\mathbb{P}[R_{t+1}|S_{t+1},S_t, S_{t-1}, \ldots, S_0] = \mathbb{P}[R_{t+1}|S_{t+1}, S_t]$ for all $t \geq 0$
+ \item Specification of a discount factor $\gamma \in [0,1]$
+ \end{itemize}
+\end{definition}
+
+Since we commonly assume Stationarity of Discrete-Time Markov Processes, we shall also (by default) assume Stationarity of the *Reward* random variables, i.e., $\mathbb{P}[R_{t+1}|S_{t+1}, S_t]$ is independent of $t$.
+
+This means the Rewards of a Markov Reward Process can, in the most general case, be expressed as a rewards probability function:
+$$\mathbb{P}[R_{t+1}=r|S_{t+1}=s',S_t=s]$$
+
+This yields the transition rewards function:
+$$\mathcal{TR}: \mathcal{S} \times \mathcal{S} \rightarrow \mathbb{R}$$
+defined as:
+$$\mathcal{TR}(s,s') = \mathbb{E}[R_{t+1}|S_{t+1}=s',S_t=s]$$
+$$= \int_{-\infty}^{+\infty} \mathbb{P}[R_{t+1}=r|S_{t+1}=s',S_t=s] \cdot r \cdot dr \text{ for all } s, s' \in \mathcal{S}$$
+
+The Rewards specification of most Markov Reward Processes we encounter in practice can be directly expressed as the transition rewards function $\mathcal{TR}$. Note that we specified the Rewards of the simple inventory example as the transition rewards function $\mathcal{TR}$.
+
+Finally, we define the rewards function:
+$$\mathcal{R}: \mathcal{S} \rightarrow \mathbb{R} \text{ as }$$
+$$\mathcal{R}(s) = \mathbb{E}[R_{t+1}|S_t=s] = \sum_{s' \in \mathcal{S}} \mathcal{P}(s,s') \cdot \mathcal{TR}(s,s')$$
+
+With this formalism in place, we are now ready to formally define the main problem involving Markov Reward Processes. As we said earlier, we'd like to compute the "accumulated rewards" from any given state. However, if we simply add up the rewards in a simulation trace following time step $t$ as $\sum_{i=t+1}^{\infty} R_i = R_{t+1} + R_{t+2} + \ldots$, the sum would often diverge to infinity. This is where the discount factor comes into play. We define the (random) *Return* $G_t$ as the "discounted accumulation of future rewards" following time step $t$. Formally,
+$$G_t = \sum_{i=t+1}^{\infty} \gamma^{i-t-1} \cdot R_i = R_{t+1} + \gamma \cdot R_{t+2} + \gamma^2 \cdot R_{t+3} + \ldots$$
+
+Note that $\gamma$ can range from a value of 0 on one extreme (called "myopic") to a value of 1 on another extreme (called "far-sighted"). Myopic means the Return is the same as Reward (no accumulation of future Rewards in the Return). As explained above, far-sighted is applicable only if all random sequences of the Process end in an absorbing state AND the rewards associated with the infinite looping at the absorbing state needs to be 0 (otherwise, the Return will diverge to infinity). 
+
+Apart from the Return divergence consideration, $\gamma < 1$ helps algorithms become more tractable (as we shall see later when we get to Reinforcement Learning). We should also point out that the reason to have $\gamma < 1$ is not just for mathematical convenience - there are valid modeling reasons to discount Rewards when accumulating to a Return. When Reward is modeled as a financial quantity (revenues, costs, profits etc.) as will be the case in most financial applications, it makes sense to incorporate [time-value-of-money](https://en.wikipedia.org/wiki/Time_value_of_money) which is a fundamental concept in Economics/Finance that says there is greater benefit in receiving a dollar now versus later (which is the economic reason why interest is paid or earned). So it is common to set $\gamma$ to be the discounting based on the prevailing interest rate ($\gamma = \frac 1 {1+r}$ where $r$ is the interest rate over a single time step). Another technical reason for setting $\gamma < 1$ is that our models often don't fully capture future uncertainty and so, discounting with $\gamma$ acts to undermine future rewards that might not be accurate (due to future uncertainty modeling limitations). Lastly, from an AI perspective, if we want to build machines that acts like humans, psychologists have indeed demonstrated that human/animal behavior prefers immediate reward over future reward.
+
+As you might imagine now, we'd want to identify states with large expected returns and states with small expected returns. This, in fact, is the main problem involving a Markov Reward Process - to compute the "Expected Return" associated with each state in the Markov Reward Process. Formally, we are interested in computing the *Value Function*
+$$V: \mathcal{S} \rightarrow \mathbb{R}$$
+defined as:
+$$V(s) = \mathbb{E}[G_t|S_t=s] \text{ for all } s \in \mathcal{S} \text{ for all } t = 0, 1, 2, \ldots$$
+
+Now we show a creative piece of mathematics due to [Richard Bellman](https://en.wikipedia.org/wiki/Richard_E._Bellman). Bellman noted that the Value Function has a recursive structure. Specifically, 
+
+$$V(s) = \mathbb{E}[R_{t+1}|S_t=s] + \gamma \cdot \sum_{s' \in \mathcal{S}} \mathcal{P}(s, s') \cdot \mathbb{E}[G_{t+1}|S_{t+1}=s'] \text{ for all } s \in \mathcal{S} \text{ for all } t = 0, 1, 2, \ldots$$
+
+This simplifies to:
+
+$$V(s) = \mathcal{R}(s) + \gamma \cdot \sum_{s' \in \mathcal{S}} \mathcal{P}(s, s') \cdot V(s')$$
+
+We will refer to this recursive equation for the Value Function as the Bellman Equation for a Markov Reward Process.
+
+For the case of finite states $\mathcal{S} = \{s_1, s_2, \ldots, s_n\}$, let us abuse notation and refer to $V$ as a column vector of length $n$, $\mathcal{P}$ as a $n \times n$ matrix, and $\mathcal{R}$ as a column vector of length $n \times n$ matrix, so we can express the above equation in vector and matrix notation as follows:
+
+$$V = \mathcal{R} + \gamma \mathcal{P} \cdot V$$
+$$\Rightarrow V = (I_n - \gamma \mathcal{P})^{-1} \cdot \mathcal{R}$$
+where $I_n$ is the $n \times n$ identity matrix.
+
+In our simple inventory example, the rewards function $\mathcal{R}$ can be calculated (as a vector) from the transition probability function $\mathcal{P}$ (available as a matrix) and the transition rewards function $\mathcal{TR}$ (available as a matrix) with the following code:
+
+```python
+rewards = np.sum(transition_probabilities * transition_rewards, axis=1)
+rewards_function = {states[i]: r for i, r in enumerate(rewards)}
+```
+
+This produces the following output for the Rewards Function $\mathcal{R}$:
+
+```
+{
+  (0, 0): -10.0,
+  (0, 1): -2.0,
+  (1, 0): -3.0,
+  (1, 1): -1.0,
+  (2, 0): -2.0
+}
+```
+
+The Value Function $V$ can be calculated as follows:
+
+```python
+inverse_matrix = np.linalg.inv(
+    np.eye(len(states)) - gamma * transition_probabilities
+)
+value_function = {states[i]: v for i, v in
+                  enumerate(inverse_matrix.dot(rewards))}
+```
+
+This produces the following output for the Value Function $V$:
+
+```
+{
+  (0, 0): -34.65,
+  (0, 1): -27.38,
+  (1, 0): -34.08,
+  (1, 1): -31.49
+  (2, 0): -32.49
+}
+```
+
+This computation works if the state space is not too large (matrix to be inverted has size equal to state space size). When the state space is large, this direct matrix-inversion method doesn't work and we have to resort to numerical methods to solve the recursive Bellman equation. This is the topic of Dynamic Programming and Reinforcement Learning algorithms that we shall learn in this book. 
+
+Before we end this chapter, we'd like to highlight the two highly important concepts we learnt in this chapter:
+
+* Markov Property: A concept that enables us to reason effectively and compute efficiently in practical systems involving sequential uncertainty
+* Bellman Equation: A mathematical insight that enables us to express the Value Function recursively - this equation (and its Optimality version covered in the next chapter) is in fact the core idea within all Dynamic Programming and Reinforcement Learning algorithms.

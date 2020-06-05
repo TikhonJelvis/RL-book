@@ -262,6 +262,13 @@ $else$
 \date{}
 $endif$
 
+% define some shorthands for common math notation to be used in the book
+\newcommand{\prob}{\mathcal{P}}
+\newcommand{\rew}{\mathcal{R}}
+\newcommand{\states}{\mathcal{S}}
+\DeclareMathOperator*{\argmin}{arg\,min}
+\DeclareMathOperator*{\argmax}{arg\,max}
+
 
 % At last: 
 % The document itself!:
