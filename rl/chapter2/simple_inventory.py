@@ -1,11 +1,25 @@
 import numpy as np
-states = [
-    (0, 0),
-    (0, 1),
-    (1, 0),
-    (1, 1),
-    (2, 0)
-]
+from typing import Mapping, Tuple, Sequence
+from rl.gen_utils import type_aliases
+from scipy.stats import poisson
+
+IntPair = Tuple[int, int]
+
+class SimpleInventory:
+
+    StatesMapType = Mapping[IntPair, Mapping[IntPair, float]:
+
+    def __init__(self, capacity: int, poisson_lambda: float):
+        self.capacity: int = capacity
+        self.poisson_lambda: float = poisson_lambda
+        self.poisson_distr = poisson(poisson_lambda)
+        self.state_space: Sequence[IntPair] =\
+            [(i, j) for i in range(capacity + 1) for j in range(capacity + 1 - i)]
+        self.transition_map: Mapping[Tuple[int, int], [Mapping[Tuple[int, int], float]]] =\
+            self.get_transition_map()
+
+    def get_transition_map(self) -> Mapping[Tuple[int, int], [Mapping[Tuple[int, int], float]]]:
+
 
 transition_probabilities = np.array(
     [

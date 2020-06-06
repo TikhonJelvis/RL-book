@@ -1,11 +1,10 @@
 from abc import ABC, abstractmethod
-from typing import Dict, Iterable, Generic, List, Tuple, TypeVar
+from typing import Mapping, Iterable, Generic, Sequence, Tuple, Dict
+from rl.gen_utils.type_aliases import S, StatesTransType
 import numpy as np
 
 from rl.distribution import (Categorical, Distribution, FiniteDistribution,
                              SampledDistribution)
-
-S = TypeVar('S')
 
 
 class MarkovProcess(ABC, Generic[S]):
@@ -47,12 +46,16 @@ class FiniteMarkovProcess(MarkovProcess[S]):
 
     '''
 
-    state_space: List[S]
+    state_space: Sequence[S]
+    transition_map: StatesTransType
+    transition_matrix: np.ndarray
 
-    transition_map: Dict[S, Dict[S, float]]
-
-    def __init__(self, start_state: S, state_space: List[S],
-                 transition_map: Dict[S, Dict[S, float]]):
+    def __init__(
+            self,
+            start_state: S,
+            state_space: Sequence[S],
+            transition_map: StatesTransType
+    ):
         super().__init__(start_state)
         self.state_space = state_space
         self.transition_map = transition_map
@@ -116,20 +119,21 @@ class MarkovRewardProcess(MarkovProcess[S]):
             yield next_state, reward
 
 
-class FiniteMarkovRewardProcess(FiniteMarkovProcess[S],
-                                MarkovRewardProcess[S]):
-    transition_reward_map: Dict[S, Dict[Tuple[S, float], float]]
+class FiniteMarkovRewardProcess(FiniteMarkovProcess[S], MarkovRewardProcess[S]):
+    transition_reward_map: Mapping[S, Mapping[Tuple[S, float], float]]
 
-    def __init__(self, start_state: S, state_space: List[S],
-                 transition_reward_map: Dict[S, Dict[Tuple[S, float], float]]):
+    def __init__(
+            self,
+            start_state: S,
+            state_space: Sequence[S],
+            transition_reward_map: Mapping[S, Mapping[Tuple[S, float], float]]):
 
         transition_map: Dict[S, Dict[S, float]] = {}
         for state, _ in self.transition_reward_map.items():
             transition_map[state] = {}
 
-            for (next_state,
-                 _), probability in self.transition_reward_map[state].items(
-                 ):
+            for (next_state, _), probability in\
+                    self.transition_reward_map[state].items():
                 transition_map[state][next_state] = probability
 
         super().__init__(start_state, state_space, transition_map)

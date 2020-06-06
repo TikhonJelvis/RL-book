@@ -15,13 +15,11 @@ class FlipFlop(MarkovProcess[bool]):
 
     '''
 
-    state: bool
-
     p: float
 
     def __init__(self, p, start_state=True):
         self.p = p
-        self.state = start_state
+        super().__init__(start_state)
 
     def transition(self) -> Distribution[bool]:
         def next_state():
@@ -40,11 +38,9 @@ class FiniteFlipFlop(FiniteMarkovProcess[bool]):
 
     '''
     def __init__(self, p, start_state=True):
-        self.state = start_state
+        state_space = [False, True]
 
-        self.state_space = [False, True]
-
-        self.transition_map = {
+        transition_map = {
             True: {
                 False: p,
                 True: 1 - p
@@ -55,6 +51,8 @@ class FiniteFlipFlop(FiniteMarkovProcess[bool]):
             }
         }
 
+        super().__init__(start_state, state_space, transition_map)
+
 
 class RewardFlipFlop(MarkovRewardProcess[bool]):
     state: bool
@@ -63,8 +61,7 @@ class RewardFlipFlop(MarkovRewardProcess[bool]):
 
     def __init__(self, p, start_state=True):
         self.p = p
-
-        self.state = start_state
+        super().__init__(start_state)
 
     def transition_reward(self) -> Distribution[Tuple[bool, float]]:
         def next_state():
@@ -73,9 +70,9 @@ class RewardFlipFlop(MarkovRewardProcess[bool]):
             if switch_states:
                 next_state = not self.state
                 reward = 1 if self.state else 0.5
-                return (next_state, reward)
+                return next_state, reward
             else:
-                return (self.state, 0.5)
+                return self.state, 0.5
 
         return SampledDistribution(next_state)
 
