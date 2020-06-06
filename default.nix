@@ -1,5 +1,5 @@
 { pkgs ? import <nixpkgs> {}
-, python ? pkgs.python38
+, basePython ? pkgs.python38
 }:
 
 let
@@ -16,6 +16,10 @@ let
   };
 
   pythonDependencies = ps: with ps; [ graphviz ipython jedi jupyter matplotlib numpy pandas scipy ];
+
+  python = if pkgs.stdenv.isDarwin
+           then basePython
+           else basePython.withPackages (ps: pythonDependencies ps);
 in
 pkgs.stdenv.mkDerivation {
   name = "RL-book";
@@ -29,7 +33,7 @@ pkgs.stdenv.mkDerivation {
     pkgs.pandoc
     pkgs.watchexec
 
-    (python.withPackages (ps: pythonDependencies ps))
+    python
   ];
 
   FONTCONFIG_FILE = fonts;

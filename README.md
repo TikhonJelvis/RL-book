@@ -6,19 +6,28 @@ Basic setup for working with Pandoc and TeX.
 
 To work on the book, you need to [install Nix][install].
 
-On macOS from Catalina onwards, run:
+### Set up the environment
+
+On macOS, first install the XCode command-line tools:
+
+```
+xcode-select --install
+```
+
+the install Nix with:
+
 
 ```
 sh <(curl https://nixos.org/nix/install) --darwin-use-unencrypted-nix-store-volume
 ```
 
-on other systems, run:
+On Linux, install Nix with:
 
 ```
-> curl -L https://nixos.org/nix/install | sh
+curl -L https://nixos.org/nix/install | sh
 ```
 
-After that, follow the instructions from the script.
+### Nix Shells
 
 Once you have Nix installed, run `nix-shell` to get access to Pandoc, LaTeX and all the other tools you need. The first time you run `nix-shell` will take a while to finish as it downloads and installs all the packages you need.
 
