@@ -24,7 +24,6 @@ class MarkovProcess(ABC, Generic[S]):
         the next states.
 
         '''
-        pass
 
     def simulate(self) -> Iterable[S]:
         '''Run a simulation trace of this Markov process, generating the
@@ -52,12 +51,8 @@ class FiniteMarkovProcess(MarkovProcess[S]):
 
     transition_map: Dict[S, Dict[S, float]]
 
-    def __init__(
-            self,
-            start_state: S,
-            state_space: List[S],
-            transition_map: Dict[S, Dict[S, float]]
-    ):
+    def __init__(self, start_state: S, state_space: List[S],
+                 transition_map: Dict[S, Dict[S, float]]):
         super().__init__(start_state)
         self.state_space = state_space
         self.transition_map = transition_map
@@ -76,12 +71,15 @@ class FiniteMarkovProcess(MarkovProcess[S]):
 
     def get_stationary_distribution(self) -> FiniteDistribution[S]:
         eig_vals, eig_vecs = np.linalg.eig(self.transition_matrix.T)
-        index_of_first_unit_eig_val = np.where(np.abs(eig_vals - 1) < 1e-8)[0][0]
-        eig_vec_of_unit_eig_val = np.real(eig_vecs[:, index_of_first_unit_eig_val])
-        return Categorical(
-            [(self.state_space[i], ev) for i, ev in
-             enumerate(eig_vec_of_unit_eig_val / sum(eig_vec_of_unit_eig_val))]
-        )
+        index_of_first_unit_eig_val = np.where(
+            np.abs(eig_vals - 1) < 1e-8)[0][0]
+        eig_vec_of_unit_eig_val = np.real(
+            eig_vecs[:, index_of_first_unit_eig_val])
+        return Categorical([
+            (self.state_space[i], ev)
+            for i, ev in enumerate(eig_vec_of_unit_eig_val /
+                                   sum(eig_vec_of_unit_eig_val))
+        ])
 
 
 class MarkovRewardProcess(MarkovProcess[S]):
@@ -102,7 +100,6 @@ class MarkovRewardProcess(MarkovProcess[S]):
         and reward from transitioning between the states.
 
         '''
-        pass
 
     def simulate_reward(self) -> Iterable[Tuple[S, float]]:
         '''Simulate the MRP, yielding the new state and reward for each
@@ -121,20 +118,20 @@ class MarkovRewardProcess(MarkovProcess[S]):
 
 class FiniteMarkovRewardProcess(FiniteMarkovProcess[S],
                                 MarkovRewardProcess[S]):
-    transition_reward_matrix: Dict[S, Dict[Tuple[S, float], float]]
+    transition_reward_map: Dict[S, Dict[Tuple[S, float], float]]
 
-    def __init__(self, state_space: List[S],
-                 transition_reward_matrix: Dict[S, Dict[Tuple[S, float],
-                                                        float]]):
-        self.state_space = state_space
+    def __init__(self, start_state: S, state_space: List[S],
+                 transition_reward_map: Dict[S, Dict[Tuple[S, float], float]]):
 
-        self.transition_reward_matrix = transition_reward_matrix
-
-        self.transition_matrix = {}
-        for state, item in self.transition_reward_matrix.items():
-            self.transition_matrix[state] = {}
+        transition_map: Dict[S, Dict[S, float]] = {}
+        for state, _ in self.transition_reward_map.items():
+            transition_map[state] = {}
 
             for (next_state,
-                 _), probability in self.transition_reward_matrix[state].items(
+                 _), probability in self.transition_reward_map[state].items(
                  ):
-                self.transition_matrix[state][next_state] = probability
+                transition_map[state][next_state] = probability
+
+        super().__init__(start_state, state_space, transition_map)
+
+        self.transition_reward_map = transition_reward_map

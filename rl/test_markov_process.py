@@ -44,7 +44,7 @@ class FiniteFlipFlop(FiniteMarkovProcess[bool]):
 
         self.state_space = [False, True]
 
-        self.transition_matrix = {
+        self.transition_map = {
             True: {
                 False: p,
                 True: 1 - p
