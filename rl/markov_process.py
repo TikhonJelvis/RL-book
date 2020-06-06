@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 from typing import Dict, Iterable, Generic, List, Tuple, TypeVar
+import numpy as np
 
 from rl.distribution import (Categorical, Distribution, FiniteDistribution,
                              SampledDistribution)
@@ -49,16 +50,38 @@ class FiniteMarkovProcess(MarkovProcess[S]):
 
     state_space: List[S]
 
-    transition_matrix: Dict[S, Dict[S, float]]
+    transition_map: Dict[S, Dict[S, float]]
 
-    def __init__(self, state_space: List[S],
-                 transition_matrix: Dict[S, Dict[S, float]]):
+    def __init__(
+            self,
+            start_state: S,
+            state_space: List[S],
+            transition_map: Dict[S, Dict[S, float]]
+    ):
+        super().__init__(start_state)
         self.state_space = state_space
+        self.transition_map = transition_map
+        self.transition_matrix = self.get_transition_matrix()
 
-        self.transition_matrix = transition_matrix
+    def get_transition_matrix(self) -> np.ndarray:
+        sz = len(self.state_space)
+        mat = np.zeros((sz, sz))
+        for i, s1 in enumerate(self.state_space):
+            for j, s2 in enumerate(self.state_space):
+                mat[i, j] = self.transition_map[s1].get(s2, 0.)
+        return mat
 
     def transition(self) -> FiniteDistribution[S]:
-        return Categorical(self.transition_matrix[self.state].items())
+        return Categorical(self.transition_map[self.state].items())
+
+    def get_stationary_distribution(self) -> FiniteDistribution[S]:
+        eig_vals, eig_vecs = np.linalg.eig(self.transition_matrix.T)
+        index_of_first_unit_eig_val = np.where(np.abs(eig_vals - 1) < 1e-8)[0][0]
+        eig_vec_of_unit_eig_val = np.real(eig_vecs[:, index_of_first_unit_eig_val])
+        return Categorical(
+            [(self.state_space[i], ev) for i, ev in
+             enumerate(eig_vec_of_unit_eig_val / sum(eig_vec_of_unit_eig_val))]
+        )
 
 
 class MarkovRewardProcess(MarkovProcess[S]):
