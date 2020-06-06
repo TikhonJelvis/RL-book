@@ -1,11 +1,11 @@
 import numpy as np
-states = [
-    (0, 0),
-    (0, 1),
-    (1, 0),
-    (1, 1),
-    (2, 0)
-]
+from scipy.stats import poisson
+
+capacity = 2
+poisson_lambda = 1.0
+poisson_distr = poisson(poisson_lambda)
+
+states = [(i, j) for i in range(capacity + 1) for j in range(capacity + 1 - i)]
 
 transition_probabilities = np.array(
     [
