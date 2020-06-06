@@ -120,18 +120,3 @@ class TestRewardMarkovProcess(unittest.TestCase):
 
         cumulative_reward = sum(reward for _, reward in trace)
         self.assertTrue(0 <= cumulative_reward <= 10)
-
-
-if __name__ == "__main__":
-    flip_flop_trace = \
-        list(itertools.islice(FlipFlop(0.5).simulate(), 10))
-
-    finit_trace = \
-        list(itertools.islice(FiniteFlipFlop(0.5).simulate(), 10))
-
-    reward_trace = \
-        list(itertools.islice(RewardFlipFlop(0.5).simulate_reward(), 10))
-
-    print("FlipFlop:\n {flip_flop_trace}")
-    print("FiniteFlipFlop:\n {finite_trace}")
-    print("RewardFlipFlop:\n {reward_trace}")
