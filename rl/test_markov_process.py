@@ -1,9 +1,8 @@
 import itertools
-import numpy as np
 from typing import Tuple
 import unittest
 
-from rl.distribution import Bernoulli
+from rl.distribution import Bernoulli, Distribution, SampledDistribution
 from rl.markov_process import (FiniteMarkovProcess, MarkovProcess,
                                MarkovRewardProcess)
 
@@ -24,13 +23,16 @@ class FlipFlop(MarkovProcess[bool]):
         self.p = p
         self.state = start_state
 
-    def simulate_transition(self) -> bool:
-        switch_states = Bernoulli(self.p).sample()
+    def transition(self) -> Distribution[bool]:
+        def next_state():
+            switch_states = Bernoulli(self.p).sample()
 
-        if switch_states:
-            return not self.state
-        else:
-            return self.state
+            if switch_states:
+                return not self.state
+            else:
+                return self.state
+
+        return SampledDistribution(next_state)
 
 
 class FiniteFlipFlop(FiniteMarkovProcess[bool]):
@@ -64,15 +66,18 @@ class RewardFlipFlop(MarkovRewardProcess[bool]):
 
         self.state = start_state
 
-    def simulate_transition_reward(self) -> Tuple[bool, float]:
-        switch_states = Bernoulli(self.p).sample()
+    def transition_reward(self) -> Distribution[Tuple[bool, float]]:
+        def next_state():
+            switch_states = Bernoulli(self.p).sample()
 
-        if switch_states:
-            next_state = not self.state
-            reward = 1 if self.state else 0.5
-            return (next_state, reward)
-        else:
-            return (self.state, 0.5)
+            if switch_states:
+                next_state = not self.state
+                reward = 1 if self.state else 0.5
+                return (next_state, reward)
+            else:
+                return (self.state, 0.5)
+
+        return SampledDistribution(next_state)
 
 
 class TestMarkovProcess(unittest.TestCase):

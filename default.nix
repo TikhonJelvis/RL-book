@@ -15,7 +15,7 @@ let
     fontDirectories = [ pkgs.eb-garamond pkgs.tex-gyre.pagella ];
   };
 
-  pythonDependencies = ps: with ps; [ graphviz ipython jedi jupyter matplotlib numpy pandas scipy ];
+  pythonDependencies = ps: with ps; [ graphviz ipython jedi jupyter matplotlib mypy numpy pandas scipy ];
 
   python = if pkgs.stdenv.isDarwin
            then basePython

@@ -18,15 +18,12 @@ class MarkovProcess(ABC, Generic[S]):
         self.state = start_state
 
     @abstractmethod
-    def simulate_transition(self) -> S:
-        pass
-
     def transition(self) -> Distribution[S]:
         '''Given the current state of the process, returns a distribution of
         the next states.
 
         '''
-        return SampledDistribution(self.simulate_transition)
+        pass
 
     def simulate(self) -> Iterable[S]:
         '''Run a simulation trace of this Markov process, generating the
@@ -60,43 +57,47 @@ class FiniteMarkovProcess(MarkovProcess[S]):
 
         self.transition_matrix = transition_matrix
 
-    def simulate_transition(self) -> S:
-        return self.transition().sample()
-
     def transition(self) -> FiniteDistribution[S]:
         return Categorical(self.transition_matrix[self.state].items())
 
 
 class MarkovRewardProcess(MarkovProcess[S]):
-    def simulate_transition(self) -> S:
+    def transition(self) -> Distribution[S]:
         '''Transitions the Markov Reward Process, ignoring the generated
         reward (which makes this just a normal Markov Process).
 
         '''
-        return self.simulate_transition_reward()[0]
+        def next_state():
+            state, _ = self.transition_reward().sample()
+            return state
+
+        return SampledDistribution(next_state)
 
     @abstractmethod
-    def simulate_transition_reward(self) -> Tuple[S, float]:
-        '''Transition the process, providing both the next transition and the
-        reward for that transition.
+    def transition_reward(self) -> Distribution[Tuple[S, float]]:
+        '''Given the current state, returns a distribution of the next state
+        and reward from transitioning between the states.
 
         '''
         pass
 
-    def transition_reward(self) -> Distribution[Tuple[S, float]]:
-        return SampledDistribution(self.simulate_transition_reward)
-
-    # TODO: This starts the simulation *after* the first state, while
-    # simulate() starts with the start state
     def simulate_reward(self) -> Iterable[Tuple[S, float]]:
+        '''Simulate the MRP, yielding the new state and reward for each
+        transition.
+
+        The trace starts with the start state and a reward of 0.
+
+        '''
+        yield self.state, 0
+
         while True:
             next_state, reward = self.transition_reward().sample()
             self.state = next_state
             yield next_state, reward
 
 
-class FiniteMarkovRewardProcess(MarkovRewardProcess[S],
-                                FiniteMarkovProcess[S]):
+class FiniteMarkovRewardProcess(FiniteMarkovProcess[S],
+                                MarkovRewardProcess[S]):
     transition_reward_matrix: Dict[S, Dict[Tuple[S, float], float]]
 
     def __init__(self, state_space: List[S],
