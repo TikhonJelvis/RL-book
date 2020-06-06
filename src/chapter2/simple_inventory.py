@@ -7,24 +7,15 @@ poisson_distr = poisson(poisson_lambda)
 
 states = [(i, j) for i in range(capacity + 1) for j in range(capacity + 1 - i)]
 
-def get_index(alpha, beta, capacity=capacity):
-    return int(alpha * (capacity - (alpha - 3) / 2)) + beta
-
-num_states = int((capacity + 1) * (capacity + 2) / 2)
-transition_probabilities = np.zeros((num_states, num_states))
-
-for alpha in range(capacity + 1):
-    for beta in range(capacity + 1 - alpha):
-        row = get_index(alpha, beta)
-        beta1 = max(capacity - (alpha + beta), 0)
-        for i in range(alpha + beta):
-            alpha1 = alpha + beta - i
-            col = get_index(alpha1, beta1)
-            transition_probabilities[row, col] = poisson_distr.pmf(i)
-        col = get_index(0, beta1)
-        transition_probabilities[row, col] = 1 - poisson_distr.cdf(alpha + beta - 1)
-
-print(transition_probabilities)
+transition_probabilities = np.array(
+    [
+        [0., 1., 0., 0., 0.],
+        [0., .8, 0., .2, 0.],
+        [.8, 0., .2, 0., 0.],
+        [.2, 0., .6, 0., .2],
+        [.2, 0., .6, 0., .2]
+    ]
+)
 
 eig_vals, eig_vecs = np.linalg.eig(transition_probabilities.T)
 
@@ -39,28 +30,15 @@ stationary_probabilities = {states[i]: ev for i, ev in
 print("Stationary Probabilities")
 print(stationary_probabilities)
 
-h = -1.
-p = -10.
-
-transition_rewards = np.zeros((num_states, num_states))
-
-for alpha in range(capacity + 1):
-    for beta in range(capacity + 1 - alpha):
-        row = get_index(alpha, beta)
-        beta1 = max(capacity - (alpha + beta), 0)
-        for i in range(alpha + beta):
-            alpha1 = alpha + beta - i
-            col = get_index(alpha1, beta1)
-            transition_rewards[row, col] = h * alpha
-        col = get_index(0, beta1)
-        transition_rewards[row, col] =\
-            h * alpha + p * (
-                    poisson_lambda * (1 - poisson_distr.cdf(alpha + beta - 1))
-                    - (alpha + beta) * (1 - poisson_distr.cdf(alpha + beta))
-            )
-
-print(transition_rewards)
-
+transition_rewards = np.array(
+    [
+        [0., -10., 0., 0., 0.],
+        [0., -2.5, 0., 0., 0.],
+        [-3.5, 0., -1., 0., 0.],
+        [-1., 0., -1., 0., -1.],
+        [-2., 0., -2., 0., -2.]
+    ]
+)
 rewards = np.sum(transition_probabilities * transition_rewards, axis=1)
 rewards_function = {states[i]: r for i, r in enumerate(rewards)}
 print("Rewards Function")
