@@ -427,27 +427,35 @@ If we denote the discount factor as $\gamma$, then the reward obtained after $n$
 A {\em Discrete-Time Markov Reward Process} is a Discrete-Time Markov Process, along with:
 \begin{itemize}
 \item A time-indexed sequence of {\em Reward} random variables $R_t \in \mathbb{R}$ for each time $t=1, 2, \ldots$
- \item Markov Property for Rewards: $\mathbb{P}[R_{t+1}|S_{t+1},S_t, S_{t-1}, \ldots, S_0] = \mathbb{P}[R_{t+1}|S_{t+1}, S_t]$ for all $t \geq 0$
- \item Specification of a discount factor $\gamma \in [0,1]$
+\item Markov Property (including Rewards): $\mathbb{P}[(R_{t+1}, S_{t+1}) | S_t, S_{t-1}, \ldots, S_0] = \mathbb{P}[(R_{t+1}, S_{t+1}) | S_t]$ for all $t \geq 0$
+\item Specification of a discount factor $\gamma \in [0,1]$
  \end{itemize}
 \end{definition}
 
-Since we commonly assume Stationarity of Discrete-Time Markov Processes, we shall also (by default) assume Stationarity of the *Reward* random variables, i.e., $\mathbb{P}[R_{t+1}|S_{t+1}, S_t]$ is independent of $t$.
+Since we commonly assume Stationarity of Discrete-Time Markov Processes, we shall also (by default) assume Stationarity for Discrete-Time Markov Reward Processes, i.e., $\mathbb{P}[(R_{t+1}, S_{t+1}) | S_t]$ is independent of $t$.
 
-This means the Rewards of a Markov Reward Process can, in the most general case, be expressed as a rewards probability function:
-$$\mathbb{P}[R_{t+1}=r|S_{t+1}=s',S_t=s]$$
-
-This yields the transition rewards function:
-$$\mathcal{TR}: \mathcal{S} \times \mathcal{S} \rightarrow \mathbb{R}$$
+This means the transition probabilities of a Markov Reward Process can, in the most general case, be expressed as a transition probability function:
+$$\mathcal{P}_R: \mathcal{S} \times \mathbb{R} \times \mathcal{S} \rightarrow [0,1]$$
 defined as:
-$$\mathcal{TR}(s,s') = \mathbb{E}[R_{t+1}|S_{t+1}=s',S_t=s]$$
-$$= \int_{-\infty}^{+\infty} \mathbb{P}[R_{t+1}=r|S_{t+1}=s',S_t=s] \cdot r \cdot dr \text{ for all } s, s' \in \mathcal{S}$$
+$$\mathcal{P}_R(s,r,s') = \mathbb{P}[(R_{t+1}=r, S_{t+1}=s') | S_t=s]$$
+such that
+$$\sum_{s'\in \mathcal{S}} \sum_{r \in \mathbb{R}} \mathcal{P}_R(s,r,s') = 1 \text{ for all } s \in \mathcal{S}$$
 
-The Rewards specification of most Markov Reward Processes we encounter in practice can be directly expressed as the transition rewards function $\mathcal{TR}$. Note that we specified the Rewards of the simple inventory example as the transition rewards function $\mathcal{TR}$.
+From this, we can extract:
+\begin{itemize}
+\item The transition probability function $\mathcal{P}: \mathcal{S} \times \mathcal{S} \rightarrow [0,1]$ of the implicit Markov Process defined as:
+$$\mathcal{P}(s, s') = \sum_{r\in \mathbb{R}} \mathcal{P}_R(s,r,s')$$
+\item The transition rewards function:
+$$\mathcal{R}_T: \mathcal{S} \times \mathcal{S} \rightarrow \mathbb{R}$$
+defined as:
+$$\mathcal{R}_T(s,s') = \mathbb{E}[R_{t+1}|S_{t+1}=s',S_t=s] = \sum_{r\in \mathcal{R}} \frac {\mathcal{P}_R(s,r,s')} {\mathcal{P}(s,s')} \cdot r = \sum_{r\in \mathcal{R}} \frac {\mathcal{P}_R(s,r,s')} {\sum_{r\in \mathbb{R}} \mathcal{P}_R(s,r,s')} \cdot r$$
+\end{itemize}
+
+The Rewards specification of most Markov Reward Processes we encounter in practice can be directly expressed as the transition rewards function $\mathcal{R}_T$. Note that we specified the Rewards of the simple inventory example as the transition rewards function $\mathcal{R}_T$.
 
 Finally, we define the rewards function:
 $$\mathcal{R}: \mathcal{S} \rightarrow \mathbb{R} \text{ as }$$
-$$\mathcal{R}(s) = \mathbb{E}[R_{t+1}|S_t=s] = \sum_{s' \in \mathcal{S}} \mathcal{P}(s,s') \cdot \mathcal{TR}(s,s')$$
+$$\mathcal{R}(s) = \mathbb{E}[R_{t+1}|S_t=s] = \sum_{s' \in \mathcal{S}} \mathcal{P}(s,s') \cdot \mathcal{R}_T(s,s') = \sum_{s'\in \mathcal{S}} \sum_{r\in\mathbb{R}} \mathcal{P}_R(s,r,s') \cdot r$$
 
 With this formalism in place, we are now ready to formally define the main problem involving Markov Reward Processes. As we said earlier, we'd like to compute the "accumulated rewards" from any given state. However, if we simply add up the rewards in a simulation trace following time step $t$ as $\sum_{i=t+1}^{\infty} R_i = R_{t+1} + R_{t+2} + \ldots$, the sum would often diverge to infinity. This is where the discount factor comes into play. We define the (random) *Return* $G_t$ as the "discounted accumulation of future rewards" following time step $t$. Formally,
 $$G_t = \sum_{i=t+1}^{\infty} \gamma^{i-t-1} \cdot R_i = R_{t+1} + \gamma \cdot R_{t+2} + \gamma^2 \cdot R_{t+3} + \ldots$$
@@ -477,7 +485,7 @@ $$V = \mathcal{R} + \gamma \mathcal{P} \cdot V$$
 $$\Rightarrow V = (I_n - \gamma \mathcal{P})^{-1} \cdot \mathcal{R}$$
 where $I_n$ is the $n \times n$ identity matrix.
 
-In our simple inventory example, the rewards function $\mathcal{R}$ can be calculated (as a vector) from the transition probability function $\mathcal{P}$ (available as a matrix) and the transition rewards function $\mathcal{TR}$ (available as a matrix) with the following code:
+In our simple inventory example, the rewards function $\mathcal{R}$ can be calculated (as a vector) from the transition probability function $\mathcal{P}$ (available as a matrix) and the transition rewards function $\mathcal{R}_T$ (available as a matrix) with the following code:
 
 ```python
 rewards = np.sum(transition_probabilities * transition_rewards, axis=1)
