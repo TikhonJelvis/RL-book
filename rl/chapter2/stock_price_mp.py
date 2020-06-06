@@ -134,7 +134,7 @@ def plot_single_trace_all_processes(
         alpha3: float,
         time_steps: int
 ) -> None:
-    from gen_utils.plot_funcs import plot_list_of_curves
+    from rl.gen_utils.plot_funcs import plot_list_of_curves
     s1: np.ndarray = process1_price_traces(
         start_price=start_price,
         level_param=level_param,
@@ -189,7 +189,7 @@ def plot_distribution_at_time_all_processes(
         time_step: int,
         num_traces: int
 ) -> None:
-    from gen_utils.plot_funcs import plot_list_of_curves
+    from rl.gen_utils.plot_funcs import plot_list_of_curves
     s1: np.ndarray = process1_price_traces(
         start_price=start_price,
         level_param=level_param,
