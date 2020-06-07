@@ -17,18 +17,13 @@ class FlipFlop(MarkovProcess[bool]):
 
     p: float
 
-    def __init__(self, p, start_state=True):
+    def __init__(self, p: float):
         self.p = p
-        super().__init__(start_state)
 
-    def transition(self) -> Distribution[bool]:
-        def next_state():
+    def transition(self, state: bool) -> Distribution[bool]:
+        def next_state(state=state):
             switch_states = Bernoulli(self.p).sample()
-
-            if switch_states:
-                return not self.state
-            else:
-                return self.state
+            return not state if switch_states else state
 
         return SampledDistribution(next_state)
 
@@ -37,42 +32,27 @@ class FiniteFlipFlop(FiniteMarkovProcess[bool]):
     ''' A version of FlipFlop implemented with the FiniteMarkovProcess machinery.
 
     '''
-    def __init__(self, p, start_state=True):
-        state_space = [False, True]
-
-        transition_map = {
-            True: {
-                False: p,
-                True: 1 - p
-            },
-            False: {
-                False: 1 - p,
-                True: p
-            }
-        }
-
-        super().__init__(start_state, state_space, transition_map)
+    def __init__(self, p: float):
+        transition_map = {b: {not b: p, b: 1 - p} for b in {True, False}}
+        super().__init__(transition_map)
 
 
 class RewardFlipFlop(MarkovRewardProcess[bool]):
-    state: bool
-
     p: float
 
-    def __init__(self, p, start_state=True):
+    def __init__(self, p: float):
         self.p = p
-        super().__init__(start_state)
 
-    def transition_reward(self) -> Distribution[Tuple[bool, float]]:
-        def next_state():
+    def transition_reward(self, state: bool) -> Distribution[Tuple[bool, float]]:
+        def next_state(state=state):
             switch_states = Bernoulli(self.p).sample()
 
             if switch_states:
-                next_state = not self.state
-                reward = 1 if self.state else 0.5
-                return next_state, reward
+                next_s = not state
+                reward = 1 if state else 0.5
+                return next_s, reward
             else:
-                return self.state, 0.5
+                return state, 0.5
 
         return SampledDistribution(next_state)
 
@@ -82,11 +62,11 @@ class TestMarkovProcess(unittest.TestCase):
         self.flip_flop = FlipFlop(0.5)
 
     def test_flip_flop(self):
-        trace = list(itertools.islice(self.flip_flop.simulate(), 10))
+        trace = list(itertools.islice(self.flip_flop.simulate(True), 10))
 
         self.assertTrue(all(isinstance(outcome, bool) for outcome in trace))
 
-        longer_trace = itertools.islice(self.flip_flop.simulate(), 10000)
+        longer_trace = itertools.islice(self.flip_flop.simulate(True), 10000)
         count_trues = len(list(outcome for outcome in longer_trace if outcome))
 
         # If the code is correct, this should fail with a vanishingly
@@ -99,11 +79,11 @@ class TestFiniteMarkovProcess(unittest.TestCase):
         self.flip_flop = FiniteFlipFlop(0.5)
 
     def test_flip_flop(self):
-        trace = list(itertools.islice(self.flip_flop.simulate(), 10))
+        trace = list(itertools.islice(self.flip_flop.simulate(True), 10))
 
         self.assertTrue(all(isinstance(outcome, bool) for outcome in trace))
 
-        longer_trace = itertools.islice(self.flip_flop.simulate(), 10000)
+        longer_trace = itertools.islice(self.flip_flop.simulate(True), 10000)
         count_trues = len(list(outcome for outcome in longer_trace if outcome))
 
         # If the code is correct, this should fail with a vanishingly
@@ -116,7 +96,7 @@ class TestRewardMarkovProcess(unittest.TestCase):
         self.flip_flop = RewardFlipFlop(0.5)
 
     def test_flip_flop(self):
-        trace = list(itertools.islice(self.flip_flop.simulate_reward(), 10))
+        trace = list(itertools.islice(self.flip_flop.simulate_reward(True), 10))
 
         self.assertTrue(all(isinstance(outcome, bool) for outcome, _ in trace))
 
