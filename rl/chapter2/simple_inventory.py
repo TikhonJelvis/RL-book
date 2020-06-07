@@ -49,11 +49,11 @@ class SimpleInventory:
 
 
 if __name__ == '__main__':
-
+    from pprint import pprint
     user_capacity = 2
     user_poisson_lambda = 1.0
-    user_holding_cost = 1.0
-    user_stockout_cost = 10.0
+    user_holding_cost = -1.0
+    user_stockout_cost = -10.0
 
     user_gamma = 0.9
 
@@ -65,13 +65,27 @@ if __name__ == '__main__':
     )
 
     fmrp = si.get_finite_markov_reward_process()
+    print("Transition Rewards Map")
+    pprint(fmrp.transition_reward_map)
+    print("Transition Map")
+    pprint(fmrp.transition_map)
 
-    rewards_function = {fmrp.state_space[i]: r for i, r in enumerate(fmrp.reward_vec)}
-    print(rewards_function)
+    stationary_distribution = {
+        s: p for s, p in fmrp.get_stationary_distribution().to_pdf()
+    }
+    print("Stationary Distribution")
+    pprint(stationary_distribution)
+
+    rewards_function = {
+        fmrp.state_space[i]: r for i, r in enumerate(fmrp.reward_vec)
+    }
+    print("Rewards Function")
+    pprint(rewards_function)
 
     value_function = {fmrp.state_space[i]: v for i, v
                       in enumerate(fmrp.value_function_vec(gamma=user_gamma))}
-    print(value_function)
+    print("Value Function")
+    pprint(value_function)
 
 
 

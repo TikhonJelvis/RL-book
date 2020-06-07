@@ -123,7 +123,7 @@ class FiniteMarkovRewardProcess(FiniteMarkovProcess[S], MarkovRewardProcess[S]):
 
         transition_map: Dict[S, Dict[S, float]] = {}
 
-        for state, trans in self.transition_reward_map.items():
+        for state, trans in transition_reward_map.items():
             transition_map[state] = defaultdict(float)
             for (next_state, _), probability in trans.items():
                 transition_map[state][next_state] += probability
@@ -134,7 +134,7 @@ class FiniteMarkovRewardProcess(FiniteMarkovProcess[S], MarkovRewardProcess[S]):
 
         self.reward_vec = np.array(
             [sum(probability * reward for (_, reward), probability in
-                 transition_reward_map[state]) for state in self.state_space]
+                 transition_reward_map[state].items()) for state in self.state_space]
         )
 
     def transition_reward(self, state: S) -> FiniteDistribution[Tuple[S, float]]:
