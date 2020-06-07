@@ -1,7 +1,6 @@
 from typing import Mapping, Tuple
 from rl.markov_process import FiniteMarkovRewardProcess
 from scipy.stats import poisson
-from pprint import pprint
 
 IntPair = Tuple[int, int]
 TransType = Mapping[IntPair, Mapping[Tuple[IntPair, float], float]]
@@ -50,7 +49,7 @@ class SimpleInventory:
 
 
 if __name__ == '__main__':
-
+    from pprint import pprint
     user_capacity = 2
     user_poisson_lambda = 1.0
     user_holding_cost = -1.0
@@ -64,15 +63,28 @@ if __name__ == '__main__':
         holding_cost=user_holding_cost,
         stockout_cost=user_stockout_cost
     )
-    pprint(si.transition_reward_map)
 
     fmrp = si.get_finite_markov_reward_process()
+    print("Transition Rewards Map")
+    pprint(fmrp.transition_reward_map)
+    print("Transition Map")
+    pprint(fmrp.transition_map)
 
-    rewards_function = {fmrp.state_space[i]: r for i, r in enumerate(fmrp.reward_vec)}
+    stationary_distribution = {
+        s: p for s, p in fmrp.get_stationary_distribution().to_pdf()
+    }
+    print("Stationary Distribution")
+    pprint(stationary_distribution)
+
+    rewards_function = {
+        fmrp.state_space[i]: r for i, r in enumerate(fmrp.reward_vec)
+    }
+    print("Rewards Function")
     pprint(rewards_function)
 
     value_function = {fmrp.state_space[i]: v for i, v
                       in enumerate(fmrp.value_function_vec(gamma=user_gamma))}
+    print("Value Function")
     pprint(value_function)
 
 
