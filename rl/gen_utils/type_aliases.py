@@ -1,4 +1,5 @@
-from typing import Mapping, TypeVar
+from typing import Mapping, Tuple, TypeVar
 
 S = TypeVar('S')
-StatesTransType = Mapping[S, Mapping[S, float]]
+S_TransType = Mapping[S, Mapping[S, float]]
+SR_TransType = Mapping[S, Mapping[Tuple[S, float], float]]
