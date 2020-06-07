@@ -1,6 +1,7 @@
 from typing import Mapping, Tuple
 from rl.markov_process import FiniteMarkovRewardProcess
 from scipy.stats import poisson
+from pprint import pprint
 
 IntPair = Tuple[int, int]
 TransType = Mapping[IntPair, Mapping[Tuple[IntPair, float], float]]
@@ -52,8 +53,8 @@ if __name__ == '__main__':
 
     user_capacity = 2
     user_poisson_lambda = 1.0
-    user_holding_cost = 1.0
-    user_stockout_cost = 10.0
+    user_holding_cost = -1.0
+    user_stockout_cost = -10.0
 
     user_gamma = 0.9
 
@@ -63,15 +64,16 @@ if __name__ == '__main__':
         holding_cost=user_holding_cost,
         stockout_cost=user_stockout_cost
     )
+    pprint(si.transition_reward_map)
 
     fmrp = si.get_finite_markov_reward_process()
 
     rewards_function = {fmrp.state_space[i]: r for i, r in enumerate(fmrp.reward_vec)}
-    print(rewards_function)
+    pprint(rewards_function)
 
     value_function = {fmrp.state_space[i]: v for i, v
                       in enumerate(fmrp.value_function_vec(gamma=user_gamma))}
-    print(value_function)
+    pprint(value_function)
 
 
 
