@@ -1,72 +1,85 @@
-import numpy as np
 from typing import Mapping, Tuple, Sequence
-from rl.gen_utils import type_aliases
+from rl.markov_process import FiniteMarkovRewardProcess
 from scipy.stats import poisson
 
 IntPair = Tuple[int, int]
+TransType = Mapping[IntPair, Mapping[Tuple[IntPair, float], float]]
+
 
 class SimpleInventory:
 
-    StatesMapType = Mapping[IntPair, Mapping[IntPair, float]:
-
-    def __init__(self, capacity: int, poisson_lambda: float):
+    def __init__(
+            self,
+            capacity: int,
+            poisson_lambda: float,
+            holding_cost: float,
+            stockout_cost: float
+    ):
         self.capacity: int = capacity
         self.poisson_lambda: float = poisson_lambda
+        self.holding_cost: float = holding_cost
+        self.stockout_cost: float = stockout_cost
+
         self.poisson_distr = poisson(poisson_lambda)
         self.state_space: Sequence[IntPair] =\
             [(i, j) for i in range(capacity + 1) for j in range(capacity + 1 - i)]
-        self.transition_map: Mapping[Tuple[int, int], [Mapping[Tuple[int, int], float]]] =\
-            self.get_transition_map()
+        self.transition_reward_map: TransType = self.get_transition_map()
 
-    def get_transition_map(self) -> Mapping[Tuple[int, int], [Mapping[Tuple[int, int], float]]]:
+    def get_transition_map(self) -> TransType:
+        d = {}
+        for alpha in range(self.capacity + 1):
+            for beta in range(self.capacity + 1 - alpha):
+                ip = alpha + beta
+                d1 = {}
+                beta1 = max(self.capacity - ip, 0)
+                for i in range(ip):
+                    next_state = (ip - i, beta1)
+                    reward = self.holding_cost * alpha
+                    probability = self.poisson_distr.pmf(i)
+                    d1[(next_state, reward)] = probability
+                next_state = (0, beta1)
+                probability = 1 - self.poisson_distr.cdf(ip - 1)
+                reward = self.holding_cost * alpha + self.stockout_cost *\
+                         (probability * (self.poisson_lambda - ip) +
+                          ip * self.poisson_distr.pmf(ip))
+                d1[(next_state, reward)] = probability
+                d[(alpha, beta)] = d1
+        return d
+
+    def get_finite_markov_reward_process(
+            self,
+            start_state: IntPair
+    ) -> FiniteMarkovRewardProcess:
+        return FiniteMarkovRewardProcess(
+            start_state,
+            self.state_space,
+            self.transition_reward_map
+        )
 
 
-transition_probabilities = np.array(
-    [
-        [0., 1., 0., 0., 0.],
-        [0., .8, 0., .2, 0.],
-        [.8, 0., .2, 0., 0.],
-        [.2, 0., .6, 0., .2],
-        [.2, 0., .6, 0., .2]
-    ]
-)
+if __name__ == '__main__':
 
-eig_vals, eig_vecs = np.linalg.eig(transition_probabilities.T)
+    user_capacity = 2
+    user_poisson_lambda = 1.0
+    user_holding_cost = 1.0
+    user_stockout_cost = 10.0
 
-index_of_first_unit_eig_val = np.where(np.abs(eig_vals - 1) < 1e-8)[0][0]
+    user_gamma = 0.9
 
-eig_vec_of_unit_eig_val = np.real(eig_vecs[:, index_of_first_unit_eig_val])
+    si = SimpleInventory(
+        capacity=user_capacity,
+        poisson_lambda=user_poisson_lambda,
+        holding_cost=user_holding_cost,
+        stockout_cost=user_stockout_cost
+    )
 
-stationary_probabilities = {states[i]: ev for i, ev in
-                            enumerate(eig_vec_of_unit_eig_val /
-                                      sum(eig_vec_of_unit_eig_val))}
+    fmrp = si.get_finite_markov_reward_process(start_state=(0, 0))
 
-print("Stationary Probabilities")
-print(stationary_probabilities)
+    rewards_function = {fmrp.state_space[i]: r for
+                        i, r in enumerate(fmrp.reward_vec)}
+    print(rewards_function)
 
-transition_rewards = np.array(
-    [
-        [0., -10., 0., 0., 0.],
-        [0., -2.5, 0., 0., 0.],
-        [-3.5, 0., -1., 0., 0.],
-        [-1., 0., -1., 0., -1.],
-        [-2., 0., -2., 0., -2.]
-    ]
-)
-rewards = np.sum(transition_probabilities * transition_rewards, axis=1)
-rewards_function = {states[i]: r for i, r in enumerate(rewards)}
-print("Rewards Function")
-print(rewards_function)
+    value_function = {fmrp.state_space[i]: v for i, v in enumerate(fmrp.value_function_vec(gamma=user_gamma))}
 
-gamma = 0.9
-
-inverse_matrix = np.linalg.inv(
-    np.eye(len(states)) - gamma * transition_probabilities
-)
-value_function = {states[i]: v for i, v in
-                  enumerate(inverse_matrix.dot(rewards))}
-
-print("Value Function (as a vector)")
-print(value_function)
 
 
