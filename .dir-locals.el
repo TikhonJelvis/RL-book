@@ -1,2 +1,1 @@
-((python-mode . ((python-shell-interpreter . "nix-shell")
-                 (python-shell-interpreter-args . "--command 'python'"))))
+((python-mode . ((python-shell-interpreter . "bin/nix-aware-python"))))
