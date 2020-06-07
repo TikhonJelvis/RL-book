@@ -147,3 +147,8 @@ class FiniteMarkovRewardProcess(FiniteMarkovProcess[S], MarkovRewardProcess[S]):
             [sum(probability * reward for (_, reward), probability in
                  transition_reward_map[state]) for state in state_space]
         )
+
+    def value_function_vec(self, gamma) -> np.ndarray:
+        return np.linalg.inv(
+            np.eye(len(self.state_space)) - gamma * self.transition_matrix
+        ).dot(self.reward_vec)
