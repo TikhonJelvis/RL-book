@@ -1,4 +1,4 @@
-from typing import Mapping, Tuple, Sequence
+from typing import Mapping, Tuple
 from rl.markov_process import FiniteMarkovRewardProcess
 from scipy.stats import poisson
 
@@ -21,11 +21,9 @@ class SimpleInventory:
         self.stockout_cost: float = stockout_cost
 
         self.poisson_distr = poisson(poisson_lambda)
-        self.state_space: Sequence[IntPair] =\
-            [(i, j) for i in range(capacity + 1) for j in range(capacity + 1 - i)]
-        self.transition_reward_map: TransType = self.get_transition_map()
+        self.transition_reward_map: TransType = self.get_transition_reward_map()
 
-    def get_transition_map(self) -> TransType:
+    def get_transition_reward_map(self) -> TransType:
         d = {}
         for alpha in range(self.capacity + 1):
             for beta in range(self.capacity + 1 - alpha):
@@ -46,15 +44,8 @@ class SimpleInventory:
                 d[(alpha, beta)] = d1
         return d
 
-    def get_finite_markov_reward_process(
-            self,
-            start_state: IntPair
-    ) -> FiniteMarkovRewardProcess:
-        return FiniteMarkovRewardProcess(
-            start_state,
-            self.state_space,
-            self.transition_reward_map
-        )
+    def get_finite_markov_reward_process(self) -> FiniteMarkovRewardProcess:
+        return FiniteMarkovRewardProcess(self.transition_reward_map)
 
 
 if __name__ == '__main__':
@@ -73,13 +64,14 @@ if __name__ == '__main__':
         stockout_cost=user_stockout_cost
     )
 
-    fmrp = si.get_finite_markov_reward_process(start_state=(0, 0))
+    fmrp = si.get_finite_markov_reward_process()
 
-    rewards_function = {fmrp.state_space[i]: r for
-                        i, r in enumerate(fmrp.reward_vec)}
+    rewards_function = {fmrp.state_space[i]: r for i, r in enumerate(fmrp.reward_vec)}
     print(rewards_function)
 
-    value_function = {fmrp.state_space[i]: v for i, v in enumerate(fmrp.value_function_vec(gamma=user_gamma))}
+    value_function = {fmrp.state_space[i]: v for i, v
+                      in enumerate(fmrp.value_function_vec(gamma=user_gamma))}
+    print(value_function)
 
 
 
