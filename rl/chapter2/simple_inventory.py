@@ -6,14 +6,14 @@ IntPair = Tuple[int, int]
 TransType = Mapping[IntPair, Mapping[Tuple[IntPair, float], float]]
 
 
-class SimpleInventory:
+class SimpleInventoryMRP(FiniteMarkovRewardProcess[IntPair]):
 
     def __init__(
-            self,
-            capacity: int,
-            poisson_lambda: float,
-            holding_cost: float,
-            stockout_cost: float
+        self,
+        capacity: int,
+        poisson_lambda: float,
+        holding_cost: float,
+        stockout_cost: float
     ):
         self.capacity: int = capacity
         self.poisson_lambda: float = poisson_lambda
@@ -21,7 +21,7 @@ class SimpleInventory:
         self.stockout_cost: float = stockout_cost
 
         self.poisson_distr = poisson(poisson_lambda)
-        self.transition_reward_map: TransType = self.get_transition_reward_map()
+        super().__init__(self.get_transition_reward_map())
 
     def get_transition_reward_map(self) -> TransType:
         d = {}
@@ -38,18 +38,14 @@ class SimpleInventory:
                 next_state = (0, beta1)
                 probability = 1 - self.poisson_distr.cdf(ip - 1)
                 reward = self.holding_cost * alpha + self.stockout_cost *\
-                         (probability * (self.poisson_lambda - ip) +
-                          ip * self.poisson_distr.pmf(ip))
+                    (probability * (self.poisson_lambda - ip) +
+                     ip * self.poisson_distr.pmf(ip))
                 d1[(next_state, reward)] = probability
                 d[(alpha, beta)] = d1
         return d
 
-    def get_finite_markov_reward_process(self) -> FiniteMarkovRewardProcess:
-        return FiniteMarkovRewardProcess(self.transition_reward_map)
-
 
 if __name__ == '__main__':
-    from pprint import pprint
     user_capacity = 2
     user_poisson_lambda = 1.0
     user_holding_cost = -1.0
@@ -57,35 +53,25 @@ if __name__ == '__main__':
 
     user_gamma = 0.9
 
-    si = SimpleInventory(
+    si = SimpleInventoryMRP(
         capacity=user_capacity,
         poisson_lambda=user_poisson_lambda,
         holding_cost=user_holding_cost,
         stockout_cost=user_stockout_cost
     )
 
-    fmrp = si.get_finite_markov_reward_process()
-    print("Transition Rewards Map")
-    pprint(fmrp.transition_reward_map)
+    from rl.markov_process import FiniteMarkovProcess
     print("Transition Map")
-    pprint(fmrp.transition_map)
+    print(FiniteMarkovProcess(si.transition_map))
 
-    stationary_distribution = {
-        s: p for s, p in fmrp.get_stationary_distribution().to_pdf()
-    }
+    print("Transition Reward Map")
+    print(si)
+
     print("Stationary Distribution")
-    pprint(stationary_distribution)
+    si.display_stationary_distribution()
 
-    rewards_function = {
-        fmrp.state_space[i]: r for i, r in enumerate(fmrp.reward_vec)
-    }
-    print("Rewards Function")
-    pprint(rewards_function)
+    print("Reward Function")
+    si.display_reward_function()
 
-    value_function = {fmrp.state_space[i]: v for i, v
-                      in enumerate(fmrp.value_function_vec(gamma=user_gamma))}
     print("Value Function")
-    pprint(value_function)
-
-
-
+    si.display_value_function(gamma=user_gamma)
