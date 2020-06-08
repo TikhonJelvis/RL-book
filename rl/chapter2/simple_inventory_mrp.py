@@ -3,7 +3,7 @@ from rl.markov_process import FiniteMarkovRewardProcess
 from scipy.stats import poisson
 
 IntPair = Tuple[int, int]
-TransType = Mapping[IntPair, Mapping[Tuple[IntPair, float], float]]
+MRPTransType = Mapping[IntPair, Mapping[Tuple[IntPair, float], float]]
 
 
 class SimpleInventoryMRP(FiniteMarkovRewardProcess[IntPair]):
@@ -23,7 +23,7 @@ class SimpleInventoryMRP(FiniteMarkovRewardProcess[IntPair]):
         self.poisson_distr = poisson(poisson_lambda)
         super().__init__(self.get_transition_reward_map())
 
-    def get_transition_reward_map(self) -> TransType:
+    def get_transition_reward_map(self) -> MRPTransType:
         d = {}
         for alpha in range(self.capacity + 1):
             for beta in range(self.capacity + 1 - alpha):
@@ -53,7 +53,7 @@ if __name__ == '__main__':
 
     user_gamma = 0.9
 
-    si = SimpleInventoryMRP(
+    si_mrp = SimpleInventoryMRP(
         capacity=user_capacity,
         poisson_lambda=user_poisson_lambda,
         holding_cost=user_holding_cost,
@@ -62,16 +62,24 @@ if __name__ == '__main__':
 
     from rl.markov_process import FiniteMarkovProcess
     print("Transition Map")
-    print(FiniteMarkovProcess(si.transition_map))
+    print("--------------")
+    print(FiniteMarkovProcess(si_mrp.transition_map))
 
     print("Transition Reward Map")
-    print(si)
+    print("---------------------")
+    print(si_mrp)
 
     print("Stationary Distribution")
-    si.display_stationary_distribution()
+    print("-----------------------")
+    si_mrp.display_stationary_distribution()
+    print()
 
     print("Reward Function")
-    si.display_reward_function()
+    print("---------------")
+    si_mrp.display_reward_function()
+    print()
 
     print("Value Function")
-    si.display_value_function(gamma=user_gamma)
+    print("--------------")
+    si_mrp.display_value_function(gamma=user_gamma)
+    print()
