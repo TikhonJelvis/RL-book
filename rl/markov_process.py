@@ -1,11 +1,14 @@
 from abc import ABC, abstractmethod
-from typing import Dict, Iterable, Generic, Sequence, Tuple
-from rl.gen_utils.type_aliases import S, S_TransType, SR_TransType
+from typing import Dict, Iterable, Generic, Sequence, Tuple, Mapping, TypeVar
 from collections import defaultdict
 import numpy as np
 
 from rl.distribution import (Categorical, Distribution, FiniteDistribution,
                              SampledDistribution)
+
+S = TypeVar('S')
+S_TransType = Mapping[S, Mapping[S, float]]
+SR_TransType = Mapping[S, Mapping[Tuple[S, float], float]]
 
 
 class MarkovProcess(ABC, Generic[S]):
