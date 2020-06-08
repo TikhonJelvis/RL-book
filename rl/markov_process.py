@@ -78,6 +78,16 @@ class FiniteMarkovProcess(MarkovProcess[S]):
                                    sum(eig_vec_of_unit_eig_val))
         ])
 
+    def generate_image(self):
+        from graphviz import Digraph
+        d = Digraph()
+        for s in self.state_space:
+            d.node(str(s))
+        for s, v in self.transition_map.items():
+            for s1, p in v.items():
+                d.edge(str(s), str(s1), label=str(p))
+        d.view()
+
 
 class MarkovRewardProcess(MarkovProcess[S]):
     def transition(self, state: S) -> Distribution[S]:
