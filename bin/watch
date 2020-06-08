@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+
+fswatch -0 "$1.md" | xargs -0 -n 1 -I {} bin/to-pdf {}
