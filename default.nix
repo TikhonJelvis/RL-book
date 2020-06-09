@@ -1,5 +1,5 @@
 { pkgs ? import <nixpkgs> {}
-, basePython ? pkgs.python38
+, python ? pkgs.python38
 }:
 
 let
@@ -11,15 +11,18 @@ let
       xpatch
       noto;
   };
+
   fonts = pkgs.makeFontsConf {
     fontDirectories = [ pkgs.eb-garamond pkgs.tex-gyre.pagella ];
   };
 
-  pythonDependencies = ps: with ps; [ graphviz ipython jedi jupyter matplotlib mypy numpy pandas pylint scipy ];
+  pythonWithPackages = python.withPackages (ps:
+    with ps; [ graphviz ipython jedi jupyter matplotlib mypy numpy pandas pylint scipy ]);
 
-  python = if pkgs.stdenv.isDarwin
-           then basePython
-           else basePython.withPackages (ps: pythonDependencies ps);
+  system-packages =
+    if pkgs.stdenv.isDarwin
+    then [ python pkgs.fswatch ]
+    else [ pythonWithPackages ];
 in
 pkgs.stdenv.mkDerivation {
   name = "RL-book";
@@ -32,9 +35,7 @@ pkgs.stdenv.mkDerivation {
     pkgs.graphviz
     pkgs.pandoc
     pkgs.watchexec
-
-    python
-  ];
+  ] ++ system-packages;
 
   FONTCONFIG_FILE = fonts;
 }

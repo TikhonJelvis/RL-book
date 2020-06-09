@@ -1,3 +1,11 @@
 #!/usr/bin/env bash
 
+FILE=$1
+
+if [[ ${FILE: -3} == ".md" ]]
+then
+    FILE=${FILE%.*}
+fi
+
+echo "Converting $FILE.md to $FILE.pdf"
 pandoc -t pdf --pdf-engine=xelatex -o "$1.pdf" --template latex.template "$1.md"
