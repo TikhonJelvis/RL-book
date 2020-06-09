@@ -3,32 +3,35 @@ digraph simple_inventory
   /*
   Sequence of events in a day:
   1: Observe State (On-hand, On-Order) denoted as (OH, OO)
-  2: Take Action (denoted as O): Order 1 unit if OH=0, otherwise order 0
+  2: Take Action (denoted as O): Order max(2-(OO+OH), 0)  units
   4: Received order quantity that was placed the previous day
-  5: Experience random demand with probabilities:  P(0) = 0.2, P(1) = 0.6, P(2) = 0.2
+  5: Experience poisson random demand with poisson mean = 1.0
   */
   layout="circo"
   A [label="OH=0,OO=0", color=Red, fontcolor=Red]
-  B [label="OH=1,OO=0", color=Blue, fontcolor=Blue]
-  C [label="OH=2,OO=0", color=darkgreen, fontcolor=darkgreen]
-  D [label="OH=0,OO=1", color=Brown, fontcolor=Brown]
-  E [label="OH=1,OO=1", color=Purple, fontcolor=Purple]
+  B [label="OH=0,OO=1", color=Blue, fontcolor=Blue]
+  C [label="OH=0,OO=2", color=magenta3, fontcolor=magenta3]
+  D [label="OH=1,OO=0", color=Brown, fontcolor=Brown]
+  E [label="OH=1,OO=1", color=yellow4, fontcolor=yellow4]
+  F [label="OH=2,OO=0", color=blue4, fontcolor=blue4]
 
-  A->D [label="1", color=Red, fontcolor=Red]
+  A->C [label="1", color=Red, fontcolor=Red]
 
-  B->A [label="0.8", color=Blue, fontcolor=Blue]
-  B->B [label="0.2", color=Blue, fontcolor=Blue]
+  B->B [label="0.63", color=Blue, fontcolor=Blue]
+  B->E [label="0.37", color=Blue, fontcolor=Blue]
 
-  C->A [label="0.2", color=darkgreen, fontcolor=darkgreen]
-  C->B [label="0.6", color=darkgreen, fontcolor=darkgreen]
-  C->C [label="0.2", color=darkgreen, fontcolor=darkgreen]
+  C->A [label="0.26", color=magenta3, fontcolor=magenta3]
+  C->D [label="0.37", color=magenta3, fontcolor=magenta3]
+  C->F [label="0.37", color=magenta3, fontcolor=magenta3]
 
-  D->D [label="0.8", color=Brown, fontcolor=Brown]
-  D->E [label="0.2", color=Brown, fontcolor=Brown]
+  D->B [label="0.63", color=Brown, fontcolor=Brown]
+  D->E [label="0.37", color=Brown, fontcolor=Brown]
   
-  E->A [label="0.2", color=Purple, fontcolor=Purple]
-  E->B [label="0.6", color=Purple, fontcolor=Purple]
-  E->C [label="0.2", color=Purple, fontcolor=Purple]
+  E->A [label="0.26", color=yellow4, fontcolor=yellow4]
+  E->D [label="0.37", color=yellow4, fontcolor=yellow4]
+  E->F [label="0.37", color=yellow4, fontcolor=yellow4]
+
+  F->A [label="0.26", color=blue4, fontcolor=blue4]
+  F->D [label="0.37", color=blue4, fontcolor=blue4]
+  F->F [label="0.37", color=blue4, fontcolor=blue4]
 }
-
-

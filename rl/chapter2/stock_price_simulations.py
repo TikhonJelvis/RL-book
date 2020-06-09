@@ -5,7 +5,7 @@ import numpy as np
 from numpy.random import binomial
 import itertools
 from operator import itemgetter
-from gen_utils.common_funcs import get_logistic_func, get_unit_sigmoid_func
+from rl.gen_utils.common_funcs import get_logistic_func, get_unit_sigmoid_func
 
 handy_map: Mapping[Optional[bool], int] = {True: -1, False: 1, None: 0}
 
@@ -58,8 +58,9 @@ class Process3:
 
     def up_prob(self, state: State) -> float:
         total = state.num_up_moves + state.num_down_moves
-        return get_unit_sigmoid_func(self.alpha3)(state.num_down_moves / total)\
-            if total else 0.5
+        return get_unit_sigmoid_func(self.alpha3)(
+            state.num_down_moves / total
+        ) if total else 0.5
 
     def next_state(self, state: State) -> State:
         up_move: int = binomial(1, self.up_prob(state), 1)[0]
@@ -76,13 +77,12 @@ def simulation(process, start_state):
         state = process.next_state(state)
 
 
-# noinspection PyShadowingNames
 def process1_price_traces(
-        start_price: int,
-        level_param: int,
-        alpha1: float,
-        time_steps: int,
-        num_traces: int
+    start_price: int,
+    level_param: int,
+    alpha1: float,
+    time_steps: int,
+    num_traces: int
 ) -> np.ndarray:
     process = Process1(level_param=level_param, alpha1=alpha1)
     start_state = Process1.State(price=start_price)
@@ -93,12 +93,11 @@ def process1_price_traces(
         )), float) for _ in range(num_traces)])
 
 
-# noinspection PyShadowingNames
 def process2_price_traces(
-        start_price: int,
-        alpha2: float,
-        time_steps: int,
-        num_traces: int
+    start_price: int,
+    alpha2: float,
+    time_steps: int,
+    num_traces: int
 ) -> np.ndarray:
     process = Process2(alpha2=alpha2)
     start_state = Process2.State(price=start_price, is_prev_move_up=None)
@@ -109,12 +108,11 @@ def process2_price_traces(
         )), float) for _ in range(num_traces)])
 
 
-# noinspection PyShadowingNames
 def process3_price_traces(
-        start_price: int,
-        alpha3: float,
-        time_steps: int,
-        num_traces: int
+    start_price: int,
+    alpha3: float,
+    time_steps: int,
+    num_traces: int
 ) -> np.ndarray:
     process = Process3(alpha3=alpha3)
     start_state = Process3.State(num_up_moves=0, num_down_moves=0)
@@ -125,38 +123,19 @@ def process3_price_traces(
         for _ in range(num_traces)])
 
 
-# noinspection PyShadowingNames
 def plot_single_trace_all_processes(
-        start_price: int,
-        level_param: int,
-        alpha1: float,
-        alpha2: float,
-        alpha3: float,
-        time_steps: int
+    process1_trace: np.ndarray,
+    process2_trace: np.ndarray,
+    process3_trace: np.ndarray
 ) -> None:
-    from gen_utils.plot_funcs import plot_list_of_curves
-    s1: np.ndarray = process1_price_traces(
-        start_price=start_price,
-        level_param=level_param,
-        alpha1=alpha1,
-        time_steps=time_steps,
-        num_traces=1
-    )[0]
-    s2: np.ndarray = process2_price_traces(
-        start_price=start_price,
-        alpha2=alpha2,
-        time_steps=time_steps,
-        num_traces=1
-    )[0]
-    s3: np.ndarray = process3_price_traces(
-        start_price=start_price,
-        alpha3=alpha3,
-        time_steps=time_steps,
-        num_traces=1
-    )[0]
+
+    from rl.gen_utils.plot_funcs import plot_list_of_curves
+
+    traces_len = len(process1_trace)
+
     plot_list_of_curves(
-        [range(time_steps + 1)] * 3,
-        [s1, s2, s3],
+        [range(traces_len)] * 3,
+        [process1_trace, process2_trace, process3_trace],
         ["r", "b", "g"],
         [
             r"Process 1 ($\alpha_1=0.25$)",
@@ -169,7 +148,7 @@ def plot_single_trace_all_processes(
     )
 
 
-def get_terminal_hist(
+def get_terminal_histogram(
         price_traces: np.ndarray
 ) -> Tuple[Sequence[int], Sequence[int]]:
     pairs = sorted(
@@ -179,41 +158,20 @@ def get_terminal_hist(
     return [x for x, _ in pairs], [y for _, y in pairs]
 
 
-# noinspection PyShadowingNames
 def plot_distribution_at_time_all_processes(
-        start_price: int,
-        level_param: int,
-        alpha1: float,
-        alpha2: float,
-        alpha3: float,
-        time_step: int,
-        num_traces: int
+    process1_traces: np.ndarray,
+    process2_traces: np.ndarray,
+    process3_traces: np.ndarray
 ) -> None:
-    from gen_utils.plot_funcs import plot_list_of_curves
-    s1: np.ndarray = process1_price_traces(
-        start_price=start_price,
-        level_param=level_param,
-        alpha1=alpha1,
-        time_steps=time_step,
-        num_traces=num_traces
-    )
-    x1, y1 = get_terminal_hist(s1)
 
-    s2: np.ndarray = process2_price_traces(
-        start_price=start_price,
-        alpha2=alpha2,
-        time_steps=time_step,
-        num_traces=num_traces
-    )
-    x2, y2 = get_terminal_hist(s2)
+    from rl.gen_utils.plot_funcs import plot_list_of_curves
 
-    s3: np.ndarray = process3_price_traces(
-        start_price=start_price,
-        alpha3=alpha3,
-        time_steps=time_step,
-        num_traces=num_traces
-    )
-    x3, y3 = get_terminal_hist(s3)
+    num_traces = len(process1_traces)
+    time_steps = len(process1_traces[0]) - 1
+
+    x1, y1 = get_terminal_histogram(process1_traces)
+    x2, y2 = get_terminal_histogram(process2_traces)
+    x3, y3 = get_terminal_histogram(process3_traces)
 
     plot_list_of_curves(
         [x1, x2, x3],
@@ -237,25 +195,36 @@ if __name__ == '__main__':
     alpha2: float = 0.75
     alpha3: float = 1.0
     time_steps: int = 100
-
-    plot_single_trace_all_processes(
-        start_price=start_price,
-        level_param=level_param,
-        alpha1=alpha1,
-        alpha2=alpha2,
-        alpha3=alpha3,
-        time_steps=time_steps
-    )
-
     num_traces: int = 1000
 
-    plot_distribution_at_time_all_processes(
+    process1_traces: np.ndarray = process1_price_traces(
         start_price=start_price,
         level_param=level_param,
         alpha1=alpha1,
-        alpha2=alpha2,
-        alpha3=alpha3,
-        time_step=time_steps,
+        time_steps=time_steps,
         num_traces=num_traces
     )
+    process2_traces: np.ndarray = process2_price_traces(
+        start_price=start_price,
+        alpha2=alpha2,
+        time_steps=time_steps,
+        num_traces=num_traces
+    )
+    process3_traces: np.ndarray = process3_price_traces(
+        start_price=start_price,
+        alpha3=alpha3,
+        time_steps=time_steps,
+        num_traces=1
+    )
 
+    trace1 = process1_traces[0]
+    trace2 = process2_traces[0]
+    trace3 = process3_traces[0]
+
+    plot_single_trace_all_processes(trace1, trace2, trace3)
+
+    plot_distribution_at_time_all_processes(
+        process1_traces,
+        process2_traces,
+        process3_traces
+    )

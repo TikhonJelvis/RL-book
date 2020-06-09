@@ -17,7 +17,7 @@ let
   };
 
   pythonWithPackages = python.withPackages (ps:
-    with ps; [ graphviz ipython jedi jupyter matplotlib numpy pandas scipy ]);
+    with ps; [ graphviz ipython jedi jupyter matplotlib mypy numpy pandas pylint scipy ]);
 
   system-packages =
     if pkgs.stdenv.isDarwin

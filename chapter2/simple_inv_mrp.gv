@@ -3,34 +3,37 @@ digraph simple_inventory
   /*
   Sequence of events in a day:
   1: Observe State (On-hand, On-Order) denoted as (OH, OO)
-  2: Take Action (denoted as O): Order 1 unit if OH=0, otherwise order 0
+  2: Take Action (denoted as O): Order max(2 - (OO+OH), 0) units
   3: Record Reward as negative of holding cost of 1 per unit of on-hand inventory
   4: Received order quantity that was placed the previous day
-  5: Experience random demand with probabilities:  P(0) = 0.2, P(1) = 0.6, P(2) = 0.2
+  5: Experience poisson random demand with poisson mean = 1.0
   6: Record Reward as negative of stockout cost of 10 per unit of missed sale from demand
   */
   layout="circo"
   A [label="OH=0,OO=0", color=Red, fontcolor=Red]
-  B [label="OH=1,OO=0", color=Blue, fontcolor=Blue]
-  C [label="OH=2,OO=0", color=darkgreen, fontcolor=darkgreen]
-  D [label="OH=0,OO=1", color=Brown, fontcolor=Brown]
-  E [label="OH=1,OO=1", color=Purple, fontcolor=Purple]
+  B [label="OH=0,OO=1", color=Blue, fontcolor=Blue]
+  C [label="OH=0,OO=2", color=magenta3, fontcolor=magenta3]
+  D [label="OH=1,OO=0", color=Brown, fontcolor=Brown]
+  E [label="OH=1,OO=1", color=yellow4, fontcolor=yellow4]
+  F [label="OH=2,OO=0", color=blue4, fontcolor=blue4]
 
-  A->D [label="p = 1\nr = -10", color=Red, fontcolor=Red]
+  A->C [label="p = 1\nr = -10.0", color=Red, fontcolor=Red]
 
-  B->A [label="p = 0.8\nr = -3.5", color=Blue, fontcolor=Blue]
-  B->B [label="p = 0.2\nr = -1", color=Blue, fontcolor=Blue]
+  B->B [label="p = 0.63\nr = -3.68", color=Blue, fontcolor=Blue]
+  B->E [label="p = 0.37\nr = 0", color=Blue, fontcolor=Blue]
 
-  C->A [label="p = 0.2\nr = -2", color=darkgreen, fontcolor=darkgreen]
-  C->B [label="p = 0.6\nr = -2", color=darkgreen, fontcolor=darkgreen]
-  C->C [label="p = 0.2\nr = -2", color=darkgreen, fontcolor=darkgreen]
+  C->A [label="p = 0.26\nr = -1.04", color=magenta3, fontcolor=magenta3]
+  C->D [label="p = 0.37\nr = 0", color=magenta3, fontcolor=magenta3]
+  C->F [label="p = 0.37\nr = 0", color=magenta3, fontcolor=magenta3]
 
-  D->D [label="p = 0.8\nr = -2.5", color=Brown, fontcolor=Brown]
-  D->E [label="p = 0.2\nr = 0", color=Brown, fontcolor=Brown]
+  D->B [label="p = 0.63\nr = -4.68", color=Brown, fontcolor=Brown]
+  D->E [label="p = 0.37\nr = -1.0", color=Brown, fontcolor=Brown]
   
-  E->A [label="p = 0.2\nr = -1", color=Purple, fontcolor=Purple]
-  E->B [label="p = 0.6\nr = -1", color=Purple, fontcolor=Purple]
-  E->C [label="p = 0.2\nr = -1", color=Purple, fontcolor=Purple]
+  E->A [label="p = 0.26\nr = -2.04", color=yellow4, fontcolor=yellow4]
+  E->D [label="p = 0.37\nr = -1.0", color=yellow4, fontcolor=yellow4]
+  E->F [label="p = 0.37\nr = -1.0", color=yellow4, fontcolor=yellow4]
+
+  F->A [label="p = 0.26\nr = -3.04", color=blue4, fontcolor=blue4]
+  F->D [label="p = 0.37\nr = -2.0", color=blue4, fontcolor=blue4]
+  F->F [label="p = 0.37\nr = -2.0", color=blue4, fontcolor=blue4]
 }
-
-
