@@ -64,11 +64,11 @@ Now we can use this simulator function to generate simulation traces. In the fol
 
 ```python
 def process1_price_traces(
-        start_price: int,
-        level_param: int,
-        alpha1: float,
-        time_steps: int,
-        num_traces: int
+    start_price: int,
+    level_param: int,
+    alpha1: float,
+    time_steps: int,
+    num_traces: int
 ) -> np.ndarray:
     process = Process1(level_param=level_param, alpha1=alpha1)
     start_state = Process1.State(price=start_price)
@@ -126,10 +126,10 @@ The code for generation of simulation traces of the stock price is almost identi
 
 ```python
 def process2_price_traces(
-        start_price: int,
-        alpha2: float,
-        time_steps: int,
-        num_traces: int
+    start_price: int,
+    alpha2: float,
+    time_steps: int,
+    num_traces: int
 ) -> np.ndarray:
     process = Process2(alpha2=alpha2)
     start_state = Process2.State(price=start_price, is_prev_move_up=None)
@@ -204,10 +204,10 @@ The code for generation of simulation traces of the stock price is shown below:
 
 ```python
 def process3_price_traces(
-        start_price: int,
-        alpha3: float,
-        time_steps: int,
-        num_traces: int
+    start_price: int,
+    alpha3: float,
+    time_steps: int,
+    num_traces: int
 ) -> np.ndarray:
     process = Process3(alpha3=alpha3)
     start_state = Process3.State(num_up_moves=0, num_down_moves=0)
@@ -285,8 +285,73 @@ So instead of thinking of the Markov Process as "terminating", we can simply ima
 
 When we consider some of the financial applications later in this book, we will find that the Markov Process "terminates" after a fixed number of time steps, say $T$. In these applications, the time index $t$ is part of the state and each state with the time index $t=T$ will be constructed to be an absorbing state. All other states with time index $t<T$ will transition to states with time index $t+1$. In fact, you could take each of the 3 Processes seen earlier for stock price movement and add a feature that the forward movement in time terminates at some fixed time step $T$. Then, we'd have to include $t$ in the state representation simply to specify that states with time index $T$ will transition to themselves with 100% probability (note that in these examples the time index $t$ doesn't influence the transition probabilities for states with $t<T$, so these processes are stationary until $t=T-1$.)
 
-### Finite State Space
-Now let us consider the case of the state space being finite, i.e., $\mathcal{S} = \{s_1, s_2, \ldots, s_n\}$. Finite state space enables us to represent $\mathcal{P}$ in a finite data structure in our code, as a dictionary or as a matrix or as a directed graph. This is rather convenient for visualization and also for performing certain types of calculations involving Markov Processes. The directed graph view is quite common in helping visualize Markov Processes. Also, the $n \times n$ matrix representation (representing transition probabilities as the elements in the matrix) is very useful in answering common questions about the dynamics of a Markov Process (we shall soon see examples of this). 
+With this formalism in place, we are now ready to write some code to represent general Markov Processes. We do this with an abstract class `MarkovProcess` parameterized by a generic type (`TypeVar('S')`) representing a generic state space `Generic[S]`. The abstract class has an `abstractmethod` called `transition` that is meant to specify the transition probability distribution of next states, given a current state. The class also has a method `simulate` that enables us to generate a sequence of sampled states starting from a specified `start_state`. The sampling of next states relies on the implementation of the `sample()` method in the `Distribution[S]` object produced by the `transition` method (note that the [`Distribution` class hierarachy](https://github.com/TikhonJelvis/RL-book/blob/master/rl/distribution.py) was covered in the previous chapter). This is the full body of the abstract class `MarkovProcess`:
+
+```python
+S = TypeVar('S')
+class MarkovProcess(ABC, Generic[S]):
+
+    @abstractmethod
+    def transition(self, state: S) -> Distribution[S]:
+
+    def simulate(self, start_state: S) -> Iterable[S]:
+        state: S = start_state
+        while True:
+            yield state
+            state = self.transition(state).sample()
+```
+
+So if you have a mathematical specification of the transition probabilities of a Markov Process, all you need to do is to create a derived class (inherited from abstract class `MarkovProcess`) and implement the `transition` method in the derived class in a manner that captures your mathematical specification of the transition probabilities. Let us make this concrete for the case of Process 3 (the 3rd example of stock price transitions we covered in the previous section). We will name this derived class (`dataclass`) as `StockPriceMP3`. Note that the generic state space `S` is now replaced with a concrete state space represented by the `dataclass` `StateMP3`. The code should be self-explanatory since we implemented this process as a standalone in the previous section. Note the use of the `Categorical` distribution in the `transition` method to capture the 2-outcomes distribution of next states (for movements up or down).
+
+```python
+@dataclass
+class StateMP3:
+    num_up_moves: int
+    num_down_moves: int
+
+
+@dataclass
+class StockPriceMP3(MarkovProcess[StateMP3]):
+
+    alpha3: float = 1.0  # strength of reverse-pull (non-negative value)
+
+    def up_prob(self, state: StateMP3) -> float:
+        total = state.num_up_moves + state.num_down_moves
+        return get_unit_sigmoid_func(self.alpha3)(
+            state.num_down_moves / total
+        ) if total else 0.5
+
+    def transition(self, state: StateMP3) -> Categorical[StateMP3]:
+        up_p = self.up_prob(state)
+
+        return Categorical([
+            (StateMP3(state.num_up_moves + 1, state.num_down_moves), up_p),
+            (StateMP3(state.num_up_moves, state.num_down_moves + 1), 1 - up_p)
+        ])
+```
+
+To generate simulation traces, we write the following function:
+
+```python
+def process3_price_traces(
+    start_price: int,
+    alpha3: float,
+    time_steps: int,
+    num_traces: int
+) -> np.ndarray:
+    mp = StockPriceMP3(alpha3=alpha3)
+    start_state = StateMP3(num_up_moves=0, num_down_moves=0)
+    return np.vstack([
+        np.fromiter((start_price + s.num_up_moves - s.num_down_moves
+                    for s in itertools.islice(mp.simulate(start_state),
+                                              time_steps + 1)), float)
+        for _ in range(num_traces)])
+```
+
+We leave it to you as an exercise to similarly implement Stock Price Processes 1 and 2 that we had covered in the previous section. The complete code along with the driver to set input parameters, run all 3 processes and create plots is [here](https://github.com/TikhonJelvis/RL-book/blob/master/rl/chapter2/stock_price_mp.py). We encourage you to change the input parameters in `__main__` and get an intuitive feel for how the simulation results vary with the changes in parameters.
+
+## Finite State Space
+Now let us consider the case of finite state space, i.e., $\mathcal{S} = \{s_1, s_2, \ldots, s_n\}$. Finite state space enables us to represent $\mathcal{P}$ in a finite data structure in our code, as a dictionary or as a matrix or as a directed graph. This is rather convenient for visualization and also for performing certain types of calculations involving Markov Processes. The directed graph view is quite common in helping visualize Markov Processes. Also, the $n \times n$ matrix representation (representing transition probabilities as the elements in the matrix) is very useful in answering common questions about the dynamics of a Markov Process (we shall soon see examples of this). 
 
 To help conceptualize this, let us consider a simple inventory example involving just 5 states. Assume you are the store manager for a furniture store and tasked with controlling the ordering of inventory from a supplier. Let us focus on the inventory of a particular type of dining table. Assume that each day there is random demand (denoted as $D$) for the dining table with the probabilities of demand as follows:
 $$\mathbb{P}[D=0] = 0.2, \mathbb{P}[D=0] = 0.6, \mathbb{P}[D=2] = 0.2$$
@@ -445,13 +510,13 @@ From this, we can extract:
 \begin{itemize}
 \item The transition probability function $\mathcal{P}: \mathcal{S} \times \mathcal{S} \rightarrow [0,1]$ of the implicit Markov Process defined as:
 $$\mathcal{P}(s, s') = \sum_{r\in \mathbb{R}} \mathcal{P}_R(s,r,s')$$
-\item The transition rewards function:
+\item The transition reward function:
 $$\mathcal{R}_T: \mathcal{S} \times \mathcal{S} \rightarrow \mathbb{R}$$
 defined as:
 $$\mathcal{R}_T(s,s') = \mathbb{E}[R_{t+1}|S_{t+1}=s',S_t=s] = \sum_{r\in \mathcal{R}} \frac {\mathcal{P}_R(s,r,s')} {\mathcal{P}(s,s')} \cdot r = \sum_{r\in \mathcal{R}} \frac {\mathcal{P}_R(s,r,s')} {\sum_{r\in \mathbb{R}} \mathcal{P}_R(s,r,s')} \cdot r$$
 \end{itemize}
 
-The Rewards specification of most Markov Reward Processes we encounter in practice can be directly expressed as the transition rewards function $\mathcal{R}_T$. Note that we specified the Rewards of the simple inventory example as the transition rewards function $\mathcal{R}_T$. However, the function that suffices (along with $\mathcal{P}$) for the calculations we shall soon perform is the ("compact") rewards function:
+The Rewards specification of most Markov Reward Processes we encounter in practice can be directly expressed as the transition reward function $\mathcal{R}_T$. Note that we specified the Rewards of the simple inventory example as the transition reward function $\mathcal{R}_T$. However, the function that suffices (along with $\mathcal{P}$) for the calculations we shall soon perform is the ("compact") reward function:
 $$\mathcal{R}: \mathcal{S} \rightarrow \mathbb{R} \text{ as }$$
 defined as:
 $$\mathcal{R}(s) = \mathbb{E}[R_{t+1}|S_t=s] = \sum_{s' \in \mathcal{S}} \mathcal{P}(s,s') \cdot \mathcal{R}_T(s,s') = \sum_{s'\in \mathcal{S}} \sum_{r\in\mathbb{R}} \mathcal{P}_R(s,r,s') \cdot r$$
@@ -484,14 +549,14 @@ $$V = \mathcal{R} + \gamma \mathcal{P} \cdot V$$
 $$\Rightarrow V = (I_n - \gamma \mathcal{P})^{-1} \cdot \mathcal{R}$$
 where $I_n$ is the $n \times n$ identity matrix.
 
-In our simple inventory example, the rewards function $\mathcal{R}$ can be calculated (as a vector) from the transition probability function $\mathcal{P}$ (available as a matrix) and the transition rewards function $\mathcal{R}_T$ (available as a matrix) with the following code:
+In our simple inventory example, the reward function $\mathcal{R}$ can be calculated (as a vector) from the transition probability function $\mathcal{P}$ (available as a matrix) and the transition reward function $\mathcal{R}_T$ (available as a matrix) with the following code:
 
 ```python
 rewards = np.sum(transition_probabilities * transition_rewards, axis=1)
 rewards_function = {states[i]: r for i, r in enumerate(rewards)}
 ```
 
-This produces the following output for the Rewards Function $\mathcal{R}$:
+This produces the following output for the Reward Function $\mathcal{R}$:
 
 ```
 {
