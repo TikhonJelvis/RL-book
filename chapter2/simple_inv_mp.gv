@@ -1,19 +1,20 @@
-digraph simple_inventory
+digraph simple_inventory_mp
 {
   /*
   Sequence of events in a day:
-  1: Observe State (On-hand, On-Order) denoted as (OH, OO)
-  2: Take Action (denoted as O): Order max(2-(OO+OH), 0)  units
+  1: Observe State (On-hand, On-Order) denoted as (alpha, beta)
+  2: Take Action: Order max(2-(alpha + beta), 0)  units
   4: Received order quantity that was placed the previous day
   5: Experience poisson random demand with poisson mean = 1.0
   */
-  layout="circo"
-  A [label="OH=0,OO=0", color=Red, fontcolor=Red]
-  B [label="OH=0,OO=1", color=Blue, fontcolor=Blue]
-  C [label="OH=0,OO=2", color=magenta3, fontcolor=magenta3]
-  D [label="OH=1,OO=0", color=Brown, fontcolor=Brown]
-  E [label="OH=1,OO=1", color=yellow4, fontcolor=yellow4]
-  F [label="OH=2,OO=0", color=blue4, fontcolor=blue4]
+
+  layout = "circo"
+  A [label="&alpha;=0,&beta;=0", color=Red, fontcolor=Red]
+  B [label="&alpha;=0,&beta;=1", color=Blue, fontcolor=Blue]
+  C [label="&alpha;=0,&beta;=2", color=magenta3, fontcolor=magenta3]
+  D [label="&alpha;=1,&beta;=0", color=Brown, fontcolor=Brown]
+  E [label="&alpha;=1,&beta;=1", color=yellow4, fontcolor=yellow4]
+  F [label="&alpha;=2,&beta;=0", color=blue4, fontcolor=blue4]
 
   A->C [label="1", color=Red, fontcolor=Red]
 

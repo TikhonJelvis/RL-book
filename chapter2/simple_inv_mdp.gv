@@ -1,32 +1,32 @@
-digraph simple_inventory
+digraph simple_inventory_mdp
 {
   /*
   Sequence of events in a day:
-  1: Observe State (On-hand, On-Order) denoted as (OH, OO)
-  2: Take Action: Place an Order (denoted as O)
+  1: Observe State (On-hand, On-Order) denoted as (alpha, beta)
+  2: Take Action: Place an Order (denoted as gamma)
   3: Record Reward as negative of holding cost of 1 per unit of on-hand inventory
   4: Received order quantity that was placed the previous day
   5: Experience random demand with probabilities:  P(0) = 0.2, P(1) = 0.6, P(2) = 0.2
   6: Record Reward as negative of stockout cost of 10 per unit of missed sale from demand
   
-  Assume the action space (order quantity) is {0, 1} when OH + OO <= 1 and is {0} otherwise
+  Assume the action space (order quantity) is {0, 1} when alpha + beta <= 1 and is {0} otherwise
   */
   nodesep = 0.6
 
-  A [label="OH=0,OO=0", color=Red, fontcolor=Red]
-  B [label="OH=1,OO=0", color=Blue, fontcolor=Blue]
-  C [label="OH=2,OO=0", color=darkgreen, fontcolor=darkgreen]
-  D [label="OH=0,OO=1", color=maroon, fontcolor=maroon]
-  E [label="OH=1,OO=1", color=Purple, fontcolor=Purple]
+  A [label="&alpha;=0,&beta;=0", color=Red, fontcolor=Red]
+  B [label="&alpha;=1,&beta;=0", color=Blue, fontcolor=Blue]
+  C [label="&alpha;=2,&beta;=0", color=darkgreen, fontcolor=darkgreen]
+  D [label="&alpha;=0,&beta;=1", color=maroon, fontcolor=maroon]
+  E [label="&alpha;=1,&beta;=1", color=Purple, fontcolor=Purple]
 
-  A0 [label="O=0", color=Red, fontcolor=Red, shape=square]
-  A1 [label="O=1", color=Red, fontcolor=Red, shape=square]
-  B0 [label="O=0", color=Blue, fontcolor=Blue, shape=square]
-  B1 [label="O=1", color=Blue, fontcolor=Blue, shape=square]
-  C0 [label="O=0", color=darkgreen, fontcolor=darkgreen, shape=square]
-  D0 [label="O=0", color=Brown, fontcolor=Brown, shape=square]
-  D1 [label="O=1", color=Brown, fontcolor=Brown, shape=square]
-  E0 [label="O=0", color=Purple, fontcolor=Purple, shape=square]
+  A0 [label="&gamma;=0", color=Red, fontcolor=Red, shape=square]
+  A1 [label="&gamma;=1", color=Red, fontcolor=Red, shape=square]
+  B0 [label="&gamma;=0", color=Blue, fontcolor=Blue, shape=square]
+  B1 [label="&gamma;=1", color=Blue, fontcolor=Blue, shape=square]
+  C0 [label="&gamma;=0", color=darkgreen, fontcolor=darkgreen, shape=square]
+  D0 [label="&gamma;=0", color=Brown, fontcolor=Brown, shape=square]
+  D1 [label="&gamma;=1", color=Brown, fontcolor=Brown, shape=square]
+  E0 [label="&gamma;=0", color=Purple, fontcolor=Purple, shape=square]
 
   A->A0 [color=Red, fontcolor=Red, style=dotted]
   A->A1 [color=Red, fontcolor=Red, style=dotted]
