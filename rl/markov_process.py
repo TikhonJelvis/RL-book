@@ -64,7 +64,8 @@ class FiniteMarkovProcess(MarkovProcess[S]):
         for s, d in self.transition_map.items():
             display += "From State %s:\n" % str(s)
             for s1, p in d.items():
-                display += "  To State %s with Probability %.3f\n" % (str(s1), p)
+                display += "  To State %s with Probability %.3f\n" %\
+                    (str(s1), p)
         return display
 
     def get_transition_matrix(self) -> np.ndarray:
@@ -199,5 +200,3 @@ class FiniteMarkovRewardProcess(
             {self.state_space[i]: round(v, 3) for i, v in
              enumerate(self.get_value_function_vec(gamma))}
         )
-
-        
