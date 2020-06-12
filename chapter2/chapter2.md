@@ -243,7 +243,7 @@ Here we will consider Discrete-Time Markov Processes, where time moves forward i
 A {\em Discrete-Time Markov Process} consists of:
 \begin{itemize}
 \item A countable set of states $\mathcal{S}$
- \item A time-indexed sequence of random variables $S_t$ for each time $t=0, 1, 2, \ldots$, with each $S_t$ taking values in the set $\mathcal{S}$
+ \item A time-indexed sequence of random states $S_t$ for each time $t=0, 1, 2, \ldots$, with each $S_t$ taking values in the set $\mathcal{S}$
  \item Markov Property: $\mathbb{P}[S_{t+1}|S_t, S_{t-1}, \ldots, S_0] = \mathbb{P}[S_{t+1}|S_t]$ for all $t \geq 0$
  \end{itemize}
  \end{definition}
