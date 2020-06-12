@@ -602,6 +602,8 @@ $$\mathcal{P}_R(s,r,s') = \mathbb{P}[(R_{t+1}=r, S_{t+1}=s') | S_t=s]$$
 such that
 $$\sum_{s'\in \mathcal{S}} \sum_{r \in \mathbb{R}} \mathcal{P}_R(s,r,s') = 1 \text{ for all } s \in \mathcal{S}$$
 
+Henceforth, any time we say Markov Reward Process, assume we are refering to a Discrete-Time Stationary Markov Reward Process (unless explicitly specified otherwise), which in turn will be characterized by the transition probability function $\mathcal{P}_R$. 
+
 Let us now proceed to write some code that captures this formalism. We shall create a derived *abstract* class `MarkovRewardProcess` that inherits from the abstract class `MarkovProcess`. Analogous to `MarkovProcess`'s `@abstractmethod transition` (that represents $\mathcal{P}$), `MarkovRewardProcess` has an `@abstractmethod transition_reward` that represents $\mathcal{P}_R$. Also, analogous to `MarkovProcess`'s method `simulate`, `MarkovRewardProcess` has the mathod `simulate_reward`. These analogous methods extend the interface to return a pair: next state $S_{t+1}$ and reward $R_{t+1}$, given current state $S_t$ (versus the `MarkovProcess` methods whose interfaces return simply the next state $S_{t+1}$). Let's clarify this with actual code:
 
 ```python
