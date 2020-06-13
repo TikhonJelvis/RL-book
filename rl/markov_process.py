@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+import graphviz
 from typing import Dict, Iterable, Generic, Sequence, Tuple, Mapping, TypeVar
 from collections import defaultdict
 import numpy as np
@@ -8,15 +9,16 @@ from rl.distribution import (Categorical, Distribution, FiniteDistribution,
                              SampledDistribution)
 
 S = TypeVar('S')
-S_TransType = Mapping[S, Mapping[S, float]]
-SR_TransType = Mapping[S, Mapping[Tuple[S, float], float]]
+
+Transition = Mapping[S, FiniteDistribution[S]]
+
+RewardTransition = Mapping[S, FiniteDistribution[Tuple[S, float]]]
 
 
 class MarkovProcess(ABC, Generic[S]):
     '''A Markov process with states of type S.
 
     '''
-
     @abstractmethod
     def transition(self, state: S) -> Distribution[S]:
         '''Given a state of the process, returns a distribution of
@@ -48,36 +50,36 @@ class FiniteMarkovProcess(MarkovProcess[S]):
     '''
 
     state_space: Sequence[S]
-    transition_map: S_TransType
+    transition_map: Transition[S]
     transition_matrix: np.ndarray
 
-    def __init__(
-        self,
-        transition_map: S_TransType
-    ):
+    def __init__(self, transition_map: Transition[S]):
         self.state_space = list(transition_map.keys())
         self.transition_map = transition_map
         self.transition_matrix = self.get_transition_matrix()
 
     def __repr__(self) -> str:
         display = ""
+
         for s, d in self.transition_map.items():
-            display += "From State %s:\n" % str(s)
-            for s1, p in d.items():
-                display += "  To State %s with Probability %.3f\n" %\
-                    (str(s1), p)
+            display += f"From State {s}:\n"
+            for s1, p in d.table():
+                display += f"  To State {s1} with Probability {p:.3f}\n"
+
         return display
 
     def get_transition_matrix(self) -> np.ndarray:
         sz = len(self.state_space)
         mat = np.zeros((sz, sz))
+
         for i, s1 in enumerate(self.state_space):
             for j, s2 in enumerate(self.state_space):
-                mat[i, j] = self.transition_map[s1].get(s2, 0.)
+                mat[i, j] = self.transition(s1).probability(s2)
+
         return mat
 
     def transition(self, state: S) -> FiniteDistribution[S]:
-        return Categorical(self.transition_map[state].items())
+        return self.transition_map[state]
 
     def get_stationary_distribution(self) -> FiniteDistribution[S]:
         eig_vals, eig_vecs = np.linalg.eig(self.transition_matrix.T)
@@ -92,20 +94,22 @@ class FiniteMarkovProcess(MarkovProcess[S]):
         ])
 
     def display_stationary_distribution(self):
-        pprint(
-            {s: round(p, 3) for s, p in
-             self.get_stationary_distribution().to_pdf()}
-        )
+        pprint({
+            s: round(p, 3)
+            for s, p in self.get_stationary_distribution().table()
+        })
 
-    def generate_image(self):
-        from graphviz import Digraph
-        d = Digraph()
+    def generate_image(self) -> graphviz.Digraph:
+        d = graphviz.Digraph()
+
         for s in self.state_space:
             d.node(str(s))
+
         for s, v in self.transition_map.items():
-            for s1, p in v.items():
+            for s1, p in v.table():
                 d.edge(str(s), str(s1), label=str(p))
-        d.view()
+
+        return d
 
 
 class MarkovRewardProcess(MarkovProcess[S]):
@@ -143,38 +147,40 @@ class MarkovRewardProcess(MarkovProcess[S]):
             state, reward = self.transition_reward(state).sample()
 
 
-class FiniteMarkovRewardProcess(
-        FiniteMarkovProcess[S],
-        MarkovRewardProcess[S]
-):
+class FiniteMarkovRewardProcess(FiniteMarkovProcess[S],
+                                MarkovRewardProcess[S]):
 
-    transition_reward_map: SR_TransType
+    transition_reward_map: RewardTransition[S]
     reward_function_vec: np.ndarray
 
-    def __init__(self, transition_reward_map: SR_TransType):
+    def __init__(self, transition_reward_map: RewardTransition[S]):
 
-        transition_map: Dict[S, Dict[S, float]] = {}
+        transition_map: Dict[S, FiniteDistribution[S]] = {}
 
         for state, trans in transition_reward_map.items():
-            transition_map[state] = defaultdict(float)
-            for (next_state, _), probability in trans.items():
-                transition_map[state][next_state] += probability
+            probabilities: Dict[S, float] = defaultdict(float)
+
+            for (next_state, _), probability in trans.table():
+                probabilities[next_state] += probability
+
+            transition_map[state] = Categorical(list(probabilities.items()))
 
         super().__init__(transition_map)
 
         self.transition_reward_map = transition_reward_map
 
-        self.reward_function_vec = np.array(
-            [sum(probability * reward for (_, reward), probability in
-                 transition_reward_map[state].items()) for state in
-             self.state_space]
-        )
+        self.reward_function_vec = np.array([
+            sum(probability * reward for (
+                _,
+                reward), probability in transition_reward_map[state].table())
+            for state in self.state_space
+        ])
 
     def __repr__(self) -> str:
         display = ""
         for s, d in self.transition_reward_map.items():
             display += "From State %s:\n" % str(s)
-            for (s1, r), p in d.items():
+            for (s1, r), p in d.table():
                 display +=\
                     "  To [State %s and Reward %.3f] with Probability %.3f\n"\
                     % (str(s1), r, p)
@@ -182,21 +188,21 @@ class FiniteMarkovRewardProcess(
 
     def transition_reward(self, state: S) ->\
             FiniteDistribution[Tuple[S, float]]:
-        return Categorical(self.transition_reward_map[state].items())
+        return self.transition_reward_map[state]
 
     def get_value_function_vec(self, gamma) -> np.ndarray:
         return np.linalg.inv(
-            np.eye(len(self.state_space)) - gamma * self.transition_matrix
-        ).dot(self.reward_function_vec)
+            np.eye(len(self.state_space)) -
+            gamma * self.transition_matrix).dot(self.reward_function_vec)
 
     def display_reward_function(self):
-        pprint(
-            {self.state_space[i]: round(r, 3) for i, r in
-             enumerate(self.reward_function_vec)}
-        )
+        pprint({
+            self.state_space[i]: round(r, 3)
+            for i, r in enumerate(self.reward_function_vec)
+        })
 
     def display_value_function(self, gamma):
-        pprint(
-            {self.state_space[i]: round(v, 3) for i, v in
-             enumerate(self.get_value_function_vec(gamma))}
-        )
+        pprint({
+            self.state_space[i]: round(v, 3)
+            for i, v in enumerate(self.get_value_function_vec(gamma))
+        })

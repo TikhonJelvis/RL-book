@@ -1,8 +1,10 @@
 import itertools
+import numpy as np
 from typing import Tuple
 import unittest
 
-from rl.distribution import Bernoulli, Distribution, SampledDistribution
+from rl.distribution import (Bernoulli, Categorical, Distribution,
+                             SampledDistribution)
 from rl.markov_process import (FiniteMarkovProcess, MarkovProcess,
                                MarkovRewardProcess)
 
@@ -33,7 +35,10 @@ class FiniteFlipFlop(FiniteMarkovProcess[bool]):
 
     '''
     def __init__(self, p: float):
-        transition_map = {b: {not b: p, b: 1 - p} for b in {True, False}}
+        transition_map = {
+            b: Categorical([(not b, p), (b, 1 - p)])
+            for b in (True, False)
+        }
         super().__init__(transition_map)
 
 
@@ -43,7 +48,8 @@ class RewardFlipFlop(MarkovRewardProcess[bool]):
     def __init__(self, p: float):
         self.p = p
 
-    def transition_reward(self, state: bool) -> Distribution[Tuple[bool, float]]:
+    def transition_reward(self,
+                          state: bool) -> Distribution[Tuple[bool, float]]:
         def next_state(state=state):
             switch_states = Bernoulli(self.p).sample()
 
@@ -78,6 +84,8 @@ class TestFiniteMarkovProcess(unittest.TestCase):
     def setUp(self):
         self.flip_flop = FiniteFlipFlop(0.5)
 
+        self.biased = FiniteFlipFlop(0.3)
+
     def test_flip_flop(self):
         trace = list(itertools.islice(self.flip_flop.simulate(True), 10))
 
@@ -90,13 +98,41 @@ class TestFiniteMarkovProcess(unittest.TestCase):
         # small probability
         self.assertTrue(1000 < count_trues < 9000)
 
+    def test_transition_matrix(self):
+        matrix = self.flip_flop.get_transition_matrix()
+        expected = np.array([[0.5, 0.5], [0.5, 0.5]])
+        np.testing.assert_array_equal(matrix, expected)
+
+        matrix = self.biased.get_transition_matrix()
+        expected = np.array([[0.7, 0.3], [0.3, 0.7]])
+        np.testing.assert_array_equal(matrix, expected)
+
+    def test_stationary_distribution(self):
+        distribution = self.flip_flop.get_stationary_distribution().table()
+        expected = [(True, 0.5), (False, 0.5)]
+        np.testing.assert_almost_equal(distribution, expected)
+
+        distribution = self.biased.get_stationary_distribution().table()
+        expected = [(True, 0.5), (False, 0.5)]
+        np.testing.assert_almost_equal(distribution, expected)
+
+    def test_display(self):
+        # Just test that the display functions don't error out.
+        try:
+            self.flip_flop.display_stationary_distribution()
+            self.flip_flop.generate_image()
+            self.flip_flop.__repr__()
+        except Exception:
+            self.fail("Display functions raised an error.")
+
 
 class TestRewardMarkovProcess(unittest.TestCase):
     def setUp(self):
         self.flip_flop = RewardFlipFlop(0.5)
 
     def test_flip_flop(self):
-        trace = list(itertools.islice(self.flip_flop.simulate_reward(True), 10))
+        trace = list(itertools.islice(self.flip_flop.simulate_reward(True),
+                                      10))
 
         self.assertTrue(all(isinstance(outcome, bool) for outcome, _ in trace))
 
