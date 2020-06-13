@@ -1,0 +1,16 @@
+digraph weather_mp
+{
+  R [label="Rain", color=red, fontcolor=red]
+  S [label="Snow", color=blue, fontcolor=blue]
+  N [label="Nice", color=darkgreen, fontcolor=darkgreen]
+
+  R->R [label="0.3", color=red, fontcolor=red]
+  R->N [label="0.7", color=red, fontcolor=red]
+
+  S->R [label="0.4", color=blue, fontcolor=blue]
+  S->S [label="0.6", color=blue, fontcolor=blue]
+
+  N->R [label="0.2", color=darkgreen, fontcolor=darkgreen]
+  N->S [label="0.3", color=darkgreen, fontcolor=darkgreen]
+  N->N [label="0.5", color=darkgreen, fontcolor=darkgreen]
+}
