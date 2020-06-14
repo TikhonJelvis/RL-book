@@ -235,12 +235,10 @@ Having developed the intuition for the Markov Property of States, we are now rea
 
 ## Formal Definitions for Markov Processes
 
-Here we will consider Discrete-Time Markov Processes, where time moves forward in discrete time steps $t=0, 1, 2, \ldots$. This book will also consider a few cases of continuous-time Markov Processes, where time is a continuous variable (this leads to stochastic calculus, which is the foundation of some of the ground-breaking work in Mathematical Finance). However, for now, we will formally define Discrete-Time Markov Processes as they are fairly common and also much easier to develop intuition for.
-
-### Discrete-Time Markov Processes
+Our formal definitions in this book will be restricted to Discrete-Time Markov Processes, where time moves forward in discrete time steps $t=0, 1, 2, \ldots$. Also for ease of exposition, our formal definitions in this book will be restricted to state spaces that are [countale](https://en.wikipedia.org/wiki/Countable_set). A countable set can be either a finite set or an infinite set of the same cardinality as the set of natural numbers (uncountable sets are those with cardinality larger than the set of natural numbers, eg: the set of real numbers). This book will cover examples of continuous-time Markov Processes, where time is a continuous variable (this leads to stochastic calculus, which is the foundation of some of the ground-breaking work in Mathematical Finance). This book will also cover examples of state spaces that are uncountable. However, for ease of exposition, our definitions and development of the theory in this book will be restricted to discrete-time and countable state spaces. The definitions and theory can be analogously extended to continuous-time or to uncountable state spaces (we request you to self-adjust the definitions and theory accordingly when you encounter continuous-time or uncountable spaces in this book).
 
 \begin{definition}
-A {\em Discrete-Time Markov Process} consists of:
+A {\em Markov Process} consists of:
 \begin{itemize}
 \item A countable set of states $\mathcal{S}$
  \item A time-indexed sequence of random states $S_t$ for each time $t=0, 1, 2, \ldots$, with each $S_t \in \mathcal{S}$
@@ -250,16 +248,14 @@ A {\em Discrete-Time Markov Process} consists of:
 
  We refer to $\mathbb{P}[S_{t+1}|S_t]$ as the transition probabilities for time $t$.
 
-### Discrete-Time Stationary Markov Processes
-
 \begin{definition}
-A {\em Discrete-Time Stationary Markov Process} is a Discrete-Time Markov Process with the additional property that
+A {\em Stationary Markov Process} is a Markov Process with the additional property that
 $\mathbb{P}[S_{t+1}|S_t]$ is independent of $t$.
  \end{definition}
 
- This means, the dynamics of a Discrete-Time Stationary Markov Process can be fully specified with the function $$\mathcal{P}: \mathcal{S} \times \mathcal{S} \rightarrow [0,1]$$ such that $\mathcal{P}(s, s') = \mathbb{P}[S_{t+1}=s'|S_t=s]$ for all $s, s' \in \mathcal{S}$. Hence, $\sum_{s'\in \mathcal{S}} \mathcal{P}(s,s') = 1$ for all $s \in \mathcal{S}$. We refer to the function $\mathcal{P}$ as the transition probability function of the Stationary Markov Process, with the first argument to $\mathcal{P}$ to be thought of as the "source" state and the second argument as the "destination" state.
+ This means, the dynamics of a Stationary Markov Process can be fully specified with the function $$\mathcal{P}: \mathcal{S} \times \mathcal{S} \rightarrow [0,1]$$ such that $\mathcal{P}(s, s') = \mathbb{P}[S_{t+1}=s'|S_t=s]$ for all $s, s' \in \mathcal{S}$. Hence, $\sum_{s'\in \mathcal{S}} \mathcal{P}(s,s') = 1$ for all $s \in \mathcal{S}$. We refer to the function $\mathcal{P}$ as the transition probability function of the Stationary Markov Process, with the first argument to $\mathcal{P}$ to be thought of as the "source" state and the second argument as the "destination" state.
 
-Note that this specification is devoid of the time index $t$ (hence, the term *Stationary* which means "time-invariant"). Moreover, note that a non-Stationary Markov Process can be converted to a Stationary Markov Process by augmenting all states with the time index $t$. This means if the original state space of a non-Stationary Markov Process was $\mathcal{S}$, then the state space of the corresponding Stationary Markov Process is $\mathbb{Z}_{\geq 0} \times \mathcal{S}$ (where $\mathbb{Z}_{\geq 0}$ denotes the domain of the time index). This is because each time step has it's own unique set of (augmented) states, which means the entire set of states in $\mathbb{Z}_{\geq 0} \times \mathcal{S}$ can be covered by time-invariant transition probabilities, thus qualifying as a Stationary Markov Process. Therefore, henceforth, any time we say *Markov Process*, assume we are refering to a Discrete-Time Stationary Markov Process (unless explicitly specified otherwise), which in turn will be characterized by the transition probability function $\mathcal{P}$. Note that the stock price examples (all 3 of the Processes we covered) are examples of a (Discrete-Time Stationary) Markov Process, even without requiring augmenting the state with the time index.
+Note that this specification is devoid of the time index $t$ (hence, the term *Stationary* which means "time-invariant"). Moreover, note that a non-Stationary Markov Process can be converted to a Stationary Markov Process by augmenting all states with the time index $t$. This means if the original state space of a non-Stationary Markov Process was $\mathcal{S}$, then the state space of the corresponding Stationary Markov Process is $\mathbb{Z}_{\geq 0} \times \mathcal{S}$ (where $\mathbb{Z}_{\geq 0}$ denotes the domain of the time index). This is because each time step has it's own unique set of (augmented) states, which means the entire set of states in $\mathbb{Z}_{\geq 0} \times \mathcal{S}$ can be covered by time-invariant transition probabilities, thus qualifying as a Stationary Markov Process. Therefore, henceforth, any time we say *Markov Process*, assume we are refering to a *Discrete-time Stationary Markov Process with a Countable State Space* (unless explicitly specified otherwise), which in turn will be characterized by the transition probability function $\mathcal{P}$. Note that the stock price examples (all 3 of the Processes we covered) are examples of a (Stationary) Markov Process, even without requiring augmenting the state with the time index.
 
 ### Starting States
 
@@ -292,6 +288,7 @@ class MarkovProcess(ABC, Generic[S]):
 
     @abstractmethod
     def transition(self, state: S) -> Distribution[S]:
+        pass
 
     def simulate(self, start_state: S) -> Iterable[S]:
         state: S = start_state
@@ -578,12 +575,10 @@ Now we are ready to move to our next topic of *Markov Reward Processes*. We'd li
 
 As we've said earlier, the reason we covered Markov Processes is because we want to make our way to Markov Decision Processes (the framework for Reinforcement Learning algorithms) by adding incremental features to Markov Processes. This section covers an intermediate framework between Markov Processes and Markov Decision Processes, and is known as Markov Reward Processes. We essentially just include the notion of a numerical *reward* to a Markov Process each time we transition from one state to the next. These rewards will be random, and all we need is to specify the probability distributions of these rewards as we make state transitions. 
 
-The main problem to solve regarding Markov Reward Processes is to calculate how much reward we would accumulate (in expectation, starting from each of the states) if we let the Process run indefinitely, bearing in mind that future rewards need to be discounted appropriately (otherwise the sum of rewards can blow up to $\infty$). In order to solve the problem of calculating expected accumulative rewards from each state, we will first set up some formalism for general Markov Reward Processes, develop some (elegant) theory on calculating rewards accumulation, write plenty of code (based on the theory), and apply the theory and code to the simple inventory example (which we will embellish with rewards equal to negative of the costs incurred at the store).
-
-### Formalism of Markov Reward Processes
+The main problem to solve regarding Markov Reward Processes is to calculate how much reward we would accumulate (in expectation, starting from each of the states) if we let the Process run indefinitely, bearing in mind that future rewards need to be discounted appropriately (otherwise the sum of rewards can blow up to $\infty$). In order to solve the problem of calculating expected accumulative rewards from each state, we will first set up some formalism for general Markov Reward Processe, develop some (elegant) theory on calculating rewards accumulation, write plenty of code (based on the theory), and apply the theory and code to the simple inventory example (which we will embellish with rewards equal to negative of the costs incurred at the store). Let us start with the formal definition.
 
 \begin{definition}
-A {\em Discrete-Time Markov Reward Process} is a Discrete-Time Markov Process, along with:
+A {\em Markov Reward Process} is a Markov Process, along with:
 \begin{itemize}
 \item A time-indexed sequence of {\em Reward} random variables $R_t \in \mathbb{R}$ for each time $t=1, 2, \ldots$
 \item Markov Property (including Rewards): $\mathbb{P}[(R_{t+1}, S_{t+1}) | S_t, S_{t-1}, \ldots, S_0] = \mathbb{P}[(R_{t+1}, S_{t+1}) | S_t]$ for all $t \geq 0$
@@ -593,16 +588,16 @@ A {\em Discrete-Time Markov Reward Process} is a Discrete-Time Markov Process, a
 
 The role of $\gamma$ only comes in discounting future rewards when accumulating rewards from a given state (as mentioned earlier) - more on this later.
 
-Since we commonly assume Stationarity of Discrete-Time Markov Processes, we shall also (by default) assume Stationarity for Discrete-Time Markov Reward Processes, i.e., $\mathbb{P}[(R_{t+1}, S_{t+1}) | S_t]$ is independent of $t$.
+It pays to emphasize again (like we emphasized for Markov Processes), that the definitions and theory of Markov Reward Processes are for discrete-time, for countable state spaces and countable set of pairs of next state and reward transitions (with the knowledge that the definitions and theory are analogously extensible to continuous-time and uncountable spaces). Since we commonly assume Stationarity of Markov Processes, we shall also (by default) assume Stationarity for Markov Reward Processes, i.e., $\mathbb{P}[(R_{t+1}, S_{t+1}) | S_t]$ is independent of $t$. 
 
-This means the transition probabilities of a Markov Reward Process can, in the most general case, be expressed as a transition probability function:
+With the default assumption of stationarity, the transition probabilities of a Markov Reward Process can, in the most general case, be expressed as a transition probability function:
 $$\mathcal{P}_R: \mathcal{S} \times \mathbb{R} \times \mathcal{S} \rightarrow [0,1]$$
 defined as:
 $$\mathcal{P}_R(s,r,s') = \mathbb{P}[(R_{t+1}=r, S_{t+1}=s') | S_t=s]$$
 such that
 $$\sum_{s'\in \mathcal{S}} \sum_{r \in \mathbb{R}} \mathcal{P}_R(s,r,s') = 1 \text{ for all } s \in \mathcal{S}$$
 
-Henceforth, any time we say Markov Reward Process, assume we are refering to a Discrete-Time Stationary Markov Reward Process (unless explicitly specified otherwise), which in turn will be characterized by the transition probability function $\mathcal{P}_R$. 
+The subsections on *Start States* we had covered for Markov Processes naturally applies to Markov Reward Processes as well. So we won't repeat the section here, rather we will simply highlight that when it comes to simulations, we need a separate specification of the probability distribution of start states. Also, let's think about how to model the notion of a "terminal state" for a Markov Reward Process. It's not enough to just model an absorbing state (like we did for Markov Processes), wherein we transition back to the same state with 100% probability. We require to model the additional constraint that the reward associated with the 100% probability transition back to the same state has a value of 0 (otherwise, the state will be terminal in the underlying Markov Process but in the Markov Reward Process, we will continue to accumulate rewards). If all sequences of a Markov Reward Process terminate in this manner (modeled as absorbing states with zero reward in the self-transition), we call it an episodic Markov Reward Process. Markov Reward Process that go on forever (either with non-zero probability of movement to other states or with non-zero rewards) are known as continuing Markov Reward Process. 
 
 Let us now proceed to write some code that captures this formalism. We shall create a derived *abstract* class `MarkovRewardProcess` that inherits from the abstract class `MarkovProcess`. Analogous to `MarkovProcess`'s `@abstractmethod transition` (that represents $\mathcal{P}$), `MarkovRewardProcess` has an `@abstractmethod transition_reward` that represents $\mathcal{P}_R$. Also, analogous to `MarkovProcess`'s method `simulate`, `MarkovRewardProcess` has the mathod `simulate_reward`. These analogous methods extend the interface to return a pair: next state $S_{t+1}$ and reward $R_{t+1}$, given current state $S_t$ (versus the `MarkovProcess` methods whose interfaces return simply the next state $S_{t+1}$). Let's clarify this with actual code:
 
@@ -611,6 +606,7 @@ class MarkovRewardProcess(MarkovProcess[S]):
 
     @abstractmethod
     def transition_reward(self, state: S) -> Distribution[Tuple[S, float]]:
+        pass
 
     def simulate_reward(self, start_state: S) -> Iterable[Tuple[S, float]]:
         state: S = start_state
@@ -650,7 +646,7 @@ $$\mathcal{R}: \mathcal{S} \rightarrow \mathbb{R}$$
 is defined as:
 $$\mathcal{R}(s) = \mathbb{E}[R_{t+1}|S_t=s] = \sum_{s' \in \mathcal{S}} \mathcal{P}(s,s') \cdot \mathcal{R}_T(s,s') = \sum_{s'\in \mathcal{S}} \sum_{r\in\mathbb{R}} \mathcal{P}_R(s,r,s') \cdot r$$
 
-### Finite Markov Reward Processes
+## Finite Markov Reward Processes
 
 The above calculations can be performed easily for the case of finite states (known as Finite Markov Reward Processes). So let us write some code for the case of $\mathcal{S} = \{s_1, s_2, \ldots, s_n\}$. We create a derived classs `FiniteMarkovRewardProcess` that primarily inherits from `FiniteMarkovProcess` (concrete class)and secondarily inherits from `MarkovRewardProcess` (abstract class). Our first task is to think about the data structure required to specify an instance of `FiniteMarkovRewardProcess` (i.e., the data structure we'd pass to the `__init__` method of `FiniteMarkovRewardProcess`). Analogous to how we curried $\mathcal{P}$ as $\mathcal{S} \rightarrow (\mathcal{S} \rightarrow [0,1])$ (where $\mathcal{S} = \{s_1, s_2, \ldots, s_n\}$), we curry $\mathcal{P}_R$ as:
 $$\mathcal{S} \rightarrow (\mathcal{S} \times \mathbb{R} \rightarrow [0, 1])$$
@@ -700,7 +696,7 @@ class FiniteMarkovRewardProcess(
 
 The above code for `FiniteMarkovRewardProcess` (and more) is in the file [rl/markov_process.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/markov_process.py).   
 
-### Simple Inventory Example as a Finite Markov Reward Process
+## Simple Inventory Example as a Finite Markov Reward Process
 Now we return to the simple inventory example and embellish it with a reward structure to turn it into a Markov Reward Process (business costs will be modeled as negative rewards). Let us assume that your store business incurs two types of costs:
 
 * Holding cost of $h$ for each bicycle that remains in your store overnight. Think of this as "interest on inventory" - each day your bicycle remains unsold, you lose the opportunity to gain interest on the cash you paid to buy the bicycle. Holding cost also includes the cost of upkeep of inventory.
@@ -820,12 +816,12 @@ From State (2, 0):
 ```
 
 
-### Value Function of a Markov Reward Process
+## Value Function of a Markov Reward Process
 
 Now we are ready to formally define the main problem involving Markov Reward Processes. As we said earlier, we'd like to compute the "expected accumulated rewards" from any given state. However, if we simply add up the rewards in a simulation trace following time step $t$ as $\sum_{i=t+1}^{\infty} R_i = R_{t+1} + R_{t+2} + \ldots$, the sum would often diverge to infinity. This is where the discount factor $\gamma$ comes into play. We define the (random) *Return* $G_t$ as the "discounted accumulation of future rewards" following time step $t$. Formally,
 $$G_t = \sum_{i=t+1}^{\infty} \gamma^{i-t-1} \cdot R_i = R_{t+1} + \gamma \cdot R_{t+2} + \gamma^2 \cdot R_{t+3} + \ldots$$
 
-Note that $\gamma$ can range from a value of 0 on one extreme (called "myopic") to a value of 1 on another extreme (called "far-sighted"). "Myopic" means the Return is the same as Reward (no accumulation of future Rewards in the Return). Note that "far-sighted" is indeed applicable if all random sequences of the Process end in an absorbing state AND the rewards associated with the infinite looping at the absorbing states are 0 (otherwise, the Return could diverge to infinity). 
+Note that $\gamma$ can range from a value of 0 on one extreme (called "myopic") to a value of 1 on another extreme (called "far-sighted"). "Myopic" means the Return is the same as Reward (no accumulation of future Rewards in the Return). Note that "far-sighted" is indeed applicable to episodic Markov Reward Processes (where all random sequences of the Process end in an absorbing state AND the rewards associated with the infinite looping at the absorbing states are 0, otherwise non-zero infinite looping will lead to infinite Return).
 
 Apart from the Return divergence consideration, $\gamma < 1$ helps algorithms become more tractable (as we shall see later when we get to Reinforcement Learning). We should also point out that the reason to have $\gamma < 1$ is not just for mathematical convenience or computational tractability - there are valid modeling reasons to discount Rewards when accumulating to a Return. When Reward is modeled as a financial quantity (revenues, costs, profits etc.), as will be the case in most financial applications, it makes sense to incorporate [time-value-of-money](https://en.wikipedia.org/wiki/Time_value_of_money) which is a fundamental concept in Economics/Finance that says there is greater benefit in receiving a dollar now versus later (which is the economic reason why interest is paid or earned). So it is common to set $\gamma$ to be the discounting based on the prevailing interest rate ($\gamma = \frac 1 {1+r}$ where $r$ is the interest rate over a single time step). Another technical reason for setting $\gamma < 1$ is that our models often don't fully capture future uncertainty and so, discounting with $\gamma$ acts to undermine future rewards that might not be accurate (due to future uncertainty modeling limitations). Lastly, from an AI perspective, if we want to build machines that acts like humans, psychologists have indeed demonstrated that human/animal behavior prefers immediate reward over future reward.
 
@@ -836,13 +832,20 @@ $$V(s) = \mathbb{E}[G_t|S_t=s] \text{ for all } s \in \mathcal{S} \text{ for all
 
 Note that we are (as usual) assuming the fact that the Markov Reward Process is stationary (time-invariant probabilities of state transitions and rewards). Now we show a creative piece of mathematics due to [Richard Bellman](https://en.wikipedia.org/wiki/Richard_E._Bellman). Bellman noted that the Value Function has a recursive structure. Specifically, 
 
-$$V(s) = \mathbb{E}[R_{t+1}|S_t=s] + \gamma \cdot \sum_{s' \in \mathcal{S}} \mathcal{P}(s, s') \cdot \mathbb{E}[G_{t+1}|S_{t+1}=s'] \text{ for all } s \in \mathcal{S} \text{ for all } t = 0, 1, 2, \ldots$$
+\begin{equation}
+\begin{split}
+V(s) & = \mathbb{E}[R_{t+1}|S_t=s] + \gamma \cdot \mathbb{E}[R_{t+2}|S_t=s] + \gamma^2 \cdot \mathbb{E}[R_{t+3}|S_t=s] + \ldots \\
+& = \mathcal{R}(s) + \gamma \cdot \sum_{s'\in \mathcal{S}} \mathbb{P}[S_{t+1}=s'|S_t=s] \cdot \mathbb{E}[R_{t+2}|S_{t+1}=s'] \\
+& \hspace{4mm} + \gamma^2 \cdot \sum_{s' \in \mathcal{S}} \mathbb{P}[S_{t+1}=s'|S_t=s] \sum_{s'' \in \mathcal{S}} \mathbb{P}[S_{t+2}=s''|S_{t+1}=s'] \cdot \mathbb{E}[R_{t+3}|S_{t+2}=s''] \\
+& \hspace{4mm} + \ldots \\
+& = \mathcal{R}(s) + \gamma \cdot \sum_{s'\in \mathcal{S}} \mathcal{P}(s, s') \cdot \mathcal{R}(s') + \gamma^2 \cdot \sum_{s' \in \mathcal{S}} \mathcal{P}(s, s') \sum_{s'' \in \mathcal{S}} \mathcal{P}(s', s'') \cdot \mathcal{R}(s'') + \ldots \\
+& = \mathcal{R}(s) + \gamma \cdot \sum_{s' \in \mathcal{S}} \mathcal{P}(s,s') (\mathcal{R}(s') + \gamma \cdot \sum_{s'' \in \mathcal{S}} \mathcal{P}(s', s'') \cdot \mathcal{R}(s'') + \ldots ) \\
+& = \mathcal{R}(s) + \gamma \cdot \sum_{s' \in \mathcal{S}} \mathcal{P}(s, s') \cdot V(s')
+\end{split}
+\end{equation} \label{eq:mrp_bellman_eqn}
 
-This simplifies to:
 
-$$V(s) = \mathcal{R}(s) + \gamma \cdot \sum_{s' \in \mathcal{S}} \mathcal{P}(s, s') \cdot V(s')$$
-
-We will refer to this recursive equation for the Value Function as the Bellman Equation for a Markov Reward Process.
+We will refer to this recursive equation \ref{eq:mrp_bellman_eqn} for the Value Function as the Bellman Equation for a Markov Reward Process.
 
 For the case of Finite Markov Reward Processes, $\mathcal{S} = \{s_1, s_2, \ldots, s_n\}$. Let us abuse notation and refer to $V$ as a column vector of length $n$, $\mathcal{P}$ as a $n \times n$ matrix, and $\mathcal{R}$ as a column vector of length $n$, so we can express the above equation in vector and matrix notation as follows:
 
@@ -885,6 +888,8 @@ The corresponding values of the attribute `reward_function_vec` (i.e., $\mathcal
 This tells us that On-Hand of 0 and On-Order of 2 has the least expected cost (highest expected reward). However, the Value Function is highest for On-Hand of 0 and On-Order of 1.
 
 This computation for the Value Function works if the state space is not too large (matrix to be inverted has size equal to state space size). When the state space is large, this direct matrix-inversion method doesn't work and we have to resort to numerical methods to solve the recursive Bellman equation. This is the topic of Dynamic Programming and Reinforcement Learning algorithms that we shall learn in this book. 
+
+## Summary of Key Learnings in this Chapter
 
 Before we end this chapter, we'd like to highlight the two highly important concepts we learnt in this chapter:
 
