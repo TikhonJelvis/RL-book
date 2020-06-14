@@ -1,7 +1,6 @@
 from abc import ABC, abstractmethod
-import numpy as np
 import random
-from typing import Callable, Generic, Iterable, List, Tuple, TypeVar
+from typing import Callable, Generic, Iterable, List, Set, Tuple, TypeVar
 
 A = TypeVar('A')
 
@@ -37,12 +36,39 @@ class FiniteDistribution(Distribution[A], ABC):
 
     '''
     @abstractmethod
-    def to_pdf(self) -> List[Tuple[A, float]]:
+    def table(self) -> List[Tuple[A, float]]:
         '''Returns a tabular representaiton of the probability density
         function (PDF) for this distribution.
 
         '''
         pass
+
+    @abstractmethod
+    def probability(self, outcome: A) -> float:
+        '''Returns the probability of the given outcome according to this
+        distribution.
+
+        '''
+        pass
+
+
+class Constant(FiniteDistribution[A]):
+    '''A distribution that has a single outcome with probability 1.
+
+    '''
+    value: A
+
+    def __init__(self, value: A):
+        self.value = value
+
+    def sample(self) -> A:
+        return self.value
+
+    def table(self) -> List[Tuple[A, float]]:
+        return [(self.value, 1)]
+
+    def probability(self, outcome: A) -> float:
+        return 1 if outcome == self.value else 0.0
 
 
 class Bernoulli(FiniteDistribution[bool]):
@@ -56,8 +82,11 @@ class Bernoulli(FiniteDistribution[bool]):
     def sample(self) -> bool:
         return random.uniform(0, 1) < self.p
 
-    def to_pdf(self) -> List[Tuple[bool, float]]:
+    def table(self) -> List[Tuple[bool, float]]:
         return [(True, self.p), (False, 1 - self.p)]
+
+    def probability(self, outcome: bool) -> float:
+        return self.p if outcome else 1 - self.p
 
 
 class Choose(FiniteDistribution[A]):
@@ -65,17 +94,21 @@ class Choose(FiniteDistribution[A]):
 
     '''
 
-    options: List[A]
+    options: Set[A]
 
-    def __init__(self, options: List[A]):
+    def __init__(self, options: Set[A]):
         self.options = options
 
     def sample(self) -> A:
-        return self.options[random.randrange(len(self.options))]
+        return random.choice(list(self.options))
 
-    def to_pdf(self) -> List[Tuple[A, float]]:
+    def table(self) -> List[Tuple[A, float]]:
         length = len(self.options)
         return [(x, 1.0 / length) for x in self.options]
+
+    def probability(self, outcome: A) -> float:
+        p = 1.0 / len(self.options)
+        return p if outcome in self.options else 0.0
 
 
 class Categorical(FiniteDistribution[A]):
@@ -95,10 +128,19 @@ class Categorical(FiniteDistribution[A]):
             self.outcomes += [outcome]
             self.probabilities += [probability]
 
-    def sample(self) -> A:
-        rng = np.random.default_rng()
-        sample = rng.choice(self.outcomes, size=1, p=self.probabilities)
-        return sample.item()
+        # Normalize probabilities to sum to 1
+        total = sum(self.probabilities)
+        self.probabilities = [p / total for p in self.probabilities]
 
-    def to_pdf(self) -> List[Tuple[A, float]]:
+    def sample(self) -> A:
+        return random.choices(self.outcomes, weights=self.probabilities)[0]
+
+    def table(self) -> List[Tuple[A, float]]:
         return list(zip(self.outcomes, self.probabilities))
+
+    def probability(self, outcome: A) -> float:
+        try:
+            i = self.outcomes.index(outcome)
+            return self.probabilities[i]
+        except ValueError:
+            return 0.0
