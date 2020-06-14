@@ -355,17 +355,19 @@ Now let us consider Markov Processes with a finite state space. So we can repres
 $$\mathcal{P} : \{s_1, s_2, \ldots, s_n\} \times \{s_1, s_2, \ldots, s_n\} \rightarrow [0, 1]$$
 However, we often find that this matrix can be sparse since one often transitions from a given state to just a few set of states. So we'd like a sparse representation and we can accomplish this by conceptualizing $\mathcal{P}$ in an [equivalent curried form](https://en.wikipedia.org/wiki/Currying) as follows:
 $$\{s_1, s_2, \ldots, s_n\} \rightarrow (\{s_1, s_2, \ldots, s_n\} \rightarrow [0, 1])$$
-With this curried view, we can represent both the outer $\rightarrow$ and the inner $\rightarrow$ as a map (in Python, as a dictionary of type `Mapping`). Let us create an alias for this (called `S_TransType`) since we will use this data structure often:
+With this curried view, we can represent the outer $\rightarrow$ as a map (in Python, as a dictionary of type `Mapping`) and the inner $\rightarrow$ as a finite probability distribution (in Python, as a `FiniteDistribution` type). Note that the `FiniteDistribution` type was covered in the previous chapter. Let us create an alias for this (called `Transition`) since we will use this data structure often:
+
 ```python
-S_TransType = Mapping[S, Mapping[S, float]]
+Transition = Mapping[S, FiniteDistribution[S]]
 ```
-The outer map will have $n$ keys consisting of each of $\{s_1, s_2, \ldots, s_n\}$. The inner map's keys will be only the states transitioned to (from the outer map's state key) with non-zero probability. To make things concrete, here's a toy `S_TransType` example of a city with highly unpredictable weather outcomes from one day to the next:
+
+The outer map will have $n$ keys consisting of each of $\{s_1, s_2, \ldots, s_n\}$. The inner map's keys will be only the states transitioned to (from the outer map's state key) with non-zero probability. To make things concrete, here's a toy `Transition` type example of a city with highly unpredictable weather outcomes from one day to the next (note: `Categorical` type inherits from `FiniteDistribution` type in the code at [rl/distribution.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/distribution.py)):
 
 ```python
 {
-  "Rain": {"Rain": 0.3, "Nice": 0.7},
-  "Snow": {"Rain": 0.4, "Snow": 0.6},
-  "Nice": {"Rain": 0.2, "Snow": 0.3, "Nice": 0.5}
+  "Rain": Categorical([("Rain", 0.3), ("Nice", 0.7)]),
+  "Snow": Categorical([("Rain", 0.4), ("Snow", 0.6)]),
+  "Nice": Categorical([("Rain", 0.2), ("Snow", 0.3), ("Nice", 0.5)])
 }
 ```
 It is common to view this as a directed graph, as depicted in Figure \ref{fig:weather_mp}. The nodes are the states and the directed edges are the probabilistic state transitions, with the transition probabilities labeled on them.
@@ -374,31 +376,32 @@ It is common to view this as a directed graph, as depicted in Figure \ref{fig:we
 ![Weather Markov Process \label{fig:weather_mp}](./chapter2/weather_mp.png "Weather Markov Process")
 </div>
 
-Now we are ready to write the code for the `FiniteMarkovProcess` class. We implement the `transition` method by utilizing the `Categorical` distribution type we learnt about in the previous chapter and by extracting probabilities from the `transition_map` attribute of the class. Note that along with the `transition` method, we have also implemented the `__repr__` method for a well-formatted display of `transition_map: S_TransType`.
+Now we are ready to write the code for the `FiniteMarkovProcess` class. We implement the `transition` method by simply returning the `Categorical` distribution the given `state: S` maps to in the attribute `self.transition_map: Transition[S]`. Note that along with the `transition` method, we have also implemented the `__repr__` method for a well-formatted display of `self.transition_map`.
 
 ```python
 class FiniteMarkovProcess(MarkovProcess[S]):
+    
     state_space: Sequence[S]
-    transition_map: S_TransType
+    transition_map: Transition[S]
+    transition_matrix: np.ndarray
 
-    def __init__(
-        self,
-        transition_map: S_TransType
-    ):
+    def __init__(self, transition_map: Transition[S]):
         self.state_space = list(transition_map.keys())
         self.transition_map = transition_map
-
-    def transition(self, state: S) -> FiniteDistribution[S]:
-        return Categorical(self.transition_map[state].items())
+        self.transition_matrix = self.get_transition_matrix()
 
     def __repr__(self) -> str:
         display = ""
+
         for s, d in self.transition_map.items():
-            display += "From State %s:\n" % str(s)
-            for s1, p in d.items():
-                display += "  To State %s with Probability %.3f\n" %\
-                    (str(s1), p)
+            display += f"From State {s}:\n"
+            for s1, p in d.table():
+                display += f"  To State {s1} with Probability {p:.3f}\n"
+
         return display
+
+    def transition(self, state: S) -> FiniteDistribution[S]:
+        return self.transition_map[state]
 ```
 
 ## Simple Inventory Example
@@ -424,11 +427,10 @@ $$\mathcal{P}((\alpha, \beta), (\alpha + \beta - i, \max(C - (\alpha + \beta), 0
 $$\mathcal{P}((\alpha, \beta), (0, \max(C - (\alpha + \beta), 0))) = \sum_{j=\alpha+\beta}^{\infty} f(j) = 1 - F(\alpha + \beta - 1)$$
 Note that the next state's ($S_{t+1}$) On-Hand can be zero resulting from any of infinite possible demand outcomes greater than or equal to $\alpha + \beta$.
 
-So we are now ready to write code for this simple inventory example as a Markov Process. All we have to do is to create a derived class inherited from `FiniteMarkovProcess` and write a method to construct the `transition_map: S_TransType`. Note that the generic state `S` is replaced here with the type `Tuple[int, int]` to represent the pair of On-Hand and On-Order.
+So we are now ready to write code for this simple inventory example as a Markov Process. All we have to do is to create a derived class inherited from `FiniteMarkovProcess` and write a method to construct the `transition_map: Transition`. Note that the generic state `S` is replaced here with the type `Tuple[int, int]` (aliased as `IntPair` type) to represent the pair of On-Hand and On-Order.
 
 ```python
 IntPair = Tuple[int, int]
-MPTransType = Mapping[IntPair, Mapping[IntPair, float]]
 
 class SimpleInventoryMP(FiniteMarkovProcess[IntPair]):
 
@@ -443,21 +445,20 @@ class SimpleInventoryMP(FiniteMarkovProcess[IntPair]):
         self.poisson_distr = poisson(poisson_lambda)
         super().__init__(self.get_transition_map())
 
-    def get_transition_map(self) -> MPTransType:
-        d = {}
+    def get_transition_map(self) -> Transition[IntPair]:
+        d: Dict[IntPair, Categorical[IntPair]] = {}
         for alpha in range(self.capacity + 1):
             for beta in range(self.capacity + 1 - alpha):
                 ip = alpha + beta
-                d1 = {}
                 beta1 = max(self.capacity - ip, 0)
-                for i in range(ip):
-                    next_state = (ip - i, beta1)
-                    probability = self.poisson_distr.pmf(i)
-                    d1[next_state] = probability
-                next_state = (0, beta1)
-                probability = 1 - self.poisson_distr.cdf(ip - 1)
-                d1[next_state] = probability
-                d[(alpha, beta)] = d1
+                state_probs_list: List[Tuple[IntPair, float]] = [
+                    ((ip - i, beta1), self.poisson_distr.pmf(i))
+                    for i in range(ip)
+                ]
+                state_probs_list.append(
+                    ((0, beta1), 1 - self.poisson_distr.cdf(ip - 1))
+                )
+                d[(alpha, beta)] = Categorical(state_probs_list)
         return d
 ```
 
@@ -552,7 +553,7 @@ Let us write code to compute the stationary distribution. We shall add two metho
 
 We will skip the theory that tells us about the conditions under which a stationary distribution is well-defined, or the conditions under which there is a unique stationary distribution. Instead, we will just go ahead with this calculation here assuming this Markov Process satisfies those conditions (it does!). So, we simply seek the index of the `eig_vals` vector with eigenvalue equal to 1 (accounting for floating-point error). Next, we pull out the column of the `eig_vecs` matrix at the `eig_vals` index calculated above, and convert it into a real-valued vector (eigenvectors/eigenvalues calculations are, in general, complex numbers calculations - see the reference for the `np.linalg.eig` function). So this gives us the real-valued eigenvector with eigenvalue equal to 1.  Finally, we have to normalize the eigenvector so it's values add up to 1 (since we want probabilities), and return the probabilities as a `Categorical` distribution).
 
-Running this code for the simple case of capacity $C=2$ and poisson mean $\lambda = 1.0$ produces the following output for the stationary distribution $\mu$:
+Running this code for the simple case of capacity $C=2$ and poisson mean $\lambda = 1.0$ (instance of `SimpleInventoryMP`) produces the following output for the stationary distribution $\mu$:
 
 ```
 {(0, 0): 0.117,
@@ -654,48 +655,53 @@ $$\mathcal{R}(s) = \mathbb{E}[R_{t+1}|S_t=s] = \sum_{s' \in \mathcal{S}} \mathca
 
 The above calculations can be performed easily for the case of finite states (known as Finite Markov Reward Processes). So let us write some code for the case of $\mathcal{S} = \{s_1, s_2, \ldots, s_n\}$. We create a derived classs `FiniteMarkovRewardProcess` that primarily inherits from `FiniteMarkovProcess` (concrete class)and secondarily inherits from `MarkovRewardProcess` (abstract class). Our first task is to think about the data structure required to specify an instance of `FiniteMarkovRewardProcess` (i.e., the data structure we'd pass to the `__init__` method of `FiniteMarkovRewardProcess`). Analogous to how we curried $\mathcal{P}$ as $\mathcal{S} \rightarrow (\mathcal{S} \rightarrow [0,1])$ (where $\mathcal{S} = \{s_1, s_2, \ldots, s_n\}$), we curry $\mathcal{P}_R$ as:
 $$\mathcal{S} \rightarrow (\mathcal{S} \times \mathbb{R} \rightarrow [0, 1])$$
-This leads to the analog of the `S_TransType` data type for the case of Finite Markov Reward Processes as follows:
+This leads to the analog of the `Transition` data type for the case of Finite Markov Reward Processes as follows:
+
 ```python
-SR_TransType = Mapping[S, Mapping[Tuple[S, float], float]]
+RewardTransition = Mapping[S, FiniteDistribution[Tuple[S, float]]]
 ```
 
-With this as input to ``__init__`` (input named `transition_reward_map: SR_TransType`), the `FiniteMarkovRewardProcess` class has three responsibilities:
+With this as input to ``__init__`` (input named `transition_reward_map: RewardTransition`), the `FiniteMarkovRewardProcess` class has three responsibilities:
 
 * It needs to implement the `transition_reward` method analogous to the implementation of the `transition` method in `FiniteMarkovProcess`
-* It needs to create a `transition_map: S_TransType` (extracted from `transition_reward_map: SR_TransType`) in order to instantiate its concrete parent `FiniteMarkovProcess`.
-* It needs to compute the reward fuction $\mathcal{R}: \mathcal{S} \rightarrow \mathbb{R}$ from the transition probability function $\mathcal{P}_R$ (i.e. from `transition_reward_map: SR_TransType`) based on the expectation calculation we specified above (as mentioned earlier, $\mathcal{R}$ is key to the relevant calculations we shall soon be performing on Finite Markov Reward Processes). To perform further calculations with the reward function $\mathcal{R}$, we need to produce it as a 1D numpy array (i.e., a vector) attribute of the class (we name it as `reward_function_vec`).
+* It needs to create a `transition_map: Transition` (extracted from `transition_reward_map: RewardTransition`) in order to instantiate its concrete parent `FiniteMarkovProcess`.
+* It needs to compute the reward fuction $\mathcal{R}: \mathcal{S} \rightarrow \mathbb{R}$ from the transition probability function $\mathcal{P}_R$ (i.e. from `transition_reward_map: RewardTransition`) based on the expectation calculation we specified above (as mentioned earlier, $\mathcal{R}$ is key to the relevant calculations we shall soon be performing on Finite Markov Reward Processes). To perform further calculations with the reward function $\mathcal{R}$, we need to produce it as a 1D numpy array (i.e., a vector) attribute of the class (we name it as `reward_function_vec`).
 
 Here's the code that fulfils the above three responsibilities:
 
 ```python
-class FiniteMarkovRewardProcess(
-        FiniteMarkovProcess[S],
-        MarkovRewardProcess[S]
-):
-    transition_reward_map: SR_TransType
+class FiniteMarkovRewardProcess(FiniteMarkovProcess[S],
+                                MarkovRewardProcess[S]):
+
+    transition_reward_map: RewardTransition[S]
     reward_function_vec: np.ndarray
 
-    def __init__(self, transition_reward_map: SR_TransType):
+    def __init__(self, transition_reward_map: RewardTransition[S]):
 
-        transition_map: Dict[S, Dict[S, float]] = {}
+        transition_map: Dict[S, FiniteDistribution[S]] = {}
 
         for state, trans in transition_reward_map.items():
-            transition_map[state] = defaultdict(float)
-            for (next_state, _), probability in trans.items():
-                transition_map[state][next_state] += probability
+            probabilities: Dict[S, float] = defaultdict(float)
+
+            for (next_state, _), probability in trans.table():
+                probabilities[next_state] += probability
+
+            transition_map[state] = Categorical(list(probabilities.items()))
 
         super().__init__(transition_map)
 
         self.transition_reward_map = transition_reward_map
 
-        self.reward_function_vec = np.array(
-            [sum(probability * reward for (_, reward), probability in
-                 transition_reward_map[state].items()) for state in
-             self.state_space]
+        self.reward_function_vec = np.array([
+            sum(probability * reward for (
+                _,
+                reward), probability in transition_reward_map[state].table())
+            for state in self.state_space
+        ])
 
     def transition_reward(self, state: S) ->\
             FiniteDistribution[Tuple[S, float]]:
-        return Categorical(self.transition_reward_map[state].items())
+        return self.transition_reward_map[state]
 ```
 
 The above code for `FiniteMarkovRewardProcess` (and more) is in the file [rl/markov_process.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/markov_process.py).   
@@ -732,11 +738,10 @@ $$\mathcal{R}_T((\alpha, \beta), (0, \max(C - (\alpha + \beta), 0))) = - h \alph
 
 So now we have a specification of $\mathcal{R}_T$ but really we were expected to specify $\mathcal{P}_R$ as that is the interface through which we create a `FiniteMarkovRewardProcess`. Fear not - a specification of $\mathcal{P}_R$ is easy once we have a specification of $\mathcal{R}_T$. We simply create 4-tuples $(s,r,s',p)$ for all $s,s' \in \mathcal{S}$ such that $r=\mathcal{R}_T(s, s')$ and $p=\mathcal{P}(s,s')$ (we know $\mathcal{P}$ along with $\mathcal{R}_T$), and the set of all these 4-tuples (for all $s,s' \in \mathcal{S}$) constitute the specification of $\mathcal{P}_R$, i.e., $\mathcal{P}_R(s,r,s') = p$. In fact, most Markov Processes you'd encounter in practice can be modeled as a combination of $\mathcal{R}_T$ and $\mathcal{P}$, and you'd simply follow the above routine to present this information in the form of $\mathcal{P}_R$ to instantiate a `FiniteMarkovRewardProcess`. We designed the interface to take in $\mathcal{P}_R$ as that is the most general interface for specifying Markov Reward Processes.
 
-So now let's write some code for the simple inventory example as a Finite Markov Reward Process. All we have to do is to create a derived class inherited from `FiniteMarkovRewardProcess` and write a method to construct the `transition_reward_map: SR_TransType` (i.e., $\mathcal{P}_R$). Note that the generic state `S` is replaced here with the type `Tuple[int, int]` to represent the pair of On-Hand and On-Order.
+So now let's write some code for the simple inventory example as a Finite Markov Reward Process. All we have to do is to create a derived class inherited from `FiniteMarkovRewardProcess` and write a method to construct the `transition_reward_map: RewardTransition` (i.e., $\mathcal{P}_R$). Note that the generic state `S` is replaced here with the type `Tuple[int, int]` (aliased as `IntPair` type) to represent the pair of On-Hand and On-Order.
 
 ```python
 IntPair = Tuple[int, int]
-MRPTransType = Mapping[IntPair, Mapping[Tuple[IntPair, float], float]]
 
 class SimpleInventoryMRP(FiniteMarkovRewardProcess[IntPair]):
 
@@ -755,25 +760,24 @@ class SimpleInventoryMRP(FiniteMarkovRewardProcess[IntPair]):
         self.poisson_distr = poisson(poisson_lambda)
         super().__init__(self.get_transition_reward_map())
 
-    def get_transition_reward_map(self) -> MRPTransType:
-        d = {}
+    def get_transition_reward_map(self) -> RewardTransition[IntPair]:
+        d: Dict[IntPair, Categorical[Tuple[IntPair, float]]] = {}
         for alpha in range(self.capacity + 1):
             for beta in range(self.capacity + 1 - alpha):
                 ip = alpha + beta
-                d1 = {}
                 beta1 = max(self.capacity - ip, 0)
-                for i in range(ip):
-                    next_state = (ip - i, beta1)
-                    reward = self.holding_cost * alpha
-                    probability = self.poisson_distr.pmf(i)
-                    d1[(next_state, reward)] = probability
-                next_state = (0, beta1)
+                sr_probs_list: List[Tuple[Tuple[IntPair, float], float]] = [
+                    (((ip - i, beta1), self.holding_cost * alpha),
+                     self.poisson_distr.pmf(i)) for i in range(ip)
+                ]
                 probability = 1 - self.poisson_distr.cdf(ip - 1)
                 reward = self.holding_cost * alpha + self.stockout_cost *\
                     (probability * (self.poisson_lambda - ip) +
                      ip * self.poisson_distr.pmf(ip))
-                d1[(next_state, reward)] = probability
-                d[(alpha, beta)] = d1
+                sr_probs_list.append(
+                    (((0, beta1), reward), probability)
+                )
+                d[(alpha, beta)] = Categorical(sr_probs_list)
         return d
 ```
 
