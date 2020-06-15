@@ -1,5 +1,7 @@
 from abc import ABC, abstractmethod
-from typing import Dict, Iterable, Generic, Mapping, Tuple, TypeVar
+from collections import defaultdict
+from typing import (DefaultDict, Dict, Iterable, Generic, Mapping, Tuple,
+                    TypeVar)
 
 from rl.distribution import (Categorical, Distribution, FiniteDistribution,
                              SampledDistribution)
@@ -73,12 +75,13 @@ class FiniteMarkovDecisionProcess(MarkovDecisionProcess[S, A]):
         transition_mapping: Dict[S, StateReward[S]] = {}
 
         for state in self.mapping:
-            actions = policy.act(state)
+            outcomes: DefaultDict[Tuple[S, float], float] = defaultdict(float)
 
-            outcomes = [(self.mapping[state][action], p)
-                        for action, p in actions.table()]
+            for action, p_action in policy.act(state).table():
+                for outcome, p_state in self.mapping[state][action].table():
+                    outcomes[outcome] += p_action * p_state
 
-            transition_mapping[state] = Categorical([])
+            transition_mapping[state] = Categorical(outcomes.items())
 
         return FiniteMarkovRewardProcess(transition_mapping)
 
