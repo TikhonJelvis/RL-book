@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Dict, Generic, Mapping, Tuple, TypeVar
+from typing import Dict, Iterable, Generic, Mapping, Tuple, TypeVar
 
 from rl.distribution import (Categorical, Distribution, FiniteDistribution,
                              SampledDistribution)
@@ -81,3 +81,11 @@ class FiniteMarkovDecisionProcess(MarkovDecisionProcess[S, A]):
             transition_mapping[state] = Categorical([])
 
         return FiniteMarkovRewardProcess(transition_mapping)
+
+    # Note: For now, this is only available on finite MDPs; this might
+    # change in the future.
+    def actions(self, state: S) -> Iterable[A]:
+        '''All the actions allowed for the given state.
+
+        '''
+        return self.mapping[state].keys()
