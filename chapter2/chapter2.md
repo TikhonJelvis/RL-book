@@ -843,8 +843,8 @@ V(s) & = \mathbb{E}[R_{t+1}|S_t=s] + \gamma \cdot \mathbb{E}[R_{t+2}|S_t=s] + \g
 & \hspace{4mm} + \gamma^2 \cdot \sum_{s' \in \mathcal{S}} \mathbb{P}[S_{t+1}=s'|S_t=s] \sum_{s'' \in \mathcal{S}} \mathbb{P}[S_{t+2}=s''|S_{t+1}=s'] \cdot \mathbb{E}[R_{t+3}|S_{t+2}=s''] \\
 & \hspace{4mm} + \ldots \\
 & = \mathcal{R}(s) + \gamma \cdot \sum_{s'\in \mathcal{S}} \mathcal{P}(s, s') \cdot \mathcal{R}(s') + \gamma^2 \cdot \sum_{s' \in \mathcal{S}} \mathcal{P}(s, s') \sum_{s'' \in \mathcal{S}} \mathcal{P}(s', s'') \cdot \mathcal{R}(s'') + \ldots \\
-& = \mathcal{R}(s) + \gamma \cdot \sum_{s' \in \mathcal{S}} \mathcal{P}(s,s') (\mathcal{R}(s') + \gamma \cdot \sum_{s'' \in \mathcal{S}} \mathcal{P}(s', s'') \cdot \mathcal{R}(s'') + \ldots ) \\
-& = \mathcal{R}(s) + \gamma \cdot \sum_{s' \in \mathcal{S}} \mathcal{P}(s, s') \cdot V(s') \text{ for all } s in \mathcal{S}
+& = \mathcal{R}(s) + \gamma \cdot \sum_{s' \in \mathcal{S}} \mathcal{P}(s,s')\cdot ( \mathcal{R}(s') + \gamma \cdot \sum_{s'' \in \mathcal{S}} \mathcal{P}(s', s'') \cdot \mathcal{R}(s'') + \ldots ) \\
+& = \mathcal{R}(s) + \gamma \cdot \sum_{s' \in \mathcal{S}} \mathcal{P}(s, s') \cdot V(s') \text{ for all } s \in \mathcal{S}
 \end{split}
 \label{eq:mrp_bellman_eqn}
 \end{equation} 
@@ -859,10 +859,14 @@ We refer to this recursive equation \eqref{eq:mrp_bellman_eqn} for the Value Fun
 For the case of Finite Markov Reward Processes, $\mathcal{S} = \{s_1, s_2, \ldots, s_n\}$. Let us abuse notation and refer to $V$ as a column vector of length $n$, $\mathcal{P}$ as a $n \times n$ matrix, and $\mathcal{R}$ as a column vector of length $n$, so we can express the above equation in vector and matrix notation as follows:
 
 $$V = \mathcal{R} + \gamma \mathcal{P} \cdot V$$
-$$\Rightarrow V = (I_n - \gamma \mathcal{P})^{-1} \cdot \mathcal{R}$$
+Therefore,
+\begin{equation}
+\Rightarrow V = (I_n - \gamma \mathcal{P})^{-1} \cdot \mathcal{R}
+\label{eq:mrp_bellman_linalg_solve}
+\end{equation}
 where $I_n$ is the $n \times n$ identity matrix.
 
-Let us write some code to implement this calculation for Finite Markov Reward Processes. In the `FiniteMarkovRewardProcess` class, we implement the method `get_value_function_vec` that performs the above calculation for the Value Function $V$ in terms of the reward function $\mathcal{R}$ and the transition probability function $\mathcal{P}$ of the implicit Markov Process. The Value Function $V$ is produced as a 1D numpy array (i.e. a vector). Here's the code:
+Let us write some code to implement the calculation of Equation \eqref{eq:mrp_bellman_linalg_solve}. In the `FiniteMarkovRewardProcess` class, we implement the method `get_value_function_vec` that performs the above calculation for the Value Function $V$ in terms of the reward function $\mathcal{R}$ and the transition probability function $\mathcal{P}$ of the implicit Markov Process. The Value Function $V$ is produced as a 1D numpy array (i.e. a vector). Here's the code:
 
 ```python
     def get_value_function_vec(self, gamma) -> np.ndarray:
