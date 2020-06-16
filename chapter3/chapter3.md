@@ -35,11 +35,11 @@ Using the language of AI, we say that at each time step $t$, the *Agent* (the al
 
 ## Formal Definition of a Markov Decision Process
 
-Similar to the cases of Markov Processes and Markov Reward Processes, we shall focus on Discrete-Time Markov Decision Processes (although we will occasionally deal with Continuous-Time Markov Decision Processes in this book).
+Similar to the definitions of Markov Processes and Markov Reward Processes, for ease of exposition, the definitions and theory of Markov Decision  Processes below will be for discrete-time, for countable state spaces and countable set of pairs of next state and reward transitions (with the knowledge that the definitions and theory are analogously extensible to continuous-time and uncountable spaces, which we shall indeed encounter in this book). 
 
 \begin{definition}
 
- A {\em Discrete-Time Markov Decision Process} comprises of:
+ A {\em Markov Decision Process} comprises of:
 
  \begin{itemize}
 
@@ -61,9 +61,7 @@ Similar to the cases of Markov Processes and Markov Reward Processes, we shall f
 
 Like in the case of Markov Reward Processes, the role of $\gamma$ only comes in discounting future rewards when accumulating rewards from a given state - more on this later.
 
-Like in the case of Markov Processes and Markov Reward Processes, we shall (by default) assume Stationarity for Discrete-Time Markov Decision Processes, i.e., $\mathbb{P}[(R_{t+1}, S_{t+1}) | (S_t, A_t)]$ is independent of $t$. 
-
-This means the transition probabilities of a Markov Decision Process can, in the most general case, be expressed as a state-reward transition probability function:
+Like in the case of Markov Processes and Markov Reward Processes, we shall (by default) assume Stationarity for Markov Decision Processes, i.e., $\mathbb{P}[(R_{t+1}, S_{t+1}) | (S_t, A_t)]$ is independent of $t$. This means the transition probabilities of a Markov Decision Process can, in the most general case, be expressed as a state-reward transition probability function:
 
  $$\mathcal{P}_R: \mathcal{S} \times \mathcal{A} \times \mathbb{R} \times \mathcal{S} \rightarrow [0,1]$$
 
@@ -71,7 +69,7 @@ This means the transition probabilities of a Markov Decision Process can, in the
 
  $$\mathcal{P}_R(s,a,r,s') = \mathbb{P}[(R_{t+1}=r, S_{t+1}=s') |(S_t=s, A_t=a)]$$ such that $$\sum_{s'\in \mathcal{S}} \sum_{r \in \mathbb{R}} \mathcal{P}_R(s,a,r,s') = 1 \text{ for all } s \in \mathcal{S}, a \in \mathcal{A}$$
 
-Henceforth, any time we say Markov Decision Process, assume we are refering to a Discrete-Time Stationary Markov Decision Process (unless explicitly specified otherwise), which in turn will be characterized by the state-reward transition probability function $\mathcal{P}_R$. 
+Henceforth, any time we say Markov Decision Process, assume we are refering to a Discrete-Time Stationary Markov Decision Process with the above-mentioned countable spaces/transitions assumptions (unless explicitly specified otherwise), which in turn will be characterized by the state-reward transition probability function $\mathcal{P}_R$. 
 
 Let us now proceed to write some code that captures this formalism. 
 
@@ -127,13 +125,17 @@ where $\pi_D: \mathcal{S} \rightarrow \mathcal{A}$.
 
 So we shall specify deterministic policies simply with the function $\pi_D$. We shall refer to non-deterministic policies as stochastic policies (the word stochastic reflecting the fact that the agent will perform a random action according to the probability distribution specified by $\pi$). So when we use the notation $\pi$, assume that we are dealing with a stochastic (i.e., non-deterministic) policy and when we use the notation $\pi_D$, assume that we are dealing with a deterministic policy.
 
-TODO: Show code for Policy and DeterministicPolicy classes
+TODO: Show code for Policy class
 
 Note that in the previous chapter, the Deterministic Policy we followed when constructing the simple inventory examples was:
 
 $$\pi_D((\alpha, \beta)) = \max(C - (\alpha _ \beta), 0)$$ where $C$ is the capacity in the store for bicycles, $\alpha$ is the On-Hand Inventory at store-closing and $\beta$ is the On-Order Inventory at store-closing.
 
-TODO: Show this above policy in code. Also show in code an example of a stochastic policy.
+TODO: Show this above deterministic policy in code. Also show in code an example of a stochastic policy.
+
+## Simple Inventory Example with Unlimited Capacity (Infinite State/Action Space)
+
+TODO: Show the class deriving from MarkovDecisionProcess for simple inventory example with unlimited capacity. Do simulations, plot some graphs
 
 ## Finite Markov Decision Processes
 
@@ -141,49 +143,101 @@ TODO: Show code for class FiniteMarkovDecisionProcess
 
 ## Simple Inventory Example as a Finite Markov Decision Process
 
-TODO: Set up the mathematical specification of simple Inventory example as a MDP
+TODO: Set up the mathematical specification of simple Inventory example as an MDP
 
 TODO: Show code for class SimpleInventoryMDP as a derived class of FiniteMarkovDecisionProcess
 
 
-
 ## [Markov Decision Process, Policy] := Markov Reward Process
 
-This section has an important insight - that if we execute a fixed policy $\pi$ on a Markov Decision Process (MDP), we get the Markov Reward Process (MRP) that is implied by the combination of the policy $\pi$ and the MDP. Let's clarify this with notational precision. But we should point out that we have some notation clashes between MDP and MRP. We used $\mathcal{P}_R$ to denote the transition probability function of the MRP as well as to denote the state-reward transition probability function of the MDP. We used $\mathcal{P}$ to denote the transition probability function of the Markov Process implicit in the MRP as well as to denote the state transition probability function of the MDP. We used $\mathcal{R}_T$ to denote the reward transition function of the MRP as well as to denote the reward transition function of the MDP. We used $\mathcal{R}$ to denote the reward function of the MRP as well as to denote the reward function of the MDP. In the following, we can resolve the notation clashes by observing the arguments being passed to $\mathcal{P}_R$, $\mathcal{P}, \mathcal{R}_T$ and $\mathcal{R}$ but to be absolutely clear we will also superscript each of  $\mathcal{P}_R$, $\mathcal{P}, \mathcal{R}_T$ with $(MDP)$ and $(MRP)$ to clarify if it refers to a function of the MDP or of the MRP.
+This section has an important insight - that if we evaluate a Markov Decision Process (MDP) with a fixed policy $\pi$, we get the Markov Reward Process (MRP) that is implied by the evaluation of the MDP with the policy $\pi$ and the MDP. Let's clarify this with notational precision. But first we need to point out that we have some notation clashes between MDP and MRP. We used $\mathcal{P}_R$ to denote the transition probability function of the MRP as well as to denote the state-reward transition probability function of the MDP. We used $\mathcal{P}$ to denote the transition probability function of the Markov Process implicit in the MRP as well as to denote the state transition probability function of the MDP. We used $\mathcal{R}_T$ to denote the reward transition function of the MRP as well as to denote the reward transition function of the MDP. We used $\mathcal{R}$ to denote the reward function of the MRP as well as to denote the reward function of the MDP. We can resolve these notation clashes by noting the arguments being passed to $\mathcal{P}_R$, $\mathcal{P}, \mathcal{R}_T$ and $\mathcal{R}$, but to be extra-clear, we'll put a superscript of $(MRP)$ on each of  the functions $\mathcal{P}_R$, $\mathcal{P}, \mathcal{R}_T$ for the $\pi$-implied MRP so as to distinguish between these functions for the MDP versus the $\pi$-implied MRP.
 
-Let's say we are given a fixed policy $\pi$ and a MDP specified by it's state-reward transition probability function $\mathcal{P}_R^{(MDP)}$. Then the transition probability function $\mathcal{P}^{(MRP)}$ of the MRP implied by $\pi$ and the MDP is defined as:
+Let's say we are given a fixed policy $\pi$ and an MDP specified by it's state-reward transition probability function $\mathcal{P}_R^{(MDP)}$. Then the transition probability function $\mathcal{P}^{(MRP)}$ of the MRP implied by the evaluation of the MDP with the policy $\pi$i is defined as:
 
-$$\mathcal{P}_R^{(MRP)}(s,s',r) = \sum_{a\in \mathcal{A}} \pi(s,a) \cdot \mathcal{P}^{(MDP)}(s,a,s',r)$$ 
+$$\mathcal{P}_R^{(MRP)}(s,s',r) = \sum_{a\in \mathcal{A}} \pi(s,a) \cdot \mathcal{P}(s,a,s',r)$$ 
 
 Likewise,
 
-$$\mathcal{P}^{(MRP)}(s,s') = \sum_{a\in \mathcal{A}} \pi(s,a) \cdot \mathcal{P}^{(MDP)}(s,a,s')$$
+$$\mathcal{P}^{(MRP)}(s,s') = \sum_{a\in \mathcal{A}} \pi(s,a) \cdot \mathcal{P}(s,a,s')$$
 
-$$\mathcal{R}_T^{(MRP)}(s,s') = \sum_{a\in \mathcal{A}} \pi(s,a) \cdot \mathcal{R}_T^{(MDP)}(s,a,s')$$
+$$\mathcal{R}_T^{(MRP)}(s,s') = \sum_{a\in \mathcal{A}} \pi(s,a) \cdot \mathcal{R}_T(s,a,s')$$
 
-$$\mathcal{R}^{(MRP)}(s) = \sum_{a\in \mathcal{A}} \pi(s,a) \cdot \mathcal{R}^{(MDP)}(s,a)$$
+$$\mathcal{R}^{(MRP)}(s) = \sum_{a\in \mathcal{A}} \pi(s,a) \cdot \mathcal{R}(s,a)$$
 
-So each time we talk about a fixed policy to be executed on an MDP, you should think (the implied) MRP.
-
-Now we are ready to talk about the Value Function for a MDP executed with a fixed policy $\pi$. Just like in the case of MRP, we define the Return $G_t$ at time step $t$ for a MDP as:
-$$G_t = \sum_{i=t+1}^{\infty} \gamma^{i-t-1} \cdot R_i = R_{t+1} + \gamma \cdot R_{t+2} + \gamma^2 \cdot R_{t+3} + \ldots$$
-
-The Value Function for a MDP executed with a fixed policy $\pi$
-$$V^{\pi}: \mathcal{S} \rightarrow \mathbb{R}$$
-is defined as:
-$$V^{\pi}(s) = \mathbb{E}[G_t|S_t=s] \text{ for all } s \in \mathcal{S} \text{ for all } t = 0, 1, 2, \ldots$$
-
-But this should be the same as the Value Function $V(s)$ of the implied MRP for all $s\in \mathcal{S}$ for all $t = 0, 1, 2, \ldots$.
-
-
+So each time we talk about an MDP evaluated with a fixed policy, you should know that we are effectively talking about the implied MRP.
 
 TODO: Code to convert MDP + Policy to an MRP
 
-* Define Value Function (V and Q) for fixed policy
+## MDP Value Function for a Fixed Policy
 
-* Bellman Expectation Equation - explain that this is the same as Bellman Equation for MRP and we can solve it with matrix inversion
+Now we are ready to talk about the Value Function for an MDP evaluated with a fixed policy $\pi$. Just like in the case of MRP, we define the Return $G_t$ at time step $t$ for an MDP as:
+$$G_t = \sum_{i=t+1}^{\infty} \gamma^{i-t-1} \cdot R_i = R_{t+1} + \gamma \cdot R_{t+2} + \gamma^2 \cdot R_{t+3} + \ldots$$
 
-  
+The Value Function for an MDP evaluated with a fixed policy $\pi$
+$$V^{\pi}: \mathcal{S} \rightarrow \mathbb{R}$$
+is defined as:
+$$V^{\pi}(s) = \mathbb{E}_{\pi, \mathcal{P}_R}[G_t|S_t=s] \text{ for all } s \in \mathcal{S}, \text{ for all } t = 0, 1, 2, \ldots$$
+
+Now let's expand $\mathbb{E}_{\pi, \mathcal{P}_R}[G_t|S_t=s]$.
+
+\begin{equation*}
+\begin{split}
+V(s) & = \mathbb{E}_{\pi, \mathcal{P}_R}[R_{t+1}|S_t=s] + \gamma \cdot \mathbb{E}_{\pi, \mathcal{P}_R}[R_{t+2}|S_t=s] + \gamma^2 \cdot \mathbb{E}_{\pi, \mathcal{P}_R}[R_{t+3}|S_t=s] + \ldots \\
+& = \sum_{a\in \mathcal{A}} \pi(s,a) \cdot \mathcal{R}(s,a) + \gamma \cdot \sum_{a\in \mathcal{A}} \pi(s,a) \sum_{s'\in \mathcal{S}} \mathcal{P}(s, a, s') \sum_{a'\in \mathcal{A}} \pi(s',a') \cdot \mathcal{R}(s', a') \\
+& \hspace{4mm} + \gamma^2 \cdot \sum_{a\in \mathcal{A}} \pi(s,a) \sum_{s' \in \mathcal{S}} \mathcal{P}(s, a', s') \sum_{a'\in \mathcal{A}} \pi(s',a') \sum_{s'' \in \mathcal{S}} \mathcal{P}(s', a'', s'') \sum_{a''\in \mathcal{A}} \pi(s'',a'') \cdot \mathcal{R}(s'', a'')  \\
+& \hspace{4mm} + \ldots \\
+& = \mathcal{R}^{(MRP)}(s) + \gamma \cdot \sum_{s'\in \mathcal{S}} \mathcal{P}^{(MRP)}(s, s') \cdot \mathcal{R}^{(MRP)}(s') \\
+& \hspace{4mm} + \gamma^2 \cdot \sum_{s' \in \mathcal{S}} \mathcal{P}^{(MRP)}(s, s') \sum_{s'' \in \mathcal{S}} \mathcal{P}^{(MRP)}(s', s'') \cdot \mathcal{R}^{(MRP)}(s'') + \ldots
+\end{split}
+\end{equation*}
+
+But from Equation \eqref{eq:mrp_bellman_eqn} in the previous chapter, we know that the last expression above is equal to $V^{(MRP)}(s)$(i.e, the Value Function for state $s$ of the $\pi$-implied MRP). So, the Value Function $V^{\pi}(\cdot)$ of an MDP evaluated with a fixed policy $\pi$ is the same function as the Value Function $V^{(MRP)}(\cdot)$ of the $\pi$-implied MRP. So we can apply the MRP Bellman Equation on $V^{\pi}$, i.e.,
+
+\begin{equation}
+\begin{split}
+V^{\pi}(s) & = \mathcal{R}^{(MRP)}(s) + \gamma \cdot \sum_{s' \in \mathcal{S}} \mathcal{P}^{(MRP)}(s,s') \cdot V^{\pi}(s')\\
+& = \sum_{a\in\mathcal{A}} \pi(s,a) \cdot \mathcal{R}(s,a) + \gamma \cdot \sum_{a\in \mathcal{A}} \pi(s,a) \sum_{s'\in \mathcal{S}} \mathcal{P}(s,a,s') \cdot V^{\pi}(s') \\
+& = \sum_{a\in \mathcal{A}} \pi(s,a) \cdot (\mathcal{R}(s,a) + \gamma \cdot \sum_{s'\in \mathcal{S}} \mathcal{P}(s,a,s') \cdot V^{\pi}(s')) \text{ for all  } s \in \mathcal{S}
+\end{split}
+\label{eq:mdp_bellman_policy_eqn_vv}
+\end{equation}
+
+Equation \eqref{eq:mdp_bellman_policy_eqn_vv} is an important recursive equation in the Value Function of an MDP evaluated with a fixed policy as it's going to be crucial in developing algorithms involving MDPs. However, there is another type of Value Function that's also going to be crucial in developing MDP algorithms - one which maps a (state, action) pair to the expected return originating from the (state, action) pair when evaluated with a fixed policy. This is known as the *Action-Value Function* of an MDP evaluated with a fixed policy $\pi$:
+$$Q^{\pi}: \mathcal{S} \times \mathcal{A} \rightarrow \mathbb{R}$$
+defined as:
+$$Q^{\pi}(s, a) = \mathbb{E}_{\pi, \mathcal{P}_R}[G_t|(S_t=s, A_t=a)] \text{ for all } s \in \mathcal{S}, a\in \mathcal{A}, \text{ for all } t = 0, 1, 2, \ldots$$
+
+To avoid terminology confusion, we refer to $V^{\pi}$ as the *State-Value Function* (albeit often simply abbreviated to *Value Function*) for policy $\pi$, to distinguish from the *Action-Value Function* $Q^{\pi}$. From the definition of $Q^{\pi}$, we have the following equation connecting $Q^{\pi}$ and $V^{\pi}$:
+
+\begin{equation}
+V^{\pi}(s) = \sum_{a\in\mathcal{A}} \pi(s, a) \cdot Q^{\pi}(s, a) \text{ for all } s \in \mathcal{S} \label{eq:mdp_bellman_policy_eqn_vq}
+\end{equation}
+
+Combining Equation \eqref{eq:mdp_bellman_policy_eqn_vv} and Equation \eqref{eq:mdp_bellman_policy_eqn_vq} yields:
+\begin{equation}
+Q^{\pi}(s, a) = \mathcal{R}(s,a) + \gamma \cdot \sum_{s'\in \mathcal{S}} \mathcal{P}(s,a,s') \cdot V^{\pi}(s') \text{ for all  } s \in \mathcal{S}, a \in \mathcal{A} \label{eq:mdp_bellman_policy_eqn_qv}
+\end{equation}
+
+Equation \eqref{eq:mdp_bellman_policy_eqn_vv} is known as the MDP State-Value Function Bellman Policy Equation. Figure \ref{fig:mdp_bellman_policy_tree_vv} serves as a visualization aid for this equation (note that Equations \eqref{eq:mdp_bellman_policy_eqn_vq} and Equation \eqref{eq:mdp_bellman_policy_eqn_qv} are also embedded in this Figure). For the rest of the book, in these MDP transition figures, we shall always depict states as elliptical-shaped nodes and actions as rectangular-shaped nodes. Notice that transition from a state node to an action node is associated with a probability represented by $\pi$ and transition from an action node to a state node is associated with a probability represented by $\mathcal{P}$.
+
+<div style="text-align:center" markdown="1">
+![Visualization of MDP State-Value Function Bellman Policy Equation \label{fig:mdp_bellman_policy_tree_vv}](./chapter3/mdp_bellman_policy_tree_vv.png "Visualization of MDP State-Value Function Bellman Policy Equation")
+</div>
+
+<div style="text-align:center" markdown="1">
+![Visualization of MDP Action-Value Function Bellman Policy Equation \label{fig:mdp_bellman_policy_tree_qq}](./chapter3/mdp_bellman_policy_tree_qq.png "Visualization of MDP Action-Value Function Bellman Policy Equation")
+</div>
+
+Combining Equation \eqref{eq:mdp_bellman_policy_eqn_qv} and Equation \eqref{eq:mdp_bellman_policy_eqn_vq} yields:
+\begin{equation}
+Q^{\pi}(s, a) = \mathcal{R}(s,a) + \gamma \cdot \sum_{s'\in \mathcal{S}} \mathcal{P}(s,a,s') \sum_{a'\in \mathcal{A}} \pi(s', a') \cdot Q^{\pi}(s', a') \text{ for all  } s \in \mathcal{S}, a \in \mathcal{A} \label{eq:mdp_bellman_policy_eqn_qq}
+\end{equation}
+
+Equations \eqref{eq:mdp_bellman_policy_eqn_vv}, \eqref{eq:mdp_bellman_policy_eqn_vq}, \eqref{eq:mdp_bellman_policy_eqn_qv} and \eqref{eq:mdp_bellman_policy_eqn_qq} are collectively known as the MDP Bellman Policy Equations.
+
+TODO: For the case of finite MDPs, we can solve state-value function and action-value function (for fixed policies) using matrix inverion method by converting it to an MRP.
+TODO: Write code to show to solve V and Q for fixed policy in the FiniteMarkovDecisionProcess class, then solve V and Q for a fixed policy in the simple inventory example with capacity.
+
 ## Optimal Value Function and Optimal Policies 
 
 * Define Optimal Value Function (V and Q)
@@ -192,12 +246,14 @@ TODO: Code to convert MDP + Policy to an MRP
 
 * Theorem of Optimal Policy existence, and proof
 
-* Bellman Optimality Equation (unlike Bellman Expectation Equation, this is non-linear)
+* Bellman Optimality Equations (unlike Bellman Policy Equations, this are non-linear)
 
 * Solving the Bellman Optimality Equation (topic of DP and RL algorithms) 
 
 ## Variants and extensions of MDPs
 
 * continuous states, continuous actions, continuous time, POMDPs
-
 * Some discussion of MDPs in the real-world, and then explain next chapter is Dynamic Programming to solve Value Function for fixed policy and Optimal Value Function
+
+## Summary of Key Learnings from this Chapter
+
