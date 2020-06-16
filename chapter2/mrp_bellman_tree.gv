@@ -1,0 +1,12 @@
+/*
+Run with the command: neato -n2 -Tpng -o mrp_bellman_tree.png mrp_bellman_tree.gv
+*/
+
+digraph mrp_bellman_tree
+{
+  S [pos="0,0", label=<s &#8594; V(s)>, shape=ellipse, xlp="0, -30", xlabel=<R(s)>, color=blue4, fontcolor=blue4]
+  S1 [pos="-80,-120", label=<s<SUB>1</SUB> &#8594; V(s<SUB>1</SUB>)>, shape=ellipse, color=blue4, fontcolor=blue4]
+  S2 [pos="80, -120", label=<s<SUB>2</SUB> &#8594; V(s<SUB>2</SUB>)>, shape=ellipse, color=blue4, fontcolor=blue4]
+  S->S1 [headlabel=<P(s, s<SUB>1</SUB>)>, arrowhead=none, color=yellow4, fontcolor=blue4]
+  S->S2 [headlabel=<P(s, s<SUB>2</SUB>)>, arrowhead=none, color=yellow4, fontcolor=blue4]
+}
