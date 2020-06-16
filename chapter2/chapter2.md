@@ -235,7 +235,7 @@ Having developed the intuition for the Markov Property of States, we are now rea
 
 ## Formal Definitions for Markov Processes
 
-Our formal definitions in this book will be restricted to Discrete-Time Markov Processes, where time moves forward in discrete time steps $t=0, 1, 2, \ldots$. Also for ease of exposition, our formal definitions in this book will be restricted to state spaces that are [countale](https://en.wikipedia.org/wiki/Countable_set). A countable set can be either a finite set or an infinite set of the same cardinality as the set of natural numbers (uncountable sets are those with cardinality larger than the set of natural numbers, eg: the set of real numbers). This book will cover examples of continuous-time Markov Processes, where time is a continuous variable (this leads to stochastic calculus, which is the foundation of some of the ground-breaking work in Mathematical Finance). This book will also cover examples of state spaces that are uncountable. However, for ease of exposition, our definitions and development of the theory in this book will be restricted to discrete-time and countable state spaces. The definitions and theory can be analogously extended to continuous-time or to uncountable state spaces (we request you to self-adjust the definitions and theory accordingly when you encounter continuous-time or uncountable spaces in this book).
+Our formal definitions in this book will be restricted to Discrete-Time Markov Processes, where time moves forward in discrete time steps $t=0, 1, 2, \ldots$. Also for ease of exposition, our formal definitions in this book will be restricted to state spaces that are [countable](https://en.wikipedia.org/wiki/Countable_set). A countable set can be either a finite set or an infinite set of the same cardinality as the set of natural numbers (uncountable sets are those with cardinality larger than the set of natural numbers, eg: the set of real numbers). This book will cover examples of continuous-time Markov Processes, where time is a continuous variable (this leads to stochastic calculus, which is the foundation of some of the ground-breaking work in Mathematical Finance). This book will also cover examples of state spaces that are uncountable. However, for ease of exposition, our definitions and development of the theory in this book will be restricted to discrete-time and countable state spaces. The definitions and theory can be analogously extended to continuous-time or to uncountable state spaces (we request you to self-adjust the definitions and theory accordingly when you encounter continuous-time or uncountable spaces in this book).
 
 \begin{definition}
 A {\em Markov Process} consists of:
@@ -589,7 +589,7 @@ A {\em Markov Reward Process} is a Markov Process, along with:
 
 The role of $\gamma$ only comes in discounting future rewards when accumulating rewards from a given state (as mentioned earlier) - more on this later.
 
-It pays to emphasize again (like we emphasized for Markov Processes), that the definitions and theory of Markov Reward Processes are for discrete-time, for countable state spaces and countable set of pairs of next state and reward transitions (with the knowledge that the definitions and theory are analogously extensible to continuous-time and uncountable spaces). Since we commonly assume Stationarity of Markov Processes, we shall also (by default) assume Stationarity for Markov Reward Processes, i.e., $\mathbb{P}[(R_{t+1}, S_{t+1}) | S_t]$ is independent of $t$. 
+It pays to emphasize again (like we emphasized for Markov Processes), that the definitions and theory of Markov Reward Processes are for discrete-time, for countable state spaces and countable set of pairs of next state and reward transitions (with the knowledge that the definitions and theory are analogously extensible to continuous-time and uncountable spaces/transitions). Since we commonly assume Stationarity of Markov Processes, we shall also (by default) assume Stationarity for Markov Reward Processes, i.e., $\mathbb{P}[(R_{t+1}, S_{t+1}) | S_t]$ is independent of $t$. 
 
 With the default assumption of stationarity, the transition probabilities of a Markov Reward Process can, in the most general case, be expressed as a transition probability function:
 $$\mathcal{P}_R: \mathcal{S} \times \mathbb{R} \times \mathcal{S} \rightarrow [0,1]$$
@@ -832,7 +832,7 @@ Apart from the Return divergence consideration, $\gamma < 1$ helps algorithms be
 As you might imagine now, we'd want to identify states with large expected returns and states with small expected returns. This, in fact, is the main problem involving a Markov Reward Process - to compute the "Expected Return" associated with each state in the Markov Reward Process. Formally, we are interested in computing the *Value Function*
 $$V: \mathcal{S} \rightarrow \mathbb{R}$$
 defined as:
-$$V(s) = \mathbb{E}[G_t|S_t=s] \text{ for all } s \in \mathcal{S} \text{ for all } t = 0, 1, 2, \ldots$$
+$$V(s) = \mathbb{E}[G_t|S_t=s] \text{ for all } s \in \mathcal{S}, \text{ for all } t = 0, 1, 2, \ldots$$
 
 Note that we are (as usual) assuming the fact that the Markov Reward Process is stationary (time-invariant probabilities of state transitions and rewards). Now we show a creative piece of mathematics due to [Richard Bellman](https://en.wikipedia.org/wiki/Richard_E._Bellman). Bellman noted that the Value Function has a recursive structure. Specifically, 
 
@@ -844,12 +844,17 @@ V(s) & = \mathbb{E}[R_{t+1}|S_t=s] + \gamma \cdot \mathbb{E}[R_{t+2}|S_t=s] + \g
 & \hspace{4mm} + \ldots \\
 & = \mathcal{R}(s) + \gamma \cdot \sum_{s'\in \mathcal{S}} \mathcal{P}(s, s') \cdot \mathcal{R}(s') + \gamma^2 \cdot \sum_{s' \in \mathcal{S}} \mathcal{P}(s, s') \sum_{s'' \in \mathcal{S}} \mathcal{P}(s', s'') \cdot \mathcal{R}(s'') + \ldots \\
 & = \mathcal{R}(s) + \gamma \cdot \sum_{s' \in \mathcal{S}} \mathcal{P}(s,s') (\mathcal{R}(s') + \gamma \cdot \sum_{s'' \in \mathcal{S}} \mathcal{P}(s', s'') \cdot \mathcal{R}(s'') + \ldots ) \\
-& = \mathcal{R}(s) + \gamma \cdot \sum_{s' \in \mathcal{S}} \mathcal{P}(s, s') \cdot V(s')
+& = \mathcal{R}(s) + \gamma \cdot \sum_{s' \in \mathcal{S}} \mathcal{P}(s, s') \cdot V(s') \text{ for all } s in \mathcal{S}
 \end{split}
-\end{equation} \label{eq:mrp_bellman_eqn}
+\label{eq:mrp_bellman_eqn}
+\end{equation} 
 
 
-We will refer to this recursive equation \ref{eq:mrp_bellman_eqn} for the Value Function as the Bellman Equation for a Markov Reward Process.
+We refer to this recursive equation \eqref{eq:mrp_bellman_eqn} for the Value Function as the Bellman Equation for Markov Reward Processes. Figure \ref{fig:mrp_bellman_tree} is a convenient visualization aid of this important equation. In the rest of the book, we will depict quite a few of these type of state-transition visualizations to aid with creating mental models of key concepts.
+
+<div style="text-align:center" markdown="1">
+![Visualization of MRP Bellman Equation \label{fig:mrp_bellman_tree}](./chapter2/mrp_bellman_tree.png "Visualization of MRP Bellman Equation")
+</div>
 
 For the case of Finite Markov Reward Processes, $\mathcal{S} = \{s_1, s_2, \ldots, s_n\}$. Let us abuse notation and refer to $V$ as a column vector of length $n$, $\mathcal{P}$ as a $n \times n$ matrix, and $\mathcal{R}$ as a column vector of length $n$, so we can express the above equation in vector and matrix notation as follows:
 
@@ -893,7 +898,7 @@ This tells us that On-Hand of 0 and On-Order of 2 has the least expected cost (h
 
 This computation for the Value Function works if the state space is not too large (matrix to be inverted has size equal to state space size). When the state space is large, this direct matrix-inversion method doesn't work and we have to resort to numerical methods to solve the recursive Bellman equation. This is the topic of Dynamic Programming and Reinforcement Learning algorithms that we shall learn in this book. 
 
-## Summary of Key Learnings in this Chapter
+## Summary of Key Learnings from this Chapter
 
 Before we end this chapter, we'd like to highlight the two highly important concepts we learnt in this chapter:
 
