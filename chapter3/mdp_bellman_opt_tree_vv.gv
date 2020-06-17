@@ -1,0 +1,20 @@
+/*
+Run with the command: neato -n2 -Tpng -o mdp_bellman_opt_tree_vv.png mdp_bellman_opt_tree_vv.gv
+*/
+
+digraph mdp_bellman_opt_tree_vv
+{
+  S [pos="0,0", label=<s &#8594; V<SUP>*</SUP>(s)>, shape=ellipse, xlp="0, -30", xlabel=<max>, color=blue4, fontcolor=blue4]
+  A1 [pos="-140,-120", label=<a<SUB>1</SUB> &#8594; Q<SUP>*</SUP>(s, a<SUB>1</SUB>)>, shape=box, xlp="-140,-150", xlabel=<R(s, a<SUB>1</SUB>)>, color=blue4, fontcolor=blue4]
+  A2 [pos="140,-120", label=<a<SUB>2</SUB> &#8594; Q<SUP>*</SUP>(s, a<SUB>2</SUB>)>, shape=box, xlp="140,-150", xlabel=<R(s, a<SUB>2</SUB>)>, color=blue4, fontcolor=blue4]
+  S11 [pos="-210,-240", label=<s<SUB>11</SUB> &#8594; V<SUP>*</SUP>(s<SUB>11</SUB>)>, shape=ellipse, color=blue4, fontcolor=blue4]
+  S12 [pos="-70, -240", label=<s<SUB>12</SUB> &#8594; V<SUP>*</SUP>(s<SUB>12</SUB>)>, shape=ellipse, color=blue4, fontcolor=blue4]
+  S21 [pos="70,-240", label=<s<SUB>21</SUB> &#8594; V<SUP>*</SUP>(s<SUB>21</SUB>)>, shape=ellipse, color=blue4, fontcolor=blue4]
+  S22 [pos="210, -240", label=<s<SUB>22</SUB> &#8594; V<SUP>*</SUP>(s<SUB>22</SUB>)>, shape=ellipse, color=blue4, fontcolor=blue4]
+  S->A1 [arrowhead=none, color=yellow4, fontcolor=blue4]
+  S->A2 [arrowhead=none, color=yellow4, fontcolor=blue4]
+  A1->S11 [headlabel=<P(s, a<SUB>1</SUB>, s<SUB>11</SUB>)>, arrowhead=none, color=yellow4, fontcolor=blue4]
+  A1->S12 [headlabel=<P(s, a<SUB>1</SUB>, s<SUB>12</SUB>)>, arrowhead=none, color=yellow4, fontcolor=blue4]
+  A2->S21 [headlabel=<P(s, a<SUB>2</SUB>, s<SUB>21</SUB>)>, arrowhead=none, color=yellow4, fontcolor=blue4]
+  A2->S22 [headlabel=<P(s, a<SUB>2</SUB>, s<SUB>22</SUB>)>, arrowhead=none, color=yellow4, fontcolor=blue4]
+}
