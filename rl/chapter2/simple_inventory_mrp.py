@@ -1,9 +1,9 @@
-from typing import Mapping, Tuple
-from rl.markov_process import FiniteMarkovRewardProcess
+from typing import Tuple, Dict, List
+from rl.markov_process import RewardTransition, FiniteMarkovRewardProcess
+from rl.distribution import Categorical
 from scipy.stats import poisson
 
 IntPair = Tuple[int, int]
-MRPTransType = Mapping[IntPair, Mapping[Tuple[IntPair, float], float]]
 
 
 class SimpleInventoryMRP(FiniteMarkovRewardProcess[IntPair]):
@@ -23,25 +23,24 @@ class SimpleInventoryMRP(FiniteMarkovRewardProcess[IntPair]):
         self.poisson_distr = poisson(poisson_lambda)
         super().__init__(self.get_transition_reward_map())
 
-    def get_transition_reward_map(self) -> MRPTransType:
-        d = {}
+    def get_transition_reward_map(self) -> RewardTransition[IntPair]:
+        d: Dict[IntPair, Categorical[Tuple[IntPair, float]]] = {}
         for alpha in range(self.capacity + 1):
             for beta in range(self.capacity + 1 - alpha):
                 ip = alpha + beta
-                d1 = {}
                 beta1 = max(self.capacity - ip, 0)
-                for i in range(ip):
-                    next_state = (ip - i, beta1)
-                    reward = self.holding_cost * alpha
-                    probability = self.poisson_distr.pmf(i)
-                    d1[(next_state, reward)] = probability
-                next_state = (0, beta1)
+                sr_probs_list: List[Tuple[Tuple[IntPair, float], float]] = [
+                    (((ip - i, beta1), self.holding_cost * alpha),
+                     self.poisson_distr.pmf(i)) for i in range(ip)
+                ]
                 probability = 1 - self.poisson_distr.cdf(ip - 1)
                 reward = self.holding_cost * alpha + self.stockout_cost *\
                     (probability * (self.poisson_lambda - ip) +
                      ip * self.poisson_distr.pmf(ip))
-                d1[(next_state, reward)] = probability
-                d[(alpha, beta)] = d1
+                sr_probs_list.append(
+                    (((0, beta1), reward), probability)
+                )
+                d[(alpha, beta)] = Categorical(sr_probs_list)
         return d
 
 
