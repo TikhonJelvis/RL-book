@@ -246,9 +246,11 @@ $$V^*: \mathcal{S} \rightarrow \mathbb{R}$$
 
 is defined as:
 
-$$V^*(s) = \max_{\pi} V^{\pi}(s) \text{ for all } s \in \mathcal{S}$$o
+$$V^*(s) = \max_{\pi \in \Pi} V^{\pi}(s) \text{ for all } s \in \mathcal{S}$$
 
-The way to read the above definition is that for each state $s$, we consider all possible policies $\pi$, and maximize $V_{\pi}(s)$ across all choices of $\pi$ (note: the maximization over choices of $\pi$ is done separately for each $s$). Note we haven't yet talked about how to achieve the maximization through an algorithm - we have simply defined the Optimal Value Function.
+where $\Pi$ is the set of stationary (stochastic) policies.
+
+The way to read the above definition is that for each state $s$, we consider all possible stochastic stationary policies $\pi$, and maximize $V_{\pi}(s)$ across all these choices of $\pi$ (note: the maximization over choices of $\pi$ is done separately for each $s$). Note we haven't yet talked about how to achieve the maximization through an algorithm - we have simply defined the Optimal Value Function.
 
 Likewise, the Optimal Action-Value Function
 
@@ -256,7 +258,7 @@ $$Q^*: \mathcal{S} \times \mathcal{A} \rightarrow \mathbb{R}$$
 
 is defined as:
 
-$$Q^*(s, a) = \max_{\pi} Q^{\pi}(s, a) \text{ for all } s \in \mathcal{S}, a \in \mathcal{A}$$
+$$Q^*(s, a) = \max_{\pi \in \Pi} Q^{\pi}(s, a) \text{ for all } s \in \mathcal{S}, a \in \mathcal{A}$$
 
 $V^*$ is often refered to as the Optimal State-Value Function to distinguish it from the Optimal Action-Value Function $Q^*$ (although, for succinctness, $V^*$ is often also refered to as simply the Optimal Value Function). To be clear, if someone says, Optimal Value Function, by default, they'd be refering to the Optimal State-Value Function $V^*$ (not $Q^*$).
 
@@ -304,14 +306,14 @@ Again, it pays to emphasize that the Bellman Optimality Equations don't directly
 We have been using the phrase "policy/policies that achieve the Optimal Value Function", but we have't provided a clear definition of such a policy (or policies) - one that achieves the Optimal Value Function. Now we are ready to dig into the concept of *Optimal Policy*.  Here's the formal definition of an Optimal Policy $\pi^*: \mathcal{S} \times \mathcal{A} \rightarrow [0, 1]$:
 
 
-$$\pi^* \text{ is an Optimal Policy if } V^{\pi^*}(s) \geq V^{\pi}(s) \text{ {\em for all policies} } \pi \text{ and {\em for all states} } s \in \mathcal{S}$$
+$$\pi^* \in \Pi \text{ is an Optimal Policy if } V^{\pi^*}(s) \geq V^{\pi}(s) \text{ {\em for all} } \pi \in \Pi \text{ and {\em for all states} } s \in \mathcal{S}$$
 
-As explained earlier, the definition of $V^*$ states that the maximization of the Value Function is separate for each state $s \in \mathcal{S}$ and so, presumably we could end up with different policies $\pi$ that maximize $V^{\pi}(s)$ for different states. Separately, the definition of Optimal Policy $\pi^*$ says that it is a policy that is "better than or equal to"" (on the $V^{\pi}$ metric) all other policies *for all* states (note that there could be multiple Optimal Policies). So the natural question to ask is whether there exists an Optimal Policy $\pi^*$ that maximizes $V^{\pi}(s)$  *for all* states $s \in \mathcal{S}$, i.e., $V^*(s) = V^{\pi^*}(s)$ for all $s \in \mathcal{S}$. On the face of it, this seems like a strong statement. However, this answers in the affirmative. In fact,
+As explained earlier, the definition of $V^*$ states that the maximization of the Value Function is separate for each state $s \in \mathcal{S}$ and so, presumably we could end up with different policies $\pi$ that maximize $V^{\pi}(s)$ for different states. Separately, the definition of Optimal Policy $\pi^*$ says that it is a policy that is "better than or equal to"" (on the $V^{\pi}$ metric) all other stationary policies *for all* states (note that there could be multiple Optimal Policies). So the natural question to ask is whether there exists an Optimal Policy $\pi^*$ that maximizes $V^{\pi}(s)$  *for all* states $s \in \mathcal{S}$, i.e., $V^*(s) = V^{\pi^*}(s)$ for all $s \in \mathcal{S}$. On the face of it, this seems like a strong statement. However, this answers in the affirmative. In fact,
 
 \begin{theorem}
 For any Markov Decision Process
 \begin{itemize}
-\item There exists an Optimal Policy $\pi^*$, i.e., there exists a Policy $\pi^*$ such that $V^{\pi^*}(s) \geq V^{\pi}(s) \mbox{ for all policies  } \pi \mbox{ and for all states } s \in \mathcal{S}$
+\item There exists an Optimal Policy $\pi^* \in \Pi$, i.e., there exists a Policy $\pi^* \in \Pi$ such that $V^{\pi^*}(s) \geq V^{\pi}(s) \mbox{ for all policies  } \pi \in \Pi \mbox{ and for all states } s \in \mathcal{S}$
 \item All Optimal Policies achieve the Optimal Value Function, i.e. $V^{\pi^*}(s) = V^*(s)$ for all $s \in \mathcal{S}$, for all Optimal Policies $\pi^*$
 \item All Optimal Policies achieve the Optimal Action-Value Function, i.e. $Q^{\pi^*}(s,a) = Q^*(s,a)$ for all $s \in \mathcal{S}$, for all $a \in \mathcal{A}$, for all Optimal Policies $\pi^*$
 \end{itemize}
@@ -336,7 +338,8 @@ $$\pi_D^*(s) = \argmax_{a \in \mathcal{A}} Q^*(s,a) \mbox{ for all } s \in \math
 
 First we show that $\pi_D^*$ achieves the Optimal Value Function. Since $\pi_D^*(s) = \argmax_{a \in \mathcal{A}} Q^*(s,a)$ and $V^*(s) = \max_{a \in \mathcal{A}} Q^*(s,a)$ for all $s \in \mathcal{S}$, $\pi_D^*$ prescribes the optimal action for each state (that produces the Optimal Value Function $V^*$). Hence, following policy $\pi_D^*$ in each state will generate the same Value Function as the Optimal Value Function. In other words, $V^{\pi_D^*}(s) = V^*(s)$ for all $s \in \mathcal{S}$. Likewise, we can argue that: $Q^{\pi_D^*}(s,a) = Q^*(s,a)$ for all $s \in \mathcal{S}$ and for all $a \in \mathcal{A}$.
 
-Finally, we prove by contradiction that $\pi_D^*$ is an Optimal Policy. So assume $\pi_D^*$ is not an Optimal Policy. Then there exists a policy $\pi$ and a state $s \in \mathcal{S}$ such that $V^{\pi}(s) > V^{\pi_D^*}(s)$. Since $V^{\pi_D^*}(s) = V^*(s)$, we have: $V^{\pi}(s) > V^*(s)$ which contradicts the definition of $V^*(s) = \max_{\pi} V^{\pi}(s)$ for all $s\in \mathcal{S}$.
+Finally, we prove by contradiction that $\pi_D^*$ is an Optimal Policy. So assume $\pi_D^*$ is not an Optimal Policy. Then there exists a policy $\pi \in \Pi$ and a state $s \in \mathcal{S}$ such that $V^{\pi}(s) > V^{\pi_D^*}(s)$. Since $V^{\pi_D^*}(s) = V^*(s)$, we have: $V^{\pi}(s) > V^*(s)$ which contradicts the Optimal Policy Definition: $V^*(s) = \max_{\pi \in \Pi} V^{\pi}(s)$ for all $s\in \mathcal{S}$.
+
 
 \end{proof}
 
