@@ -115,7 +115,7 @@ defined as:
 
 $$\pi(a, s) = \mathbb{P}[A_t = a|S_t = s] \text{ for all } t = 0, 1, 2, \ldots, \text{ for all } s\in \mathcal{S}, a \in \mathcal{A}$$
 
-Note in the definition above that we've assumed that a Policy is stationary, i.e., $\pi$ is invariant in time $t$. If we do encounter a situation where the policy would need to depend on the time $t$, we'll simply include $t$ to be part of the state, which would make the Policy stationary.
+Note in the definition above that we've assumed that a Policy is stationary, i.e., $\mathbb{P}[A_t = a|S_t = s]$ is invariant in time $t$. If we do encounter a situation where the policy would need to depend on the time $t$, we'll simply include $t$ to be part of the state, which would make the Policy stationary.
 
 When we have a policy such that the action probability distribution for each state is concentrated on a single action, we refer to it as a deterministic policy. Formally, a deterministic policy has the property that for all $s\in \mathcal{S}$,
 
