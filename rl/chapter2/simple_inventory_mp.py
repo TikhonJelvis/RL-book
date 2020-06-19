@@ -6,7 +6,7 @@ IntPair = Tuple[int, int]
 MPTransType = Mapping[IntPair, Mapping[IntPair, float]]
 
 
-class SimpleInventoryMP(FiniteMarkovProcess[IntPair]):
+class SimpleInventoryMPFinite(FiniteMarkovProcess[IntPair]):
 
     def __init__(
         self,
@@ -41,7 +41,7 @@ if __name__ == '__main__':
     user_capacity = 2
     user_poisson_lambda = 1.0
 
-    si_mp = SimpleInventoryMP(
+    si_mp = SimpleInventoryMPFinite(
         capacity=user_capacity,
         poisson_lambda=user_poisson_lambda
     )
