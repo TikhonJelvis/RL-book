@@ -1,9 +1,9 @@
-from typing import Mapping, Tuple
-from rl.markov_process import FiniteMarkovProcess
+from typing import Tuple, Dict, List
+from rl.distribution import Categorical
+from rl.markov_process import Transition, FiniteMarkovProcess
 from scipy.stats import poisson
 
 IntPair = Tuple[int, int]
-MPTransType = Mapping[IntPair, Mapping[IntPair, float]]
 
 
 class SimpleInventoryMPFinite(FiniteMarkovProcess[IntPair]):
@@ -19,21 +19,20 @@ class SimpleInventoryMPFinite(FiniteMarkovProcess[IntPair]):
         self.poisson_distr = poisson(poisson_lambda)
         super().__init__(self.get_transition_map())
 
-    def get_transition_map(self) -> MPTransType:
-        d = {}
+    def get_transition_map(self) -> Transition[IntPair]:
+        d: Dict[IntPair, Categorical[IntPair]] = {}
         for alpha in range(self.capacity + 1):
             for beta in range(self.capacity + 1 - alpha):
                 ip = alpha + beta
-                d1 = {}
                 beta1 = max(self.capacity - ip, 0)
-                for i in range(ip):
-                    next_state = (ip - i, beta1)
-                    probability = self.poisson_distr.pmf(i)
-                    d1[next_state] = probability
-                next_state = (0, beta1)
-                probability = 1 - self.poisson_distr.cdf(ip - 1)
-                d1[next_state] = probability
-                d[(alpha, beta)] = d1
+                state_probs_list: List[Tuple[IntPair, float]] = [
+                    ((ip - i, beta1), self.poisson_distr.pmf(i))
+                    for i in range(ip)
+                ]
+                state_probs_list.append(
+                    ((0, beta1), 1 - self.poisson_distr.cdf(ip - 1))
+                )
+                d[(alpha, beta)] = Categorical(state_probs_list)
         return d
 
 

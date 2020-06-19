@@ -1,10 +1,7 @@
 from dataclasses import dataclass
-from typing import Optional, Mapping, Sequence, Tuple
-from collections import Counter
+from typing import Optional, Mapping
 import numpy as np
-from numpy.random import binomial
 import itertools
-from operator import itemgetter
 from rl.distribution import Categorical
 from rl.markov_process import MarkovProcess
 from rl.gen_utils.common_funcs import get_logistic_func, get_unit_sigmoid_func
