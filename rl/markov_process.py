@@ -179,11 +179,11 @@ class FiniteMarkovRewardProcess(FiniteMarkovProcess[S],
     def __repr__(self) -> str:
         display = ""
         for s, d in self.transition_reward_map.items():
-            display += "From State %s:\n" % str(s)
+            display += f"From State {s}:\n"
             for (s1, r), p in d.table():
                 display +=\
-                    "  To [State %s and Reward %.3f] with Probability %.3f\n"\
-                    % (str(s1), r, p)
+                    f"  To [State {s1} and Reward {r:.3f}]"\
+                    + f" with Probability {p:.3f}\n"
         return display
 
     def transition_reward(self, state: S) ->\

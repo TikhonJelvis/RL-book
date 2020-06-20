@@ -14,7 +14,7 @@ def get_unit_sigmoid_func(alpha: float) -> Callable[[float], float]:
 
 
 if __name__ == '__main__':
-    from gen_utils.plot_funcs import plot_list_of_curves
+    from rl.gen_utils.plot_funcs import plot_list_of_curves
     alpha = [2.0, 1.0, 0.5]
     colors = ["r", "b", "g"]
     labels = [(r"$\alpha$ = %.1f" % a) for a in alpha]
