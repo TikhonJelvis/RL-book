@@ -118,7 +118,8 @@ if __name__ == '__main__':
                                                     time_steps=user_time_steps,
                                                     num_traces=user_num_traces)
     print(
-        f"Deterministic Policy yields {oos_frac_dp * 100:.2f}% of Out-Of-Stock days"
+        f"Deterministic Policy yields {oos_frac_dp * 100:.2f}%"
+        + " of Out-Of-Stock days"
     )
 
     si_sp = SimpleInventoryStochasticPolicy(
@@ -128,5 +129,6 @@ if __name__ == '__main__':
                                                     time_steps=user_time_steps,
                                                     num_traces=user_num_traces)
     print(
-        f"Stochastic Policy yields {oos_frac_sp * 100:.2f}% of Out-Of-Stock days"
+        f"Stochastic Policy yields {oos_frac_sp * 100:.2f}%"
+        + " of Out-Of-Stock days"
     )

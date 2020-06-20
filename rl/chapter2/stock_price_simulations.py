@@ -184,7 +184,7 @@ def plot_distribution_at_time_all_processes(
         ],
         "Terminal Stock Price",
         "Counts",
-        "Terminal Price Counts (T=%d, Traces=%d)" % (time_steps, num_traces)
+        f"Terminal Price Counts (T={time_steps:d}, Traces={num_traces:d})"
     )
 
 

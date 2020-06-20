@@ -34,10 +34,9 @@ class FinitePolicy(Policy[S, A]):
     def __repr__(self) -> str:
         display = ""
         for s, d in self.policy_map.items():
-            display += "For State %s:\n" % str(s)
+            display += f"For State {str(s):s}:\n"
             for a, p in d.table():
-                display += "  Do Action %s with Probability %.3f\n"\
-                    % (str(a), p)
+                display += f"  Do Action {str(a):s} with Probability {p:.3f}\n"
         return display
 
     def act(self, state: S) -> FiniteDistribution[A]:
@@ -67,13 +66,12 @@ class FiniteMarkovDecisionProcess(MarkovDecisionProcess[S, A]):
     def __repr__(self) -> str:
         display = ""
         for s, d in self.mapping.items():
-            display += "From State %s:\n" % str(s)
+            display += f"From State {str(s):s}:\n"
             for a, d1 in d.items():
-                display += "  With Action %s:\n" % str(a)
+                display += f"  With Action {str(a):s}:\n"
                 for (s1, r), p in d1.table():
-                    display +=\
-                        "    To [State %s and Reward %.3f] with Probability %.3f\n"\
-                        % (str(s1), r, p)
+                    display += f"    To [State {str(s1):s} and "\
+                        + f"Reward {r:.3f}] with Probability {p:.3f}\n"
         return display
 
     # Note: We need both apply_policy and apply_finite_policy because,
