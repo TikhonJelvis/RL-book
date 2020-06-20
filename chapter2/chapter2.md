@@ -678,7 +678,7 @@ This is because the overnight holding cost applies to each unit of on-hand inven
 $$\mathcal{P}_R((\alpha, \beta), -h \cdot \alpha - p \cdot \max(i - (\alpha + \beta), 0), (max(\alpha + \beta - i, 0), \max(C - (\alpha + \beta), 0)))$$
 $$= \frac {e^{-\lambda} \lambda^i} {i!} \text{ for all } i = 0, 1, 2, \ldots $$
 
-Now let's write some code to implement this simple inventory example as a Markov Reward Process as described above. All we have to do is to create a derived class inherited from the abstract class `MarkovRewardProcess` and implement the `@abstractmethod transition_reward`. Note that the generic state `S` is replaced here with the type `Tuple[int, int]` to represent the pair of On-Hand and On-Order.
+Now let's write some code to implement this simple inventory example as a Markov Reward Process as described above. All we have to do is to create a derived class inherited from the abstract class `MarkovRewardProcess` and implement the `@abstractmethod transition_reward`. The code samples the customer demand from a Poisson distribution, uses the above formulas for the pair of next state and reward as a function of the customer demand sample, and returns an instance of `SampledDistribution`. Note that the generic state `S` is replaced here with the type `Tuple[int, int]` to represent the pair of On-Hand and On-Order.
 
 ```python
 IntPair = Tuple[int, int]
