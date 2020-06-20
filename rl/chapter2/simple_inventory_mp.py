@@ -1,12 +1,20 @@
+from dataclasses import dataclass
 from typing import Tuple, Dict, List
 from rl.distribution import Categorical
 from rl.markov_process import Transition, FiniteMarkovProcess
 from scipy.stats import poisson
 
-IntPair = Tuple[int, int]
+
+@dataclass(frozen=True)
+class InventoryState:
+    on_hand: int
+    on_order: int
+
+    def inventory_position(self) -> int:
+        return self.on_hand + self.on_order
 
 
-class SimpleInventoryMPFinite(FiniteMarkovProcess[IntPair]):
+class SimpleInventoryMPFinite(FiniteMarkovProcess[InventoryState]):
 
     def __init__(
         self,
@@ -19,20 +27,24 @@ class SimpleInventoryMPFinite(FiniteMarkovProcess[IntPair]):
         self.poisson_distr = poisson(poisson_lambda)
         super().__init__(self.get_transition_map())
 
-    def get_transition_map(self) -> Transition[IntPair]:
-        d: Dict[IntPair, Categorical[IntPair]] = {}
+    def get_transition_map(self) -> Transition[InventoryState]:
+        d: Dict[InventoryState, Categorical[InventoryState]] = {}
         for alpha in range(self.capacity + 1):
             for beta in range(self.capacity + 1 - alpha):
-                ip = alpha + beta
+                state = InventoryState(alpha, beta)
+                ip = state.inventory_position()
                 beta1 = max(self.capacity - ip, 0)
-                state_probs_list: List[Tuple[IntPair, float]] = [
-                    ((ip - i, beta1), self.poisson_distr.pmf(i))
+                state_probs_list: List[Tuple[InventoryState, float]] = [
+                    (InventoryState(ip - i, beta1), self.poisson_distr.pmf(i))
                     for i in range(ip)
                 ]
                 state_probs_list.append(
-                    ((0, beta1), 1 - self.poisson_distr.cdf(ip - 1))
+                    (
+                        InventoryState(0, beta1),
+                        1 - self.poisson_distr.cdf(ip - 1)
+                    )
                 )
-                d[(alpha, beta)] = Categorical(state_probs_list)
+                d[InventoryState(alpha, beta)] = Categorical(state_probs_list)
         return d
 
 

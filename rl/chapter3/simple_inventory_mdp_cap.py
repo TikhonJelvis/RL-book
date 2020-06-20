@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from typing import Tuple, Mapping, Dict, List
 from rl.markov_decision_process import FiniteMarkovDecisionProcess
 from rl.markov_decision_process import FinitePolicy, ActionMapping
@@ -5,11 +6,20 @@ from rl.markov_process import FiniteMarkovProcess, FiniteMarkovRewardProcess
 from rl.distribution import Categorical, Constant
 from scipy.stats import poisson
 
-IntPair = Tuple[int, int]
-InvOrderMapping = Mapping[IntPair, ActionMapping[int, IntPair]]
+
+@dataclass(frozen=True)
+class InventoryState:
+    on_hand: int
+    on_order: int
+
+    def inventory_position(self) -> int:
+        return self.on_hand + self.on_order
 
 
-class SimpleInventoryMDPCap(FiniteMarkovDecisionProcess[IntPair, int]):
+InvOrderMapping = Mapping[InventoryState, ActionMapping[int, InventoryState]]
+
+
+class SimpleInventoryMDPCap(FiniteMarkovDecisionProcess[InventoryState, int]):
 
     def __init__(
         self,
@@ -27,17 +37,20 @@ class SimpleInventoryMDPCap(FiniteMarkovDecisionProcess[IntPair, int]):
         super().__init__(self.get_action_transition_reward_map())
 
     def get_action_transition_reward_map(self) -> InvOrderMapping:
-        d: Dict[IntPair, Dict[int, Categorical[Tuple[IntPair, float]]]] = {}
+        d: Dict[InventoryState, Dict[int, Categorical[Tuple[InventoryState,
+                                                            float]]]] = {}
 
         for alpha in range(self.capacity + 1):
             for beta in range(self.capacity + 1 - alpha):
-                ip = alpha + beta
+                state = InventoryState(alpha, beta)
+                ip = state.inventory_position()
                 base_reward = - self.holding_cost * alpha
-                d1: Dict[int, Categorical[Tuple[IntPair, float]]] = {}
+                d1: Dict[int, Categorical[Tuple[InventoryState, float]]] = {}
 
                 for order in range(max(self.capacity - ip, 0) + 1):
-                    sr_probs_list: List[Tuple[Tuple[IntPair, float], float]] =\
-                        [(((ip - i, order), base_reward),
+                    sr_probs_list: List[Tuple[Tuple[InventoryState, float],
+                                              float]] =\
+                        [((InventoryState(ip - i, order), base_reward),
                           self.poisson_distr.pmf(i)) for i in range(ip)]
 
                     probability = 1 - self.poisson_distr.cdf(ip - 1)
@@ -45,11 +58,11 @@ class SimpleInventoryMDPCap(FiniteMarkovDecisionProcess[IntPair, int]):
                         (probability * (self.poisson_lambda - ip) +
                          ip * self.poisson_distr.pmf(ip))
                     sr_probs_list.append(
-                        (((0, order), reward), probability)
+                        ((InventoryState(0, order), reward), probability)
                     )
                     d1[order] = Categorical(sr_probs_list)
 
-                d[(alpha, beta)] = d1
+                d[state] = d1
         return d
 
 
@@ -61,28 +74,29 @@ if __name__ == '__main__':
 
     user_gamma = 0.9
 
-    si_mdp: FiniteMarkovDecisionProcess[IntPair, int] = SimpleInventoryMDPCap(
-        capacity=user_capacity,
-        poisson_lambda=user_poisson_lambda,
-        holding_cost=user_holding_cost,
-        stockout_cost=user_stockout_cost
-    )
+    si_mdp: FiniteMarkovDecisionProcess[InventoryState, int] =\
+        SimpleInventoryMDPCap(
+            capacity=user_capacity,
+            poisson_lambda=user_poisson_lambda,
+            holding_cost=user_holding_cost,
+            stockout_cost=user_stockout_cost
+        )
 
     print("MDP Transition Map")
     print("------------------")
     print(si_mdp)
 
-    fdp: FinitePolicy[IntPair, int] = FinitePolicy(
-        {(alpha, beta): Constant(max(user_capacity - (alpha + beta), 0))
-         for alpha in range(user_capacity + 1)
-         for beta in range(user_capacity + 1 - alpha)}
+    fdp: FinitePolicy[InventoryState, int] = FinitePolicy(
+        {InventoryState(alpha, beta):
+         Constant(max(user_capacity - (alpha + beta), 0)) for alpha in
+         range(user_capacity + 1) for beta in range(user_capacity + 1 - alpha)}
     )
 
     print("Policy Map")
     print("----------")
     print(fdp)
 
-    implied_mrp: FiniteMarkovRewardProcess[IntPair] =\
+    implied_mrp: FiniteMarkovRewardProcess[InventoryState] =\
         si_mdp.apply_finite_policy(fdp)
     print("Transition Map")
     print("--------------")
