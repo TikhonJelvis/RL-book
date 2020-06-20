@@ -1,0 +1,20 @@
+/*
+Run with the command: neato -n2 -Tpng -o mdp_bellman_policy_tree_qq.png mdp_bellman_policy_tree_qq.gv
+*/
+
+digraph mdp_bellman_policy_tree_qq
+{
+  A [pos="0,0", label=<a &#8594; Q<SUP>&#960;</SUP>(s, a)>, shape=box, xlp="0, -30", xlabel=<R(s, a)>, color=blue4, fontcolor=blue4]
+  S1 [pos="-140,-120", label=<s<SUB>1</SUB> &#8594; V<SUP>&#960;</SUP>(s<SUB>1</SUB>)>, shape=ellipse, color=blue4, fontcolor=blue4]
+  S2 [pos="140,-120", label=<s<SUB>2</SUB> &#8594; V<SUP>&#960;</SUP>(s<SUB>2</SUB>)>, shape=ellipse, color=blue4, fontcolor=blue4]
+  A11 [pos="-210,-240", label=<a<SUB>11</SUB> &#8594; Q<SUP>&#960;</SUP>(s<SUB>1</SUB>, a<SUB>11</SUB>)>, shape=box, color=blue4, fontcolor=blue4]
+  A12 [pos="-70, -240", label=<a<SUB>12</SUB> &#8594; Q<SUP>&#960;</SUP>(s<SUB>1</SUB>, a<SUB>12</SUB>)>, shape=box, color=blue4, fontcolor=blue4]
+  A21 [pos="70,-240", label=<a<SUB>21</SUB> &#8594; Q<SUP>&#960;</SUP>(s<SUB>2</SUB>, a<SUB>21</SUB>)>, shape=box, color=blue4, fontcolor=blue4]
+  A22 [pos="210, -240", label=<a<SUB>22</SUB> &#8594; Q<SUP>&#960;</SUP>(s<SUB>2</SUB>, a<SUB>22</SUB>)>, shape=box, color=blue4, fontcolor=blue4]
+  A->S1 [headlabel=<P(s, a, s<SUB>1</SUB>)>, arrowhead=none, color=yellow4, fontcolor=blue4]
+  A->S2 [headlabel=<P(s, a, s<SUB>2</SUB>)>, arrowhead=none, color=yellow4, fontcolor=blue4]
+  S1->A11 [taillabel=<&#960;(s<SUB>1</SUB>, a<SUB>11</SUB>)>, arrowhead=none, color=yellow4, fontcolor=blue4]
+  S1->A12 [taillabel=<&#960;(s<SUB>1</SUB>, a<SUB>12</SUB>)>, arrowhead=none, color=yellow4, fontcolor=blue4]
+  S2->A21 [taillabel=<&#960;(s<SUB>2</SUB>, a<SUB>21</SUB>)>, arrowhead=none, color=yellow4, fontcolor=blue4]
+  S2->A22 [taillabel=<&#960;(s<SUB>2</SUB>, a<SUB>22</SUB>)>, arrowhead=none, color=yellow4, fontcolor=blue4]
+}
