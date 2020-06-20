@@ -427,12 +427,19 @@ $$\mathcal{P}((\alpha, \beta), (\alpha + \beta - i, \max(C - (\alpha + \beta), 0
 $$\mathcal{P}((\alpha, \beta), (0, \max(C - (\alpha + \beta), 0))) = \sum_{j=\alpha+\beta}^{\infty} f(j) = 1 - F(\alpha + \beta - 1)$$
 Note that the next state's ($S_{t+1}$) On-Hand can be zero resulting from any of infinite possible demand outcomes greater than or equal to $\alpha + \beta$.
 
-So we are now ready to write code for this simple inventory example as a Markov Process. All we have to do is to create a derived class inherited from `FiniteMarkovProcess` and write a method to construct the `transition_map: Transition`. Note that the generic state `S` is replaced here with the type `Tuple[int, int]` (aliased as `IntPair` type) to represent the pair of On-Hand and On-Order.
+So we are now ready to write code for this simple inventory example as a Markov Process. All we have to do is to create a derived class inherited from `FiniteMarkovProcess` and write a method to construct the `transition_map: Transition`. Note that the generic state `S` is replaced here with the `@dataclass InventoryState` consisting of the pair of On-Hand and On-Order inventory quantities comprising the state of this Finite Markov Reward Process.
 
 ```python
-IntPair = Tuple[int, int]
+@dataclass(frozen=True)
+class InventoryState:
+    on_hand: int
+    on_order: int
 
-class SimpleInventoryMPFinite(FiniteMarkovProcess[IntPair]):
+    def inventory_position(self) -> int:
+        return self.on_hand + self.on_order
+
+
+class SimpleInventoryMPFinite(FiniteMarkovProcess[InventoryState]):
 
     def __init__(
         self,
@@ -445,20 +452,24 @@ class SimpleInventoryMPFinite(FiniteMarkovProcess[IntPair]):
         self.poisson_distr = poisson(poisson_lambda)
         super().__init__(self.get_transition_map())
 
-    def get_transition_map(self) -> Transition[IntPair]:
-        d: Dict[IntPair, Categorical[IntPair]] = {}
+    def get_transition_map(self) -> Transition[InventoryState]:
+        d: Dict[InventoryState, Categorical[InventoryState]] = {}
         for alpha in range(self.capacity + 1):
             for beta in range(self.capacity + 1 - alpha):
-                ip = alpha + beta
+                state = InventoryState(alpha, beta)
+                ip = state.inventory_position()
                 beta1 = max(self.capacity - ip, 0)
-                state_probs_list: List[Tuple[IntPair, float]] = [
-                    ((ip - i, beta1), self.poisson_distr.pmf(i))
+                state_probs_list: List[Tuple[InventoryState, float]] = [
+                    (InventoryState(ip - i, beta1), self.poisson_distr.pmf(i))
                     for i in range(ip)
                 ]
                 state_probs_list.append(
-                    ((0, beta1), 1 - self.poisson_distr.cdf(ip - 1))
+                    (
+                        InventoryState(0, beta1),
+                        1 - self.poisson_distr.cdf(ip - 1)
+                    )
                 )
-                d[(alpha, beta)] = Categorical(state_probs_list)
+                d[InventoryState(alpha, beta)] = Categorical(state_probs_list)
         return d
 ```
 
@@ -479,26 +490,26 @@ print(si_mp)
 The output we get is nicely displayed as:
 
 ```
-From State (0, 0):
-  To State (0, 2) with Probability 1.000
-From State (0, 1):
-  To State (1, 1) with Probability 0.368
-  To State (0, 1) with Probability 0.632
-From State (0, 2):
-  To State (2, 0) with Probability 0.368
-  To State (1, 0) with Probability 0.368
-  To State (0, 0) with Probability 0.264
-From State (1, 0):
-  To State (1, 1) with Probability 0.368
-  To State (0, 1) with Probability 0.632
-From State (1, 1):
-  To State (2, 0) with Probability 0.368
-  To State (1, 0) with Probability 0.368
-  To State (0, 0) with Probability 0.264
-From State (2, 0):
-  To State (2, 0) with Probability 0.368
-  To State (1, 0) with Probability 0.368
-  To State (0, 0) with Probability 0.264
+From State InventoryState(on_hand=0, on_order=0):
+  To State InventoryState(on_hand=0, on_order=2) with Probability 1.000
+From State InventoryState(on_hand=0, on_order=1):
+  To State InventoryState(on_hand=1, on_order=1) with Probability 0.368
+  To State InventoryState(on_hand=0, on_order=1) with Probability 0.632
+From State InventoryState(on_hand=0, on_order=2):
+  To State InventoryState(on_hand=2, on_order=0) with Probability 0.368
+  To State InventoryState(on_hand=1, on_order=0) with Probability 0.368
+  To State InventoryState(on_hand=0, on_order=0) with Probability 0.264
+From State InventoryState(on_hand=1, on_order=0):
+  To State InventoryState(on_hand=1, on_order=1) with Probability 0.368
+  To State InventoryState(on_hand=0, on_order=1) with Probability 0.632
+From State InventoryState(on_hand=1, on_order=1):
+  To State InventoryState(on_hand=2, on_order=0) with Probability 0.368
+  To State InventoryState(on_hand=1, on_order=0) with Probability 0.368
+  To State InventoryState(on_hand=0, on_order=0) with Probability 0.264
+From State InventoryState(on_hand=2, on_order=0):
+  To State InventoryState(on_hand=2, on_order=0) with Probability 0.368
+  To State InventoryState(on_hand=1, on_order=0) with Probability 0.368
+  To State InventoryState(on_hand=0, on_order=0) with Probability 0.264
 ```
 
 For a graphical view of this Markov Process, see Figure \ref{fig:inventory_mp}. The nodes are the states, labeled with their corresponding $\alpha$ and $\beta$ values. The directed edges are the probabilistic state transitions from 6pm on a day to 6pm on the next day, with the transition probabilities labeled on them.
@@ -556,13 +567,12 @@ We will skip the theory that tells us about the conditions under which a station
 Running this code for the simple case of capacity $C=2$ and poisson mean $\lambda = 1.0$ (instance of `SimpleInventoryMPFinite`) produces the following output for the stationary distribution $\mu$:
 
 ```
-{(0, 0): 0.117,
- (0, 1): 0.279,
- (0, 2): 0.117,
- (1, 0): 0.162,
- (1, 1): 0.162,
- (2, 0): 0.162}
-}
+{InventoryState(on_hand=0, on_order=0): 0.117,
+ InventoryState(on_hand=0, on_order=1): 0.279,
+ InventoryState(on_hand=0, on_order=2): 0.117,
+ InventoryState(on_hand=1, on_order=0): 0.162,
+ InventoryState(on_hand=1, on_order=1): 0.162,
+ InventoryState(on_hand=2, on_order=0): 0.162}
 ```
 
 This tells us that On-Hand of 0 and On-Order of 1 is the state occurring most frequently (28% of the time) when the system is played out indefinitely.   
@@ -678,12 +688,19 @@ This is because the overnight holding cost applies to each unit of on-hand inven
 $$\mathcal{P}_R((\alpha, \beta), -h \cdot \alpha - p \cdot \max(i - (\alpha + \beta), 0), (max(\alpha + \beta - i, 0), \max(C - (\alpha + \beta), 0)))$$
 $$= \frac {e^{-\lambda} \lambda^i} {i!} \text{ for all } i = 0, 1, 2, \ldots $$
 
-Now let's write some code to implement this simple inventory example as a Markov Reward Process as described above. All we have to do is to create a derived class inherited from the abstract class `MarkovRewardProcess` and implement the `@abstractmethod transition_reward`. The code samples the customer demand from a Poisson distribution, uses the above formulas for the pair of next state and reward as a function of the customer demand sample, and returns an instance of `SampledDistribution`. Note that the generic state `S` is replaced here with the type `Tuple[int, int]` to represent the pair of On-Hand and On-Order.
+Now let's write some code to implement this simple inventory example as a Markov Reward Process as described above. All we have to do is to create a derived class inherited from the abstract class `MarkovRewardProcess` and implement the `@abstractmethod transition_reward`. The code samples the customer demand from a Poisson distribution, uses the above formulas for the pair of next state and reward as a function of the customer demand sample, and returns an instance of `SampledDistribution`. Note that the generic state `S` is replaced here with the `@dataclass InventoryState` to represent the state of this Markov Reward Process, comprising of the On-Hand and On-Order inventory quantities.
 
 ```python
-IntPair = Tuple[int, int]
+@dataclass(frozen=True)
+class InventoryState:
+    on_hand: int
+    on_order: int
 
-class SimpleInventoryMRP(MarkovRewardProcess[IntPair]):
+    def inventory_position(self) -> int:
+        return self.on_hand + self.on_order
+
+
+class SimpleInventoryMRP(MarkovRewardProcess[InventoryState]):
 
     def __init__(
         self,
@@ -699,20 +716,18 @@ class SimpleInventoryMRP(MarkovRewardProcess[IntPair]):
 
     def transition_reward(
         self,
-        state: IntPair
-    ) -> SampledDistribution[Tuple[IntPair, float]]:
+        state: InventoryState
+    ) -> SampledDistribution[Tuple[InventoryState, float]]:
 
-        def sample_next_state_reward(
-            state=state
-        ) -> Tuple[IntPair, float]:
+        def sample_next_state_reward(state=state) ->\
+                Tuple[InventoryState, float]:
             demand_sample = np.random.poisson(self.poisson_lambda)
-            alpha, beta = state
-            ip = alpha + beta
+            ip = state.inventory_position()
             next_state = (
                 max(ip - demand_sample, 0),
                 max(self.capacity - ip, 0)
             )
-            reward = - self.holding_cost * alpha\
+            reward = - self.holding_cost * state.on_hand\
                 - self.stockout_cost * max(demand_sample - ip, 0)
             return next_state, reward
 
@@ -795,14 +810,20 @@ So now we have a specification of $\mathcal{R}_T$ but when it comes to our codin
 
 In fact, most Markov Processes you'd encounter in practice can be modeled as a combination of $\mathcal{R}_T$ and $\mathcal{P}$, and you'd simply follow the above $\mathcal{R}_T$ to $\mathcal{P}_R$ representation transformation drill to present this information in the form of $\mathcal{P}_R$ to instantiate a `FiniteMarkovRewardProcess`. We designed the interface to accept $\mathcal{P}_R$ as input since that is the most general interface for specifying Markov Reward Processes.
 
-So now let's write some code for the simple inventory example as a Finite Markov Reward Process as described above. All we have to do is to create a derived class inherited from `FiniteMarkovRewardProcess` and write a method to construct the `transition_reward_map: RewardTransition` (i.e., $\mathcal{P}_R$). Note that the generic state `S` is replaced here with the type `Tuple[int, int]` to represent the pair of On-Hand and On-Order.
+So now let's write some code for the simple inventory example as a Finite Markov Reward Process as described above. All we have to do is to create a derived class inherited from `FiniteMarkovRewardProcess` and write a method to construct the `transition_reward_map: RewardTransition` (i.e., $\mathcal{P}_R$). Note that the generic state `S` is replaced here with the `@dataclass InventoryState` to represent the state, comprising of the On-Hand and On-Order inventory quantities.
 
 ```python
 from scipy.stats import poisson
 
-IntPair = Tuple[int, int]
+@dataclass(frozen=True)
+class InventoryState:
+    on_hand: int
+    on_order: int
 
-class SimpleInventoryMRPFinite(FiniteMarkovRewardProcess[IntPair]):
+    def inventory_position(self) -> int:
+        return self.on_hand + self.on_order
+
+class SimpleInventoryMRPFinite(FiniteMarkovRewardProcess[InventoryState]):
 
     def __init__(
         self,
@@ -819,25 +840,26 @@ class SimpleInventoryMRPFinite(FiniteMarkovRewardProcess[IntPair]):
         self.poisson_distr = poisson(poisson_lambda)
         super().__init__(self.get_transition_reward_map())
 
-    def get_transition_reward_map(self) -> RewardTransition[IntPair]:
-        d: Dict[IntPair, Categorical[Tuple[IntPair, float]]] = {}
+    def get_transition_reward_map(self) -> RewardTransition[InventoryState]:
+        d: Dict[InventoryState, Categorical[Tuple[InventoryState, float]]] = {}
         for alpha in range(self.capacity + 1):
             for beta in range(self.capacity + 1 - alpha):
-                ip = alpha + beta
+                state = InventoryState(alpha, beta)
+                ip = state.inventory_position()
                 beta1 = max(self.capacity - ip, 0)
-                base_reward = - self.holding_cost * alpha
-                sr_probs_list: List[Tuple[Tuple[IntPair, float], float]] = [
-                    (((ip - i, beta1), base_reward),
-                     self.poisson_distr.pmf(i)) for i in range(ip)
-                ]
+                base_reward = - self.holding_cost * state.on_hand
+                sr_probs_list: List[Tuple[Tuple[InventoryState, float],
+                                          float]] =\
+                    [((InventoryState(ip - i, beta1), base_reward),
+                      self.poisson_distr.pmf(i)) for i in range(ip)]
                 probability = 1 - self.poisson_distr.cdf(ip - 1)
                 reward = base_reward - self.stockout_cost *\
                     (probability * (self.poisson_lambda - ip) +
                      ip * self.poisson_distr.pmf(ip))
                 sr_probs_list.append(
-                    (((0, beta1), reward), probability)
+                    ((InventoryState(0, beta1), reward), probability)
                 )
-                d[(alpha, beta)] = Categorical(sr_probs_list)
+                d[state] = Categorical(sr_probs_list)
         return d
 ```
 
@@ -861,26 +883,26 @@ print(si_mrp)
 The output we get (utilizing an analogously written `__repr__` method in `FiniteMarkovRewardProcess`) is nicely displayed as:
 
 ```
-From State (0, 0):
-  To [State (0, 2) and Reward -10.000] with Probability 1.000
-From State (0, 1):
-  To [State (1, 1) and Reward -0.000] with Probability 0.368
-  To [State (0, 1) and Reward -3.679] with Probability 0.632
-From State (0, 2):
-  To [State (2, 0) and Reward -0.000] with Probability 0.368
-  To [State (1, 0) and Reward -0.000] with Probability 0.368
-  To [State (0, 0) and Reward -1.036] with Probability 0.264
-From State (1, 0):
-  To [State (1, 1) and Reward -1.000] with Probability 0.368
-  To [State (0, 1) and Reward -4.679] with Probability 0.632
-From State (1, 1):
-  To [State (2, 0) and Reward -1.000] with Probability 0.368
-  To [State (1, 0) and Reward -1.000] with Probability 0.368
-  To [State (0, 0) and Reward -2.036] with Probability 0.264
-From State (2, 0):
-  To [State (2, 0) and Reward -2.000] with Probability 0.368
-  To [State (1, 0) and Reward -2.000] with Probability 0.368
-  To [State (0, 0) and Reward -3.036] with Probability 0.264
+From State InventoryState(on_hand=0, on_order=0):
+  To [State InventoryState(on_hand=0, on_order=2) and Reward -10.000] with Probability 1.000
+From State InventoryState(on_hand=0, on_order=1):
+  To [State InventoryState(on_hand=1, on_order=1) and Reward -0.000] with Probability 0.368
+  To [State InventoryState(on_hand=0, on_order=1) and Reward -3.679] with Probability 0.632
+From State InventoryState(on_hand=0, on_order=2):
+  To [State InventoryState(on_hand=2, on_order=0) and Reward -0.000] with Probability 0.368
+  To [State InventoryState(on_hand=1, on_order=0) and Reward -0.000] with Probability 0.368
+  To [State InventoryState(on_hand=0, on_order=0) and Reward -1.036] with Probability 0.264
+From State InventoryState(on_hand=1, on_order=0):
+  To [State InventoryState(on_hand=1, on_order=1) and Reward -1.000] with Probability 0.368
+  To [State InventoryState(on_hand=0, on_order=1) and Reward -4.679] with Probability 0.632
+From State InventoryState(on_hand=1, on_order=1):
+  To [State InventoryState(on_hand=2, on_order=0) and Reward -1.000] with Probability 0.368
+  To [State InventoryState(on_hand=1, on_order=0) and Reward -1.000] with Probability 0.368
+  To [State InventoryState(on_hand=0, on_order=0) and Reward -2.036] with Probability 0.264
+From State InventoryState(on_hand=2, on_order=0):
+  To [State InventoryState(on_hand=2, on_order=0) and Reward -2.000] with Probability 0.368
+  To [State InventoryState(on_hand=1, on_order=0) and Reward -2.000] with Probability 0.368
+  To [State InventoryState(on_hand=0, on_order=0) and Reward -3.036] with Probability 0.264   
 ```
 
 
@@ -934,23 +956,23 @@ Let us write some code to implement this calculation for Finite Markov Reward Pr
 Invoking this `get_value_function_vec` method on `SimpleInventoryMRPFinite` for the simple case of capacity $C=2$ and poisson mean $\lambda = 1.0$ yields the following result:
 
 ```
-{(0, 0): -35.511,
- (0, 1): -27.932,
- (0, 2): -28.345,
- (1, 0): -28.932,
- (1, 1): -29.345,
- (2, 0): -30.345}
+{InventoryState(on_hand=0, on_order=0): -35.511,
+ InventoryState(on_hand=1, on_order=0): -28.932,
+ InventoryState(on_hand=0, on_order=2): -28.345,
+ InventoryState(on_hand=1, on_order=1): -29.345,
+ InventoryState(on_hand=0, on_order=1): -27.932,
+ InventoryState(on_hand=2, on_order=0): -30.345}   
 ```
 
 The corresponding values of the attribute `reward_function_vec` (i.e., $\mathcal{R}$) are:
 
 ```
-{(0, 0): -10.0,
- (0, 1): -2.325,
- (0, 2): -0.274,
- (1, 0): -3.325,
- (1, 1): -1.274,
- (2, 0): -2.274}
+{InventoryState(on_hand=0, on_order=0): -10.0,
+ InventoryState(on_hand=1, on_order=0): -3.325,
+ InventoryState(on_hand=0, on_order=2): -0.274,
+ InventoryState(on_hand=1, on_order=1): -1.274,
+ InventoryState(on_hand=0, on_order=1): -2.325,
+ InventoryState(on_hand=2, on_order=0): -2.274}   
 ```
 
 This tells us that On-Hand of 0 and On-Order of 2 has the least expected cost (highest expected reward). However, the Value Function is highest for On-Hand of 0 and On-Order of 1.
