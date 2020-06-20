@@ -31,6 +31,15 @@ class FinitePolicy(Policy[S, A]):
     def __init__(self, policy_map: Mapping[S, FiniteDistribution[A]]):
         self.policy_map = policy_map
 
+    def __repr__(self) -> str:
+        display = ""
+        for s, d in self.policy_map.items():
+            display += "For State %s:\n" % str(s)
+            for a, p in d.table():
+                display += "  Do Action %s with Probability %.3f\n"\
+                    % (str(a), p)
+        return display
+
     def act(self, state: S) -> FiniteDistribution[A]:
         return self.policy_map[state]
 
@@ -54,6 +63,18 @@ class FiniteMarkovDecisionProcess(MarkovDecisionProcess[S, A]):
 
     def __init__(self, mapping: Mapping[S, ActionMapping[A, S]]):
         self.mapping = mapping
+
+    def __repr__(self) -> str:
+        display = ""
+        for s, d in self.mapping.items():
+            display += "From State %s:\n" % str(s)
+            for a, d1 in d.items():
+                display += "  With Action %s:\n" % str(a)
+                for (s1, r), p in d1.table():
+                    display +=\
+                        "    To [State %s and Reward %.3f] with Probability %.3f\n"\
+                        % (str(s1), r, p)
+        return display
 
     # Note: We need both apply_policy and apply_finite_policy because,
     # to be compatible with MarkovRewardProcess, apply_policy has to
