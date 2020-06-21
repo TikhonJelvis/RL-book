@@ -426,7 +426,7 @@ $$(\alpha + \beta - i, \max(C - (\alpha + \beta), 0)) \text{ for } i =0, 1, \ldo
 with transition probabilities governed by the Poisson probabilities of demand as follows:
 $$\mathcal{P}((\alpha, \beta), (\alpha + \beta - i, \max(C - (\alpha + \beta), 0))) = f(i)\text{ for } 0 \leq i \leq \alpha + \beta - 1$$
 $$\mathcal{P}((\alpha, \beta), (0, \max(C - (\alpha + \beta), 0))) = \sum_{j=\alpha+\beta}^{\infty} f(j) = 1 - F(\alpha + \beta - 1)$$
-Note that the next state's ($S_{t+1}$) On-Hand can be zero resulting from any of infinite possible demand outcomes greater than or equal to $\alpha + \beta$.
+Note that the next state's ($S_{t+1}$) On-Hand can be zero resulting from any of infinite possible demand outcomes greater than or equal to $\alpha + \beta$. Also note that this ordering policy ensures that the sum of On-Hand and On-Order won't exceed the capacity $C$. So we will constrain the set of states such that this condition is satisfied: $0 \leq \alpha + \beta \leq C$.
 
 So we are now ready to write code for this simple inventory example as a Markov Process. All we have to do is to create a derived class inherited from `FiniteMarkovProcess` and write a method to construct the `transition_map: Transition`. Note that the generic state `S` is replaced here with the `@dataclass InventoryState` consisting of the pair of On-Hand and On-Order inventory quantities comprising the state of this Finite Markov Process.
 
@@ -799,7 +799,7 @@ The above code for `FiniteMarkovRewardProcess` (and more) is in the file [rl/mar
 
 ## Simple Inventory Example as a Finite Markov Reward Process
 
-Now we'd like to model the simple inventory example as a Finite Markov Reward Process so we can take advantage of the algorithms that apply to Finite Markov Reward Processes. Note that although the set of states is finite (the policy upper-bounds both the On-Hand and On-Order to the capacity $C$), there are an infinite number of next state and rewards pairs from any given current state. This is because there are an infinite set of possibilities of customer demand on any given day. To qualify as a Finite Markov Reward Process, we'll need to model it so that we have a finite set of next state and reward transitions from a given current state. The good news is that the set of next states from a given current state are finite (note that the next state's on-hand has a floor of 0, no matter what the current state is and no matter how high the customer demand for the day is). It is the reward associated with the transition that has infinite number of possibilities (because the stockout cost applies to each unit of missed demand, that is unbounded). So what we'll do is that instead of considering $(S_{t+1}, R_{t+1})$ as the pair of next state and reward, we will model the pair of next state and reward to instead be $(S_{t+1}, \mathbb{E}[R_{t+1}|(S_t, S_{t+1})])$ (since we know $\mathcal{P}_R$ due to the Poisson probabilities of customer demand, we can actually calculate this conditional expectation of reward). So given a state $s$, the pairs of next state and reward are: $(s', \mathcal{R}_T(s, s'))$ for all the $s'$ we transition to from $s$. Since the next states $s'$ are finite, these newly-modeled rewards associated with the transitions ($\mathcal{R}_T(s,s')$) are also finite and hence, the set of pairs of next state and reward we transition to are also finite. Let's now work out the calculation of the reward transition function $\mathcal{R}_T$.
+Now we'd like to model the simple inventory example as a Finite Markov Reward Process so we can take advantage of the algorithms that apply to Finite Markov Reward Processes. The ordering policy ensures that the sum of On-Hand (denote as $\alpha$) and On-Order (denote as $\beta$) won't exceed the capacity $C$. So we will constrain the set of states such that this condition is satisfied: $0 \leq \alpha + \beta \leq C$ (i.e., finite number of states). Although the set of states is finite, there are an infinite number of pairs of next state and reward outcomes possible from any given current state. This is because there are an infinite set of possibilities of customer demand on any given day (resulting in infinite possibilities of stockout cost, i.e., negative reward, on any day). To qualify as a Finite Markov Reward Process, we'll need to model it so that we have a finite set of pairs of next state and reward from a given current state. So what we'll do is that instead of considering $(S_{t+1}, R_{t+1})$ as the pair of next state and reward, we will model the pair of next state and reward to instead be $(S_{t+1}, \mathbb{E}[R_{t+1}|(S_t, S_{t+1})])$ (since we know $\mathcal{P}_R$ due to the Poisson probabilities of customer demand, we can actually calculate this conditional expectation of reward). So given a state $s$, the pairs of next state and reward are: $(s', \mathcal{R}_T(s, s'))$ for all the $s'$ we transition to from $s$. Since the set of possible next states $s'$ are finite ($0 \leq \alpha' + \beta' \leq C$), these newly-modeled rewards associated with the transitions ($\mathcal{R}_T(s,s')$) are also finite and hence, the set of pairs of next state and reward from any current state are also finite. Let's now work out the calculation of the reward transition function $\mathcal{R}_T$.
 
 When the next state's ($S_{t+1}$) On-Hand is greater than zero, it means all of the day's demand was satisfied with inventory that was available at store-opening ($=\alpha + \beta$), and hence, each of these next states $S_{t+1}$ correspond to no stockout cost and only an overnight holding cost of $h \alpha$. Therefore,
 $$\mathcal{R}_T((\alpha, \beta), (\alpha + \beta - i, \max(C - (\alpha + \beta), 0))) = - h \alpha \text{ for } 0 \leq i \leq \alpha + \beta - 1$$
@@ -812,11 +812,11 @@ This calculation is shown below:
 $$\mathcal{R}_T((\alpha, \beta), (0, \max(C - (\alpha + \beta), 0))) = - h \alpha - p (\sum_{j=\alpha+\beta+1}^{\infty} f(j) \cdot (j - (\alpha + \beta)))$$
  $$= - h \alpha - p (\lambda (1 - F(\alpha + \beta - 1)) -  (\alpha + \beta)(1 - F(\alpha + \beta)))$$ 
 
-So now we have a specification of $\mathcal{R}_T$ but when it comes to our coding interface, we are expected to specify $\mathcal{P}_R$ as that is the interface through which we create a `FiniteMarkovRewardProcess`. Fear not - a specification of $\mathcal{P}_R$ is easy once we have a specification of $\mathcal{R}_T$. We simply create 4-tuples $(s,r,s',p)$ for all $s,s' \in \mathcal{S}$ such that $r=\mathcal{R}_T(s, s')$ and $p=\mathcal{P}(s,s')$ (we know $\mathcal{P}$ along with $\mathcal{R}_T$), and the set of all these 4-tuples (for all $s,s' \in \mathcal{S}$) constitute the specification of $\mathcal{P}_R$, i.e., $\mathcal{P}_R(s,r,s') = p$. This turns iour reward-altered mathematical model of a Finite Markov Reward Process into a programming model of the `FiniteMarkovRewardProcess` class. This reward-altered model enables us to gain from the fact that we can leverage the algorithms we'll be  writing for Finite Markov Reward Processes (including some simple and elegant linear-algebra-based solutions). The downside of this reward-altered model is that it prevents us from performing simulations of the specific rewards encountered when transitioning from one state to another (because we no longer capture the probabilities of individual reward outcomes). Note that we can indeed perform simulations, but each transition step in the simulation will only show us the "mean reward" (specifically, the expected reward conditioned on current state and next state).
+So now we have a specification of $\mathcal{R}_T$ but when it comes to our coding interface, we are expected to specify $\mathcal{P}_R$ as that is the interface through which we create a `FiniteMarkovRewardProcess`. Fear not - a specification of $\mathcal{P}_R$ is easy once we have a specification of $\mathcal{R}_T$. We simply create 4-tuples $(s,r,s',p)$ for all $s,s' \in \mathcal{S}$ such that $r=\mathcal{R}_T(s, s')$ and $p=\mathcal{P}(s,s')$ (we know $\mathcal{P}$ along with $\mathcal{R}_T$), and the set of all these 4-tuples (for all $s,s' \in \mathcal{S}$) constitute the specification of $\mathcal{P}_R$, i.e., $\mathcal{P}_R(s,r,s') = p$. This turns our reward-altered mathematical model of a Finite Markov Reward Process into a programming model of the `FiniteMarkovRewardProcess` class. This reward-altered model enables us to gain from the fact that we can leverage the algorithms we'll be  writing for Finite Markov Reward Processes (including some simple and elegant linear-algebra-based solutions). The downside of this reward-altered model is that it prevents us from performing simulations of the specific rewards encountered when transitioning from one state to another (because we no longer capture the probabilities of individual reward outcomes). Note that we can indeed perform simulations, but each transition step in the simulation will only show us the "mean reward" (specifically, the expected reward conditioned on current state and next state).
 
 In fact, most Markov Processes you'd encounter in practice can be modeled as a combination of $\mathcal{R}_T$ and $\mathcal{P}$, and you'd simply follow the above $\mathcal{R}_T$ to $\mathcal{P}_R$ representation transformation drill to present this information in the form of $\mathcal{P}_R$ to instantiate a `FiniteMarkovRewardProcess`. We designed the interface to accept $\mathcal{P}_R$ as input since that is the most general interface for specifying Markov Reward Processes.
 
-So now let's write some code for the simple inventory example as a Finite Markov Reward Process as described above. All we have to do is to create a derived class inherited from `FiniteMarkovRewardProcess` and write a method to construct the `transition_reward_map: RewardTransition` (i.e., $\mathcal{P}_R$) that the `__init__` constuctor of `FiniteMarkovRewardProcess` requires as input. Note that the generic state `S` is replaced here with the `@dataclass InventoryState` to represent the state, comprising of the On-Hand and On-Order inventory quantities.
+So now let's write some code for the simple inventory example as a Finite Markov Reward Process as described above. All we have to do is to create a derived class inherited from `FiniteMarkovRewardProcess` and write a method to construct the `transition_reward_map: RewardTransition` (i.e., $\mathcal{P}_R$) that the `__init__` constuctor of `FiniteMarkovRewardProcess` requires as input. Note that the generic state `S` is replaced here with the `@dataclass InventoryState` to represent the inventory state, comprising of the On-Hand and On-Order inventory quantities.
 
 ```python
 from scipy.stats import poisson
@@ -869,47 +869,7 @@ class SimpleInventoryMRPFinite(FiniteMarkovRewardProcess[InventoryState]):
         return d
 ```
 
-Let us view the transition probabilities of next states and rewards for the simple case of $C=2$ and $\lambda = 1.0$ (this code is in the file [rl/chapter2/simple_inventory_mrp.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/chapter2/simple_inventory_mrp.py))
-
-```python
-user_capacity = 2
-user_poisson_lambda = 1.0
-user_holding_cost = 1.0
-user_stockout_cost = 10.0
-
-si_mrp = SimpleInventoryMRPFinite(
-    capacity=user_capacity,
-    poisson_lambda=user_poisson_lambda,
-    holding_cost=user_holding_cost,
-    stockout_cost=user_stockout_cost
-)
-print(si_mrp)
-```
-
-The output we get (utilizing an analogously written `__repr__` method in `FiniteMarkovRewardProcess`) is nicely displayed as:
-
-```
-From State InventoryState(on_hand=0, on_order=0):
-  To [State InventoryState(on_hand=0, on_order=2) and Reward -10.000] with Probability 1.000
-From State InventoryState(on_hand=0, on_order=1):
-  To [State InventoryState(on_hand=1, on_order=1) and Reward -0.000] with Probability 0.368
-  To [State InventoryState(on_hand=0, on_order=1) and Reward -3.679] with Probability 0.632
-From State InventoryState(on_hand=0, on_order=2):
-  To [State InventoryState(on_hand=2, on_order=0) and Reward -0.000] with Probability 0.368
-  To [State InventoryState(on_hand=1, on_order=0) and Reward -0.000] with Probability 0.368
-  To [State InventoryState(on_hand=0, on_order=0) and Reward -1.036] with Probability 0.264
-From State InventoryState(on_hand=1, on_order=0):
-  To [State InventoryState(on_hand=1, on_order=1) and Reward -1.000] with Probability 0.368
-  To [State InventoryState(on_hand=0, on_order=1) and Reward -4.679] with Probability 0.632
-From State InventoryState(on_hand=1, on_order=1):
-  To [State InventoryState(on_hand=2, on_order=0) and Reward -1.000] with Probability 0.368
-  To [State InventoryState(on_hand=1, on_order=0) and Reward -1.000] with Probability 0.368
-  To [State InventoryState(on_hand=0, on_order=0) and Reward -2.036] with Probability 0.264
-From State InventoryState(on_hand=2, on_order=0):
-  To [State InventoryState(on_hand=2, on_order=0) and Reward -2.000] with Probability 0.368
-  To [State InventoryState(on_hand=1, on_order=0) and Reward -2.000] with Probability 0.368
-  To [State InventoryState(on_hand=0, on_order=0) and Reward -3.036] with Probability 0.264   
-```
+The above code is in the file [rl/chapter2/simple_inventory_mrp.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/chapter2/simple_inventory_mrp.py)). We encourage you to play with the inputs to `SimpleInventoryMRPFinite` in `__main__` and view the transition probabilities and rewards of the constructed Finite Markov Reward Process (note: the display is based on the `__repr__` method of `FiniteMarkovRewardProcess`)
 
 
 ## Value Function of a Markov Reward Process

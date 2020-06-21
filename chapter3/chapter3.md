@@ -267,7 +267,7 @@ We leave it to you as an exercise to run various simulations of the MRP implied 
 Certain calculations for Markov Decision Processes can be performed easily if:
 
 * The state space is finite ($\mathcal{S} = \{s_1, s_2, \ldots, s_n\}$),
-* The action space is finite ($\mathcal{A} = \{a_1, a_2, \ldots, a_m\}$), and
+* The action space $\mathcal{A}(s)$ is finite for each $s \in \mathcal{S}$.
 * The set of pairs of next state and reward transitions from each pair of current state and action is finite
 
 If we satisfy the above two characteristics, we refer to the Markov Decision Process as a Finite Markov Decision Process. So let us write some code for a Finite Markov Decision Process. We create a concrete class `FiniteMarkovDecisionProcess` that implements the interface of the abstract class `MarkovDecisionProcess` (specifically implements the `@abstractmethod apply_policy`). Our first task is to think about the data structure required to specify an instance of `FiniteMarkovDecisionProcess` (i.e., the data structure we'd pass to the `__init__` method of `FiniteMarkovDecisionProcess`). Analogous to how we curried $\mathcal{P}_R$ for a Markov Reward Process as $\mathcal{S} \rightarrow (\mathcal{S} \times \mathbb{R} \rightarrow [0,1])$ (where $\mathcal{S} = \{s_1, s_2, \ldots, s_n\}$), here we curry $\mathcal{P}_R$ for the MDP as:
@@ -364,10 +364,28 @@ The above code for `FiniteMarkovRewardProcess` and `FinitePolicy` is in the file
 
 ## Simple Inventory Example as a Finite Markov Decision Process
 
-TODO: Set up the mathematical specification of simple Inventory example as an MDP
+Now we'd like to model the simple inventory example as a Finite Markov Decision Process so we can take advantage of the algorithms specifically for Finite Markov Decision Processes.  To enable finite states and finite actions, we will re-introduce the constraint of space capacity $C$ and we will apply the restriction that the order quantity (action) cannot exceed $\max(C - (\alpha + \beta), 0)$ where $\alpha$ is the On-Hand component of the State and $\beta$ is the On-Order component of the State. Since the action is limited to this finite range of integers from $0$ to $\max(C - (\alpha + \beta), 0)$, the action space $\mathcal{A}(s)$ is finite for each state $s \in \mathcal{S}$. Also, since the order quantity cannot exceed $C - (\alpha + beta)$, it ensures that the sum of On-Hand and On-Order will not exceed the capacity $C$. So we will constrain the set of states such that this condition is satisfied: $0 \leq \alpha + \beta \leq C$ (i.e., finite number of states). Although the set of states is finite, there are an infinite number of pairs of next state and reward outcomes possible from any given pair of current state and action. This is because there are an infinite set of possibilities of customer demand on any given day (resulting in infinite possibilities of stockout cost, i.e., negative reward, on any day). To qualify as a Finite Markov Decision Process, we'll need to model it so that we have a finite set of pairs of next state and reward from any pair of current state and action. So what we'll do is that instead of considering $(S_{t+1}, R_{t+1})$ as the pair of next state and reward, we will model the pair of next state and reward to instead be $(S_{t+1}, \mathbb{E}[R_{t+1}|(S_t, S_{t+1}, A_t)])$ (since we know $\mathcal{P}_R$ due to the Poisson probabilities of customer demand, we can actually calculate this conditional expectation of reward). So given a state $s$ and action $a$, the pairs of next state and reward are: $(s', \mathcal{R}_T(s, a, s'))$ for all the $s'$ we transition to from $(s, a)$. Since the set of possible next states $s'$ are finite ($0 \leq \alpha' + \beta' \leq C$), these newly-modeled rewards associated with the transitions ($\mathcal{R}_T(s,a,s')$) are also finite and hence, the set of pairs of next state and reward from any pair of current state and action are also finite. Let's now work out the calculation of the reward transition function $\mathcal{R}_T$.
+
+When the next state's ($S_{t+1}$) On-Hand is greater than zero, it means all of the day's demand was satisfied with inventory that was available at store-opening ($=\alpha + \beta$), and hence, each of these next states $S_{t+1}$ correspond to no stockout cost and only an overnight holding cost of $h \alpha$. Therefore, for all $\alpha, \beta$ (with $\alpha + \beta \leq C$) and for all order quantity (action) $o$ (with $0 \leq o \leq \max(C - (\alpha + \beta), 0)$):
+$$\mathcal{R}_T((\alpha, \beta), o, (\alpha + \beta - i, o)) = - h \alpha \text{ for } 0 \leq i \leq \alpha + \beta - 1$$
+
+When next state's ($S_{t+1}$) On-Hand is equal to zero, there are two possibilities: 
+
+1. The demand for the day was exactly $\alpha + \beta$, meaning all demand was satisifed with available store inventory (so no stockout cost and only overnight holding cost), or
+2. The demand for the day was strictly greater than $\alpha + \beta$, meaning there's some stockout cost in addition to overnight holding cost. The exact stockout cost is an expectation calculation involving the number of units of missed demand under the corresponding poisson probabilities of demand exceeding $\alpha + \beta$.
+
+This calculation is shown below:
+$$\mathcal{R}_T((\alpha, \beta), o, (0, o)) = - h \alpha - p (\sum_{j=\alpha+\beta+1}^{\infty} f(j) \cdot (j - (\alpha + \beta)))$$
+ $$= - h \alpha - p (\lambda (1 - F(\alpha + \beta - 1)) -  (\alpha + \beta)(1 - F(\alpha + \beta)))$$ 
+
+So now we have a specification of $\mathcal{R}_T$ but when it comes to our coding interface, we are expected to specify $\mathcal{P}_R$ as that is the interface through which we create a `FiniteMarkovDecisionProcess`. Fear not - a specification of $\mathcal{P}_R$ is easy once we have a specification of $\mathcal{R}_T$. We simply create 5-tuples $(s,a,r,s',p)$ for all $s,s' \in \mathcal{S}, a \in \mathcal{A}$ such that $r=\mathcal{R}_T(s,a,s')$ and $p=\mathcal{P}(s,a,s')$ (we know $\mathcal{P}$ along with $\mathcal{R}_T$), and the set of all these 5-tuples (for all $s,s' \in \mathcal{S}, a \in \mathcal{A}$) constitute the specification of $\mathcal{P}_R$, i.e., $\mathcal{P}_R(s,a,r,s') = p$. This turns our reward-altered mathematical model of a Finite Markov Decision Process into a programming model of the `FiniteMarkovDecisionProcess` class. This reward-altered model enables us to gain from the fact that we can leverage the algorithms we'll be writing for Finite Markov Decision Processes (specifically, the classical Dynamic Programming algorithms - covered in the next chapter). The downside of this reward-altered model is that it prevents us from performing simulations of the specific rewards encountered when transitioning from one state to another (because we no longer capture the probabilities of individual reward outcomes). Note that we can indeed perform simulations, but each transition step in the simulation will only show us the "mean reward" (specifically, the expected reward conditioned on current state, action and next state).
+
+In fact, most Markov Processes you'd encounter in practice can be modeled as a combination of $\mathcal{R}_T$ and $\mathcal{P}$, and you'd simply follow the above $\mathcal{R}_T$ to $\mathcal{P}_R$ representation transformation drill to present this information in the form of $\mathcal{P}_R$ to instantiate a `FiniteMarkovDecisionProcess`. We designed the interface to accept $\mathcal{P}_R$ as input since that is the most general interface for specifying Markov Decision Processes.
+
+So now let's write some code for the simple inventory example as a Finite Markov Decision Process as described above. All we have to do is to create a derived class inherited from `FiniteMarkovDecisionProcess` and write a method to construct the `mapping: StateActionMapping` (i.e., $\mathcal{P}_R$) that the `__init__` constuctor of `FiniteMarkovRewardProcess` requires as input. Note that the generic state `S` is replaced here with the `@dataclass InventoryState` to represent the inventory state, comprising of the On-Hand and On-Order inventory quantities, and the generic action `A` is replaced here with `int` to represent the order quantity.
 
 ```python
-InvOrderMapping = Mapping[InventoryState, ActionMapping[int, InventoryState]]
+InvOrderMapping = StateActionMapping[InventoryState, int]
 
 class SimpleInventoryMDPCap(FiniteMarkovDecisionProcess[InventoryState, int]):
 
@@ -416,6 +434,8 @@ class SimpleInventoryMDPCap(FiniteMarkovDecisionProcess[InventoryState, int]):
         return d
 ```
 
+Now let's test this out with some example inputs (as shown below). We construct an instance of the `SimpleInventoryMDPCap` class with these inputs (named `si_mdp` below), then construct an instance of the `FinitePolicy[InventoryState, int]` class (a deterministic policy, named `fdp` below), and combine them to produce the implied MRP (an instance of the `FiniteMarkovRewardProcess[InventoryState]` class). 
+
 ```python
 user_capacity = 2
 user_poisson_lambda = 1.0
@@ -442,7 +462,7 @@ implied_mrp: FiniteMarkovRewardProcess[InventoryState] =\
     si_mdp.apply_finite_policy(fdp)
 ```   
 
-The above code is in the file [rl/chapter3/simple_inventory_mdp_cap.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/chapter3/simple_inventory_mdp_cap.py).
+The above code is in the file [rl/chapter3/simple_inventory_mdp_cap.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/chapter3/simple_inventory_mdp_cap.py). We encourage you to play with the inputs in `__main__`, produce the resultant implied MRP and explore it's characteristics (such as it's Reward Function and it's Value Function).
 
 ## MDP Value Function for a Fixed Policy
 
