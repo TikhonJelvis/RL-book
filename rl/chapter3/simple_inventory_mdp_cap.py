@@ -42,9 +42,9 @@ class SimpleInventoryMDPCap(FiniteMarkovDecisionProcess[InventoryState, int]):
 
         for alpha in range(self.capacity + 1):
             for beta in range(self.capacity + 1 - alpha):
-                state = InventoryState(alpha, beta)
-                ip = state.inventory_position()
-                base_reward = - self.holding_cost * alpha
+                state: InventoryState = InventoryState(alpha, beta)
+                ip: int = state.inventory_position()
+                base_reward: float = - self.holding_cost * alpha
                 d1: Dict[int, Categorical[Tuple[InventoryState, float]]] = {}
 
                 for order in range(max(self.capacity - ip, 0) + 1):
@@ -53,8 +53,8 @@ class SimpleInventoryMDPCap(FiniteMarkovDecisionProcess[InventoryState, int]):
                         [((InventoryState(ip - i, order), base_reward),
                           self.poisson_distr.pmf(i)) for i in range(ip)]
 
-                    probability = 1 - self.poisson_distr.cdf(ip - 1)
-                    reward = base_reward - self.stockout_cost *\
+                    probability: float = 1 - self.poisson_distr.cdf(ip - 1)
+                    reward: float = base_reward - self.stockout_cost *\
                         (probability * (self.poisson_lambda - ip) +
                          ip * self.poisson_distr.pmf(ip))
                     sr_probs_list.append(
