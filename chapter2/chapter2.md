@@ -299,7 +299,7 @@ class MarkovProcess(ABC, Generic[S]):
             state = self.transition(state).sample()
 ```
 
-So if you have a mathematical specification of the transition probabilities of a Markov Process, all you need to do is to create a derived class (inherited from abstract class `MarkovProcess`) and implement the `transition` method in the derived class in a manner that captures your mathematical specification of the transition probabilities. Let us make this concrete for the case of Process 3 (the 3rd example of stock price transitions we covered in the previous section). We will name this derived class (`dataclass`) as `StockPriceMP3`. Note that the generic state space `S` is now replaced with a concrete state space represented by the `dataclass` `StateMP3`. The code should be self-explanatory since we implemented this process as a standalone in the previous section. Note the use of the `Categorical` distribution in the `transition` method to capture the 2-outcomes distribution of next states (for movements up or down).
+So if you have a mathematical specification of the transition probabilities of a Markov Process, all you need to do is to create a concrete class that implements the interface of the abstract class `MarkovProcess` (specifically by implementing the  `@abstractmethod transition`) in a manner that captures your mathematical specification of the transition probabilities. Let us write this for the case of Process 3 (the 3rd example of stock price transitions we covered in the previous section). We will name the concrete class as `StockPriceMP3` (note that it's a `@dataclass` for convenience and simplicity). Note that the generic state space `S` is now replaced with a specific state space represented by the type `@dataclass StateMP3`. The code should be self-explanatory since we implemented this process as a standalone in the previous section. Note the use of the `Categorical` distribution in the `transition` method to capture the 2-outcomes distribution of next states (for movements up or down).
 
 ```python
 @dataclass
@@ -350,7 +350,7 @@ We leave it to you as an exercise to similarly implement Stock Price Processes 1
 
 ## Finite Markov Processes
 
-Now let us consider Markov Processes with a finite state space. So we can represent the state space as $\mathcal{S} = \{s_1, s_2, \ldots, s_n\}$. Let us refer to Markov Processes with finite state spaces as Finite Markov Processes. Since Finite Markov Processes are a subclass of Markov Processes, it would make sense to create a derived class `FiniteMarkovProcess` that inherits from the abstract class `MarkovProcess`. We'd need to implement the abstract method `transition`. But first let's think about the data structure required to specify an instance of a `FiniteMarkovProcess` (i.e., the data structure we'd pass to the `__init__` method of `FiniteMarkovProcess`). One choice is a $n \times n$ 2D numpy array representation, i.e., matrix elements representing transition probabilities
+Now let us consider Markov Processes with a finite state space. So we can represent the state space as $\mathcal{S} = \{s_1, s_2, \ldots, s_n\}$. Let us refer to Markov Processes with finite state spaces as Finite Markov Processes. Since Finite Markov Processes are a subclass of Markov Processes, it would make sense to create a concrete class `FiniteMarkovProcess` that implements the interface of the abstract class `MarkovProcess` (specifically implement the `@abstractmethod transition`). But first let's think about the data structure required to specify an instance of a `FiniteMarkovProcess` (i.e., the data structure we'd pass to the `__init__` method of `FiniteMarkovProcess`). One choice is a $n \times n$ 2D numpy array representation, i.e., matrix elements representing transition probabilities
 $$\mathcal{P} : \{s_1, s_2, \ldots, s_n\} \times \{s_1, s_2, \ldots, s_n\} \rightarrow [0, 1]$$
 However, we often find that this matrix can be sparse since one often transitions from a given state to just a few set of states. So we'd like a sparse representation and we can accomplish this by conceptualizing $\mathcal{P}$ in an [equivalent curried form](https://en.wikipedia.org/wiki/Currying) as follows:
 $$\{s_1, s_2, \ldots, s_n\} \rightarrow (\{s_1, s_2, \ldots, s_n\} \rightarrow [0, 1])$$
@@ -406,6 +406,7 @@ class FiniteMarkovProcess(MarkovProcess[S]):
 The above code is in the file [rl/markov_process.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/markov_process.py).
 
 ## Simple Inventory Example
+
 To help conceptualize Finite Markov Processes, let us consider a simple example of changes in inventory at a store. Assume you are the store manager and that you are tasked with controlling the ordering of inventory from a supplier. Let us focus on the inventory of a particular type of bicycle. Assume that each day there is random (non-negative integer) demand for the bicycle with the probabilities of demand following a Poisson distribution (with Poisson parameter $\lambda \in \mathbb{R}_{\geq 0}$), i.e. demand $i$ for each $i = 0, 1, 2, \ldots$ occurs with probability
 $$f(i) = \frac {e^{-\lambda} \lambda^i} {i!}$$
 Denote $F: \mathbb{Z}_{\geq 0} \rightarrow [0, 1]$ as the poisson cumulative distribution function, i.e.,
@@ -427,7 +428,7 @@ $$\mathcal{P}((\alpha, \beta), (\alpha + \beta - i, \max(C - (\alpha + \beta), 0
 $$\mathcal{P}((\alpha, \beta), (0, \max(C - (\alpha + \beta), 0))) = \sum_{j=\alpha+\beta}^{\infty} f(j) = 1 - F(\alpha + \beta - 1)$$
 Note that the next state's ($S_{t+1}$) On-Hand can be zero resulting from any of infinite possible demand outcomes greater than or equal to $\alpha + \beta$.
 
-So we are now ready to write code for this simple inventory example as a Markov Process. All we have to do is to create a derived class inherited from `FiniteMarkovProcess` and write a method to construct the `transition_map: Transition`. Note that the generic state `S` is replaced here with the `@dataclass InventoryState` consisting of the pair of On-Hand and On-Order inventory quantities comprising the state of this Finite Markov Reward Process.
+So we are now ready to write code for this simple inventory example as a Markov Process. All we have to do is to create a derived class inherited from `FiniteMarkovProcess` and write a method to construct the `transition_map: Transition`. Note that the generic state `S` is replaced here with the `@dataclass InventoryState` consisting of the pair of On-Hand and On-Order inventory quantities comprising the state of this Finite Markov Process.
 
 ```python
 @dataclass(frozen=True)
@@ -631,7 +632,7 @@ class MarkovRewardProcess(MarkovProcess[S]):
             state, reward = self.transition_reward(state).sample()
 ```
 
-So the idea is that if someone wants to model a Markov Reward Process, they'd simply have to create a derived class inheriting from `MarkovRewardProcess` and implement the `transition_reward` method in the derived class. For this derived class to be a concrete class, we'd need the `transition` method to be implemented. However, we don't have to implement it in the derived class - in fact, we can implement it in the `MarkovRewardProcess` class by tapping the method `transition_reward`. Here's the code for the `transition` method in `MarkovRewardProcess`:
+So the idea is that if someone wants to model a Markov Reward Process, they'd simply have to create a concrete class that implements the interface of the abstract class `MarkovRewardProcess` (specifically implement the `@abstractmethod transition_reward`). But also note that the `@abstractmethod transition` of `MarkovProcess` also needs to be implemented to make the whole things concrete. However, we don't have to implement it in the concrete class implementing the interface of `MarkovRewardProcess` - in fact, we can implement it in the `MarkovRewardProcess` class itself by tapping the method `transition_reward`. Here's the code for the `transition` method in `MarkovRewardProcess`:
 
 ```python
     def transition(self, state: S) -> Distribution[S]:
@@ -688,7 +689,7 @@ This is because the overnight holding cost applies to each unit of on-hand inven
 $$\mathcal{P}_R((\alpha, \beta), -h \cdot \alpha - p \cdot \max(i - (\alpha + \beta), 0), (max(\alpha + \beta - i, 0), \max(C - (\alpha + \beta), 0)))$$
 $$= \frac {e^{-\lambda} \lambda^i} {i!} \text{ for all } i = 0, 1, 2, \ldots $$
 
-Now let's write some code to implement this simple inventory example as a Markov Reward Process as described above. All we have to do is to create a derived class inherited from the abstract class `MarkovRewardProcess` and implement the `@abstractmethod transition_reward`. The code samples the customer demand from a Poisson distribution, uses the above formulas for the pair of next state and reward as a function of the customer demand sample, and returns an instance of `SampledDistribution`. Note that the generic state `S` is replaced here with the `@dataclass InventoryState` to represent the state of this Markov Reward Process, comprising of the On-Hand and On-Order inventory quantities.
+Now let's write some code to implement this simple inventory example as a Markov Reward Process as described above. All we have to do is to create a concrete class implementing the interface of the abstract class `MarkovRewardProcess` (specifically implement the `@abstractmethod transition_reward`). The code below in `transition_reward` method in `class SimpleInventoryMRP` samples the customer demand from a Poisson distribution, uses the above formulas for the pair of next state and reward as a function of the customer demand sample, and returns an instance of `SampledDistribution`. Note that the generic state `S` is replaced here with the `@dataclass InventoryState` to represent a state of this Markov Reward Process, comprising of the On-Hand and On-Order inventory quantities.
 
 ```python
 @dataclass(frozen=True)
@@ -738,15 +739,20 @@ The above code can be found in the file [rl/chapter2/simple_inventory_mrp.py](ht
 
 ## Finite Markov Reward Processes
 
-The above calculations can be performed easily for the case of finite states (known as Finite Markov Reward Processes). So let us write some code for the case of $\mathcal{S} = \{s_1, s_2, \ldots, s_n\}$. We create a derived classs `FiniteMarkovRewardProcess` that primarily inherits from `FiniteMarkovProcess` (concrete class)and secondarily inherits from `MarkovRewardProcess` (abstract class). Our first task is to think about the data structure required to specify an instance of `FiniteMarkovRewardProcess` (i.e., the data structure we'd pass to the `__init__` method of `FiniteMarkovRewardProcess`). Analogous to how we curried $\mathcal{P}$ as $\mathcal{S} \rightarrow (\mathcal{S} \rightarrow [0,1])$ (where $\mathcal{S} = \{s_1, s_2, \ldots, s_n\}$), we curry $\mathcal{P}_R$ as:
+Certain calculations for Markov Reward Processes can be performed easily if:
+
+* The state space is finite ($\mathcal{S} = \{s_1, s_2, \ldots, s_n\}$), and
+* The set of pairs of next state and reward transitions from each of the states is finite
+
+If we satisfy the above two characteristics, we refer to the Markov Reward Process as a Finite Markov Reward Process. So let us write some code for a Finite Markov Reward Process. We create a concrete class `FiniteMarkovRewardProcess` that primarily inherits from `FiniteMarkovProcess` (a concrete class) and secondarily implements the interface of the abstract class `MarkovRewardProcess`. Our first task is to think about the data structure required to specify an instance of `FiniteMarkovRewardProcess` (i.e., the data structure we'd pass to the `__init__` method of `FiniteMarkovRewardProcess`). Analogous to how we curried $\mathcal{P}$ as $\mathcal{S} \rightarrow (\mathcal{S} \rightarrow [0,1])$ (where $\mathcal{S} = \{s_1, s_2, \ldots, s_n\}$), here we curry $\mathcal{P}_R$ as:
 $$\mathcal{S} \rightarrow (\mathcal{S} \times \mathbb{R} \rightarrow [0, 1])$$
-This leads to the analog of the `Transition` data type for the case of Finite Markov Reward Processes as follows:
+Since $\mathcal{S}$ is finite and since the set of pairs of next state and reward transitions are also finite, this leads to the analog of the `Transition` data type for the case of Finite Markov Reward Processes as follows:
 
 ```python
 RewardTransition = Mapping[S, FiniteDistribution[Tuple[S, float]]]
 ```
 
-With this as input to ``__init__`` (input named `transition_reward_map: RewardTransition`), the `FiniteMarkovRewardProcess` class has three responsibilities:
+With this as input to ``__init__`` (input named `transition_reward_map: RewardTransition[S]`), the `FiniteMarkovRewardProcess` class has three responsibilities:
 
 * It needs to implement the `transition_reward` method analogous to the implementation of the `transition` method in `FiniteMarkovProcess`
 * It needs to create a `transition_map: Transition` (extracted from `transition_reward_map: RewardTransition`) in order to instantiate its concrete parent `FiniteMarkovProcess`.
@@ -810,7 +816,7 @@ So now we have a specification of $\mathcal{R}_T$ but when it comes to our codin
 
 In fact, most Markov Processes you'd encounter in practice can be modeled as a combination of $\mathcal{R}_T$ and $\mathcal{P}$, and you'd simply follow the above $\mathcal{R}_T$ to $\mathcal{P}_R$ representation transformation drill to present this information in the form of $\mathcal{P}_R$ to instantiate a `FiniteMarkovRewardProcess`. We designed the interface to accept $\mathcal{P}_R$ as input since that is the most general interface for specifying Markov Reward Processes.
 
-So now let's write some code for the simple inventory example as a Finite Markov Reward Process as described above. All we have to do is to create a derived class inherited from `FiniteMarkovRewardProcess` and write a method to construct the `transition_reward_map: RewardTransition` (i.e., $\mathcal{P}_R$). Note that the generic state `S` is replaced here with the `@dataclass InventoryState` to represent the state, comprising of the On-Hand and On-Order inventory quantities.
+So now let's write some code for the simple inventory example as a Finite Markov Reward Process as described above. All we have to do is to create a derived class inherited from `FiniteMarkovRewardProcess` and write a method to construct the `transition_reward_map: RewardTransition` (i.e., $\mathcal{P}_R$) that the `__init__` constuctor of `FiniteMarkovRewardProcess` requires as input. Note that the generic state `S` is replaced here with the `@dataclass InventoryState` to represent the state, comprising of the On-Hand and On-Order inventory quantities.
 
 ```python
 from scipy.stats import poisson

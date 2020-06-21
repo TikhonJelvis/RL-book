@@ -35,7 +35,7 @@ Using the language of AI, we say that at each time step $t$, the *Agent* (the al
 
 ## Formal Definition of a Markov Decision Process
 
-Similar to the definitions of Markov Processes and Markov Reward Processes, for ease of exposition, the definitions and theory of Markov Decision  Processes below will be for discrete-time, for countable state spaces and countable set of pairs of next state and reward transitions (with the knowledge that the definitions and theory are analogously extensible to continuous-time and uncountable spaces, which we shall indeed encounter in this book). 
+Similar to the definitions of Markov Processes and Markov Reward Processes, for ease of exposition, the definitions and theory of Markov Decision  Processes below will be for discrete-time, for countable state spaces and countable set of pairs of next state and reward transitions (with the knowledge that the definitions and theory are analogously extensible to continuous-time and uncountable spaces, which we shall indeed encounter later in this book). 
 
 \begin{definition}
 
@@ -63,51 +63,45 @@ Like in the case of Markov Reward Processes, the role of $\gamma$ only comes in 
 
 Like in the case of Markov Processes and Markov Reward Processes, we shall (by default) assume Stationarity for Markov Decision Processes, i.e., $\mathbb{P}[(R_{t+1}, S_{t+1}) | (S_t, A_t)]$ is independent of $t$. This means the transition probabilities of a Markov Decision Process can, in the most general case, be expressed as a state-reward transition probability function:
 
- $$\mathcal{P}_R: \mathcal{S} \times \mathcal{A} \times \mathbb{R} \times \mathcal{S} \rightarrow [0,1]$$
+$$\mathcal{P}_R: \mathcal{S} \times \mathcal{A} \times \mathbb{R} \times \mathcal{S} \rightarrow [0,1]$$
 
- defined as:
+defined as:
 
- $$\mathcal{P}_R(s,a,r,s') = \mathbb{P}[(R_{t+1}=r, S_{t+1}=s') |(S_t=s, A_t=a)]$$ such that $$\sum_{s'\in \mathcal{S}} \sum_{r \in \mathbb{R}} \mathcal{P}_R(s,a,r,s') = 1 \text{ for all } s \in \mathcal{S}, a \in \mathcal{A}$$
+$$\mathcal{P}_R(s,a,r,s') = \mathbb{P}[(R_{t+1}=r, S_{t+1}=s') |(S_t=s, A_t=a)]$$ such that $$\sum_{s'\in \mathcal{S}} \sum_{r \in \mathbb{R}} \mathcal{P}_R(s,a,r,s') = 1 \text{ for all } s \in \mathcal{S}, a \in \mathcal{A}$$
 
-Henceforth, any time we say Markov Decision Process, assume we are refering to a Discrete-Time Stationary Markov Decision Process with the above-mentioned countable spaces/transitions assumptions (unless explicitly specified otherwise), which in turn will be characterized by the state-reward transition probability function $\mathcal{P}_R$. 
-
-Let us now proceed to write some code that captures this formalism. 
-
-TODO: Show the code for abstract class MarkovDecisionProcess
-
-Now let us develop some more theory. Given a specification of $\mathcal{P}_R$, we can construct:
+Henceforth, any time we say Markov Decision Process, assume we are refering to a Discrete-Time Stationary Markov Decision Process with the above-mentioned countable spaces/transitions assumptions (unless explicitly specified otherwise), which in turn will be characterized by the state-reward transition probability function $\mathcal{P}_R$. Given a specification of $\mathcal{P}_R$, we can construct:
 
 * The state transition probability function
 
 $$\mathcal{P}: \mathcal{S} \times \mathcal{A} \times \mathcal{S} \rightarrow [0,1]$$
 
- defined as:
+defined as:
 
- $$\mathcal{P}(s, a, s') = \sum_{r\in \mathbb{R}} \mathcal{P}_R(s,a, r,s')$$
+$$\mathcal{P}(s, a, s') = \sum_{r\in \mathbb{R}} \mathcal{P}_R(s,a, r,s')$$
 
 * The reward transition function:
 
- $$\mathcal{R}_T: \mathcal{S} \times \mathcal{A} \times \mathcal{S} \rightarrow \mathbb{R}$$
+$$\mathcal{R}_T: \mathcal{S} \times \mathcal{A} \times \mathcal{S} \rightarrow \mathbb{R}$$
 
 defined as:
 
-$$\mathcal{R}_T(s,a,s') = \mathbb{E}[R_{t+1}|(S_{t+1}=s',S_t=s,A_t=a)]$$_
+$$\mathcal{R}_T(s,a,s') = \mathbb{E}[R_{t+1}|(S_{t+1}=s',S_t=s,A_t=a)]$$
 
 $$ = \sum_{r\in \mathcal{R}} \frac {\mathcal{P}_R(s,a,r,s')} {\mathcal{P}(s,a,s')} \cdot r = \sum_{r\in \mathcal{R}} \frac {\mathcal{P}_R(s,a,r,s')} {\sum_{r\in \mathbb{R}} \mathcal{P}_R(s,a,r,s')} \cdot r$$
 
 The Rewards specification of most Markov Decision Processes we encounter in practice can be directly expressed as the reward transition function $\mathcal{R}_T$ (versus the more general specification of $\mathcal{P}_R$). Lastly, we want to highlight that we can transform either of $\mathcal{P}_R$ or $\mathcal{R}_T$ into a "more compact" reward function that is sufficient to perform key calculations involving Markov Decision Processes. This reward function
 
- $$\mathcal{R}: \mathcal{S} \times \mathcal{A} \rightarrow \mathbb{R}$$
+$$\mathcal{R}: \mathcal{S} \times \mathcal{A} \rightarrow \mathbb{R}$$
 
- is defined as:
+is defined as:
 
- $$\mathcal{R}(s,a) = \mathbb{E}[R_{t+1}|(S_t=s, A_t=a)]$$_
+$$\mathcal{R}(s,a) = \mathbb{E}[R_{t+1}|(S_t=s, A_t=a)]$$
 
 $$= \sum_{s' \in \mathcal{S}} \mathcal{P}(s,a,s') \cdot \mathcal{R}_T(s,a,s') = \sum_{s'\in \mathcal{S}} \sum_{r\in\mathbb{R}} \mathcal{P}_R(s,a,r,s') \cdot r$$
 
 ## Policy
 
-Having understood the dynamics of a Markov Decision Process, we now move on to the specification of the *Agent*'s actions as a function of the observed state. In the general case, we assume that the Agent will perform a random action, according to a probability distribution that is a function of the state the Agent just observed. We refer to this function as a *Policy*. Formally, a *Policy* is a function
+Having understood the dynamics of a Markov Decision Process, we now move on to the specification of the *Agent*'s actions as a function of the current state. In the general case, we assume that the Agent will perform a random action $A_t$, according to a probability distribution that is a function of the current statei $S_t$. We refer to this function as a *Policy*. Formally, a *Policy* is a function
 
 $$\pi: \mathcal{A} \times \mathcal{S} \rightarrow [0,1]$$
 
@@ -125,32 +119,78 @@ where $\pi_D: \mathcal{S} \rightarrow \mathcal{A}$.
 
 So we shall specify deterministic policies simply with the function $\pi_D$. We shall refer to non-deterministic policies as stochastic policies (the word stochastic reflecting the fact that the agent will perform a random action according to the probability distribution specified by $\pi$). So when we use the notation $\pi$, assume that we are dealing with a stochastic (i.e., non-deterministic) policy and when we use the notation $\pi_D$, assume that we are dealing with a deterministic policy.
 
-TODO: Show code for Policy class
+Let's write some code to get a grip on the concept of Policy  - we start with the design of an abstract class called `Policy` that represents a general Policy, as we have articulated above. The only method it contains is an `@abstractmethod act` that accepts as input a `state: S` (as seen before in the classes `MarkovProcess` and `MarkovRewardProcess`, `S` is a generic type to represent a generic state) and produces as output an object of type `Distribution[A]` that represents the probability distribution of the random action as a function of the current state.
 
-Note that in the previous chapter, the Deterministic Policy we followed when constructing the simple inventory examples was:
+```python
+A = TypeVar('A')
+S = TypeVar('S')
 
-$$\pi_D((\alpha, \beta)) = \max(C - (\alpha _ \beta), 0)$$ where $C$ is the capacity in the store for bicycles, $\alpha$ is the On-Hand Inventory at store-closing and $\beta$ is the On-Order Inventory at store-closing.
+class Policy(ABC, Generic[S, A]):
 
-TODO: Show this above deterministic policy in code. Also show in code an example of a stochastic policy.
+    @abstractmethod
+    def act(self, state: S) -> Distribution[A]:
+        pass
+```
 
-## Simple Inventory Example with Unlimited Capacity (Infinite State/Action Space)
+Now let's write some code to create some concrete policies for an example we are familiar with - the simple inventory example. We first create a concrete class for deterministic inventory replenishment policies that implements the interface of abstract class `Policy` (specifically implements the `@abstractmethod act`). Note that the generic state `S` is replaced here with the class `InventoryState` that represents a state in the inventory example, comprising of the On-Hand and On-Order inventory quantities. Also note that generic action `A` is replaced here with the `int` type since in this example, the action is the quantity of inventory to be ordered at store-closing (which is an integer quantity). Note that since our class is meant to produce a deterministic policy, the `act` method returns a `Constant[int]` which is a probability distribution with 100% of the probability concentrated at a single `int` value (`int` represents the integer quantity of inventory to be ordered). The code in `act` implements the following deterministic policy:
 
-TODO: Show the class deriving from MarkovDecisionProcess for simple inventory example with unlimited capacity. Do simulations, plot some graphs
+$$\pi_D((\alpha, \beta)) = \max(C - (\alpha + \beta), 0)$$ where $C$ is a parameter representing the "reorder point" (meaning we order only when the inventory position falls below the "reorder point"), $\alpha$ is the On-Hand Inventory at store-closing, $\beta$ is the On-Order Inventory at store-closing, and inventory position is equal to $\alpha + \beta$. In the previous chapter, we set the store capacity $C$ for bicycles to be the reorder point.
 
-## Finite Markov Decision Processes
+```python
+@dataclass(frozen=True)
+class InventoryState:
+    on_hand: int
+    on_order: int
 
-TODO: Show code for class FiniteMarkovDecisionProcess
+    def inventory_position(self) -> int:
+        return self.on_hand + self.on_order
 
-## Simple Inventory Example as a Finite Markov Decision Process
+class SimpleInventoryDeterministicPolicy(Policy[InventoryState, int]):
+    def __init__(self, reorder_point: int):
+        self.reorder_point: int = reorder_point
 
-TODO: Set up the mathematical specification of simple Inventory example as an MDP
+    def act(self, state: InventoryState) -> Constant[int]:
+        return Constant(max(self.reorder_point - state.inventory_position(),
+                            0))
+```
 
-TODO: Show code for class SimpleInventoryMDP as a derived class of FiniteMarkovDecisionProcess
+We can instantiate a specific deterministic policy with a reorder point of say 10 as:   
 
+```python
+si_dp = SimpleInventoryDeterministicPolicy(reorder_point=10)
+```
+
+We will revisit the simple inventory example in a bit after we cover the code for Markov Decision Processes when we'll show how to simulate the Markov Decision Process for the inventory example, with the agent running a deterministic policy of the type we've shown above. Meanwhile, let's write some code to create stochastic policies for the inventory example. Similar to `SimpleInventoryDeterministicPolicy`, we create a concrete class `SimpleInventoryStochasticPolicy` that implements the interface of the abstract class `Policy` (specifically implements the `@abstractmethod act`). The code in `act` implements the following stochastic policy:
+
+$$\pi((\alpha, \beta), o) = \frac {e^{-\lambda} \lambda^{r}} {r!}$$
+$$o = \max(r - (\alpha + \beta), 0)$$
+where $r \in \mathbb{Z}_{\geq 0}$ is the random re-order point with poisson probability distribution given by a specified poisson mean parameter $\lambda \in \mathbb{R}_{\geq 0}$, and $o\in \mathbb{Z}_{\geq 0}$ is the order quantity (action).
+
+```python
+class SimpleInventoryStochasticPolicy(Policy[InventoryState, int]):
+    def __init__(self, reorder_point_poisson_mean: float):
+        self.reorder_point_poisson_mean: float = reorder_point_poisson_mean
+
+    def act(self, state: InventoryState) -> SampledDistribution[int]:
+        def action_func(state=state) -> int:
+            reorder_point_sample: int = \
+                np.random.poisson(self.reorder_point_poisson_mean)
+            return max(reorder_point_sample - state.inventory_position(), 0)
+
+        return SampledDistribution(action_func)
+```
+
+We can instantiate a specific stochastic policy with a reorder point poisson distribution mean of say 5.2 as:   
+
+```python
+si_sp = SimpleInventoryStochasticPolicy(reorder_point_poisson_mean=5.2)
+```
+
+Now we will move on to the implementation of Markov Decision Processes (to accompany the above implementation of Policies). However, we will first require an important insight linking MDP, MRP and Policy.
 
 ## [Markov Decision Process, Policy] := Markov Reward Process
 
-This section has an important insight - that if we evaluate a Markov Decision Process (MDP) with a fixed policy $\pi$, we get the Markov Reward Process (MRP) that is implied by the evaluation of the MDP with the policy $\pi$ and the MDP. Let's clarify this with notational precision. But first we need to point out that we have some notation clashes between MDP and MRP. We used $\mathcal{P}_R$ to denote the transition probability function of the MRP as well as to denote the state-reward transition probability function of the MDP. We used $\mathcal{P}$ to denote the transition probability function of the Markov Process implicit in the MRP as well as to denote the state transition probability function of the MDP. We used $\mathcal{R}_T$ to denote the reward transition function of the MRP as well as to denote the reward transition function of the MDP. We used $\mathcal{R}$ to denote the reward function of the MRP as well as to denote the reward function of the MDP. We can resolve these notation clashes by noting the arguments being passed to $\mathcal{P}_R$, $\mathcal{P}, \mathcal{R}_T$ and $\mathcal{R}$, but to be extra-clear, we'll put a superscript of $\pi \rightarrow MRP$ to each of the functions $\mathcal{P}_R$, $\mathcal{P}, \mathcal{R}_T$ for the $\pi$-implied MRP so as to distinguish between these functions for the MDP versus the $\pi$-implied MRP.
+This section has an important insight - that if we evaluate a Markov Decision Process (MDP) with a fixed policy $\pi$ (in general, with a fixed stochastic policy $\pi$), we get the Markov Reward Process (MRP) that is implied by the evaluation of the MDP with the policy $\pi$ and the MDP. Let's clarify this with notational precision. But first we need to point out that we have some notation clashes between MDP and MRP. We used $\mathcal{P}_R$ to denote the transition probability function of the MRP as well as to denote the state-reward transition probability function of the MDP. We used $\mathcal{P}$ to denote the transition probability function of the Markov Process implicit in the MRP as well as to denote the state transition probability function of the MDP. We used $\mathcal{R}_T$ to denote the reward transition function of the MRP as well as to denote the reward transition function of the MDP. We used $\mathcal{R}$ to denote the reward function of the MRP as well as to denote the reward function of the MDP. We can resolve these notation clashes by noting the arguments being passed to $\mathcal{P}_R$, $\mathcal{P}, \mathcal{R}_T$ and $\mathcal{R}$, but to be extra-clear, we'll put a superscript of $\pi \rightarrow MRP$ to each of the functions $\mathcal{P}_R$, $\mathcal{P}, \mathcal{R}_T$ for the $\pi$-implied MRP so as to distinguish between these functions for the MDP versus the $\pi$-implied MRP.
 
 Let's say we are given a fixed policy $\pi$ and an MDP specified by it's state-reward transition probability function $\mathcal{P}_R$. Then the transition probability function $\mathcal{P}^{\pi \rightarrow MRP}$ of the MRP implied by the evaluation of the MDP with the policy $\pi$ is defined as:
 
@@ -164,13 +204,249 @@ $$\mathcal{R}_T^{\pi \rightarrow MRP}(s,s') = \sum_{a\in \mathcal{A}} \pi(s,a) \
 
 $$\mathcal{R}^{\pi \rightarrow MRP}(s) = \sum_{a\in \mathcal{A}} \pi(s,a) \cdot \mathcal{R}(s,a)$$
 
-So each time we talk about an MDP evaluated with a fixed policy, you should know that we are effectively talking about the implied MRP.
+So any time we talk about an MDP evaluated with a fixed policy, you should know that we are effectively talking about the implied MRP. This insight is now going to be key in the design of our code to represent Markov Decision Processes. We create an abstract class called `MarkovDecisionProcess` with just a single method - an `@abstractmethod` called `apply_policy` that would take as input a `Policy` object and would produce a  `MarkovRewardProcess` object. Thanks to the above insight, we've essentially modeled the fact that an MDP is fully specified by the MRP implied by a provided policy the agent would evaluate in order to "run the MDP" (which effectively amounts to execution of the implied MRP). The entire body of this lean abstract class `MarkovDecisionProcess` is shown below:
 
-TODO: Code to convert MDP + Policy to an MRP
+```python
+class MarkovDecisionProcess(ABC, Generic[S, A]):
+    @abstractmethod
+    def apply_policy(self, policy: Policy[S, A]) -> MarkovRewardProcess[S]:
+        pass
+```
+
+The above code for `Policy` and `MarkovDecisionProcess` is in the file [rl/markov_decision_process.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/markov_decision_process.py).   
+
+## Simple Inventory Example with Unlimited Capacity (Infinite State/Action Space)
+
+Now we come back to our simple inventory example. Unlike previous situations of this example, here we will assume that there is no space capacity constraint on toothpaste. This means we have a choice of ordering any (unlimited) non-negative integer quantity of toothpaste units. Therefore, the action space is infinite. Also, since the order quantity shows up as On-Order the next day and as delivered inventory the day after the next day, the On-Hand and On-Order quantities are also unbounded. Hence, the state space is infinite. Due to the infinite state and action spaces, we won't be able to take advantage of the so-called "Tabular Dynamic Programming Algorithms" we will cover in the next chapter (algorithms that are meant for finite state and action spaces), we model infinite MDPs of this type because we can A) perform simulations (by sampling from an infinite space), and B) using sampling/simulations to construct approximate algorithms (paired with function approximation methods). We will cover details on these approximate algorithms later in the book - for now, it's important for you to simply get familiar with how to model infinite MDPs of this type. This infinite-space inventory example serves as a great learning for an introduction to modeling an infinite (but countable) MDP.
+
+We create a concrete class `SimpleInventoryMDPNoCap` that implements the abstract class `MarkovDecisionProcess` (specifically implements the `@abstractmethod apply_policy`). The attributes `poisson_lambda`, `holding_cost` and `stockout_cost` have the same semantic as as in the case of the simple inventory example seen in the previous chapter in the context of a Markov Reward Process (`SimpleInventoryMRP`). The `apply_policy` method takes as argument an object `policy` of abstract type `Policy`, so the only thing we can do with the `policy` object is to invoke the only method it has - `act(state)` - which gives us an object of type `Distribution[int]` representing an abstract probability distribution of actions (order quantities). What can we do with this abstract `Distribution[int]` object? Well, the only thing we can do with it is to invoke the only method it has - `sample()` - which gives us a sample of the action (`order: int`). Next, we sample from the poisson probability distribution of customer demand. From the samples of `order: int` and `demand_sample: int`, we obtain a sample of the pair of `next_state: InventoryState` and `reward: float`. This sample pair is returned as a `SampledDistribution` object by the implementation of the `transition_reward` method in the implied MRP class `ImpliedMRP`. The above sampling dynamics fully describe the MDP in terms of how a given policy interface helps generate samples in the implied MRP.
+
+```python
+class SimpleInventoryMDPNoCap(MarkovDecisionProcess[InventoryState, int]):
+    def __init__(self, poisson_lambda: float, holding_cost: float,
+                 stockout_cost: float):
+        self.poisson_lambda: float = poisson_lambda
+        self.holding_cost: float = holding_cost
+        self.stockout_cost: float = stockout_cost
+
+    def apply_policy(self, policy: Policy[InventoryState, int])\
+            -> MarkovRewardProcess[InventoryState]:
+
+        mdp = self
+
+        class ImpliedMRP(MarkovRewardProcess[InventoryState]):
+
+            def transition_reward(self, state: InventoryState)\
+                    -> SampledDistribution[Tuple[InventoryState, float]]:
+                order = policy.act(state).sample()
+
+                def sample_next_state_reward(
+                    mdp=mdp,
+                    state=state,
+                    order=order
+                ) -> Tuple[InventoryState, float]:
+                    demand_sample: int = np.random.poisson(mdp.poisson_lambda)
+                    ip: int = state.inventory_position()
+                    next_state: InventoryState = InventoryState(
+                        max(ip - demand_sample, 0),
+                        order
+                    )
+                    reward: float = - mdp.holding_cost * state.on_hand\
+                        - mdp.stockout_cost * max(demand_sample - ip, 0)
+                    return next_state, reward
+
+                return SampledDistribution(sample_next_state_reward)
+
+        return ImpliedMRP()
+```
+
+We leave it to you as an exercise to run various simulations of the MRP implied by the deterministic and stochastic policy instances we had created earlier (the above code is in the file [rl/chapter3/simple_inventory_mdp_nocap.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/chapter3/simple_inventory_mdp_nocap.py)). See the method `fraction_of_days_oos` in this file as an example of a simulation to calculate the percentage of days we'd be Out-of-Stock on Inventory when a customer comes in to buy toothpaste (naturally, the higher the re-order point in the policy, the lesser the percentage of days when we'd be Out-of-Stock). This kind of simulation exercise will help build intuition on the tradeoffs we have to make between having too little inventory versus having too much inventory (holding costs versus stockout costs) - essentially leading to our ultimate goal of determining the Optimal Policy (more on this later). 
+
+## Finite Markov Decision Processes
+
+Certain calculations for Markov Decision Processes can be performed easily if:
+
+* The state space is finite ($\mathcal{S} = \{s_1, s_2, \ldots, s_n\}$),
+* The action space is finite ($\mathcal{A} = \{a_1, a_2, \ldots, a_m\}$), and
+* The set of pairs of next state and reward transitions from each pair of current state and action is finite
+
+If we satisfy the above two characteristics, we refer to the Markov Decision Process as a Finite Markov Decision Process. So let us write some code for a Finite Markov Decision Process. We create a concrete class `FiniteMarkovDecisionProcess` that implements the interface of the abstract class `MarkovDecisionProcess` (specifically implements the `@abstractmethod apply_policy`). Our first task is to think about the data structure required to specify an instance of `FiniteMarkovDecisionProcess` (i.e., the data structure we'd pass to the `__init__` method of `FiniteMarkovDecisionProcess`). Analogous to how we curried $\mathcal{P}_R$ for a Markov Reward Process as $\mathcal{S} \rightarrow (\mathcal{S} \times \mathbb{R} \rightarrow [0,1])$ (where $\mathcal{S} = \{s_1, s_2, \ldots, s_n\}$), here we curry $\mathcal{P}_R$ for the MDP as:
+$$\mathcal{S} \rightarrow (\mathcal{A} \rightarrow (\mathcal{S} \times \mathbb{R} \rightarrow [0, 1]))$$
+Since $\mathcal{S}$ is finite, $\mathcal{A}$ is finite and the set of next state and reward transitions for each pair of current state and action is also finite, we can represent $\mathcal{P}_R$ as a data structure of type `StateActionMapping[S, A]` as shown below:
+
+```python
+StateReward = FiniteDistribution[Tuple[S, float]]
+ActionMapping = Mapping[A, StateReward[S]]
+StateActionMapping = Mapping[S, ActionMapping[A, S]]
+```
+
+The constructor (``__init__`` method) of `FiniteMarkovDecisionProcess` takes as input `mapping: StateActionMapping[S, A]` that represents the complete structure of the Finite MDP - it maps each state to an action map, and it maps each action in each action map to a finite probability distribution of pairs of next state and reward (essentially the structure of the $\mathcal{P}_R$ function). Now let's consider the implementation of the method `apply_policy`. It's interface says that it's input is a `policy: Policy[S, A]`. Since `Policy[S, A]` is an abstract class with only an `@abstractmethod act`, all we can do in `apply_policy` is to call the `act` method of `Policy[S, A]`. This gives us an object of abstract type `Distribution[A]` and all we can do with it is to call it's only `@abstractmethod sample`, upon which we get an action sample `action: A`. Given the `state: A` and the sample `action: A`, we can access `self.mapping[state][action]: FiniteDistribution[Tuple[S, float]]` which represents a finite probability distribution of pairs of next state and reward. We sample from this distribution and return the sample pair of next state and reward as a `SampledDistribution` object. This satisfies the responsibility of `FiniteMarkovDecisionProcess` in terms of implementing the `@abstractmethod apply_policy` of the abstract class `MarkovDecisionProcess`. The code below also includes the `actions` method which produces the set of allowed actions $\mathcal{A}(s)$ for a given state $s\in \mathcal{S}$, and the `__repr__` method that pretty-prints `self.mapping`.
+
+```python
+class FiniteMarkovDecisionProcess(MarkovDecisionProcess[S, A]):
+
+    mapping: StateActionMapping[S, A]
+
+    def __init__(self, mapping: StateActionMapping[S, A]]):
+        self.mapping = mapping
+
+    def __repr__(self) -> str:
+        display = ""
+        for s, d in self.mapping.items():
+            display += f"From State {s}:\n"
+            for a, d1 in d.items():
+                display += f"  With Action {a}:\n"
+                for (s1, r), p in d1.table():
+                    display += f"    To [State {s} and "\
+                        + f"Reward {r:.3f}] with Probability {p:.3f}\n"
+        return display
+
+    def apply_policy(self, policy: Policy[S, A]) -> MarkovRewardProcess[S]:
+        class Process(MarkovRewardProcess[S]):
+            def transition_reward(self,
+                                  state: S) -> Distribution[Tuple[S, float]]:
+                def next_state():
+                    action: A = policy.act(state).sample()
+                    return self.mapping[state][action].sample()
+
+                return SampledDistribution(next_state)
+
+        return Process()
+
+    def actions(self, state: S) -> Iterable[A]:
+        return self.mapping[state].keys()
+```
+
+Now that we've implemented a finite MDP, let's implement a finite policy, i.e., a policy function whose domain is a finite set of states $\mathcal{S} = \{s_1, s_2, \ldots, s_n\}$ and which maps each state to a probability distribution over a finite set of actions $\mathcal{A} = \{a_1, a_2, \ldots, a_m\}$. So we create a concrete class `FinitePolicy` that implements the interface of the abstract class `Policy` (specifically implements the `@abstractmethod act`). The input to the constructor (`__init__` method) is `policy_map: Mapping[S, FiniteDistribution[A]]` since this type captures the structure of the $\pi: \mathcal{S} \times \mathcal{A} \rightarrow [0, 1]$ function in the curried form:
+$$\mathcal{S} \rightarrow (\mathcal{A} \rightarrow [0, 1])$$
+for the cases of finite $\mathcal{S}$ and finite $\mathcal{A}$. The `act` method is straightforward. We also implement a `__repr__` method for pretty-printing of `policy_map`.
+
+```python
+class FinitePolicy(Policy[S, A]):
+
+    policy_map: Mapping[S, FiniteDistribution[A]]
+
+    def __init__(self, policy_map: Mapping[S, FiniteDistribution[A]]):
+        self.policy_map = policy_map
+
+    def __repr__(self) -> str:
+        display = ""
+        for s, d in self.policy_map.items():
+            display += f"For State {s}:\n"
+            for a, p in d.table():
+                display += f"  Do Action {a} with Probability {p:.3f}\n"
+        return display
+
+    def act(self, state: S) -> FiniteDistribution[A]:
+        return self.policy_map[state]
+```   
+
+Armed with a `FinitePolicy` class, we can now write a method `apply_finite_policy` in `FiniteMarkovDecisionProcess` that takes as input a `policy: FinitePolicy[S, A]` and returns a `FiniteMarkovRewardProcess[S]` by processing the finite structures of both of the MDP and the Policy and producing a finite structure of the implied MRP.      
+
+```python
+    def apply_finite_policy(
+            self, policy: FinitePolicy[S, A]) -> FiniteMarkovRewardProcess[S]:
+        transition_mapping: Dict[S, StateReward[S]] = {}
+
+        for state in self.mapping:
+            outcomes: DefaultDict[Tuple[S, float], float] = defaultdict(float)
+
+            for action, p_action in policy.act(state).table():
+                for outcome, p_state in self.mapping[state][action].table():
+                    outcomes[outcome] += p_action * p_state
+
+            transition_mapping[state] = Categorical(outcomes.items())
+
+        return FiniteMarkovRewardProcess(transition_mapping)
+```      
+
+The above code for `FiniteMarkovRewardProcess` and `FinitePolicy` is in the file [rl/markov_decision_process.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/markov_decision_process.py).   
+
+## Simple Inventory Example as a Finite Markov Decision Process
+
+TODO: Set up the mathematical specification of simple Inventory example as an MDP
+
+```python
+InvOrderMapping = Mapping[InventoryState, ActionMapping[int, InventoryState]]
+
+class SimpleInventoryMDPCap(FiniteMarkovDecisionProcess[InventoryState, int]):
+
+    def __init__(
+        self,
+        capacity: int,
+        poisson_lambda: float,
+        holding_cost: float,
+        stockout_cost: float
+    ):
+        self.capacity: int = capacity
+        self.poisson_lambda: float = poisson_lambda
+        self.holding_cost: float = holding_cost
+        self.stockout_cost: float = stockout_cost
+
+        self.poisson_distr = poisson(poisson_lambda)
+        super().__init__(self.get_action_transition_reward_map())
+
+    def get_action_transition_reward_map(self) -> InvOrderMapping:
+        d: Dict[InventoryState, Dict[int, Categorical[Tuple[InventoryState,
+                                                            float]]]] = {}
+
+        for alpha in range(self.capacity + 1):
+            for beta in range(self.capacity + 1 - alpha):
+                state: InventoryState = InventoryState(alpha, beta)
+                ip: int = state.inventory_position()
+                base_reward: float = - self.holding_cost * alpha
+                d1: Dict[int, Categorical[Tuple[InventoryState, float]]] = {}
+
+                for order in range(max(self.capacity - ip, 0) + 1):
+                    sr_probs_list: List[Tuple[Tuple[InventoryState, float],
+                                              float]] =\
+                        [((InventoryState(ip - i, order), base_reward),
+                          self.poisson_distr.pmf(i)) for i in range(ip)]
+
+                    probability: float = 1 - self.poisson_distr.cdf(ip - 1)
+                    reward: float = base_reward - self.stockout_cost *\
+                        (probability * (self.poisson_lambda - ip) +
+                         ip * self.poisson_distr.pmf(ip))
+                    sr_probs_list.append(
+                        ((InventoryState(0, order), reward), probability)
+                    )
+                    d1[order] = Categorical(sr_probs_list)
+
+                d[state] = d1
+        return d
+```
+
+```python
+user_capacity = 2
+user_poisson_lambda = 1.0
+user_holding_cost = 1.0
+user_stockout_cost = 10.0
+
+user_gamma = 0.9
+
+si_mdp: FiniteMarkovDecisionProcess[InventoryState, int] =\
+    SimpleInventoryMDPCap(
+        capacity=user_capacity,
+        poisson_lambda=user_poisson_lambda,
+        holding_cost=user_holding_cost,
+        stockout_cost=user_stockout_cost
+    )
+
+fdp: FinitePolicy[InventoryState, int] = FinitePolicy(
+    {InventoryState(alpha, beta):
+     Constant(max(user_capacity - (alpha + beta), 0)) for alpha in
+     range(user_capacity + 1) for beta in range(user_capacity + 1 - alpha)}
+)
+
+implied_mrp: FiniteMarkovRewardProcess[InventoryState] =\
+    si_mdp.apply_finite_policy(fdp)
+```   
+
+The above code is in the file [rl/chapter3/simple_inventory_mdp_cap.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/chapter3/simple_inventory_mdp_cap.py).
 
 ## MDP Value Function for a Fixed Policy
 
-Now we are ready to talk about the Value Function for an MDP evaluated with a fixed policy $\pi$ (also known as the MDP *Prediction* problem). The term *Prediction* refers to the fact that this problem is about forecasting the expected future return when ithe agent follows a specific policy. Just like in the case of MRP, we define the Return $G_t$ at time step $t$ for an MDP as:
+Now we are ready to talk about the Value Function for an MDP evaluated with a fixed policy $\pi$ (also known as the MDP *Prediction* problem). The term *Prediction* refers to the fact that this problem is about forecasting the expected future return when the agent follows a specific policy. Just like in the case of MRP, we define the Return $G_t$ at time step $t$ for an MDP as:
 $$G_t = \sum_{i=t+1}^{\infty} \gamma^{i-t-1} \cdot R_i = R_{t+1} + \gamma \cdot R_{t+2} + \gamma^2 \cdot R_{t+3} + \ldots$$
 
 The Value Function for an MDP evaluated with a fixed policy $\pi$
@@ -235,8 +511,7 @@ Q^{\pi}(s, a) = \mathcal{R}(s,a) + \gamma \cdot \sum_{s'\in \mathcal{S}} \mathca
 
 Equations \eqref{eq:mdp_bellman_policy_eqn_vv}, \eqref{eq:mdp_bellman_policy_eqn_vq}, \eqref{eq:mdp_bellman_policy_eqn_qv} and \eqref{eq:mdp_bellman_policy_eqn_qq} are collectively known as the MDP Bellman Policy Equations. This problem of calculating the Value Function for a fixed policy is known as the *Prediction* problem. In the next chapter, we will cover Dynamic Programming algorithms that solve this Prediction problem. Later in the book, we will cover a variety of Reinforcement Learning algorithms to solve this Prediction problem.
 
-TODO: For the case of finite MDPs, we can solve state-value function and action-value function (for fixed policies) using matrix inverion method by converting it to an MRP.
-TODO: Write code to show to solve V and Q for fixed policy in the FiniteMarkovDecisionProcess class, then solve V and Q for a fixed policy in the simple inventory example with capacity.
+Note that for finite MDPs of state space not too large, we can solve this MDP Prediction in a straightforward manner: Given a policy $\pi$, we can create the finite MRP implied by $\pi$, using the method `apply_policy` in `FiniteMarkovDecisionProcess`, then use the matrix-inversion method you learnt in Chapter 2 to calculate the Value Function $V^{\pi \rightarrow MRP}$ of the $\pi$-implied MRP. We know that $V^{\pi \rightarrow MRP}$ is the same as the State-Value Function $V^{\pi}$ of the MDP which can then be used to arrive at the Action-Value Function $Q^{\pi}$ of the MDP (using Equation \eqref{eq:mdp_bellman_policy_eqn_qv}). For large state spaces, we will use iterative/numerical methods (Dynamic Programming and Reinforcement Learning algorithms) to solve this Prediction problem (covered in the following chapters).
 
 ## Optimal Value Function and Optimal Policies
 
