@@ -5,11 +5,11 @@ This book is about "Sequential Decisioning under Sequential Uncertainty". In thi
 
 ## The Concept of *State* in a Process
 
-For a gentle introduction to the concept of *State*, let us consider a process that generates a sequence of random outcomes at discrete time steps that we'll index by a time variable $t = 0, 1, 2, \ldots$. To understand and reason about the random evolution of such a process, we are typically interested in the internal representation of the process at each point in time $t$. We refer to this internal representation of the process at time $t$ as the (random) *state* of the process at time $t$ and denote it as $S_t$. Specifically, we are interested in the probability of the next state $S_{t+1}$, given the present state $S_t$ and the past states $S_0, S_1, \ldots, S_{t-1}$, i.e., $\mathbb{P}[S_{t+1}|S_t, S_{t-1}, \ldots, S_0]$. The internal representation (*state*) could be any data type - it could be something as simple as a single stock price at the end of a day, or it could be something quite elaborate like the number of shares of all publicly traded stocks held by all banks in the U.S. at the end of a week. 
+For a gentle introduction to the concept of *State*, we start with an informal notion of the terms *Process* and *State* (this will be formalized later in this chapter). Informally, think of a Process as producing a sequence of random outcomes at discrete time steps that we'll index by a time variable $t = 0, 1, 2, \ldots$. The random outcomes produced by a process might be key financial/trading/business metrics one cares about, such as prices of financial derivatives or the value of a portfolio held by an investor. To understand and reason about the evolution of these random outcomes of a process, it is beneficial to focus on the internal representation of the process at each point in time $t$, that is fundamentally responsible for driving the outcomes produced by the process. We refer to this internal representation of the process at time $t$ as the (random) *state* of the process at time $t$ and denote it as $S_t$. Specifically, we are interested in the probability of the next state $S_{t+1}$, given the present state $S_t$ and the past states $S_0, S_1, \ldots, S_{t-1}$, i.e., $\mathbb{P}[S_{t+1}|S_t, S_{t-1}, \ldots, S_0]$. So to clarify, we distinguish between the internal representation (*state*) and the output (outcomes) of the Process. The *state* could be any data type - it could be something as simple as the daily closing price of a single stock, or it could be something quite elaborate like the number of shares of each publicly traded stock held by each bank in the U.S., as noted at the end of each week. 
 
 ## Understanding Markov Property from Stock Price Examples
 
-We will be learning about Markov Processes in this chapter and these processes have what are called *Markov States*. So we will now learn about the *Markov Property* of *States*. Let us develop intuition for this property with some examples of random evolution of stock prices over time. 
+We will be learning about Markov Processes in this chapter and these processes have *States* that possess a property known as the *Markov Property*. So we will now learn about the *Markov Property of States*. Let us develop some intuition for this property with some examples of random evolution of stock prices over time. 
 
 To aid with the intuition, let us pretend that stock prices take on only integer values and that it's acceptable to have zero or negative stock prices. Let us denote the stock price at time $t$ as $X_t$. Let us assume that from time step $t$ to the next time step $t+1$, the stock price can either go up by 1 or go down by 1, i.e., the only two outcomes for $X_{t+1}$ are $X_t + 1$ or $X_t - 1$. To understand the random evolution of the stock prices in time, we just need to quantify the probability of an up-move $\mathbb{P}[X_{t+1} = X_t + 1]$ since the probability of a down-move $\mathbb{P}[X_{t+1} = X_t - 1] = 1 - \mathbb{P}[X_{t+1} = X_t + 1]$. We will consider 3 different processes for the evolution of stock prices. These 3 processes will prescribe $\mathbb{P}[X_{t+1} = X_t + 1]$ in 3 different ways.
 
@@ -421,12 +421,16 @@ Assume you have storage capacity for at most $C \in \mathbb{Z}_{\geq 0}$ bicycle
 * Experience random demand from customers according to demand probabilities stated above (number of bicycles sold for the day will be the minimum of demand on the day and inventory at store opening on the day)
 * Close the store at 6pm and observe the state (this state is $S_{t+1}$)
 
+If we let this process run for a while, in steady-state we ensure that $\alpha + \beta \leq C$. So to model this process as a Finite Markov Process, we shall only consider the steady-state (finite) set of states
+$$\mathcal{S} = \{(\alpha, \beta) : 0 \leq \alpha + \beta \leq C\}$$
+So restricting ourselves to this finite set of states, our order quantity equals $C - (\alpha + \beta)$ when the state is $(\alpha, \beta)$.
+
 If current state $S_t$ is $(\alpha, \beta)$, there are only $\alpha + \beta + 1$ possible next states $S_{t+1}$ as follows:
-$$(\alpha + \beta - i, \max(C - (\alpha + \beta), 0)) \text{ for } i =0, 1, \ldots, \alpha + \beta$$
+$$(\alpha + \beta - i, C - (\alpha + \beta)) \text{ for } i =0, 1, \ldots, \alpha + \beta$$
 with transition probabilities governed by the Poisson probabilities of demand as follows:
-$$\mathcal{P}((\alpha, \beta), (\alpha + \beta - i, \max(C - (\alpha + \beta), 0))) = f(i)\text{ for } 0 \leq i \leq \alpha + \beta - 1$$
-$$\mathcal{P}((\alpha, \beta), (0, \max(C - (\alpha + \beta), 0))) = \sum_{j=\alpha+\beta}^{\infty} f(j) = 1 - F(\alpha + \beta - 1)$$
-Note that the next state's ($S_{t+1}$) On-Hand can be zero resulting from any of infinite possible demand outcomes greater than or equal to $\alpha + \beta$. Also note that this ordering policy ensures that the sum of On-Hand and On-Order won't exceed the capacity $C$. So we will constrain the set of states such that this condition is satisfied: $0 \leq \alpha + \beta \leq C$.
+$$\mathcal{P}((\alpha, \beta), (\alpha + \beta - i, C - (\alpha + \beta))) = f(i)\text{ for } 0 \leq i \leq \alpha + \beta - 1$$
+$$\mathcal{P}((\alpha, \beta), (0, C - (\alpha + \beta))) = \sum_{j=\alpha+\beta}^{\infty} f(j) = 1 - F(\alpha + \beta - 1)$$
+Note that the next state's ($S_{t+1}$) On-Hand can be zero resulting from any of infinite possible demand outcomes greater than or equal to $\alpha + \beta$. 
 
 So we are now ready to write code for this simple inventory example as a Markov Process. All we have to do is to create a derived class inherited from `FiniteMarkovProcess` and write a method to construct the `transition_map: Transition`. Note that the generic state `S` is replaced here with the `@dataclass InventoryState` consisting of the pair of On-Hand and On-Order inventory quantities comprising the state of this Finite Markov Process.
 
@@ -459,7 +463,7 @@ class SimpleInventoryMPFinite(FiniteMarkovProcess[InventoryState]):
             for beta in range(self.capacity + 1 - alpha):
                 state = InventoryState(alpha, beta)
                 ip = state.inventory_position()
-                beta1 = max(self.capacity - ip, 0)
+                beta1 = self.capacity - ip
                 state_probs_list: List[Tuple[InventoryState, float]] = [
                     (InventoryState(ip - i, beta1), self.poisson_distr.pmf(i))
                     for i in range(ip)
@@ -531,7 +535,7 @@ There is a rich and interesting theory for Markov Processes. However, we will no
 
 The intuitive view of the stationary distribution $\pi$ is that (under specific conditions we are not listing here) if we let the Markov Process run forever, then in the long run the states occur at specific time steps with relative frequencies (probabilities) given by a distribution $\pi$ that is independent of the time step. The probability of occurrence of a specific state $s$ at a time step (asymptotically far out in the future) should be equal to the sum-product of probabilities of occurrence of all the states at the previous time step and the transition probabilities from those states to $s$. But since the states' occurrence probabilities are invariant in time, the $\pi$ distribution for the previous time step is the same as the $\pi$ distribution for the time step we considered. This argument holds for all states $s$, and that is exactly the statement of the definition of *Stationary Distribution* formalized above.
 
-If we specialize this definition of *Stationary Distribution* to Finite-States Stationary Markov Processes with state space $\mathcal{S} = \{s_1, s_2, \ldots, s_n\}$, then we can express the Stationary Distribution $\mu$ as follows:
+If we specialize this definition of *Stationary Distribution* to Finite-States Stationary Markov Processes with state space $\mathcal{S} = \{s_1, s_2, \ldots, s_n\}$, then we can express the Stationary Distribution $\pi$ as follows:
 $$\pi(s_j) = \sum_{i=1}^n \pi(s_i) \cdot \mathcal{P}(s_i, s_j) \text{ for all } j = 1, 2, \ldots n$$
 Abusing notation, let us refer to $\pi$ as a column vector of length $n$ and let us refer to $\mathcal{P}$ as the $n \times n$ transition probability matrix (rows are source states, columns are destination states with each row summing to 1).
 Then, the statement of the above definition can be succinctly expressed as:
@@ -565,7 +569,7 @@ Let us write code to compute the stationary distribution. We shall add two metho
 
 We will skip the theory that tells us about the conditions under which a stationary distribution is well-defined, or the conditions under which there is a unique stationary distribution. Instead, we will just go ahead with this calculation here assuming this Markov Process satisfies those conditions (it does!). So, we simply seek the index of the `eig_vals` vector with eigenvalue equal to 1 (accounting for floating-point error). Next, we pull out the column of the `eig_vecs` matrix at the `eig_vals` index calculated above, and convert it into a real-valued vector (eigenvectors/eigenvalues calculations are, in general, complex numbers calculations - see the reference for the `np.linalg.eig` function). So this gives us the real-valued eigenvector with eigenvalue equal to 1.  Finally, we have to normalize the eigenvector so it's values add up to 1 (since we want probabilities), and return the probabilities as a `Categorical` distribution).
 
-Running this code for the simple case of capacity $C=2$ and poisson mean $\lambda = 1.0$ (instance of `SimpleInventoryMPFinite`) produces the following output for the stationary distribution $\mu$:
+Running this code for the simple case of capacity $C=2$ and poisson mean $\lambda = 1.0$ (instance of `SimpleInventoryMPFinite`) produces the following output for the stationary distribution $\pi$:
 
 ```
 {InventoryState(on_hand=0, on_order=0): 0.117,
@@ -588,9 +592,9 @@ Now we are ready to move to our next topic of *Markov Reward Processes*. We'd li
 
 ## Formalism of Markov Reward Processes
 
-As we've said earlier, the reason we covered Markov Processes is because we want to make our way to Markov Decision Processes (the framework for Reinforcement Learning algorithms) by adding incremental features to Markov Processes. Now we cover an intermediate framework between Markov Processes and Markov Decision Processes, known as Markov Reward Processes. We essentially just include the notion of a numerical *reward* to a Markov Process each time we transition from one state to the next. These rewards will be random, and all we need is to specify the probability distributions of these rewards as we make state transitions. 
+As we've said earlier, the reason we covered Markov Processes is because we want to make our way to Markov Decision Processes (the framework for Reinforcement Learning algorithms) by adding incremental features to Markov Processes. Now we cover an intermediate framework between Markov Processes and Markov Decision Processes, known as Markov Reward Processes. We essentially just include the notion of a numerical *reward* to a Markov Process each time we transition from one state to the next. These rewards will be random, and all we need to do is to specify the probability distributions of these rewards as we make state transitions. 
 
-The main problem to solve regarding Markov Reward Processes is to calculate how much reward we would accumulate (in expectation, starting from each of the states) if we let the Process run indefinitely, bearing in mind that future rewards need to be discounted appropriately (otherwise the sum of rewards could blow up to $\infty$). In order to solve the problem of calculating expected accumulative rewards from each state, we will first set up some formalism for general Markov Reward Processes, develop some (elegant) theory on calculating rewards accumulation, write plenty of code (based on the theory), and apply the theory and code to the simple inventory example (which we will embellish with rewards equal to negative of the costs incurred at the store).
+The main purpose of Markov Reward Processes is to calculate how much reward we would accumulate (in expectation, starting from each of the states) if we let the Process run indefinitely, bearing in mind that future rewards need to be discounted appropriately (otherwise the sum of rewards could blow up to $\infty$). In order to solve the problem of calculating expected accumulative rewards from each state, we will first set up some formalism for Markov Reward Processes, develop some (elegant) theory on calculating rewards accumulation, write plenty of code (based on the theory), and apply the theory and code to the simple inventory example (which we will embellish with rewards equal to negative of the costs incurred at the store).
 
 \begin{definition}
 A {\em Markov Reward Process} is a Markov Process, along with:
@@ -612,9 +616,9 @@ $$\mathcal{P}_R(s,r,s') = \mathbb{P}[(R_{t+1}=r, S_{t+1}=s') | S_t=s]$$
 such that
 $$\sum_{s'\in \mathcal{S}} \sum_{r \in \mathbb{R}} \mathcal{P}_R(s,r,s') = 1 \text{ for all } s \in \mathcal{S}$$
 
-The subsections on *Start States* we had covered for Markov Processes naturally applies to Markov Reward Processes as well. So we won't repeat the section here, rather we will simply highlight that when it comes to simulations, we need a separate specification of the probability distribution of start states. Also, let's think about how to model the notion of a "terminal state" for a Markov Reward Process. It's not enough to just model an absorbing state (like we did for Markov Processes), wherein we transition back to the same state with 100% probability. We require to model the additional constraint that the reward associated with the 100% probability transition back to the same state has a value of 0 (otherwise, the state will be terminal in the underlying Markov Process but in the Markov Reward Process, we will continue to accumulate rewards). If all sequences of a Markov Reward Process terminate in this manner (modeled as absorbing states with zero reward in the self-transition), we call it an episodic Markov Reward Process. Markov Reward Process that go on forever (either with non-zero probability of movement to other states or with non-zero rewards) are known as continuing Markov Reward Process. 
+The subsection on *Start States* we had covered for Markov Processes naturally applies to Markov Reward Processes as well. So we won't repeat the section here, rather we will simply highlight that when it comes to simulations, we need a separate specification of the probability distribution of start states. Also, let's think about how to model the notion of a "terminal state" for a Markov Reward Process. It's not enough to just model an absorbing state (like we did for Markov Processes), wherein we transition back to the same state with 100% probability. We also need to model the additional constraint that the reward associated with the 100% probability transition back to the same state has a value of 0 (otherwise, the state will be terminal in the underlying Markov Process but in the Markov Reward Process, we will continue to accumulate rewards, and hence, non-terminal). If all sequences of a Markov Reward Process terminate in this manner (modeled as absorbing states with zero reward in the self-transition), we call it an episodic Markov Reward Process. Markov Reward Process that go on forever (either with non-zero probability of movement to other states or with non-zero rewards) are known as continuing Markov Reward Process. 
 
-Let us now proceed to write some code that captures this formalism. We shall create a derived *abstract* class `MarkovRewardProcess` that inherits from the abstract class `MarkovProcess`. Analogous to `MarkovProcess`'s `@abstractmethod transition` (that represents $\mathcal{P}$), `MarkovRewardProcess` has an `@abstractmethod transition_reward` that represents $\mathcal{P}_R$. Also, analogous to `MarkovProcess`'s method `simulate`, `MarkovRewardProcess` has the mathod `simulate_reward`. These analogous methods extend the interface to return a pair: next state $S_{t+1}$ and reward $R_{t+1}$, given current state $S_t$ (versus the `MarkovProcess` methods whose interfaces return simply the next state $S_{t+1}$). Let's clarify this with actual code:
+Let us now proceed to write some code that captures this formalism. We shall create a derived *abstract* class `MarkovRewardProcess` that inherits from the abstract class `MarkovProcess`. Analogous to `MarkovProcess`'s `@abstractmethod transition` (that represents $\mathcal{P}$), `MarkovRewardProcess` has an `@abstractmethod transition_reward` that represents $\mathcal{P}_R$. Also, analogous to `MarkovProcess`'s method `simulate`, `MarkovRewardProcess` has the method `simulate_reward`. These analogous methods extend the interface to return a pair: next state $S_{t+1}$ and reward $R_{t+1}$, given current state $S_t$ (versus the `MarkovProcess` methods whose interfaces return simply the next state $S_{t+1}$). Let's clarify this with actual code:
 
 ```python
 class MarkovRewardProcess(MarkovProcess[S]):
@@ -632,7 +636,7 @@ class MarkovRewardProcess(MarkovProcess[S]):
             state, reward = self.transition_reward(state).sample()
 ```
 
-So the idea is that if someone wants to model a Markov Reward Process, they'd simply have to create a concrete class that implements the interface of the abstract class `MarkovRewardProcess` (specifically implement the `@abstractmethod transition_reward`). But also note that the `@abstractmethod transition` of `MarkovProcess` also needs to be implemented to make the whole things concrete. However, we don't have to implement it in the concrete class implementing the interface of `MarkovRewardProcess` - in fact, we can implement it in the `MarkovRewardProcess` class itself by tapping the method `transition_reward`. Here's the code for the `transition` method in `MarkovRewardProcess`:
+So the idea is that if someone wants to model a Markov Reward Process, they'd simply have to create a concrete class that implements the interface of the abstract class `MarkovRewardProcess` (specifically implement the `@abstractmethod transition_reward`). But note that the `@abstractmethod transition` of `MarkovProcess` also needs to be implemented to make the whole thing concrete. However, we don't have to implement it in the concrete class implementing the interface of `MarkovRewardProcess` - in fact, we can implement it in the `MarkovRewardProcess` class itself by tapping the method `transition_reward`. Here's the code for the `transition` method in `MarkovRewardProcess`:
 
 ```python
     def transition(self, state: S) -> Distribution[S]:
@@ -662,6 +666,8 @@ $$\mathcal{R}: \mathcal{S} \rightarrow \mathbb{R}$$
 is defined as:
 $$\mathcal{R}(s) = \mathbb{E}[R_{t+1}|S_t=s] = \sum_{s' \in \mathcal{S}} \mathcal{P}(s,s') \cdot \mathcal{R}_T(s,s') = \sum_{s'\in \mathcal{S}} \sum_{r\in\mathbb{R}} \mathcal{P}_R(s,r,s') \cdot r$$
 
+We've created a bit of notational clutter here. So it would be a good idea for you to take a few minutes to pause, reflect and internalize the differences between $\mathcal{P}_R$, $\mathcal{P}$ (of the implicit Markov Process), $\mathcal{R}_T$ and $\mathcal{R}$. This notation will analogously re-appear when we learn about Markov Decision Processes in the next chapter. Moreover, this notation will be used considerably in the rest of the book, so it pays to get comfortable with their semantics.
+
 ## Simple Inventory Example as a Markov Reward Process
 
 Now we return to the simple inventory example and embellish it with a reward structure to turn it into a Markov Reward Process (business costs will be modeled as negative rewards). Let us assume that your store business incurs two types of costs:
@@ -669,10 +675,10 @@ Now we return to the simple inventory example and embellish it with a reward str
 * Holding cost of $h$ for each bicycle that remains in your store overnight. Think of this as "interest on inventory" - each day your bicycle remains unsold, you lose the opportunity to gain interest on the cash you paid to buy the bicycle. Holding cost also includes the cost of upkeep of inventory.
 *  Stockout cost of $p$ for each unit of "missed demand", i.e., for each customer wanting to buy a bicycle that you could not satisfy with available inventory, eg: if 3 customers show up during the day wanting to buy a bicycle each, and you have only 1 bicycle at 8am (store opening time), then you lost two units of demand, incurring a cost of $2p$. Think of the cost of $p$ per unit as the lost revenue plus disappointment for the customer. Typically $p \gg h$.
 
-Let us go through the precise sequence of events, now with incorporation of rewards in each 24-hour cycle:
+Let us go through the precise sequence of events, now with incorporation of rewards, in each 24-hour cycle:
 
 * Observe the $(\alpha, \beta)$ *State* at 6pm store-closing (call this state $S_t$)
-* Immediately order according to the ordering policy we've described (order quantity is $\max(C - (\alpha + \beta), 0)$)
+* Immediately order according to the ordering policy given by: Order quantity $= \max(C - (\alpha + \beta), 0)$
 * Record any overnight holding cost incurred as described above
 * Receive bicycles at 6am if you had ordered 36 hours ago
 * Open the store at 8am
@@ -680,13 +686,13 @@ Let us go through the precise sequence of events, now with incorporation of rewa
 * Record any stockout cost due to missed demand as described above
 * Close the store at 6pm, register the reward $R_{t+1}$ as the negative sum of overnight holding cost and the day's stockout cost, and observe the state (this state is $S_{t+1}$)
 
-Since the customer demand on any day can be an infinite set of possibilities (poisson distribution over the entire range of non-negative integers), we have an infinite set of pairs of next state and reward pairs we could transition to from a given current state (so this is not a Finite Markov Reward Process). Let's see what the probabilities of each of these transitions looks like. For a given current state $S_t := (\alpha, \beta)$, if customer demand for the day is $i$, then the next state $S_{t+1}$ is:
+Since the customer demand on any day can be an infinite set of possibilities (poisson distribution over the entire range of non-negative integers), we have an infinite set of pairs of next state and reward we could transition to from a given current state. Let's see what the probabilities of each of these transitions looks like. For a given current state $S_t := (\alpha, \beta)$, if customer demand for the day is $i$, then the next state $S_{t+1}$ is:
 $$(\max(\alpha + \beta - i, 0), \max(C - (\alpha + \beta), 0))$$
 and the reward $R_{t+1}$ is:
 $$-h \cdot \alpha - p \cdot \max(i - (\alpha + \beta), 0)$$
-This is because the overnight holding cost applies to each unit of on-hand inventory at store closing ($=\alpha$) and the stockout cost applies only any units of "missed demand" ($=\max(i - (\alpha + \beta), 0)$). So, the probability transition function $\mathcal{P}_R$ for this Simple Inventory Example as a Markov Reward Process is given by:
+Note that the overnight holding cost applies to each unit of on-hand inventory at store closing ($=\alpha$) and the stockout cost applies only to any units of "missed demand" ($=\max(i - (\alpha + \beta), 0)$). So, the probability transition function $\mathcal{P}_R$ for this Simple Inventory Example as a Markov Reward Process is given by:
 
-$$\mathcal{P}_R((\alpha, \beta), -h \cdot \alpha - p \cdot \max(i - (\alpha + \beta), 0), (max(\alpha + \beta - i, 0), \max(C - (\alpha + \beta), 0)))$$
+$$\mathcal{P}_R((\alpha, \beta), -h \cdot \alpha - p \cdot \max(i - (\alpha + \beta), 0), (\max(\alpha + \beta - i, 0), \max(C - (\alpha + \beta), 0)))$$
 $$= \frac {e^{-\lambda} \lambda^i} {i!} \text{ for all } i = 0, 1, 2, \ldots $$
 
 Now let's write some code to implement this simple inventory example as a Markov Reward Process as described above. All we have to do is to create a concrete class implementing the interface of the abstract class `MarkovRewardProcess` (specifically implement the `@abstractmethod transition_reward`). The code below in `transition_reward` method in `class SimpleInventoryMRP` samples the customer demand from a Poisson distribution, uses the above formulas for the pair of next state and reward as a function of the customer demand sample, and returns an instance of `SampledDistribution`. Note that the generic state `S` is replaced here with the `@dataclass InventoryState` to represent a state of this Markov Reward Process, comprising of the On-Hand and On-Order inventory quantities.
@@ -735,7 +741,7 @@ class SimpleInventoryMRP(MarkovRewardProcess[InventoryState]):
         return SampledDistribution(sample_next_state_reward)
 ```
 
-The above code can be found in the file [rl/chapter2/simple_inventory_mrp.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/chapter2/simple_inventory_mrp.py). We leave it as an exercise for you to use the `simulate_reward` method inherited by `SimpleInventoryMRP` to perform simulations and analyze the statistics generated from the simulation traces.
+The above code can be found in the file [rl/chapter2/simple_inventory_mrp.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/chapter2/simple_inventory_mrp.py). We leave it as an exercise for you to use the `simulate_reward` method inherited by `SimpleInventoryMRP` to perform simulations and analyze the statistics produced from the simulation traces.
 
 ## Finite Markov Reward Processes
 
@@ -744,7 +750,7 @@ Certain calculations for Markov Reward Processes can be performed easily if:
 * The state space is finite ($\mathcal{S} = \{s_1, s_2, \ldots, s_n\}$), and
 * The set of pairs of next state and reward transitions from each of the states is finite
 
-If we satisfy the above two characteristics, we refer to the Markov Reward Process as a Finite Markov Reward Process. So let us write some code for a Finite Markov Reward Process. We create a concrete class `FiniteMarkovRewardProcess` that primarily inherits from `FiniteMarkovProcess` (a concrete class) and secondarily implements the interface of the abstract class `MarkovRewardProcess`. Our first task is to think about the data structure required to specify an instance of `FiniteMarkovRewardProcess` (i.e., the data structure we'd pass to the `__init__` method of `FiniteMarkovRewardProcess`). Analogous to how we curried $\mathcal{P}$ as $\mathcal{S} \rightarrow (\mathcal{S} \rightarrow [0,1])$ (where $\mathcal{S} = \{s_1, s_2, \ldots, s_n\}$), here we curry $\mathcal{P}_R$ as:
+If we satisfy the above two characteristics, we refer to the Markov Reward Process as a Finite Markov Reward Process. So let us write some code for a Finite Markov Reward Process. We create a concrete class `FiniteMarkovRewardProcess` that primarily inherits from `FiniteMarkovProcess` (a concrete class) and secondarily implements the interface of the abstract class `MarkovRewardProcess`. Our first task is to think about the data structure required to specify an instance of `FiniteMarkovRewardProcess` (i.e., the data structure we'd pass to the `__init__` method of `FiniteMarkovRewardProcess`). Analogous to how we curried $\mathcal{P}$ for a Markov Process as $\mathcal{S} \rightarrow (\mathcal{S} \rightarrow [0,1])$ (where $\mathcal{S} = \{s_1, s_2, \ldots, s_n\}$), here we curry $\mathcal{P}_R$ as:
 $$\mathcal{S} \rightarrow (\mathcal{S} \times \mathbb{R} \rightarrow [0, 1])$$
 Since $\mathcal{S}$ is finite and since the set of pairs of next state and reward transitions are also finite, this leads to the analog of the `Transition` data type for the case of Finite Markov Reward Processes as follows:
 
@@ -799,20 +805,20 @@ The above code for `FiniteMarkovRewardProcess` (and more) is in the file [rl/mar
 
 ## Simple Inventory Example as a Finite Markov Reward Process
 
-Now we'd like to model the simple inventory example as a Finite Markov Reward Process so we can take advantage of the algorithms that apply to Finite Markov Reward Processes. The ordering policy ensures that the sum of On-Hand (denote as $\alpha$) and On-Order (denote as $\beta$) won't exceed the capacity $C$. So we will constrain the set of states such that this condition is satisfied: $0 \leq \alpha + \beta \leq C$ (i.e., finite number of states). Although the set of states is finite, there are an infinite number of pairs of next state and reward outcomes possible from any given current state. This is because there are an infinite set of possibilities of customer demand on any given day (resulting in infinite possibilities of stockout cost, i.e., negative reward, on any day). To qualify as a Finite Markov Reward Process, we'll need to model it so that we have a finite set of pairs of next state and reward from a given current state. So what we'll do is that instead of considering $(S_{t+1}, R_{t+1})$ as the pair of next state and reward, we will model the pair of next state and reward to instead be $(S_{t+1}, \mathbb{E}[R_{t+1}|(S_t, S_{t+1})])$ (since we know $\mathcal{P}_R$ due to the Poisson probabilities of customer demand, we can actually calculate this conditional expectation of reward). So given a state $s$, the pairs of next state and reward are: $(s', \mathcal{R}_T(s, s'))$ for all the $s'$ we transition to from $s$. Since the set of possible next states $s'$ are finite ($0 \leq \alpha' + \beta' \leq C$), these newly-modeled rewards associated with the transitions ($\mathcal{R}_T(s,s')$) are also finite and hence, the set of pairs of next state and reward from any current state are also finite. Let's now work out the calculation of the reward transition function $\mathcal{R}_T$.
+Now we'd like to model the simple inventory example as a Finite Markov Reward Process so we can take advantage of the algorithms that apply to Finite Markov Reward Processes. As we've noted previously, our ordering policy ensures that in steady-state, the sum of On-Hand (denote as $\alpha$) and On-Order (denote as $\beta$) won't exceed the capacity $C$. So we will constrain the set of states such that this condition is satisfied: $0 \leq \alpha + \beta \leq C$ (i.e., finite number of states). Although the set of states is finite, there are an infinite number of pairs of next state and reward outcomes possible from any given current state. This is because there are an infinite set of possibilities of customer demand on any given day (resulting in infinite possibilities of stockout cost, i.e., negative reward, on any day). To qualify as a Finite Markov Reward Process, we'll need to model in a manner such that we have a finite set of pairs of next state and reward outcomes from a given current state. So what we'll do is that instead of considering $(S_{t+1}, R_{t+1})$ as the pair of next state and reward, we will model the pair of next state and reward to instead be $(S_{t+1}, \mathbb{E}[R_{t+1}|(S_t, S_{t+1})])$ (we know $\mathcal{P}_R$ due to the Poisson probabilities of customer demand, so we can actually calculate this conditional expectation of reward). So given a state $s$, the pairs of next state and reward would be: $(s', \mathcal{R}_T(s, s'))$ for all the $s'$ we transition to from $s$. Since the set of possible next states $s'$ are finite, these newly-modeled rewards associated with the transitions ($\mathcal{R}_T(s,s')$) are also finite and hence, the set of pairs of next state and reward from any current state are also finite. Note that this creative alteration of the reward definition is purely to reduce this Markov Reward Process into a Finite Markov Reward Process. Let's now work out the calculation of the reward transition function $\mathcal{R}_T$.
 
 When the next state's ($S_{t+1}$) On-Hand is greater than zero, it means all of the day's demand was satisfied with inventory that was available at store-opening ($=\alpha + \beta$), and hence, each of these next states $S_{t+1}$ correspond to no stockout cost and only an overnight holding cost of $h \alpha$. Therefore,
-$$\mathcal{R}_T((\alpha, \beta), (\alpha + \beta - i, \max(C - (\alpha + \beta), 0))) = - h \alpha \text{ for } 0 \leq i \leq \alpha + \beta - 1$$
+$$\mathcal{R}_T((\alpha, \beta), (\alpha + \beta - i, C - (\alpha + \beta))) = - h \alpha \text{ for } 0 \leq i \leq \alpha + \beta - 1$$
 When next state's ($S_{t+1}$) On-Hand is equal to zero, there are two possibilities: 
 
 1. The demand for the day was exactly $\alpha + \beta$, meaning all demand was satisifed with available store inventory (so no stockout cost and only overnight holding cost), or
 2. The demand for the day was strictly greater than $\alpha + \beta$, meaning there's some stockout cost in addition to overnight holding cost. The exact stockout cost is an expectation calculation involving the number of units of missed demand under the corresponding poisson probabilities of demand exceeding $\alpha + \beta$.
 
 This calculation is shown below:
-$$\mathcal{R}_T((\alpha, \beta), (0, \max(C - (\alpha + \beta), 0))) = - h \alpha - p (\sum_{j=\alpha+\beta+1}^{\infty} f(j) \cdot (j - (\alpha + \beta)))$$
+$$\mathcal{R}_T((\alpha, \beta), (0, C - (\alpha + \beta))) = - h \alpha - p (\sum_{j=\alpha+\beta+1}^{\infty} f(j) \cdot (j - (\alpha + \beta)))$$
  $$= - h \alpha - p (\lambda (1 - F(\alpha + \beta - 1)) -  (\alpha + \beta)(1 - F(\alpha + \beta)))$$ 
 
-So now we have a specification of $\mathcal{R}_T$ but when it comes to our coding interface, we are expected to specify $\mathcal{P}_R$ as that is the interface through which we create a `FiniteMarkovRewardProcess`. Fear not - a specification of $\mathcal{P}_R$ is easy once we have a specification of $\mathcal{R}_T$. We simply create 4-tuples $(s,r,s',p)$ for all $s,s' \in \mathcal{S}$ such that $r=\mathcal{R}_T(s, s')$ and $p=\mathcal{P}(s,s')$ (we know $\mathcal{P}$ along with $\mathcal{R}_T$), and the set of all these 4-tuples (for all $s,s' \in \mathcal{S}$) constitute the specification of $\mathcal{P}_R$, i.e., $\mathcal{P}_R(s,r,s') = p$. This turns our reward-altered mathematical model of a Finite Markov Reward Process into a programming model of the `FiniteMarkovRewardProcess` class. This reward-altered model enables us to gain from the fact that we can leverage the algorithms we'll be  writing for Finite Markov Reward Processes (including some simple and elegant linear-algebra-based solutions). The downside of this reward-altered model is that it prevents us from performing simulations of the specific rewards encountered when transitioning from one state to another (because we no longer capture the probabilities of individual reward outcomes). Note that we can indeed perform simulations, but each transition step in the simulation will only show us the "mean reward" (specifically, the expected reward conditioned on current state and next state).
+So now we have a specification of $\mathcal{R}_T$, but when it comes to our coding interface, we are expected to specify $\mathcal{P}_R$ as that is the interface through which we create a `FiniteMarkovRewardProcess`. Fear not - a specification of $\mathcal{P}_R$ is easy once we have a specification of $\mathcal{R}_T$. We simply create 4-tuples $(s,r,s',p)$ for all $s,s' \in \mathcal{S}$ such that $r=\mathcal{R}_T(s, s')$ and $p=\mathcal{P}(s,s')$ (we know $\mathcal{P}$ along with $\mathcal{R}_T$), and the set of all these 4-tuples (for all $s,s' \in \mathcal{S}$) constitute the specification of $\mathcal{P}_R$, i.e., $\mathcal{P}_R(s,r,s') = p$. This turns our reward-definition-altered mathematical model of a Finite Markov Reward Process into a programming model of the `FiniteMarkovRewardProcess` class. This reward-definition-altered model enables us to gain from the fact that we can leverage the algorithms we'll be  writing for Finite Markov Reward Processes (including some simple and elegant linear-algebra-based solutions). The downside of this reward-definition-altered model is that it prevents us from performing simulations of the specific rewards encountered when transitioning from one state to another (because we no longer capture the probabilities of individual reward outcomes). Note that we can indeed perform simulations, but each transition step in the simulation will only show us the "mean reward" (specifically, the expected reward conditioned on current state and next state).
 
 In fact, most Markov Processes you'd encounter in practice can be modeled as a combination of $\mathcal{R}_T$ and $\mathcal{P}$, and you'd simply follow the above $\mathcal{R}_T$ to $\mathcal{P}_R$ representation transformation drill to present this information in the form of $\mathcal{P}_R$ to instantiate a `FiniteMarkovRewardProcess`. We designed the interface to accept $\mathcal{P}_R$ as input since that is the most general interface for specifying Markov Reward Processes.
 
@@ -852,7 +858,7 @@ class SimpleInventoryMRPFinite(FiniteMarkovRewardProcess[InventoryState]):
             for beta in range(self.capacity + 1 - alpha):
                 state = InventoryState(alpha, beta)
                 ip = state.inventory_position()
-                beta1 = max(self.capacity - ip, 0)
+                beta1 = self.capacity - ip
                 base_reward = - self.holding_cost * state.on_hand
                 sr_probs_list: List[Tuple[Tuple[InventoryState, float],
                                           float]] =\
@@ -869,7 +875,7 @@ class SimpleInventoryMRPFinite(FiniteMarkovRewardProcess[InventoryState]):
         return d
 ```
 
-The above code is in the file [rl/chapter2/simple_inventory_mrp.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/chapter2/simple_inventory_mrp.py)). We encourage you to play with the inputs to `SimpleInventoryMRPFinite` in `__main__` and view the transition probabilities and rewards of the constructed Finite Markov Reward Process (note: the display is based on the `__repr__` method of `FiniteMarkovRewardProcess`)
+The above code is in the file [rl/chapter2/simple_inventory_mrp.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/chapter2/simple_inventory_mrp.py)). We encourage you to play with the inputs to `SimpleInventoryMRPFinite` in `__main__` and view the transition probabilities and rewards of the constructed Finite Markov Reward Process.
 
 
 ## Value Function of a Markov Reward Process
@@ -950,7 +956,7 @@ The corresponding values of the attribute `reward_function_vec` (i.e., $\mathcal
  InventoryState(on_hand=2, on_order=0): -2.274}   
 ```
 
-This tells us that On-Hand of 0 and On-Order of 2 has the least expected cost (highest expected reward). However, the Value Function is highest for On-Hand of 0 and On-Order of 1.
+This tells us that On-Hand of 0 and On-Order of 2 has the highest expected reward. However, the Value Function is highest for On-Hand of 0 and On-Order of 1.
 
 This computation for the Value Function works if the state space is not too large (matrix to be inverted has size equal to state space size). When the state space is large, this direct matrix-inversion method doesn't work and we have to resort to numerical methods to solve the recursive Bellman equation. This is the topic of Dynamic Programming and Reinforcement Learning algorithms that we shall learn in this book. 
 
