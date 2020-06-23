@@ -33,7 +33,7 @@ class SimpleInventoryMPFinite(FiniteMarkovProcess[InventoryState]):
             for beta in range(self.capacity + 1 - alpha):
                 state = InventoryState(alpha, beta)
                 ip = state.inventory_position()
-                beta1 = max(self.capacity - ip, 0)
+                beta1 = self.capacity - ip
                 state_probs_list: List[Tuple[InventoryState, float]] = [
                     (InventoryState(ip - i, beta1), self.poisson_distr.pmf(i))
                     for i in range(ip)

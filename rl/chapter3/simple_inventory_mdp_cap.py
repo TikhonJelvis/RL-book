@@ -47,7 +47,7 @@ class SimpleInventoryMDPCap(FiniteMarkovDecisionProcess[InventoryState, int]):
                 base_reward: float = - self.holding_cost * alpha
                 d1: Dict[int, Categorical[Tuple[InventoryState, float]]] = {}
 
-                for order in range(max(self.capacity - ip, 0) + 1):
+                for order in range(self.capacity - ip + 1):
                     sr_probs_list: List[Tuple[Tuple[InventoryState, float],
                                               float]] =\
                         [((InventoryState(ip - i, order), base_reward),
@@ -88,7 +88,7 @@ if __name__ == '__main__':
 
     fdp: FinitePolicy[InventoryState, int] = FinitePolicy(
         {InventoryState(alpha, beta):
-         Constant(max(user_capacity - (alpha + beta), 0)) for alpha in
+         Constant(user_capacity - (alpha + beta)) for alpha in
          range(user_capacity + 1) for beta in range(user_capacity + 1 - alpha)}
     )
 

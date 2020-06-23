@@ -74,7 +74,7 @@ class SimpleInventoryMRPFinite(FiniteMarkovRewardProcess[InventoryState]):
             for beta in range(self.capacity + 1 - alpha):
                 state = InventoryState(alpha, beta)
                 ip = state.inventory_position()
-                beta1 = max(self.capacity - ip, 0)
+                beta1 = self.capacity - ip
                 base_reward = - self.holding_cost * state.on_hand
                 sr_probs_list: List[Tuple[Tuple[InventoryState, float],
                                           float]] =\
