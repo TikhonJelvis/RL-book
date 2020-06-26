@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 import graphviz
-from typing import Dict, Iterable, Generic, Sequence, Tuple, Mapping, TypeVar
+from typing import (Dict, Iterable, Generic, Sequence, Tuple, Mapping,
+                    Optional, TypeVar)
 from collections import defaultdict
 import numpy as np
 from pprint import pprint
@@ -10,9 +11,9 @@ from rl.distribution import (Categorical, Distribution, FiniteDistribution,
 
 S = TypeVar('S')
 
-Transition = Mapping[S, FiniteDistribution[S]]
+Transition = Mapping[S, Optional[FiniteDistribution[S]]]
 
-RewardTransition = Mapping[S, FiniteDistribution[Tuple[S, float]]]
+RewardTransition = Mapping[S, Optional[FiniteDistribution[Tuple[S, float]]]]
 
 
 class MarkovProcess(ABC, Generic[S]):
@@ -20,25 +21,42 @@ class MarkovProcess(ABC, Generic[S]):
 
     '''
     @abstractmethod
-    def transition(self, state: S) -> Distribution[S]:
+    def transition(self, state: S) -> Optional[Distribution[S]]:
         '''Given a state of the process, returns a distribution of
         the next states.
 
+        Returning None means we are in a final state.
+
         '''
+
+    def is_final(self, state: S) -> bool:
+        '''Return whether the given state is a final state.
+
+        The default implementation of is_final calculates a transition
+        from the current state, so it could be worth overloading this
+        method if your process has a cheaper way of determing whether
+        a state is final.
+
+        '''
+        return self.transition(state) is None
 
     def simulate(self, start_state: S) -> Iterable[S]:
         '''Run a simulation trace of this Markov process, generating the
         states visited during the trace.
 
         This yields the start state first, then continues yielding
-        subsequent states forever.
+        subsequent states forever or until we hit a final state.
 
         '''
 
         state: S = start_state
         while True:
             yield state
-            state = self.transition(state).sample()
+            next_states = self.transition(state)
+            if next_states is None:
+                break
+            else:
+                state = next_states.sample()
 
 
 class FiniteMarkovProcess(MarkovProcess[S]):
@@ -62,9 +80,12 @@ class FiniteMarkovProcess(MarkovProcess[S]):
         display = ""
 
         for s, d in self.transition_map.items():
-            display += f"From State {s}:\n"
-            for s1, p in d.table():
-                display += f"  To State {s1} with Probability {p:.3f}\n"
+            if d is None:
+                f"{s} is a final state"
+            else:
+                display += f"From State {s}:\n"
+                for s1, p in d.table():
+                    display += f"  To State {s1} with Probability {p:.3f}\n"
 
         return display
 
@@ -74,11 +95,15 @@ class FiniteMarkovProcess(MarkovProcess[S]):
 
         for i, s1 in enumerate(self.state_space):
             for j, s2 in enumerate(self.state_space):
-                mat[i, j] = self.transition(s1).probability(s2)
+                next_states = self.transition(s1)
+                if next_states is None:
+                    mat[i, j] = 0.0
+                else:
+                    mat[i, j] = next_states.probability(s2)
 
         return mat
 
-    def transition(self, state: S) -> FiniteDistribution[S]:
+    def transition(self, state: S) -> Optional[FiniteDistribution[S]]:
         return self.transition_map[state]
 
     def get_stationary_distribution(self) -> FiniteDistribution[S]:
@@ -106,14 +131,15 @@ class FiniteMarkovProcess(MarkovProcess[S]):
             d.node(str(s))
 
         for s, v in self.transition_map.items():
-            for s1, p in v.table():
-                d.edge(str(s), str(s1), label=str(p))
+            if v is not None:
+                for s1, p in v.table():
+                    d.edge(str(s), str(s1), label=str(p))
 
         return d
 
 
 class MarkovRewardProcess(MarkovProcess[S]):
-    def transition(self, state: S) -> Distribution[S]:
+    def transition(self, state: S) -> Optional[Distribution[S]]:
         '''Transitions the Markov Reward Process, ignoring the generated
         reward (which makes this just a normal Markov Process).
 
@@ -125,7 +151,8 @@ class MarkovRewardProcess(MarkovProcess[S]):
         return SampledDistribution(next_state)
 
     @abstractmethod
-    def transition_reward(self, state: S) -> Distribution[Tuple[S, float]]:
+    def transition_reward(self,
+                          state: S) -> Optional[Distribution[Tuple[S, float]]]:
         '''Given a state, returns a distribution of the next state
         and reward from transitioning between the states.
 
@@ -144,7 +171,11 @@ class MarkovRewardProcess(MarkovProcess[S]):
 
         while True:
             yield state, reward
-            state, reward = self.transition_reward(state).sample()
+            next_distribution = self.transition_reward(state)
+            if next_distribution is None:
+                break
+            else:
+                state, reward = next_distribution.sample()
 
 
 class FiniteMarkovRewardProcess(FiniteMarkovProcess[S],
@@ -160,8 +191,9 @@ class FiniteMarkovRewardProcess(FiniteMarkovProcess[S],
         for state, trans in transition_reward_map.items():
             probabilities: Dict[S, float] = defaultdict(float)
 
-            for (next_state, _), probability in trans.table():
-                probabilities[next_state] += probability
+            if trans is not None:
+                for (next_state, _), probability in trans.table():
+                    probabilities[next_state] += probability
 
             transition_map[state] = Categorical(list(probabilities.items()))
 
@@ -169,25 +201,31 @@ class FiniteMarkovRewardProcess(FiniteMarkovProcess[S],
 
         self.transition_reward_map = transition_reward_map
 
-        self.reward_function_vec = np.array([
-            sum(probability * reward for (
-                _,
-                reward), probability in transition_reward_map[state].table())
-            for state in self.state_space
-        ])
+        sums = []
+        for state in self.state_space:
+            distribution = transition_reward_map[state]
+            if distribution is not None:
+                sums += [
+                    sum(probability * reward
+                        for (_, reward), probability in distribution.table())
+                ]
+        self.reward_function_vec = np.array(sums)
 
     def __repr__(self) -> str:
         display = ""
         for s, d in self.transition_reward_map.items():
-            display += f"From State {s}:\n"
-            for (s1, r), p in d.table():
-                display +=\
-                    f"  To [State {s1} and Reward {r:.3f}]"\
-                    + f" with Probability {p:.3f}\n"
+            if d is None:
+                display += "{s} is final"
+            else:
+                display += f"From State {s}:\n"
+                for (s1, r), p in d.table():
+                    display +=\
+                        f"  To [State {s1} and Reward {r:.3f}]"\
+                        + f" with Probability {p:.3f}\n"
         return display
 
     def transition_reward(self, state: S) ->\
-            FiniteDistribution[Tuple[S, float]]:
+            Optional[FiniteDistribution[Tuple[S, float]]]:
         return self.transition_reward_map[state]
 
     def get_value_function_vec(self, gamma) -> np.ndarray:
