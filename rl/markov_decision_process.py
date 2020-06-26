@@ -111,3 +111,7 @@ class FiniteMarkovDecisionProcess(MarkovDecisionProcess[S, A]):
 
         '''
         return self.mapping[state].keys()
+
+    def states(self) -> Iterable[S]:
+        '''Returns all the states the MDP can have.'''
+        return self.mapping.keys()
