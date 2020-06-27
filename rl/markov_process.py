@@ -101,6 +101,9 @@ class FiniteMarkovProcess(MarkovProcess[S]):
     def transition(self, state: S) -> Optional[FiniteDistribution[S]]:
         return self.transition_map[state]
 
+    def states(self) -> Iterable[S]:
+        return self.transition_map.keys()
+
     def get_stationary_distribution(self) -> FiniteDistribution[S]:
         eig_vals, eig_vecs = np.linalg.eig(self.transition_matrix.T)
         index_of_first_unit_eig_val = np.where(

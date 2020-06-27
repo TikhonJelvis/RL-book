@@ -1,10 +1,11 @@
-from rl.markov_decision_process import FiniteMarkovDecisionProcess
+from rl.markov_decision_process import (FiniteMarkovDecisionProcess,
+                                        FiniteMarkovRewardProcess)
 
 from typing import Callable, Dict, Iterator, TypeVar
 
 A = TypeVar('A')
-
 S = TypeVar('S')
+X = TypeVar('X')
 
 # A representation of a value function for a finite MDP with states of
 # type S
@@ -14,7 +15,7 @@ V = Dict[S, float]
 # It would be more efficient if you iterated in place instead of
 # returning a copy of the value each time, but the functional version
 # of the code is a lot cleaner and easier to work with.
-def iterate(step: Callable[[A], A], start: A) -> Iterator[A]:
+def iterate(step: Callable[[X], X], start: X) -> Iterator[X]:
     '''Find the fixed point of a function f by applying it to its own
     result, yielding each intermediate value.
 
@@ -31,7 +32,7 @@ def iterate(step: Callable[[A], A], start: A) -> Iterator[A]:
         state = step(state)
 
 
-def converge(values: Iterator[A], done: Callable[[A, A], bool]) -> A:
+def converge(values: Iterator[X], done: Callable[[X, X], bool]) -> Iterator[X]:
     '''Read from a stream of values until two consecutive values satisfy
     the given done function.
 
@@ -44,14 +45,18 @@ def converge(values: Iterator[A], done: Callable[[A, A], bool]) -> A:
 
     for b in values:
         if done(a, b):
-            return b
+            yield b
         else:
             a = b
-    else:
-        raise Exception('Iterator too  for converge.')
+
+    raise Exception('Iterator too  for converge.')
 
 
-def bellman_update(v: V[S], mdp: FiniteMarkovDecisionProcess[S, A]) -> V[S]:
+def converged(v1: V[S], v2: V[S]) -> bool:
+    return max([abs(v1[s] - v2[s]) for s in v1.keys()]) < 0.1
+
+
+def value_update(v: V[S], mdp: FiniteMarkovDecisionProcess[S, A]) -> V[S]:
     '''Do one update of the value function for a given MDP.'''
     def update_s(s: S) -> float:
         outcomes = []
@@ -66,17 +71,30 @@ def bellman_update(v: V[S], mdp: FiniteMarkovDecisionProcess[S, A]) -> V[S]:
     return {s: update_s(s) for s in v.keys()}
 
 
-def bellman_iteration(mdp: FiniteMarkovDecisionProcess[S, A]) -> V[S]:
+def value_iteration(mdp: FiniteMarkovDecisionProcess[S, A]) -> V[S]:
     '''Calculate the value function (V*) of the given MDP by applying the
-    bellman_update function repeatedly until the values start
+    value_update function repeatedly until the values start
     converging.
 
     '''
     def update(v: V[S]) -> V[S]:
-        return bellman_update(v, mdp)
-
-    def converged(v1: V[S], v2: V[S]) -> bool:
-        return max([abs(v1[s] - v2[s]) for s in v1.keys()]) < 0.1
+        return value_update(v, mdp)
 
     v_0 = {s: 0.0 for s in mdp.states()}
-    return converge(iterate(update, v_0), done=converged)
+    return list(converge(iterate(update, v_0), done=converged))[-1]
+
+
+def evaluate_mrp(mrp: FiniteMarkovRewardProcess[S]) -> V[S]:
+    '''Calculate the value function V* for the given Markov Reward
+    Process.
+
+    '''
+    def update(v: V[S]) -> V[S]:
+        def update_s(s: S) -> float:
+            next_states = mrp.transition_reward(s).table()
+            return sum(p * (r + v[next_s]) for ((next_s, r), p) in next_states)
+
+        return {s: update_s(s) for s in v.keys()}
+
+    v_0 = {s: 0.0 for s in mrp.states()}
+    return list(converge(iterate(update, v_0), done=converged))[-1]
