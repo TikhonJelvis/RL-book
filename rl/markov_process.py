@@ -25,17 +25,17 @@ class MarkovProcess(ABC, Generic[S]):
         '''Given a state of the process, returns a distribution of
         the next states.
 
-        Returning None means we are in a final state.
+        Returning None means we are in a terminal state.
 
         '''
 
-    def is_final(self, state: S) -> bool:
-        '''Return whether the given state is a final state.
+    def is_terminal(self, state: S) -> bool:
+        '''Return whether the given state is a terminal state.
 
-        The default implementation of is_final calculates a transition
+        The default implementation of is_terminal calculates a transition
         from the current state, so it could be worth overloading this
         method if your process has a cheaper way of determing whether
-        a state is final.
+        a state is terminal.
 
         '''
         return self.transition(state) is None
@@ -45,7 +45,7 @@ class MarkovProcess(ABC, Generic[S]):
         states visited during the trace.
 
         This yields the start state first, then continues yielding
-        subsequent states forever or until we hit a final state.
+        subsequent states forever or until we hit a terminal state.
 
         '''
 
@@ -81,7 +81,7 @@ class FiniteMarkovProcess(MarkovProcess[S]):
 
         for s, d in self.transition_map.items():
             if d is None:
-                f"{s} is a final state"
+                display += f"{s} is a Terminal State\n"
             else:
                 display += f"From State {s}:\n"
                 for s1, p in d.table():
@@ -215,7 +215,7 @@ class FiniteMarkovRewardProcess(FiniteMarkovProcess[S],
         display = ""
         for s, d in self.transition_reward_map.items():
             if d is None:
-                display += "{s} is final"
+                display += "{s} is a Terminal State\n"
             else:
                 display += f"From State {s}:\n"
                 for (s1, r), p in d.table():
