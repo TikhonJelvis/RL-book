@@ -51,6 +51,7 @@ class MarkovDecisionProcess(ABC, Generic[S, A]):
 
 StateReward = FiniteDistribution[Tuple[S, float]]
 ActionMapping = Mapping[A, StateReward[S]]
+StateActionMapping = Mapping[S, ActionMapping[A, S]]
 
 
 class FiniteMarkovDecisionProcess(MarkovDecisionProcess[S, A]):
@@ -58,9 +59,9 @@ class FiniteMarkovDecisionProcess(MarkovDecisionProcess[S, A]):
 
     '''
 
-    mapping: Mapping[S, ActionMapping[A, S]]
+    mapping: StateActionMapping[S, A]
 
-    def __init__(self, mapping: Mapping[S, ActionMapping[A, S]]):
+    def __init__(self, mapping: StateActionMapping[S, A]):
         self.mapping = mapping
 
     def __repr__(self) -> str:
@@ -77,12 +78,12 @@ class FiniteMarkovDecisionProcess(MarkovDecisionProcess[S, A]):
     # Note: We need both apply_policy and apply_finite_policy because,
     # to be compatible with MarkovRewardProcess, apply_policy has to
     # work even if the policy is *not* finite.
-    def apply_policy(self, policy: Policy[S, A]) -> MarkovRewardProcess:
-        class Process(MarkovRewardProcess):
+    def apply_policy(self, policy: Policy[S, A]) -> MarkovRewardProcess[S]:
+        class Process(MarkovRewardProcess[S]):
             def transition_reward(self,
                                   state: S) -> Distribution[Tuple[S, float]]:
                 def next_state():
-                    action = policy.act(state).sample()
+                    action: A = policy.act(state).sample()
                     return self.mapping[state][action].sample()
 
                 return SampledDistribution(next_state)

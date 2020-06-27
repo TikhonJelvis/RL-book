@@ -1,0 +1,9 @@
+digraph pomdp
+{
+  nodesep = 1.5
+  A [label="Agent", shape=box, width="1.5", height="0.5", fontsize="20", color=blue4, fontcolor=blue4]
+  E [label="Environment", shape=box, width="1.5", height="0.5", fontsize="20", color=red4, fontcolor=red4]
+
+  A:e->E:e [label=<Action A<SUB>t</SUB>>, color=Blue, fontcolor=Blue]
+  E:w->A:w [taillabel=<O<SUB>t+1</SUB><BR/>R<SUB>t+1</SUB>>, headlabel=<Observation O<SUB>t</SUB><BR/>Reward R<SUB>t</SUB>>, color=crimson fontcolor=crimson]
+}

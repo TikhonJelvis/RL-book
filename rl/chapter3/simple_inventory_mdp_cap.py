@@ -1,7 +1,7 @@
 from dataclasses import dataclass
-from typing import Tuple, Mapping, Dict, List
+from typing import Tuple, Dict, List
 from rl.markov_decision_process import FiniteMarkovDecisionProcess
-from rl.markov_decision_process import FinitePolicy, ActionMapping
+from rl.markov_decision_process import FinitePolicy, StateActionMapping
 from rl.markov_process import FiniteMarkovProcess, FiniteMarkovRewardProcess
 from rl.distribution import Categorical, Constant
 from scipy.stats import poisson
@@ -16,7 +16,7 @@ class InventoryState:
         return self.on_hand + self.on_order
 
 
-InvOrderMapping = Mapping[InventoryState, ActionMapping[int, InventoryState]]
+InvOrderMapping = StateActionMapping[InventoryState, int]
 
 
 class SimpleInventoryMDPCap(FiniteMarkovDecisionProcess[InventoryState, int]):
@@ -42,19 +42,19 @@ class SimpleInventoryMDPCap(FiniteMarkovDecisionProcess[InventoryState, int]):
 
         for alpha in range(self.capacity + 1):
             for beta in range(self.capacity + 1 - alpha):
-                state = InventoryState(alpha, beta)
-                ip = state.inventory_position()
-                base_reward = - self.holding_cost * alpha
+                state: InventoryState = InventoryState(alpha, beta)
+                ip: int = state.inventory_position()
+                base_reward: float = - self.holding_cost * alpha
                 d1: Dict[int, Categorical[Tuple[InventoryState, float]]] = {}
 
-                for order in range(max(self.capacity - ip, 0) + 1):
+                for order in range(self.capacity - ip + 1):
                     sr_probs_list: List[Tuple[Tuple[InventoryState, float],
                                               float]] =\
                         [((InventoryState(ip - i, order), base_reward),
                           self.poisson_distr.pmf(i)) for i in range(ip)]
 
-                    probability = 1 - self.poisson_distr.cdf(ip - 1)
-                    reward = base_reward - self.stockout_cost *\
+                    probability: float = 1 - self.poisson_distr.cdf(ip - 1)
+                    reward: float = base_reward - self.stockout_cost *\
                         (probability * (self.poisson_lambda - ip) +
                          ip * self.poisson_distr.pmf(ip))
                     sr_probs_list.append(
@@ -88,7 +88,7 @@ if __name__ == '__main__':
 
     fdp: FinitePolicy[InventoryState, int] = FinitePolicy(
         {InventoryState(alpha, beta):
-         Constant(max(user_capacity - (alpha + beta), 0)) for alpha in
+         Constant(user_capacity - (alpha + beta)) for alpha in
          range(user_capacity + 1) for beta in range(user_capacity + 1 - alpha)}
     )
 
