@@ -259,7 +259,7 @@ Note that this specification is devoid of the time index $t$ (hence, the term *S
 
 ### Starting States
 
-Now it's natural to ask the question how do we "start" the Markov Process (in the stock price examples, this was the notion of the start state). More generally, we'd like to specify a probability distribution of start states so we can perform simulations and (let's say) compute the probability distribution of states at specific future time steps. While this is a relevant question, we'd like to separate the following two specifications:
+Now it's natural to ask the question: How do we "start" the Markov Process (in the stock price examples, this was the notion of the start state)? More generally, we'd like to specify a probability distribution of start states so we can perform simulations and (let's say) compute the probability distribution of states at specific future time steps. While this is a relevant question, we'd like to separate the following two specifications:
 
 * Specification of the transition probability function $\mathcal{P}$
 * Specification of the probability distribution of start states (denote this as $\mu: \mathcal{S} \rightarrow [0,1]$)
@@ -268,36 +268,47 @@ We say that a Markov Process is fully specified by $\mathcal{P}$ in the sense th
 
  Thinking about the separation between specifying the rules of the game versus actually playing the game helps us understand the need to separate the notion of dynamics specification $\mathcal{P}$ (fundamental to the stationary character of the Markov Process) and the notion of starting distribution $\mu$ (required to perform simulation traces). Hence, the separation of concerns between $\mathcal{P}$ and $\mu$ is key to the conceptualization of Markov Processes. Likewise, we separate concerns in our code design as well, as evidenced by how we separated the ``next_state`` method in the Process dataclasses and the ``simulation`` function.
 
-### Absorbing States
+### Terminal States
 
-Thinking about games might make you wonder how we'd represent the fact that games have *ending rules* (rules for winning or losing the game). This brings up the notion of "terminal states". "Terminal states" might occur at any of a variety of time steps (like in the games examples), or like we will see in many financial application examples, termination might occur after a fixed number of time steps. So do we need to specify that certain states are "terminal states"? Yes, we do, but we won't explicitly mark them as "terminal states". Instead, we will build this "termination" feature in $\mathcal{P}$ as follows (note that the technical term for "terminal states" is *Absorbing States* due to the following construction of $\mathcal{P}$).
+Thinking about games might make you wonder how we'd represent the fact that games have *ending rules* (rules for winning or losing the game). This brings up the notion of "terminal states". "Terminal states" might occur at any of a variety of time steps (like in the games examples), or like we will see in many financial application examples, termination might occur after a fixed number of time steps, or like in the stock price examples we saw earlier, there is in fact no termination.
+
+To capture the notion of termination of a Markov Chain, we will need to provide a way of specifying that some states are terminal states. The code for simulations will query to see if a visited state is a terminal state, and if so, it will end the simulation trace. Markov Processes whose simulation traces terminate are known as *Episodic*, and Markov Processes whose simulation traces do not terminate (go on endlessly) are known as *Continuing*. 
+
+Sometimes we can have states that that cycle back to themselves with 100% probability. Such states are known as *Absorbing States*. Formallly,
 
 \begin{definition}[Absorbing States]
 A state $s\in \mathcal{S}$ is an {\em Absorbing State} if $\mathcal{P}(s,s) = 1$
 \end{definition}
 
-So instead of thinking of the Markov Process as "terminating", we can simply imagine that the Markov Process keeps cycling with 100% probability at this "terminal state". This notion of being trapped in the state (not being able to escape to another state) is the reason we call it an Absorbing State. 
+It's important to distinguish between terminal states and absorbing states since one could actually model terminating behavior by creating an absorbing state. The subtle difference is that we model a terminal state when we explicitly want to end a simulation trace (when we have a process that we want to treat as *episodic*) and we model an absorbing state when we want our simulation trace to keep going forever in spite of having a notion of "termination" (when we have a process that we want to treat as *continuing*). When we get to Reinforcement Learning, the distinction between *episodic* and *continuing* process data matters in the treatment of the algorithms. For example, some Reinforcement Learning algorithms require *episodic processes*, which means we will need to specify the final states as terminal (versus the option of modeling those final states as absorbing).
 
-When we consider some of the financial applications later in this book, we will find that the Markov Process "terminates" after a fixed number of time steps, say $T$. In these applications, the time index $t$ is part of the state and each state with the time index $t=T$ will be constructed to be an absorbing state. All other states with time index $t<T$ will transition to states with time index $t+1$. In fact, you could take each of the 3 Processes seen earlier for stock price movement and add a feature that the forward movement in time terminates at some fixed time step $T$. Then, we'd have to include $t$ in the state representation simply to specify that states with time index $T$ will transition to themselves with 100% probability (note that in these examples the time index $t$ doesn't influence the transition probabilities for states with $t<T$, so these processes are stationary until $t=T-1$.)
+When we cover some of the financial applications later in this book, we will find that the Markov Process terminates after a fixed number of time steps, say $T$. In these applications, the time index $t$ is part of the state representation, and each state with time index $t=T$ will be labeled a terminal state. All states with time index $t<T$ will transition to states with time index $t+1$. Now we are ready to write some code for Markov Processes, where we will illustrate how to specify that certain states are terminal states.
 
-## Stock Price Examples modeled as Markov Processes
-
-With this formalism in place, we are now ready to write some code to represent general Markov Processes. We do this with an abstract class `MarkovProcess` parameterized by a generic type (`TypeVar('S')`) representing a generic state space `Generic[S]`. The abstract class has an `abstractmethod` called `transition` that is meant to specify the transition probability distribution of next states, given a current state. The class also has a method `simulate` that enables us to generate a sequence of sampled states starting from a specified `start_state`. The sampling of next states relies on the implementation of the `sample()` method in the `Distribution[S]` object produced by the `transition` method (note that the [`Distribution` class hierarachy](https://github.com/TikhonJelvis/RL-book/blob/master/rl/distribution.py) was covered in the previous chapter). This is the full body of the abstract class `MarkovProcess`:
+We create an abstract class `MarkovProcess` parameterized by a generic type (`TypeVar('S')`) representing a generic state space `Generic[S]`. The abstract class has an `abstractmethod` called `transition` that is meant to specify the transition probability distribution of next states, given a current state. Note the return type of `transition`. It's `Optional[Distribution[S]]`. This means it's meant to return `None` if there is no next state (i.e., when you want to specify `state` as a terminal state) or return `Distribution[S]` to specify the probability distribution of next states. We also have a convenience method `is_terminal` to query if a given state is terminal or not. We also have a method `simulate` that enables us to generate a sequence of sampled states starting from a specified `start_state`. The sampling of next states relies on the implementation of the `sample()` method in the `Distribution[S]` object produced by the `transition` method (note that the [`Distribution` class hierarachy](https://github.com/TikhonJelvis/RL-book/blob/master/rl/distribution.py) was covered in the previous chapter). This is the full body of the abstract class `MarkovProcess`:
 
 ```python
-S = TypeVar('S')
 class MarkovProcess(ABC, Generic[S]):
 
     @abstractmethod
-    def transition(self, state: S) -> Distribution[S]:
+    def transition(self, state: S) -> Optional[Distribution[S]]:
         pass
 
+    def is_terminal(self, state: S) -> bool:
+        return self.transition(state) is None
+
     def simulate(self, start_state: S) -> Iterable[S]:
+
         state: S = start_state
         while True:
             yield state
-            state = self.transition(state).sample()
+            next_states = self.transition(state)
+            if next_states is None:
+                break
+            else:
+                state = next_states.sample()
 ```
+
+## Stock Price Examples modeled as Markov Processes
 
 So if you have a mathematical specification of the transition probabilities of a Markov Process, all you need to do is to create a concrete class that implements the interface of the abstract class `MarkovProcess` (specifically by implementing the  `@abstractmethod transition`) in a manner that captures your mathematical specification of the transition probabilities. Let us write this for the case of Process 3 (the 3rd example of stock price transitions we covered in the previous section). We will name the concrete class as `StockPriceMP3` (note that it's a `@dataclass` for convenience and simplicity). Note that the generic state space `S` is now replaced with a specific state space represented by the type `@dataclass StateMP3`. The code should be self-explanatory since we implemented this process as a standalone in the previous section. Note the use of the `Categorical` distribution in the `transition` method to capture the 2-outcomes distribution of next states (for movements up or down).
 
