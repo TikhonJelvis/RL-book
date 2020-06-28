@@ -150,8 +150,8 @@ class MarkovRewardProcess(MarkovProcess[S]):
             return SampledDistribution(next_state)
 
     @abstractmethod
-    def transition_reward(self,
-                          state: S) -> Optional[Distribution[Tuple[S, float]]]:
+    def transition_reward(self, state: S)\
+            -> Optional[Distribution[Tuple[S, float]]]:
         '''Given a state, returns a distribution of the next state
         and reward from transitioning between the states.
 
@@ -229,7 +229,8 @@ class FiniteMarkovRewardProcess(FiniteMarkovProcess[S],
     def get_value_function_vec(self, gamma) -> np.ndarray:
         return np.linalg.inv(
             np.eye(len(self.non_terminal_states)) -
-            gamma * self.transition_matrix).dot(self.reward_function_vec)
+            gamma * self.transition_matrix
+        ).dot(self.reward_function_vec)
 
     def display_reward_function(self):
         pprint({
