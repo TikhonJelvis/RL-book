@@ -67,12 +67,13 @@ class FiniteMarkovProcess(MarkovProcess[S]):
 
     '''
 
-    state_space: Sequence[S]
+    non_terminal_states: Sequence[S]
     transition_map: Transition[S]
     transition_matrix: np.ndarray
 
     def __init__(self, transition_map: Transition[S]):
-        self.state_space = list(transition_map.keys())
+        self.non_terminal_states = [s for s, v in transition_map.items()
+                                    if v is not None]
         self.transition_map = transition_map
         self.transition_matrix = self.get_transition_matrix()
 
@@ -90,11 +91,11 @@ class FiniteMarkovProcess(MarkovProcess[S]):
         return display
 
     def get_transition_matrix(self) -> np.ndarray:
-        sz = len(self.state_space)
+        sz = len(self.non_terminal_states)
         mat = np.zeros((sz, sz))
 
-        for i, s1 in enumerate(self.state_space):
-            for j, s2 in enumerate(self.state_space):
+        for i, s1 in enumerate(self.non_terminal_states):
+            for j, s2 in enumerate(self.non_terminal_states):
                 next_states = self.transition(s1)
                 if next_states is None:
                     mat[i, j] = 0.0
@@ -113,7 +114,7 @@ class FiniteMarkovProcess(MarkovProcess[S]):
         eig_vec_of_unit_eig_val = np.real(
             eig_vecs[:, index_of_first_unit_eig_val])
         return Categorical([
-            (self.state_space[i], ev)
+            (self.non_terminal_states[i], ev)
             for i, ev in enumerate(eig_vec_of_unit_eig_val /
                                    sum(eig_vec_of_unit_eig_val))
         ])
@@ -127,7 +128,7 @@ class FiniteMarkovProcess(MarkovProcess[S]):
     def generate_image(self) -> graphviz.Digraph:
         d = graphviz.Digraph()
 
-        for s in self.state_space:
+        for s in self.transition_map.keys():
             d.node(str(s))
 
         for s, v in self.transition_map.items():
@@ -144,11 +145,15 @@ class MarkovRewardProcess(MarkovProcess[S]):
         reward (which makes this just a normal Markov Process).
 
         '''
-        def next_state(state=state):
-            next_s, _ = self.transition_reward(state).sample()
-            return next_s
+        distribution = self.transition_reward(state)
+        if distribution is None:
+            return None
+        else:
+            def next_state(distribution=distribution):
+                next_s, _ = distribution.sample()
+                return next_s
 
-        return SampledDistribution(next_state)
+            return SampledDistribution(next_state)
 
     @abstractmethod
     def transition_reward(self,
@@ -186,36 +191,35 @@ class FiniteMarkovRewardProcess(FiniteMarkovProcess[S],
 
     def __init__(self, transition_reward_map: RewardTransition[S]):
 
-        transition_map: Dict[S, FiniteDistribution[S]] = {}
+        transition_map: Dict[S, Optional[FiniteDistribution[S]]] = {}
 
         for state, trans in transition_reward_map.items():
-            probabilities: Dict[S, float] = defaultdict(float)
-
-            if trans is not None:
+            if trans is None:
+                transition_map[state] = None
+            else:
+                probabilities: Dict[S, float] = defaultdict(float)
                 for (next_state, _), probability in trans.table():
                     probabilities[next_state] += probability
 
-            transition_map[state] = Categorical(list(probabilities.items()))
+                transition_map[state] = Categorical(
+                    list(probabilities.items())
+                )
 
         super().__init__(transition_map)
 
         self.transition_reward_map = transition_reward_map
 
-        sums = []
-        for state in self.state_space:
-            distribution = transition_reward_map[state]
-            if distribution is not None:
-                sums += [
-                    sum(probability * reward
-                        for (_, reward), probability in distribution.table())
-                ]
-        self.reward_function_vec = np.array(sums)
+        self.reward_function_vec = np.array([
+            sum(probability * reward for (_, reward), probability in
+                transition_reward_map[state].table())
+            for state in self.non_terminal_states
+        ])
 
     def __repr__(self) -> str:
         display = ""
         for s, d in self.transition_reward_map.items():
             if d is None:
-                display += "{s} is a Terminal State\n"
+                display += f"{s} is a Terminal State\n"
             else:
                 display += f"From State {s}:\n"
                 for (s1, r), p in d.table():
@@ -230,17 +234,17 @@ class FiniteMarkovRewardProcess(FiniteMarkovProcess[S],
 
     def get_value_function_vec(self, gamma) -> np.ndarray:
         return np.linalg.inv(
-            np.eye(len(self.state_space)) -
+            np.eye(len(self.non_terminal_states)) -
             gamma * self.transition_matrix).dot(self.reward_function_vec)
 
     def display_reward_function(self):
         pprint({
-            self.state_space[i]: round(r, 3)
+            self.non_terminal_states[i]: round(r, 3)
             for i, r in enumerate(self.reward_function_vec)
         })
 
     def display_value_function(self, gamma):
         pprint({
-            self.state_space[i]: round(v, 3)
+            self.non_terminal_states[i]: round(v, 3)
             for i, v in enumerate(self.get_value_function_vec(gamma))
         })
