@@ -18,8 +18,8 @@ To deal with the "decisioning" aspect, we will introduce the notion of *Action* 
 
 This simple inventory example has given us a peek into the world of Markov Decision Processes, which in general, have two distinct (and inter-dependent) high-level features:
 
-* At each time step $t$, an *Action* $A_t$ in picked (from among a specified choice of actions) upon observing the *State* $S_t$
-* Given an observed *State* $S_t$ and a performed *Action* $A_t$, the probabilities of the state and reward of the next time step ($S_{t+1}$ and $R_{t+1}$) are in general a function of not just the state $S_t$ but also of the action $A_t$.
+* At each time step $t$, an *Action* $A_t$ is picked (from among a specified choice of actions) upon observing the *State* $S_t$
+* Given an observed *State* $S_t$ and a performed *Action* $A_t$, the probabilities of the state and reward of the next time step ($S_{t+1}$ and $R_{t+1}$) are in general a function of not just the state $S_t$, but also of the action $A_t$.
 
 We are tasked with maximizing the *Expected Return* from each state (i.e., maximizing the Value Function). This seems like a pretty hard problem in the general case because there is a cyclic interplay between:
 
@@ -29,7 +29,7 @@ We are tasked with maximizing the *Expected Return* from each state (i.e., maxim
 
 There is also the challenge that actions might have delayed consequences on rewards, and it's not clear how to disentangle the effects of actions from different time steps on a future reward. So without direct correspondence between actions and rewards, how can we control the actions so as to maximize expected accumulated rewards? To answer this question, we will need to set up some notation and theory. Before we formally define the Markov Decision Process framework and it's associated (elegant) theory, let us set up a bit of terminology.
 
-Using the language of AI, we say that at each time step $t$, the *Agent* (the algorithm we design) observes the state $S_t$, after which the Agent performs action $A_t$, after which the *Environment* (upon seeing $S_t$ and $A_t$) produces a random pair: the next state state $S_{t+1}$ and the next reward $R_{t+1}$, after which the *Agent* oberves this next state $S_{t+1}$, and the cycle repeats. This cyclic interplay is depicted in Figure \ref{fig:mdp_cycle}. Note that time ticks over from $t$ to $t+1$ when the environment sees the state $S_t$ and action $A_t$.
+Using the language of AI, we say that at each time step $t$, the *Agent* (the algorithm we design) observes the state $S_t$, after which the Agent performs action $A_t$, after which the *Environment* (upon seeing $S_t$ and $A_t$) produces a random pair: the next state state $S_{t+1}$ and the next reward $R_{t+1}$, after which the *Agent* oberves this next state $S_{t+1}$, and the cycle repeats (until we reach a terminal state). This cyclic interplay is depicted in Figure \ref{fig:mdp_cycle}. Note that time ticks over from $t$ to $t+1$ when the environment sees the state $S_t$ and action $A_t$.
 
 ![Markov Decision Process \label{fig:mdp_cycle}](./chapter3/mdp.png "Agent-Environment interaction in a Markov Decision Process")
 
@@ -43,37 +43,39 @@ Similar to the definitions of Markov Processes and Markov Reward Processes, for 
 
  \begin{itemize}
 
-\item A countable set of states $\mathcal{S}$ and a countable set of actions $\mathcal{A}$
+\item A countable set of states $\mathcal{S}$ (known as the State Space), a set $\mathcal{T} \subseteq \mathcal{S}$ (known as the set of Terminal States), and a countable set of actions $\mathcal{A}$
 
- \item A time-indexed sequence of environment-generated random states $S_t$ for each time $t=0, 1, 2, \ldots$, with each $S_t \in \mathcal{S}$
+\item A time-indexed sequence of environment-generated random states $S_t$ for time steps $t=0, 1, 2, \ldots$, with each $S_t \in \mathcal{S}$. If $S_T \in \mathcal{T}$ for some time step $T$, then we say that the time-indexed sequence of random states terminates at time step $T$ (and that $S_T$ is a terminal state).
 
- \item A time-indexed sequence of environment-generated {\em Reward} random variables $R_t \in \mathbb{R}$ for each time $t=1, 2, \ldots$
+\item A time-indexed sequence of environment-generated {\em Reward} random variables $R_t \in \mathbb{R}$ for time steps $t=1, 2, \ldots$
 
-\item A time-indexed sequence of agent-controllable actions $A_t$ for each time $t=0, 1, 2, \ldots$, with each $A_t \in \mathcal{A}$. (Sometimes we restrict the set of actions allowable from specific states, in which case, we abuse the $\mathcal{A}$ notation to refer to a function whose domain is $\mathcal{S}$ and range is $\mathcal{A}$, and we say that the set of actions allowable from a state $s\in \mathcal{S}$ is $\mathcal{A}(s)$.)
+\item A time-indexed sequence of agent-controllable actions $A_t$ for time steps $t=0, 1, 2, \ldots$, with each $A_t \in \mathcal{A}$. (Sometimes we restrict the set of actions allowable from specific states, in which case, we abuse the $\mathcal{A}$ notation to refer to a function whose domain is $\mathcal{S}$ and range is $\mathcal{A}$, and we say that the set of actions allowable from a state $s\in \mathcal{S}$ is $\mathcal{A}(s)$.)
 
- \item Markov Property: $\mathbb{P}[(R_{t+1}, S_{t+1}) | (S_t, A_t, S_{t-1}, A_{t-1}, \ldots, S_0, A_0)] = \mathbb{P}[(R_{t+1}, S_{t+1}) | (S_t, A_t)]$ for all $t \geq 0$
+\item Markov Property: $\mathbb{P}[(R_{t+1}, S_{t+1}) | (S_t, A_t, S_{t-1}, A_{t-1}, \ldots, S_0, A_0)] = \mathbb{P}[(R_{t+1}, S_{t+1}) | (S_t, A_t)]$ for all $t \geq 0$
 
- \item Specification of a discount factor $\gamma \in [0,1]$
+\item Specification of a discount factor $\gamma \in [0,1]$
 
- \end{itemize}
+\end{itemize}
 
- \end{definition}
+\end{definition}
 
-Like in the case of Markov Reward Processes, the role of $\gamma$ only comes in discounting future rewards when accumulating rewards from a given state - more on this later.
+As in the case of Markov Reward Processes, the role of $\gamma$ only comes in discounting future rewards when accumulating rewards from a given state - more on this later. As in the case of Markov Reward Processes, we denote the set of non-terminal states $\mathcal{S} - \mathcal{T}$ as $\mathcal{N}$ and refer to any state in $\mathcal{N}$ as a non-terminal state. The sequence:
+$$S_0, A_0, R_1, S_1, A_1, R_1, S_2, \ldots$$
+terminates at time step $T$ if $S_T \in \mathcal{T}$ (i.e., the final reward is $R_T$ and the final action is $A_{T-1}$).
 
-Like in the case of Markov Processes and Markov Reward Processes, we shall (by default) assume Stationarity for Markov Decision Processes, i.e., $\mathbb{P}[(R_{t+1}, S_{t+1}) | (S_t, A_t)]$ is independent of $t$. This means the transition probabilities of a Markov Decision Process can, in the most general case, be expressed as a state-reward transition probability function:
+As in the case of Markov Processes and Markov Reward Processes, we shall (by default) assume Stationarity for Markov Decision Processes, i.e., $\mathbb{P}[(R_{t+1}, S_{t+1}) | (S_t, A_t)]$ is independent of $t$. This means the transition probabilities of a Markov Decision Process can, in the most general case, be expressed as a state-reward transition probability function:
 
-$$\mathcal{P}_R: \mathcal{S} \times \mathcal{A} \times \mathbb{R} \times \mathcal{S} \rightarrow [0,1]$$
+$$\mathcal{P}_R: \mathcal{N} \times \mathcal{A} \times \mathbb{R} \times \mathcal{S} \rightarrow [0,1]$$
 
 defined as:
 
-$$\mathcal{P}_R(s,a,r,s') = \mathbb{P}[(R_{t+1}=r, S_{t+1}=s') |(S_t=s, A_t=a)]$$ such that $$\sum_{s'\in \mathcal{S}} \sum_{r \in \mathbb{R}} \mathcal{P}_R(s,a,r,s') = 1 \text{ for all } s \in \mathcal{S}, a \in \mathcal{A}$$
+$$\mathcal{P}_R(s,a,r,s') = \mathbb{P}[(R_{t+1}=r, S_{t+1}=s') |(S_t=s, A_t=a)]$$ such that $$\sum_{s'\in \mathcal{S}} \sum_{r \in \mathbb{R}} \mathcal{P}_R(s,a,r,s') = 1 \text{ for all } s \in \mathcal{N}, a \in \mathcal{A}$$
 
 Henceforth, any time we say Markov Decision Process, assume we are refering to a Discrete-Time Stationary Markov Decision Process with countable spaces and countable transitions (unless explicitly specified otherwise), which in turn can be characterized by the state-reward transition probability function $\mathcal{P}_R$. Given a specification of $\mathcal{P}_R$, we can construct:
 
 * The state transition probability function
 
-$$\mathcal{P}: \mathcal{S} \times \mathcal{A} \times \mathcal{S} \rightarrow [0,1]$$
+$$\mathcal{P}: \mathcal{N} \times \mathcal{A} \times \mathcal{S} \rightarrow [0,1]$$
 
 defined as:
 
@@ -81,7 +83,7 @@ $$\mathcal{P}(s, a, s') = \sum_{r\in \mathbb{R}} \mathcal{P}_R(s,a, r,s')$$
 
 * The reward transition function:
 
-$$\mathcal{R}_T: \mathcal{S} \times \mathcal{A} \times \mathcal{S} \rightarrow \mathbb{R}$$
+$$\mathcal{R}_T: \mathcal{N} \times \mathcal{A} \times \mathcal{S} \rightarrow \mathbb{R}$$
 
 defined as:
 
@@ -91,7 +93,7 @@ $$ = \sum_{r\in \mathcal{R}} \frac {\mathcal{P}_R(s,a,r,s')} {\mathcal{P}(s,a,s'
 
 The Rewards specification of most Markov Decision Processes we encounter in practice can be directly expressed as the reward transition function $\mathcal{R}_T$ (versus the more general specification of $\mathcal{P}_R$). Lastly, we want to highlight that we can transform either of $\mathcal{P}_R$ or $\mathcal{R}_T$ into a "more compact" reward function that is sufficient to perform key calculations involving Markov Decision Processes. This reward function
 
-$$\mathcal{R}: \mathcal{S} \times \mathcal{A} \rightarrow \mathbb{R}$$
+$$\mathcal{R}: \mathcal{N} \times \mathcal{A} \rightarrow \mathbb{R}$$
 
 is defined as:
 
@@ -103,23 +105,23 @@ $$= \sum_{s' \in \mathcal{S}} \mathcal{P}(s,a,s') \cdot \mathcal{R}_T(s,a,s') = 
 
 Having understood the dynamics of a Markov Decision Process, we now move on to the specification of the *Agent*'s actions as a function of the current state. In the general case, we assume that the Agent will perform a random action $A_t$, according to a probability distribution that is a function of the current state $S_t$. We refer to this function as a *Policy*. Formally, a *Policy* is a function
 
-$$\pi: \mathcal{A} \times \mathcal{S} \rightarrow [0,1]$$
+$$\pi: \mathcal{A} \times \mathcal{N} \rightarrow [0,1]$$
 
 defined as:
 
-$$\pi(a, s) = \mathbb{P}[A_t = a|S_t = s] \text{ for all } t = 0, 1, 2, \ldots, \text{ for all } s\in \mathcal{S}, a \in \mathcal{A}$$
+$$\pi(a, s) = \mathbb{P}[A_t = a|S_t = s] \text{ for time steps } t = 0, 1, 2, \ldots, \text{ for all } s\in \mathcal{N}, a \in \mathcal{A}$$
 
 Note that in the definition above, we've assumed that a Policy is stationary, i.e., $\mathbb{P}[A_t = a|S_t = s]$ is invariant in time $t$. If we do encounter a situation where the policy would need to depend on the time $t$, we'll simply include $t$ to be part of the state, which would make the Policy stationary (albeit at the cost of state-space bloat and hence, computational cost).
 
-When we have a policy such that the action probability distribution for each state is concentrated on a single action, we refer to it as a deterministic policy. Formally, a deterministic policy has the property that for all $s\in \mathcal{S}$,
+When we have a policy such that the action probability distribution for each state is concentrated on a single action, we refer to it as a deterministic policy. Formally, a deterministic policy has the property that for all $s\in \mathcal{N}$,
 
 $$\pi(\pi_D(s), s) = 1 \text{ and } \pi(a, s) = 0 \text{ for all } a\in \mathcal{A} \text{ with } a \neq \pi_D(s)$$
 
-where $\pi_D: \mathcal{S} \rightarrow \mathcal{A}$.
+where $\pi_D: \mathcal{N} \rightarrow \mathcal{A}$.
 
 So we shall denote deterministic policies simply with the function $\pi_D$. We shall refer to non-deterministic policies as stochastic policies (the word stochastic reflecting the fact that the agent will perform a random action according to the probability distribution specified by $\pi$). So when we use the notation $\pi$, assume that we are dealing with a stochastic (i.e., non-deterministic) policy and when we use the notation $\pi_D$, assume that we are dealing with a deterministic policy.
 
-Let's write some code to get a grip on the concept of Policy  - we start with the design of an abstract class called `Policy` that represents a general Policy, as we have articulated above. The only method it contains is an `@abstractmethod act` that accepts as input a `state: S` (as seen before in the classes `MarkovProcess` and `MarkovRewardProcess`, `S` is a generic type to represent a generic state) and produces as output an object of type `Distribution[A]` that represents the probability distribution of the random action as a function of the input `state`.
+Let's write some code to get a grip on the concept of Policy  - we start with the design of an abstract class called `Policy` that represents a general Policy, as we have articulated above. The only method it contains is an `@abstractmethod act` that accepts as input a `state: S` (as seen before in the classes `MarkovProcess` and `MarkovRewardProcess`, `S` is a generic type to represent a generic state) and produces as output `None` for a terminal `state: S` and a `Distribution[A]` for a non-terminal `state: S` representing the probability distribution of the random action as a function of the input state.
 
 ```python
 A = TypeVar('A')
@@ -128,7 +130,7 @@ S = TypeVar('S')
 class Policy(ABC, Generic[S, A]):
 
     @abstractmethod
-    def act(self, state: S) -> Distribution[A]:
+    def act(self, state: S) -> Optional[Distribution[A]]:
         pass
 ```
 
@@ -270,73 +272,94 @@ Certain calculations for Markov Decision Processes can be performed easily if:
 
 * The state space is finite ($\mathcal{S} = \{s_1, s_2, \ldots, s_n\}$),
 * The action space $\mathcal{A}(s)$ is finite for each $s \in \mathcal{S}$.
-* The set of pairs of next state and reward transitions from each pair of current state and action, is finite
+* The set of pairs of next state and reward transitions from each pair of current non-terminal state and action is finite
 
-If we satisfy the above three characteristics, we refer to the Markov Decision Process as a Finite Markov Decision Process. Let us write some code for a Finite Markov Decision Process. We create a concrete class `FiniteMarkovDecisionProcess` that implements the interface of the abstract class `MarkovDecisionProcess` (specifically implements the `@abstractmethod apply_policy`). Our first task is to think about the data structure required to specify an instance of `FiniteMarkovDecisionProcess` (i.e., the data structure we'd pass to the `__init__` method of `FiniteMarkovDecisionProcess`). Analogous to how we curried $\mathcal{P}_R$ for a Markov Reward Process as $\mathcal{S} \rightarrow (\mathcal{S} \times \mathbb{R} \rightarrow [0,1])$ (where $\mathcal{S} = \{s_1, s_2, \ldots, s_n\}$), here we curry $\mathcal{P}_R$ for the MDP as:
-$$\mathcal{S} \rightarrow (\mathcal{A} \rightarrow (\mathcal{S} \times \mathbb{R} \rightarrow [0, 1]))$$
+If we satisfy the above three characteristics, we refer to the Markov Decision Process as a Finite Markov Decision Process. Let us write some code for a Finite Markov Decision Process. We create a concrete class `FiniteMarkovDecisionProcess` that implements the interface of the abstract class `MarkovDecisionProcess` (specifically implements the `@abstractmethod apply_policy`). Our first task is to think about the data structure required to specify an instance of `FiniteMarkovDecisionProcess` (i.e., the data structure we'd pass to the `__init__` method of `FiniteMarkovDecisionProcess`). Analogous to how we curried $\mathcal{P}_R$ for a Markov Reward Process as $\mathcal{N} \rightarrow (\mathcal{S} \times \mathbb{R} \rightarrow [0,1])$ (where $\mathcal{S} = \{s_1, s_2, \ldots, s_n\}$ and $\mathcal{N}$ has $m\leq n$ states), here we curry $\mathcal{P}_R$ for the MDP as:
+$$\mathcal{N} \rightarrow (\mathcal{A} \rightarrow (\mathcal{S} \times \mathbb{R} \rightarrow [0, 1]))$$
 Since $\mathcal{S}$ is finite, $\mathcal{A}$ is finite, and the set of next state and reward transitions for each pair of current state and action is also finite, we can represent $\mathcal{P}_R$ as a data structure of type `StateActionMapping[S, A]` as shown below:
 
 ```python
 StateReward = FiniteDistribution[Tuple[S, float]]
 ActionMapping = Mapping[A, StateReward[S]]
-StateActionMapping = Mapping[S, ActionMapping[A, S]]
+StateActionMapping = Mapping[S, Optional[ActionMapping[A, S]]]
 ```
 
-The constructor (``__init__`` method) of `FiniteMarkovDecisionProcess` takes as input `mapping: StateActionMapping[S, A]` that represents the complete structure of the Finite MDP - it maps each state to an action map, and it maps each action in each action map to a finite probability distribution of pairs of next state and reward (essentially the structure of the $\mathcal{P}_R$ function). Now let's consider the implementation of the abstract method `apply_policy` of `MarkovDecisionProcess`. It's interface says that it's input is a `policy: Policy[S, A]`. Since `Policy[S, A]` is an abstract class with only an `@abstractmethod act`, all we can do in `apply_policy` is to call the `act` method of `Policy[S, A]`. This gives us an object of abstract type `Distribution[A]` and all we can do with it is to call it's only (abstract) method `sample`, upon which we get an action sample `action: A`. Given the `state: A` and the sample `action: A`, we can access `self.mapping[state][action]: FiniteDistribution[Tuple[S, float]]` which represents a finite probability distribution of pairs of next state and reward. We sample from this distribution and return the sampled pair of next state and reward as a `SampledDistribution` object. This satisfies the responsibility of `FiniteMarkovDecisionProcess` in terms of implementing the `@abstractmethod apply_policy` of the abstract class `MarkovDecisionProcess`. The code below also includes the `actions` method which produces the set of allowed actions $\mathcal{A}(s)$ for a given state $s\in \mathcal{S}$, and the `__repr__` method that pretty-prints `self.mapping`.
+The constructor (``__init__`` method) of `FiniteMarkovDecisionProcess` takes as input `mapping: StateActionMapping[S, A]` that represents the complete structure of the Finite MDP - it maps each non-terminal state to an action map (maps each terminal state to `None`), and it maps each action in each action map to a finite probability distribution of pairs of next state and reward (essentially the structure of the $\mathcal{P}_R$ function). Now let's consider the implementation of the abstract method `apply_policy` of `MarkovDecisionProcess`. It's interface says that it's input is a `policy: Policy[S, A]`. Since `Policy[S, A]` is an abstract class with only an `@abstractmethod act`, all we can do in `apply_policy` is to call the `act` method of `Policy[S, A]`. This gives us an object of abstract type `Distribution[A]` for a non-terminal state, and all we can do with it is to call it's only (abstract) method `sample`, upon which we get an action sample `action: A`. Given the `state: S` and the sample `action: A`, we can access `self.mapping[state][action]: FiniteDistribution[Tuple[S, float]]` which represents a finite probability distribution of pairs of next state and reward. We sample from this distribution and return the sampled pair of next state and reward as a `SampledDistribution` object. This satisfies the responsibility of `FiniteMarkovDecisionProcess` in terms of implementing the `@abstractmethod apply_policy` of the abstract class `MarkovDecisionProcess`. The code below also includes the `actions` method which produces the set of allowed actions $\mathcal{A}(s)$ for a given non-terminal state $s\in \mathcal{N}$ (returns `None` for a terminal state), and the `__repr__` method that pretty-prints `self.mapping`.
 
 ```python
 class FiniteMarkovDecisionProcess(MarkovDecisionProcess[S, A]):
 
     mapping: StateActionMapping[S, A]
 
-    def __init__(self, mapping: StateActionMapping[S, A]]):
+    def __init__(self, mapping: StateActionMapping[S, A]):
         self.mapping = mapping
 
     def __repr__(self) -> str:
         display = ""
         for s, d in self.mapping.items():
-            display += f"From State {s}:\n"
-            for a, d1 in d.items():
-                display += f"  With Action {a}:\n"
-                for (s1, r), p in d1.table():
-                    display += f"    To [State {s} and "\
-                        + f"Reward {r:.3f}] with Probability {p:.3f}\n"
+            if d is None:
+                display += f"{s} is a Terminal State\n"
+            else:
+                display += f"From State {s}:\n"
+                for a, d1 in d.items():
+                    display += f"  With Action {a}:\n"
+                    for (s1, r), p in d1.table():
+                        display += f"    To [State {s} and "\
+                            + f"Reward {r:.3f}] with Probability {p:.3f}\n"
         return display
 
     def apply_policy(self, policy: Policy[S, A]) -> MarkovRewardProcess[S]:
-        class Process(MarkovRewardProcess[S]):
-            def transition_reward(self,
-                                  state: S) -> Distribution[Tuple[S, float]]:
-                def next_state():
-                    action: A = policy.act(state).sample()
-                    return self.mapping[state][action].sample()
 
-                return SampledDistribution(next_state)
+        class Process(MarkovRewardProcess[S]):
+
+            def transition_reward(self, state: S)\
+                    -> Optional[Distribution[Tuple[S, float]]]:
+
+                action_map: Optional[ActionMapping[A, S]] = self.mapping[state]
+                if action_map is None:
+                    return None
+                else:
+                    def next_pair(action_map=action_map):
+                        action: A = policy.act(state).sample()
+                        return action_map[action].sample()
+
+                    return SampledDistribution(next_pair)
 
         return Process()
 
-    def actions(self, state: S) -> Iterable[A]:
-        return self.mapping[state].keys()
+    def actions(self, state: S) -> Optional[Iterable[A]]:
+        if self.mapping[state] is None:
+            return None
+        else:
+            return self.mapping[state].keys()
 ```
 
-Now that we've implemented a finite MDP, let's implement a finite policy, i.e., a policy function whose domain is a finite set of states $\mathcal{S} = \{s_1, s_2, \ldots, s_n\}$ and maps each state to a probability distribution over a finite set of actions $\mathcal{A} = \{a_1, a_2, \ldots, a_m\}$. So we create a concrete class `FinitePolicy` that implements the interface of the abstract class `Policy` (specifically implements the `@abstractmethod act`). The input to the constructor (`__init__` method) is `policy_map: Mapping[S, FiniteDistribution[A]]` since this type captures the structure of the $\pi: \mathcal{S} \times \mathcal{A} \rightarrow [0, 1]$ function in the curried form:
-$$\mathcal{S} \rightarrow (\mathcal{A} \rightarrow [0, 1])$$
+Now that we've implemented a finite MDP, let's implement a finite policy that maps each non-terminal state to a probability distribution over a finite set of actions (and maps each terminal state to `None`). So we create a concrete class `FinitePolicy` that implements the interface of the abstract class `Policy` (specifically implements the `@abstractmethod act`). The input to the constructor (`__init__` method) is `policy_map: Mapping[S, Optional[FiniteDistribution[A]]]` since this type captures the structure of the $\pi: \mathcal{N} \times \mathcal{A} \rightarrow [0, 1]$ function in the curried form:
+$$\mathcal{N} \rightarrow (\mathcal{A} \rightarrow [0, 1])$$
 for the case of finite $\mathcal{S}$ and finite $\mathcal{A}$. The `act` method is straightforward. We also implement a `__repr__` method for pretty-printing of `self.policy_map`.
 
 ```python
 class FinitePolicy(Policy[S, A]):
+    ''' A policy where the state and action spaces are finite.
 
-    policy_map: Mapping[S, FiniteDistribution[A]]
+    '''
+    policy_map: Mapping[S, Optional[FiniteDistribution[A]]]
 
-    def __init__(self, policy_map: Mapping[S, FiniteDistribution[A]]):
+    def __init__(
+        self,
+        policy_map: Mapping[S, Optional[FiniteDistribution[A]]]
+    ):
         self.policy_map = policy_map
 
     def __repr__(self) -> str:
         display = ""
         for s, d in self.policy_map.items():
-            display += f"For State {s}:\n"
-            for a, p in d.table():
-                display += f"  Do Action {a} with Probability {p:.3f}\n"
+            if d is None:
+                display += f"{s} is a Terminal State\n"
+            else:
+                display += f"For State {s}:\n"
+                for a, p in d.table():
+                    display += f"  Do Action {a} with Probability {p:.3f}\n"
         return display
 
     def act(self, state: S) -> FiniteDistribution[A]:
@@ -346,18 +369,23 @@ class FinitePolicy(Policy[S, A]):
 Armed with a `FinitePolicy` class, we can now write a method `apply_finite_policy` in `FiniteMarkovDecisionProcess` that takes as input a `policy: FinitePolicy[S, A]` and returns a `FiniteMarkovRewardProcess[S]` by processing the finite structures of both of the MDP and the Policy, and producing a finite structure of the implied MRP.      
 
 ```python
-    def apply_finite_policy(
-            self, policy: FinitePolicy[S, A]) -> FiniteMarkovRewardProcess[S]:
-        transition_mapping: Dict[S, StateReward[S]] = {}
+    def apply_finite_policy(self, policy: FinitePolicy[S, A])\
+            -> FiniteMarkovRewardProcess[S]:
+
+        transition_mapping: Dict[S, Optional[StateReward[S]]] = {}
 
         for state in self.mapping:
-            outcomes: DefaultDict[Tuple[S, float], float] = defaultdict(float)
+            action_map: Optional[ActionMapping[A, S]] = self.mapping[state]
+            if action_map is None:
+                transition_mapping[state] = None
+            else:
+                outcomes: DefaultDict[Tuple[S, float], float]\
+                    = defaultdict(float)
+                for action, p_action in policy.act(state).table():
+                    for outcome, p_state in action_map[action].table():
+                        outcomes[outcome] += p_action * p_state
 
-            for action, p_action in policy.act(state).table():
-                for outcome, p_state in self.mapping[state][action].table():
-                    outcomes[outcome] += p_action * p_state
-
-            transition_mapping[state] = Categorical(outcomes.items())
+                transition_mapping[state] = Categorical(outcomes.items())
 
         return FiniteMarkovRewardProcess(transition_mapping)
 ```      
@@ -382,7 +410,7 @@ This calculation is shown below:
 $$\mathcal{R}_T((\alpha, \beta), \theta, (0, \theta)) = - h \alpha - p (\sum_{j=\alpha+\beta+1}^{\infty} f(j) \cdot (j - (\alpha + \beta)))$$
  $$= - h \alpha - p (\lambda (1 - F(\alpha + \beta - 1)) -  (\alpha + \beta)(1 - F(\alpha + \beta)))$$ 
 
-So now we have a specification of $\mathcal{R}_T$, but when it comes to our coding interface, we are expected to specify $\mathcal{P}_R$ as that is the interface through which we create a `FiniteMarkovDecisionProcess`. Fear not - a specification of $\mathcal{P}_R$ is easy once we have a specification of $\mathcal{R}_T$. We simply create 5-tuples $(s,a,r,s',p)$ for all $s,s' \in \mathcal{S}, a \in \mathcal{A}$ such that $r=\mathcal{R}_T(s,a,s')$ and $p=\mathcal{P}(s,a,s')$ (we know $\mathcal{P}$ along with $\mathcal{R}_T$), and the set of all these 5-tuples (for all $s,s' \in \mathcal{S}, a \in \mathcal{A}$) constitute the specification of $\mathcal{P}_R$, i.e., $\mathcal{P}_R(s,a,r,s') = p$. This turns our reward-definition-altered mathematical model of a Finite Markov Decision Process into a programming model of the `FiniteMarkovDecisionProcess` class. This reward-definition-altered model enables us to gain from the fact that we can leverage the algorithms we'll be writing for Finite Markov Decision Processes (specifically, the classical Dynamic Programming algorithms - covered in the next chapter). The downside of this reward-definition-altered model is that it prevents us from performing simulations of the specific rewards encountered when transitioning from one state to another (because we no longer capture the probabilities of individual reward outcomes). Note that we can indeed perform simulations, but each transition step in the simulation will only show us the "mean reward" (specifically, the expected reward conditioned on current state, action and next state).
+So now we have a specification of $\mathcal{R}_T$, but when it comes to our coding interface, we are expected to specify $\mathcal{P}_R$ as that is the interface through which we create a `FiniteMarkovDecisionProcess`. Fear not - a specification of $\mathcal{P}_R$ is easy once we have a specification of $\mathcal{R}_T$. We simply create 5-tuples $(s,a,r,s',p)$ for all $s \in \mathcal{N}, ,s' \in \mathcal{S}, a \in \mathcal{A}$ such that $r=\mathcal{R}_T(s,a,s')$ and $p=\mathcal{P}(s,a,s')$ (we know $\mathcal{P}$ along with $\mathcal{R}_T$), and the set of all these 5-tuples (for all $s \in \mathcal{N}, s'\in \mathcal{S}, a \in \mathcal{A}$) constitute the specification of $\mathcal{P}_R$, i.e., $\mathcal{P}_R(s,a,r,s') = p$. This turns our reward-definition-altered mathematical model of a Finite Markov Decision Process into a programming model of the `FiniteMarkovDecisionProcess` class. This reward-definition-altered model enables us to gain from the fact that we can leverage the algorithms we'll be writing for Finite Markov Decision Processes (specifically, the classical Dynamic Programming algorithms - covered in the next chapter). The downside of this reward-definition-altered model is that it prevents us from performing simulations of the specific rewards encountered when transitioning from one state to another (because we no longer capture the probabilities of individual reward outcomes). Note that we can indeed perform simulations, but each transition step in the simulation will only show us the "mean reward" (specifically, the expected reward conditioned on current state, action and next state).
 
 In fact, most Markov Processes you'd encounter in practice can be modeled as a combination of $\mathcal{R}_T$ and $\mathcal{P}$, and you'd simply follow the above $\mathcal{R}_T$ to $\mathcal{P}_R$ representation transformation drill to present this information in the form of $\mathcal{P}_R$ to instantiate a `FiniteMarkovDecisionProcess`. We designed the interface to accept $\mathcal{P}_R$ as input since that is the most general interface for specifying Markov Decision Processes.
 
@@ -474,9 +502,9 @@ Now we are ready to talk about the Value Function for an MDP evaluated with a fi
 $$G_t = \sum_{i=t+1}^{\infty} \gamma^{i-t-1} \cdot R_i = R_{t+1} + \gamma \cdot R_{t+2} + \gamma^2 \cdot R_{t+3} + \ldots$$
 
 The Value Function for an MDP evaluated with a fixed policy $\pi$
-$$V^{\pi}: \mathcal{S} \rightarrow \mathbb{R}$$
+$$V^{\pi}: \mathcal{N} \rightarrow \mathbb{R}$$
 is defined as:
-$$V^{\pi}(s) = \mathbb{E}_{\pi, \mathcal{P}_R}[G_t|S_t=s] \text{ for all } s \in \mathcal{S}, \text{ for all } t = 0, 1, 2, \ldots$$
+$$V^{\pi}(s) = \mathbb{E}_{\pi, \mathcal{P}_R}[G_t|S_t=s] \text{ for all } s \in \mathcal{N}, \text{ for all } t = 0, 1, 2, \ldots$$
 
 Now let's expand $\mathbb{E}_{\pi, \mathcal{P}_R}[G_t|S_t=s]$.
 
@@ -497,30 +525,30 @@ But from Equation \eqref{eq:mrp_bellman_eqn} in the previous chapter, we know th
 \begin{split}
 V^{\pi}(s) & = \mathcal{R}^{\pi \rightarrow MRP}(s) + \gamma \cdot \sum_{s' \in \mathcal{S}} \mathcal{P}^{\pi \rightarrow MRP}(s,s') \cdot V^{\pi}(s')\\
 & = \sum_{a\in\mathcal{A}} \pi(s,a) \cdot \mathcal{R}(s,a) + \gamma \cdot \sum_{a\in \mathcal{A}} \pi(s,a) \sum_{s'\in \mathcal{S}} \mathcal{P}(s,a,s') \cdot V^{\pi}(s') \\
-& = \sum_{a\in \mathcal{A}} \pi(s,a) \cdot (\mathcal{R}(s,a) + \gamma \cdot \sum_{s'\in \mathcal{S}} \mathcal{P}(s,a,s') \cdot V^{\pi}(s')) \text{ for all  } s \in \mathcal{S}
+& = \sum_{a\in \mathcal{A}} \pi(s,a) \cdot (\mathcal{R}(s,a) + \gamma \cdot \sum_{s'\in \mathcal{S}} \mathcal{P}(s,a,s') \cdot V^{\pi}(s')) \text{ for all  } s \in \mathcal{N}
 \end{split}
 \label{eq:mdp_bellman_policy_eqn_vv}
 \end{equation}
 
 As we saw in the previous chapter, for finite state spaces that are not too large, Equation \eqref{eq:mdp_bellman_policy_eqn_vv} can be solved for $V^{\pi}$ (i.e. solution to the MDP *Prediction* problem) with a linear algebra solution (Equation \eqref{eq:mrp_bellman_linalg_solve} from the previous chapter). More generally, Equation \eqref{eq:mdp_bellman_policy_eqn_vv} will be a key equation for the rest of the book in developing various Dynamic Programming and Reinforcement Algorithms for the MDP *Prediction* problem. However, there is another Value Function that's also going to be crucial in developing MDP algorithms - one which maps a (state, action) pair to the expected return originating from the (state, action) pair when evaluated with a fixed policy. This is known as the *Action-Value Function* of an MDP evaluated with a fixed policy $\pi$:
-$$Q^{\pi}: \mathcal{S} \times \mathcal{A} \rightarrow \mathbb{R}$$
+$$Q^{\pi}: \mathcal{N} \times \mathcal{A} \rightarrow \mathbb{R}$$
 defined as:
-$$Q^{\pi}(s, a) = \mathbb{E}_{\pi, \mathcal{P}_R}[G_t|(S_t=s, A_t=a)] \text{ for all } s \in \mathcal{S}, a\in \mathcal{A}, \text{ for all } t = 0, 1, 2, \ldots$$
+$$Q^{\pi}(s, a) = \mathbb{E}_{\pi, \mathcal{P}_R}[G_t|(S_t=s, A_t=a)] \text{ for all } s \in \mathcal{N}, a\in \mathcal{A}, \text{ for all } t = 0, 1, 2, \ldots$$
 
-To avoid terminology confusion, we refer to $V^{\pi}$ as the *State-Value Function* (albeit often simply abbreviated to *Value Function*) for policy $\pi$, to distinguish from the *Action-Value Function* $Q^{\pi}$. The way to interpret $Q^{\pi}(s, a)$ is that it's the Expected Return from a given state $s$ by first taking the action $a$ and subsequently, following policy $\pi$. With this interpretation of $Q^{\pi}(s, a)$, we can perceive $V^{\pi}(s)$ as the "weighted average" of $Q^{\pi}(s,a)$ (over all possible actions $a$ from state $s$) with the weights equal to probabilities of action $a$, given state $s$ (i.e., $\pi(s, a)$). Precisely,
+To avoid terminology confusion, we refer to $V^{\pi}$ as the *State-Value Function* (albeit often simply abbreviated to *Value Function*) for policy $\pi$, to distinguish from the *Action-Value Function* $Q^{\pi}$. The way to interpret $Q^{\pi}(s, a)$ is that it's the Expected Return from a given non-terminal state $s$ by first taking the action $a$ and subsequently following policy $\pi$. With this interpretation of $Q^{\pi}(s, a)$, we can perceive $V^{\pi}(s)$ as the "weighted average" of $Q^{\pi}(s,a)$ (over all possible actions $a$ from a non-terminal state $s$) with the weights equal to probabilities of action $a$, given state $s$ (i.e., $\pi(s, a)$). Precisely,
 
 \begin{equation}
-V^{\pi}(s) = \sum_{a\in\mathcal{A}} \pi(s, a) \cdot Q^{\pi}(s, a) \text{ for all } s \in \mathcal{S} \label{eq:mdp_bellman_policy_eqn_vq}
+V^{\pi}(s) = \sum_{a\in\mathcal{A}} \pi(s, a) \cdot Q^{\pi}(s, a) \text{ for all } s \in \mathcal{N} \label{eq:mdp_bellman_policy_eqn_vq}
 \end{equation}
 
 Combining Equation \eqref{eq:mdp_bellman_policy_eqn_vv} and Equation \eqref{eq:mdp_bellman_policy_eqn_vq} yields:
 \begin{equation}
-Q^{\pi}(s, a) = \mathcal{R}(s,a) + \gamma \cdot \sum_{s'\in \mathcal{S}} \mathcal{P}(s,a,s') \cdot V^{\pi}(s') \text{ for all  } s \in \mathcal{S}, a \in \mathcal{A} \label{eq:mdp_bellman_policy_eqn_qv}
+Q^{\pi}(s, a) = \mathcal{R}(s,a) + \gamma \cdot \sum_{s'\in \mathcal{S}} \mathcal{P}(s,a,s') \cdot V^{\pi}(s') \text{ for all  } s \in \mathcal{N}, a \in \mathcal{A} \label{eq:mdp_bellman_policy_eqn_qv}
 \end{equation}
 
 Combining Equation \eqref{eq:mdp_bellman_policy_eqn_qv} and Equation \eqref{eq:mdp_bellman_policy_eqn_vq} yields:
 \begin{equation}
-Q^{\pi}(s, a) = \mathcal{R}(s,a) + \gamma \cdot \sum_{s'\in \mathcal{S}} \mathcal{P}(s,a,s') \sum_{a'\in \mathcal{A}} \pi(s', a') \cdot Q^{\pi}(s', a') \text{ for all  } s \in \mathcal{S}, a \in \mathcal{A} \label{eq:mdp_bellman_policy_eqn_qq}
+Q^{\pi}(s, a) = \mathcal{R}(s,a) + \gamma \cdot \sum_{s'\in \mathcal{S}} \mathcal{P}(s,a,s') \sum_{a'\in \mathcal{A}} \pi(s', a') \cdot Q^{\pi}(s', a') \text{ for all  } s \in \mathcal{N}, a \in \mathcal{A} \label{eq:mdp_bellman_policy_eqn_qq}
 \end{equation}
 
 Equation \eqref{eq:mdp_bellman_policy_eqn_vv} is known as the MDP State-Value Function Bellman Policy Equation (Figure \ref{fig:mdp_bellman_policy_tree_vv} serves as a visualization aid for this Equation).  Equation \eqref{eq:mdp_bellman_policy_eqn_qq} is known as the MDP Action-Value Function Bellman Policy Equation (Figure \ref{fig:mdp_bellman_policy_tree_qq} serves as a visualization aid for this Equation).  Note that Equation \eqref{eq:mdp_bellman_policy_eqn_vq} and Equation \eqref{eq:mdp_bellman_policy_eqn_qv} are embedded in Figure \ref{fig:mdp_bellman_policy_tree_vv} as well as in Figure \ref{fig:mdp_bellman_policy_tree_qq}. Equations \eqref{eq:mdp_bellman_policy_eqn_vv}, \eqref{eq:mdp_bellman_policy_eqn_vq}, \eqref{eq:mdp_bellman_policy_eqn_qv} and \eqref{eq:mdp_bellman_policy_eqn_qq} are collectively known as the MDP Bellman Policy Equations.
@@ -539,44 +567,44 @@ Note that for finite MDPs of state space not too large, we can solve the MDP Pre
 
 ## Optimal Value Function and Optimal Policies
 
-Finally, we arrive at the main purpose of a Markov Decision Process - to identify a policy (or policies) that would yield the Optimal Value Function (i.e., the best possible *Expected Return* from each of the states). We say that a Markov Decision Process is "solved" when we identify its Optimal Value Function (together with its associated Optimal Policy, i.e., a Policy that yields the Optimal Value Function). The problem of identifying the Optimal Value Function and its associated Optimal Policy/Policies is known as the MDP *Control* problem. The term *Control* refers to the fact that this problem involves steering the actions (by iterative modifications of the policy) to drive the Value Function towards Optimality. Formally, the Optimal Value Function
+Finally, we arrive at the main purpose of a Markov Decision Process - to identify a policy (or policies) that would yield the Optimal Value Function (i.e., the best possible *Expected Return* from each of the non-terminal states). We say that a Markov Decision Process is "solved" when we identify its Optimal Value Function (together with its associated Optimal Policy, i.e., a Policy that yields the Optimal Value Function). The problem of identifying the Optimal Value Function and its associated Optimal Policy/Policies is known as the MDP *Control* problem. The term *Control* refers to the fact that this problem involves steering the actions (by iterative modifications of the policy) to drive the Value Function towards Optimality. Formally, the Optimal Value Function
 
-$$V^*: \mathcal{S} \rightarrow \mathbb{R}$$
+$$V^*: \mathcal{N} \rightarrow \mathbb{R}$$
 
 is defined as:
 
-$$V^*(s) = \max_{\pi \in \Pi} V^{\pi}(s) \text{ for all } s \in \mathcal{S}$$
+$$V^*(s) = \max_{\pi \in \Pi} V^{\pi}(s) \text{ for all } s \in \mathcal{N}$$
 
-where $\Pi$ is the set of stationary (stochastic) policies over the spaces of $\mathcal{S}$ and $\mathcal{A}$.
+where $\Pi$ is the set of stationary (stochastic) policies over the spaces of $\mathcal{N}$ and $\mathcal{A}$.
 
-The way to read the above definition is that for each state $s$, we consider all possible stochastic stationary policies $\pi$, and maximize $V_{\pi}(s)$ across all these choices of $\pi$. Note that the maximization over choices of $\pi$ is done separately for each $s$, so it's conceivable that different choices of $\pi$ might maximize $V^{\pi}(s)$ for different $s\in \mathcal{S}$. Thus, from the above definition of $V^*$, we can't yet talk about the notion of "An Optimal Policy". So, for now, let's just focus on the notion of Optimal Value Function, as defined above.  Note also that we haven't yet talked about how to achieve the above-defined maximization through an algorithm - we have simply defined the Optimal Value Function.
+The way to read the above definition is that for each non-terminal state $s$, we consider all possible stochastic stationary policies $\pi$, and maximize $V_{\pi}(s)$ across all these choices of $\pi$. Note that the maximization over choices of $\pi$ is done separately for each $s$, so it's conceivable that different choices of $\pi$ might maximize $V^{\pi}(s)$ for different $s\in \mathcal{N}$. Thus, from the above definition of $V^*$, we can't yet talk about the notion of "An Optimal Policy". So, for now, let's just focus on the notion of Optimal Value Function, as defined above.  Note also that we haven't yet talked about how to achieve the above-defined maximization through an algorithm - we have simply *defined* the Optimal Value Function.
 
 Likewise, the Optimal Action-Value Function
 
-$$Q^*: \mathcal{S} \times \mathcal{A} \rightarrow \mathbb{R}$$
+$$Q^*: \mathcal{N} \times \mathcal{A} \rightarrow \mathbb{R}$$
 
 is defined as:
 
-$$Q^*(s, a) = \max_{\pi \in \Pi} Q^{\pi}(s, a) \text{ for all } s \in \mathcal{S}, a \in \mathcal{A}$$
+$$Q^*(s, a) = \max_{\pi \in \Pi} Q^{\pi}(s, a) \text{ for all } s \in \mathcal{N}, a \in \mathcal{A}$$
 
 $V^*$ is often refered to as the Optimal State-Value Function to distinguish it from the Optimal Action-Value Function $Q^*$ (although, for succinctness, $V^*$ is often also refered to as simply the Optimal Value Function). To be clear, if someone says, Optimal Value Function, by default, they'd be refering to the Optimal State-Value Function $V^*$ (not $Q^*$).
 
-Much like how the Value Function(s) for a fixed policy have a recursive formulation, we can create a recursive formulation for the Optimal Value Function(s). Let us start by unraveling the Optimal State-Value Function $V^*(s)$ for a given state $s$ - we consider all possible actions $a\in \mathcal{A}$ we can take from state $s$, and pick the action $a$ that yields the best Action-Value from thereon, i.e., the action $a$ that yields the best $Q^*(s,a)$. Formally, this gives us the following equation:
+Much like how the Value Function(s) for a fixed policy have a recursive formulation, we can create a recursive formulation for the Optimal Value Function(s). Let us start by unraveling the Optimal State-Value Function $V^*(s)$ for a given non-terminal state $s$ - we consider all possible actions $a\in \mathcal{A}$ we can take from state $s$, and pick the action $a$ that yields the best Action-Value from thereon, i.e., the action $a$ that yields the best $Q^*(s,a)$. Formally, this gives us the following equation:
 
 \begin{equation}
-V^*(s) = \max_{a\in \mathcal{A}} Q^*(s,a) \label{eq:mdp_bellman_opt_eqn_vq}
+V^*(s) = \max_{a\in \mathcal{A}} Q^*(s,a) \text{ for all } s \in \mathcal{N} \label{eq:mdp_bellman_opt_eqn_vq}
 \end{equation}
 
-Likewise, let's think about what it means to be optimal from a given state-action pair $(s,a)$, i.e, let's unravel $Q^*(s,a)$. First, we get the immediate expected reward $\mathcal{R}(s,a)$. Next, we consider all possible random states $s' \in \mathcal{S}$ we can transition to, and from each of those states, we recursively act optimally. Formally, this gives us the following equation:
+Likewise, let's think about what it means to be optimal from a given non-terminal-state and action pair $(s,a)$, i.e, let's unravel $Q^*(s,a)$. First, we get the immediate expected reward $\mathcal{R}(s,a)$. Next, we consider all possible random states $s' \in \mathcal{S}$ we can transition to, and from each of those states, we recursively act optimally. Formally, this gives us the following equation:
 
 \begin{equation}
-Q^*(s,a) = \mathcal{R}(s,a) + \sum_{s' \in \mathcal{S}} \mathcal{P}(s,a,s') \cdot V^*(s') \label{eq:mdp_bellman_opt_eqn_qv}
+Q^*(s,a) = \mathcal{R}(s,a) + \sum_{s' \in \mathcal{S}} \mathcal{P}(s,a,s') \cdot V^*(s') \text{ for all } s \in \mathcal{N}, a \in \mathcal{A} \label{eq:mdp_bellman_opt_eqn_qv}
 \end{equation}
 
 Substituting for $Q^*(s,a)$ from Equation \eqref{eq:mdp_bellman_opt_eqn_qv} in Equation \eqref{eq:mdp_bellman_opt_eqn_vq} gives:
 
 \begin{equation}
-V^*(s) = \max_{a\in \mathcal{A}} \{ \mathcal{R}(s,a) + \sum_{s' \in \mathcal{S}} \mathcal{P}(s,a,s') \cdot V^*(s') \} \label{eq:mdp_bellman_opt_eqn_vv}
+V^*(s) = \max_{a\in \mathcal{A}} \{ \mathcal{R}(s,a) + \sum_{s' \in \mathcal{S}} \mathcal{P}(s,a,s') \cdot V^*(s') \} \text{ for all } s \in \mathcal{N} \label{eq:mdp_bellman_opt_eqn_vv}
 \end{equation}
 
 Equation \eqref{eq:mdp_bellman_opt_eqn_vv} is known as the MDP State-Value Function Bellman Optimality Equation and is depicted in Figure \ref{fig:mdp_bellman_opt_tree_vv} as a visualization aid.
@@ -584,7 +612,7 @@ Equation \eqref{eq:mdp_bellman_opt_eqn_vv} is known as the MDP State-Value Funct
 Substituting for $V^*(s)$ from Equation \eqref{eq:mdp_bellman_opt_eqn_vq} in Equation \eqref{eq:mdp_bellman_opt_eqn_qv} gives:
 
 \begin{equation}
-Q^*(s,a) = \mathcal{R}(s,a) + \sum_{s' \in \mathcal{S}} \mathcal{P}(s,a,s') \cdot \max_{a'\in \mathcal{A}} Q^*(s',a') \label{eq:mdp_bellman_opt_eqn_qq}
+Q^*(s,a) = \mathcal{R}(s,a) + \sum_{s' \in \mathcal{S}} \mathcal{P}(s,a,s') \cdot \max_{a'\in \mathcal{A}} Q^*(s',a') \text{ for all  } s \in \mathcal{N}, a \in \mathcal{A} \label{eq:mdp_bellman_opt_eqn_qq}
 \end{equation}
 
 Equation \eqref{eq:mdp_bellman_opt_eqn_qq} is known as the MDP Action-Value Function Bellman Optimality Equation and is depicted in Figure \ref{fig:mdp_bellman_opt_tree_qq} as a visualization aid.
@@ -603,51 +631,51 @@ Note that Equation \eqref{eq:mdp_bellman_opt_eqn_vq} and Equation \eqref{eq:mdp_
 
 Again, it pays to emphasize that the Bellman Optimality Equations don't directly give us a recipe to calculate the Optimal Value Function or the policy/policies that achieve the Optimal Value Function - they simply state a powerful mathematical property of the Optimal Value Function that (as we shall see later in this book) will help us come up with algorithms (Dynamic Programming and Reinforcement Learning) to calculate the Optimal Value Function and the associated policy/policies that achieve the Optimal Value Function.
 
-We have been using the phrase "policy/policies that achieve the Optimal Value Function", but we haven't yet provided a clear definition of such a policy (or policies). In fact, as mentioned earlier, it's not clear from the definition of $V^*$ if such a policy (one that would achieve $V^*$) exists (because it's conceivable that different policies $\pi$ achieve the maximization of $V^{\pi}(s)$ for different states $s\in \mathcal{S}$). Now we are ready to dig into the notion of an *Optimal Policy* $\pi^*: \mathcal{S} \times \mathcal{A} \rightarrow [0, 1]$. Here's the formal definition:
+We have been using the phrase "policy/policies that achieve the Optimal Value Function", but we haven't yet provided a clear definition of such a policy (or policies). In fact, as mentioned earlier, it's not clear from the definition of $V^*$ if such a policy (one that would achieve $V^*$) exists (because it's conceivable that different policies $\pi$ achieve the maximization of $V^{\pi}(s)$ for different states $s\in \mathcal{N}$). Now we are ready to dig into the notion of an *Optimal Policy* $\pi^*: \mathcal{N} \times \mathcal{A} \rightarrow [0, 1]$. Here's the formal definition:
 
-$$\pi^* \in \Pi \text{ is an Optimal Policy if } V^{\pi^*}(s) \geq V^{\pi}(s) \text{ {\em for all} } \pi \in \Pi \text{ and {\em for all states} } s \in \mathcal{S}$$
+$$\pi^* \in \Pi \text{ is an Optimal Policy if } V^{\pi^*}(s) \geq V^{\pi}(s) \text{ {\em for all} } \pi \in \Pi \text{ and {\em for all states} } s \in \mathcal{N}$$
 
-The definition of an Optimal Policy $\pi^*$ says that it is a policy that is "better than or equal to" (on the $V^{\pi}$ metric) all other stationary policies *for all* states (note that there could be multiple Optimal Policies). Putting this defintion together with the definition of the Optimal Value Function $V^*$, the natural question to then ask is whether there exists an Optimal Policy $\pi^*$ that maximizes $V^{\pi}(s)$  *for all* states $s \in \mathcal{S}$, i.e., whether there exists a $\pi^*$ such that $V^*(s) = V^{\pi^*}(s)$ for all $s \in \mathcal{S}$. On the face of it, this seems like a strong statement. However, this answers in the affirmative. In fact,
+The definition of an Optimal Policy $\pi^*$ says that it is a policy that is "better than or equal to" (on the $V^{\pi}$ metric) all other stationary policies *for all* non-terminal states (note that there could be multiple Optimal Policies). Putting this defintion together with the definition of the Optimal Value Function $V^*$, the natural question to then ask is whether there exists an Optimal Policy $\pi^*$ that maximizes $V^{\pi}(s)$  *for all* $s \in \mathcal{N}$, i.e., whether there exists a $\pi^*$ such that $V^*(s) = V^{\pi^*}(s)$ for all $s \in \mathcal{N}$. On the face of it, this seems like a strong statement. However, this answers in the affirmative. In fact,
 
 \begin{theorem}
 For any Markov Decision Process
 \begin{itemize}
-\item There exists an Optimal Policy $\pi^* \in \Pi$, i.e., there exists a Policy $\pi^* \in \Pi$ such that $V^{\pi^*}(s) \geq V^{\pi}(s) \mbox{ for all policies  } \pi \in \Pi \mbox{ and for all states } s \in \mathcal{S}$
-\item All Optimal Policies achieve the Optimal Value Function, i.e. $V^{\pi^*}(s) = V^*(s)$ for all $s \in \mathcal{S}$, for all Optimal Policies $\pi^*$
-\item All Optimal Policies achieve the Optimal Action-Value Function, i.e. $Q^{\pi^*}(s,a) = Q^*(s,a)$ for all $s \in \mathcal{S}$, for all $a \in \mathcal{A}$, for all Optimal Policies $\pi^*$
+\item There exists an Optimal Policy $\pi^* \in \Pi$, i.e., there exists a Policy $\pi^* \in \Pi$ such that $V^{\pi^*}(s) \geq V^{\pi}(s) \mbox{ for all policies  } \pi \in \Pi \mbox{ and for all states } s \in \mathcal{N}$
+\item All Optimal Policies achieve the Optimal Value Function, i.e. $V^{\pi^*}(s) = V^*(s)$ for all $s \in \mathcal{N}$, for all Optimal Policies $\pi^*$
+\item All Optimal Policies achieve the Optimal Action-Value Function, i.e. $Q^{\pi^*}(s,a) = Q^*(s,a)$ for all $s \in \mathcal{N}$, for all $a \in \mathcal{A}$, for all Optimal Policies $\pi^*$
 \end{itemize}
 \label{th:mdp_opt_vf_policy}
 \end{theorem}
 
 Before proceeding with the proof of Theorem (\ref{th:mdp_opt_vf_policy}), we establish a simple Lemma.
 \begin{lemma}
-For any two Optimal Policies $\pi_1$ and $\pi_2$, $V^{\pi_1}(s) = V^{\pi_2}(s)$ for all $s \in \mathcal{S}$
+For any two Optimal Policies $\pi_1$ and $\pi_2$, $V^{\pi_1}(s) = V^{\pi_2}(s)$ for all $s \in \mathcal{N}$
 \end{lemma}
 \begin{proof}
-Since $\pi_1$ is an Optimal Policy, from the Optimal Policy definition, we have: $V^{\pi_1}(s) \geq V^{\pi_2}(s)$ for all $s \in \mathcal{S}$.
-Likewise, since $\pi_2$ is an Optimal Policy, from the Optimal Policy definition, we have: $V^{\pi_2}(s) \geq V^{\pi_1}(s)$ for all $s \in \mathcal{S}$.
-This implies: $V^{\pi_1}(s) = V^{\pi_2}(s)$ for all $s \in \mathcal{S}$
+Since $\pi_1$ is an Optimal Policy, from the Optimal Policy definition, we have: $V^{\pi_1}(s) \geq V^{\pi_2}(s)$ for all $s \in \mathcal{N}$.
+Likewise, since $\pi_2$ is an Optimal Policy, from the Optimal Policy definition, we have: $V^{\pi_2}(s) \geq V^{\pi_1}(s)$ for all $s \in \mathcal{N}$.
+This implies: $V^{\pi_1}(s) = V^{\pi_2}(s)$ for all $s \in \mathcal{N}$
 \end{proof}
 
 Now we are ready to prove Theorem (\ref{th:mdp_opt_vf_policy}).
 \begin{proof}
-As a consequence of the above Lemma, all we need to do to prove the theorem is to establish an Optimal Policy $\pi^*$ that achieves the Optimal Value Function and the Optimal Action-Value Function. Consider the following Deterministic Policy (as a candidate Optimal Policy) $\pi_D^* : \mathcal{S} \rightarrow \mathcal{A}$:
+As a consequence of the above Lemma, all we need to do to prove the theorem is to establish an Optimal Policy $\pi^*$ that achieves the Optimal Value Function and the Optimal Action-Value Function. Consider the following Deterministic Policy (as a candidate Optimal Policy) $\pi_D^* : \mathcal{N} \rightarrow \mathcal{A}$:
 
 \begin{equation}
-\pi_D^*(s) = \argmax_{a \in \mathcal{A}} Q^*(s,a) \mbox{ for all } s \in \mathcal{S}
+\pi_D^*(s) = \argmax_{a \in \mathcal{A}} Q^*(s,a) \mbox{ for all } s \in \mathcal{N}
 \label{eq:mdp_optimal_policy}
 \end{equation}
 
-First we show that $\pi_D^*$ achieves the Optimal Value Functions $V^*$ and $Q^*$. Since $\pi_D^*(s) = \argmax_{a \in \mathcal{A}} Q^*(s,a)$ and $V^*(s) = \max_{a \in \mathcal{A}} Q^*(s,a)$ for all $s \in \mathcal{S}$, we can infer that:
+First we show that $\pi_D^*$ achieves the Optimal Value Functions $V^*$ and $Q^*$. Since $\pi_D^*(s) = \argmax_{a \in \mathcal{A}} Q^*(s,a)$ and $V^*(s) = \max_{a \in \mathcal{A}} Q^*(s,a)$ for all $s \in \mathcal{N}$, we can infer that:
 
 $$V^*(s) = Q^*(s,\pi_D^*(s))$$
 
-This says that from each state $s$, if we first take the action prescribed by the policy $\pi_D^*$, (i.e., the action $\pi_D^*(s)$) followed by recursively acting optimally from future states, we achieve the Optimal Value $V^*(s)$ from that state $s$. But note that "recursively acting optimally from future states" involves each state doing the same thing described above ("first take action prescribed by $\pi_D^*$, followed by ..."). Thus, the Optimal Value Function $V^*$ is achieved if from each state, we take the action prescribed by $\pi_D^*$. Likewise, we see that the Optimal Action-Value Function $Q^*$ is achieved if from each state, we take the action $a$ (argument to $Q^*$) followed by future actions prescribed by $\pi_D^*$. Formally, this says:
+This says that from each non-terminal state $s$, if we first take the action prescribed by the policy $\pi_D^*$, (i.e., the action $\pi_D^*(s)$) followed by recursively acting optimally from future states, we achieve the Optimal Value $V^*(s)$ from that state $s$. But note that "recursively acting optimally from future states" involves each state doing the same thing described above ("first take action prescribed by $\pi_D^*$, followed by ..."). Thus, the Optimal Value Function $V^*$ is achieved if from each non-terminal state, we take the action prescribed by $\pi_D^*$. Likewise, we see that the Optimal Action-Value Function $Q^*$ is achieved if from each non-terminal state, we take the action $a$ (argument to $Q^*$) followed by future actions prescribed by $\pi_D^*$. Formally, this says:
 
-$$V^{\pi_D^*}(s) = V^*(s) \text{ for all } s \in \mathcal{S}$$
-$$Q^{\pi_D^*}(s,a) = Q^*(s,a) \text{ for all } s \in \mathcal{S}, \text{ for all } a \in \mathcal{A}$$
+$$V^{\pi_D^*}(s) = V^*(s) \text{ for all } s \in \mathcal{N}$$
+$$Q^{\pi_D^*}(s,a) = Q^*(s,a) \text{ for all } s \in \mathcal{N}, \text{ for all } a \in \mathcal{A}$$
 
-Finally, we prove by contradiction that $\pi_D^*$ is an Optimal Policy. So assume $\pi_D^*$ is not an Optimal Policy. Then there exists a policy $\pi \in \Pi$ and a state $s \in \mathcal{S}$ such that $V^{\pi}(s) > V^{\pi_D^*}(s)$. Since $V^{\pi_D^*}(s) = V^*(s)$, we have: $V^{\pi}(s) > V^*(s)$ which contradicts the Optimal Value Function Definition: $V^*(s) = \max_{\pi \in \Pi} V^{\pi}(s)$ for all $s\in \mathcal{S}$.
+Finally, we prove by contradiction that $\pi_D^*$ is an Optimal Policy. So assume $\pi_D^*$ is not an Optimal Policy. Then there exists a policy $\pi \in \Pi$ and a state $s \in \mathcal{N}$ such that $V^{\pi}(s) > V^{\pi_D^*}(s)$. Since $V^{\pi_D^*}(s) = V^*(s)$, we have: $V^{\pi}(s) > V^*(s)$ which contradicts the Optimal Value Function Definition: $V^*(s) = \max_{\pi \in \Pi} V^{\pi}(s)$ for all $s\in \mathcal{N}$.
 
 \end{proof}
 
@@ -655,7 +683,7 @@ Equation \eqref{eq:mdp_optimal_policy} was a key construction of the above proof
 
 ## Variants and extensions of MDPs
 
-### Size of Spaces and Continuous versus Discrete
+### Size of Spaces and Discrete versus Continuous
 
 Variants of MDPs can be organized by variations in the size and type of:
 
@@ -670,7 +698,7 @@ The definitions we've provided for MRPs and MDPs were for countable (discrete) s
 * Curse of Dimensionality (size of state space $\mathcal{S}$)
 * Curse of Modeling (size/complexity of state-reward transition probabilites $\mathcal{P}_R$)
 
-Curse of Dimensionality is a term coined by Richard Bellman in the context of Dynamic Programming. It refers to the fact that when the number of dimensions in the state space grows, there is an exponential increase in the number of samples required to attain an adequate level of accuracy in algorithms. Consider this simple example (adaptation of an example by Bellman himself) - In a single dimension of space from 0 to 1, 100 evenly spaced sample points suffice to sample the space within a threshold distance of 0.01 between points. An equivalent sampling in 10 dimensions ($[0, 1]^10$) within a threshold distance of 0.01 between points will require $10^{20}$ points. So the 10-dimensional space requires points that are greater by a factor of $10^{18}$ relative to the points required in single dimension. This explosion in requisite points in the state space is known as the Curse of Dimensionality.
+Curse of Dimensionality is a term coined by Richard Bellman in the context of Dynamic Programming. It refers to the fact that when the number of dimensions in the state space grows, there is an exponential increase in the number of samples required to attain an adequate level of accuracy in algorithms. Consider this simple example (adaptation of an example by Bellman himself) - In a single dimension of space from 0 to 1, 100 evenly spaced sample points suffice to sample the space within a threshold distance of 0.01 between points. An equivalent sampling in 10 dimensions ($[0, 1]^{10}$) within a threshold distance of 0.01 between points will require $10^{20}$ points. So the 10-dimensional space requires points that are greater by a factor of $10^{18}$ relative to the points required in single dimension. This explosion in requisite points in the state space is known as the Curse of Dimensionality.
 
 Curse of Modeling refers to the fact that when state spaces are large or when the structure of state-reward transition probabilities is complex, explicit modeling of these transition probabilities is very hard and often impossible (the set of probabilities can go beyond memory or even disk storage space). Even if it's possible to fit the probabilities in available storage space, estimating the actual probability values can be very difficult in complex real-world situations. 
 
@@ -688,7 +716,7 @@ This combination of sampling from the state space, approximation of the Value Fu
 Similar to state spaces, the definitions we've provided for MDPs were for countable (discrete) action spaces. As a special case, we considered finite action spaces (together with finite state spaces) since we have pretty straightforward algorithms for exact solution of Prediction and Control problems for finite MDPs. As mentioned above, in these algorithms, we represent the MDP in Python data structures like `dict` or `numpy array`. However, these finite-MDP algorithms are practical only if the state and action spaces are not too large. In many real-world problems, action spaces do end up as fairly large, either finite-large or infinite (sometimes continuous-valued action spaces). The large size of the action space affects algorithms for MDPs in a couple of ways:
 
 * Large action space makes the representation, estimation and evaluation of the policy $\pi$, of the Action-Value function for a policy $Q^{\pi}$ and of the Optimal Action-Value function $Q^*$ difficult. We have to resort to function approximation and sampling as ways to overcome the large size of the action space.
-* The Bellman Optimality Equation leads to a crucial calculation step in Dynamic Programming and Reinforcement Learning algorithms that involves identifying the action for each state that maximizes the Action-Value Function $Q$. When the action space is large, we cannot afford to evaluate $Q$ for each action for an encountered state (as is done in simple tabular algorithms). Rather, we need to tap into an optimization algorithm to perform the maximization of $Q$ over the action space, for an encountered state. Separately, there is a special class of Reinforcement Learning algorithms called Policy Gradient Algorithms (that )we shall later learn about) that are particularly valuable for large action spaces (where other types of Reinforcement Learning algorithms are not efficient and often, simply not an option). However, these techniques to deal with large action spaces require care and attention as they have their own drawbacks (more on this later).
+* The Bellman Optimality Equation leads to a crucial calculation step in Dynamic Programming and Reinforcement Learning algorithms that involves identifying the action for each non-terminal state that maximizes the Action-Value Function $Q$. When the action space is large, we cannot afford to evaluate $Q$ for each action for an encountered state (as is done in simple tabular algorithms). Rather, we need to tap into an optimization algorithm to perform the maximization of $Q$ over the action space, for an encountered state. Separately, there is a special class of Reinforcement Learning algorithms called Policy Gradient Algorithms (that )we shall later learn about) that are particularly valuable for large action spaces (where other types of Reinforcement Learning algorithms are not efficient and often, simply not an option). However, these techniques to deal with large action spaces require care and attention as they have their own drawbacks (more on this later).
 
 #### Time Steps:
 
