@@ -18,15 +18,11 @@ RewardTransition = Mapping[S, Optional[FiniteDistribution[Tuple[S, float]]]]
 
 class MarkovProcess(ABC, Generic[S]):
     '''A Markov process with states of type S.
-
     '''
     @abstractmethod
     def transition(self, state: S) -> Optional[Distribution[S]]:
         '''Given a state of the process, returns a distribution of
-        the next states.
-
-        Returning None means we are in a terminal state.
-
+        the next states.  Returning None means we are in a terminal state.
         '''
 
     def is_terminal(self, state: S) -> bool:
@@ -36,7 +32,6 @@ class MarkovProcess(ABC, Generic[S]):
         from the current state, so it could be worth overloading this
         method if your process has a cheaper way of determing whether
         a state is terminal.
-
         '''
         return self.transition(state) is None
 
@@ -46,7 +41,6 @@ class MarkovProcess(ABC, Generic[S]):
 
         This yields the start state first, then continues yielding
         subsequent states forever or until we hit a terminal state.
-
         '''
 
         state: S = start_state
