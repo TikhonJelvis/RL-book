@@ -240,8 +240,8 @@ Our formal definitions in this book will be restricted to Discrete-Time Markov P
 \begin{definition}
 A {\em Markov Process} consists of:
 \begin{itemize}
-\item A countable set of states $\mathcal{S}$
- \item A time-indexed sequence of random states $S_t$ for each time $t=0, 1, 2, \ldots$, with each $S_t \in \mathcal{S}$
+\item A countable set of states $\mathcal{S}$ (known as the State Space) and a set $\mathcal{T} \subseteq \mathcal{S}$ (known as the set of Terminal States)
+ \item A time-indexed sequence of random states $S_t$ for time steps $t=0, 1, 2, \ldots$, with each $S_t \in \mathcal{S}$. If $S_T \in \mathcal{T}$ for some time step $T$, then we say that the time-indexed sequence of random states terminates at time step $T$ (and that $S_T$ is a terminal state).
  \item Markov Property: $\mathbb{P}[S_{t+1}|S_t, S_{t-1}, \ldots, S_0] = \mathbb{P}[S_{t+1}|S_t]$ for all $t \geq 0$
  \end{itemize}
  \end{definition}
@@ -253,13 +253,17 @@ A {\em Stationary Markov Process} is a Markov Process with the additional proper
 $\mathbb{P}[S_{t+1}|S_t]$ is independent of $t$.
  \end{definition}
 
- This means, the dynamics of a Stationary Markov Process can be fully specified with the function $$\mathcal{P}: \mathcal{S} \times \mathcal{S} \rightarrow [0,1]$$ such that $\mathcal{P}(s, s') = \mathbb{P}[S_{t+1}=s'|S_t=s]$ for all $s, s' \in \mathcal{S}$. Hence, $\sum_{s'\in \mathcal{S}} \mathcal{P}(s,s') = 1$ for all $s \in \mathcal{S}$. We refer to the function $\mathcal{P}$ as the transition probability function of the Stationary Markov Process, with the first argument to $\mathcal{P}$ to be thought of as the "source" state and the second argument as the "destination" state.
+ This means, the dynamics of a Stationary Markov Process can be fully specified with the function $$\mathcal{P}: (\mathcal{S} - \mathcal{T}) \times \mathcal{S} \rightarrow [0,1]$$ such that $\mathcal{P}(s, s') = \mathbb{P}[S_{t+1}=s'|S_t=s]$ for all $s \in \mathcal{S} - \mathcal{T}, s' \in \mathcal{S}$. Hence, $\sum_{s'\in \mathcal{S}} \mathcal{P}(s,s') = 1$ for all $s \in \mathcal{S} - \mathcal{T}$. We refer to the function $\mathcal{P}$ as the transition probability function of the Stationary Markov Process, with the first argument to $\mathcal{P}$ to be thought of as the "source" state and the second argument as the "destination" state.
 
 Note that this specification is devoid of the time index $t$ (hence, the term *Stationary* which means "time-invariant"). Moreover, note that a non-Stationary Markov Process can be converted to a Stationary Markov Process by augmenting all states with the time index $t$. This means if the original state space of a non-Stationary Markov Process was $\mathcal{S}$, then the state space of the corresponding Stationary Markov Process is $\mathbb{Z}_{\geq 0} \times \mathcal{S}$ (where $\mathbb{Z}_{\geq 0}$ denotes the domain of the time index). This is because each time step has it's own unique set of (augmented) states, which means the entire set of states in $\mathbb{Z}_{\geq 0} \times \mathcal{S}$ can be covered by time-invariant transition probabilities, thus qualifying as a Stationary Markov Process. Therefore, henceforth, any time we say *Markov Process*, assume we are refering to a *Discrete-time Stationary Markov Process with a Countable State Space* (unless explicitly specified otherwise), which in turn will be characterized by the transition probability function $\mathcal{P}$. Note that the stock price examples (all 3 of the Processes we covered) are examples of a (Stationary) Markov Process, even without requiring augmenting the state with the time index.
 
+The classical definitions and theory of Markov Processes model "termination" with the idea of *Absorbing States*. A state $s$ is called an absorbing state if $\mathcal{P}(s,s) = 1$. This means, once we reach an absorbing state, we are "trapped" there, hence capturing the notion of "termination". So the classical definitions and theory of Markov Processes typically don't include an explicit specification of states as terminal and non-terminal. However, when we get to Markov Reward Processes and Markov Decision Processes (frameworks that are extensions of Markov Processes), we will need to explicitly specify states as terminal and non-terminal states, rather than model the notion of termination with absorbing states. So, for consistency in definitions and in the development of the theory, we are going with a framework where states in a Markov Process are explicitly specified as terminal or non-terminal states. We won't consider an absorbing state as a terminal state as the Markov Process keeps moving forward in time forever when it gets to an absorbing states. We will refer to $\mathcal{S} - \mathcal{T}$ as the set of Non-Terminal States $\mathcal{N}$ (and we will refer to a state in $\mathcal{N}$ as a non-terminal state).
+
+The sequence $S_0, R_1, S_1, R_1, S_2, \ldots$ terminates at time step $t=T$ if $S_T \in \mathcal{T}$ (i.e., the final reward is $R_T$).
+
 ### Starting States
 
-Now it's natural to ask the question how do we "start" the Markov Process (in the stock price examples, this was the notion of the start state). More generally, we'd like to specify a probability distribution of start states so we can perform simulations and (let's say) compute the probability distribution of states at specific future time steps. While this is a relevant question, we'd like to separate the following two specifications:
+Now it's natural to ask the question: How do we "start" the Markov Process (in the stock price examples, this was the notion of the start state)? More generally, we'd like to specify a probability distribution of start states so we can perform simulations and (let's say) compute the probability distribution of states at specific future time steps. While this is a relevant question, we'd like to separate the following two specifications:
 
 * Specification of the transition probability function $\mathcal{P}$
 * Specification of the probability distribution of start states (denote this as $\mu: \mathcal{S} \rightarrow [0,1]$)
@@ -268,36 +272,43 @@ We say that a Markov Process is fully specified by $\mathcal{P}$ in the sense th
 
  Thinking about the separation between specifying the rules of the game versus actually playing the game helps us understand the need to separate the notion of dynamics specification $\mathcal{P}$ (fundamental to the stationary character of the Markov Process) and the notion of starting distribution $\mu$ (required to perform simulation traces). Hence, the separation of concerns between $\mathcal{P}$ and $\mu$ is key to the conceptualization of Markov Processes. Likewise, we separate concerns in our code design as well, as evidenced by how we separated the ``next_state`` method in the Process dataclasses and the ``simulation`` function.
 
-### Absorbing States
+### Terminal States
 
-Thinking about games might make you wonder how we'd represent the fact that games have *ending rules* (rules for winning or losing the game). This brings up the notion of "terminal states". "Terminal states" might occur at any of a variety of time steps (like in the games examples), or like we will see in many financial application examples, termination might occur after a fixed number of time steps. So do we need to specify that certain states are "terminal states"? Yes, we do, but we won't explicitly mark them as "terminal states". Instead, we will build this "termination" feature in $\mathcal{P}$ as follows (note that the technical term for "terminal states" is *Absorbing States* due to the following construction of $\mathcal{P}$).
+Games are examples of Markov Processes that terminate at specific states (based on rules for winning or losing the game). In general, in a Markov Process, termination might occur after a variable number of time steps (like in the games examples), or like we will see in many financial application examples, termination might occur after a fixed number of time steps, or like in the stock price examples we saw earlier, there is in fact no termination.
 
-\begin{definition}[Absorbing States]
-A state $s\in \mathcal{S}$ is an {\em Absorbing State} if $\mathcal{P}(s,s) = 1$
-\end{definition}
+If all random sequences of states (simulation traces) reach a terminal state, then we say that these random sequences of the Markov Process are *Episodic* (otherwise we call these sequences as *Continuing*). The notion of episodic sequences is important in Reinforcement Learning since some Reinforcement Learning algorithms require episodic sequences.
 
-So instead of thinking of the Markov Process as "terminating", we can simply imagine that the Markov Process keeps cycling with 100% probability at this "terminal state". This notion of being trapped in the state (not being able to escape to another state) is the reason we call it an Absorbing State. 
+When we cover some of the financial applications later in this book, we will find that the Markov Process terminates after a fixed number of time steps, say $T$. In these applications, the time index $t$ is part of the state representation, each state with time index $t=T$ is labeled a terminal state, and all states with time index $t<T$ will transition to states with time index $t+1$.
 
-When we consider some of the financial applications later in this book, we will find that the Markov Process "terminates" after a fixed number of time steps, say $T$. In these applications, the time index $t$ is part of the state and each state with the time index $t=T$ will be constructed to be an absorbing state. All other states with time index $t<T$ will transition to states with time index $t+1$. In fact, you could take each of the 3 Processes seen earlier for stock price movement and add a feature that the forward movement in time terminates at some fixed time step $T$. Then, we'd have to include $t$ in the state representation simply to specify that states with time index $T$ will transition to themselves with 100% probability (note that in these examples the time index $t$ doesn't influence the transition probabilities for states with $t<T$, so these processes are stationary until $t=T-1$.)
+Now we are ready to write some code for Markov Processes, where we will illustrate how to specify that certain states are terminal states.
 
-## Stock Price Examples modeled as Markov Processes
-
-With this formalism in place, we are now ready to write some code to represent general Markov Processes. We do this with an abstract class `MarkovProcess` parameterized by a generic type (`TypeVar('S')`) representing a generic state space `Generic[S]`. The abstract class has an `abstractmethod` called `transition` that is meant to specify the transition probability distribution of next states, given a current state. The class also has a method `simulate` that enables us to generate a sequence of sampled states starting from a specified `start_state`. The sampling of next states relies on the implementation of the `sample()` method in the `Distribution[S]` object produced by the `transition` method (note that the [`Distribution` class hierarachy](https://github.com/TikhonJelvis/RL-book/blob/master/rl/distribution.py) was covered in the previous chapter). This is the full body of the abstract class `MarkovProcess`:
+We create an abstract class `MarkovProcess` parameterized by a generic type (`TypeVar('S')`) representing a generic state space `Generic[S]`. The abstract class has an `@abstractmethod` called `transition` that is meant to specify the transition probability distribution of next states, given a current state. Note the return type of `transition`. It's `Optional[Distribution[S]]`. This means it's meant to return `None` if there is no next state (i.e., when you want to specify that `state` is a terminal state) or return `Distribution[S]` to specify the probability distribution of next states when `state` is a non-terminal state. We also have a convenience method `is_terminal` to query if a given state is terminal or not. We also have a method `simulate` that enables us to generate a sequence of sampled states starting from a specified `start_state`. The sampling of next states relies on the implementation of the `sample()` method in the `Distribution[S]` object produced by the `transition` method (note that the [`Distribution` class hierarachy](https://github.com/TikhonJelvis/RL-book/blob/master/rl/distribution.py) was covered in the previous chapter). This is the full body of the abstract class `MarkovProcess`:
 
 ```python
 S = TypeVar('S')
+
 class MarkovProcess(ABC, Generic[S]):
 
     @abstractmethod
-    def transition(self, state: S) -> Distribution[S]:
+    def transition(self, state: S) -> Optional[Distribution[S]]:
         pass
 
+    def is_terminal(self, state: S) -> bool:
+        return self.transition(state) is None
+
     def simulate(self, start_state: S) -> Iterable[S]:
+
         state: S = start_state
         while True:
             yield state
-            state = self.transition(state).sample()
+            next_states = self.transition(state)
+            if next_states is None:
+                break
+            else:
+                state = next_states.sample()
 ```
+
+## Stock Price Examples modeled as Markov Processes
 
 So if you have a mathematical specification of the transition probabilities of a Markov Process, all you need to do is to create a concrete class that implements the interface of the abstract class `MarkovProcess` (specifically by implementing the  `@abstractmethod transition`) in a manner that captures your mathematical specification of the transition probabilities. Let us write this for the case of Process 3 (the 3rd example of stock price transitions we covered in the previous section). We will name the concrete class as `StockPriceMP3` (note that it's a `@dataclass` for convenience and simplicity). Note that the generic state space `S` is now replaced with a specific state space represented by the type `@dataclass StateMP3`. The code should be self-explanatory since we implemented this process as a standalone in the previous section. Note the use of the `Categorical` distribution in the `transition` method to capture the 2-outcomes distribution of next states (for movements up or down).
 
@@ -350,17 +361,17 @@ We leave it to you as an exercise to similarly implement Stock Price Processes 1
 
 ## Finite Markov Processes
 
-Now let us consider Markov Processes with a finite state space. So we can represent the state space as $\mathcal{S} = \{s_1, s_2, \ldots, s_n\}$. Let us refer to Markov Processes with finite state spaces as Finite Markov Processes. Since Finite Markov Processes are a subclass of Markov Processes, it would make sense to create a concrete class `FiniteMarkovProcess` that implements the interface of the abstract class `MarkovProcess` (specifically implement the `@abstractmethod transition`). But first let's think about the data structure required to specify an instance of a `FiniteMarkovProcess` (i.e., the data structure we'd pass to the `__init__` method of `FiniteMarkovProcess`). One choice is a $n \times n$ 2D numpy array representation, i.e., matrix elements representing transition probabilities
-$$\mathcal{P} : \{s_1, s_2, \ldots, s_n\} \times \{s_1, s_2, \ldots, s_n\} \rightarrow [0, 1]$$
+Now let us consider Markov Processes with a finite state space. So we can represent the state space as $\mathcal{S} = \{s_1, s_2, \ldots, s_n\}$. Assume the set of non-terminal states $\mathcal{N}$ has $m\leq n$ states. Let us refer to Markov Processes with finite state spaces as Finite Markov Processes. Since Finite Markov Processes are a subclass of Markov Processes, it would make sense to create a concrete class `FiniteMarkovProcess` that implements the interface of the abstract class `MarkovProcess` (specifically implement the `@abstractmethod transition`). But first let's think about the data structure required to specify an instance of a `FiniteMarkovProcess` (i.e., the data structure we'd pass to the `__init__` method of `FiniteMarkovProcess`). One choice is a $m \times n$ 2D numpy array representation, i.e., matrix elements representing transition probabilities
+$$\mathcal{P} : \mathcal{N} \times \mathcal{S} \rightarrow [0, 1]$$
 However, we often find that this matrix can be sparse since one often transitions from a given state to just a few set of states. So we'd like a sparse representation and we can accomplish this by conceptualizing $\mathcal{P}$ in an [equivalent curried form](https://en.wikipedia.org/wiki/Currying) as follows:
-$$\{s_1, s_2, \ldots, s_n\} \rightarrow (\{s_1, s_2, \ldots, s_n\} \rightarrow [0, 1])$$
-With this curried view, we can represent the outer $\rightarrow$ as a map (in Python, as a dictionary of type `Mapping`) and the inner $\rightarrow$ as a finite probability distribution (in Python, as a `FiniteDistribution` type). Note that the `FiniteDistribution` type was covered in the previous chapter. Let us create an alias for this (called `Transition`) since we will use this data structure often:
+$$\mathcal{N} \rightarrow (\mathcal{S} \rightarrow [0, 1])$$
+With this curried view, we can represent the outer $\rightarrow$ as a map (in Python, as a dictionary of type `Mapping`) whose keys are the states in $\mathcal{S}$. A terminal-state key will map to `None` (since there are no transitions from a terminal state) and a non-terminal-state key maps to a `FiniteDistribution[S]` type that represents the inner $\rightarrow$, i.e. a finite probability distribution of the next states transitioned to from the non-terminal state (note: `FiniteDistribution` type was covered in the previous chapter). Let us create an alias for this `Mapping` (called `Transition`) since we will use this data structure often:
 
 ```python
-Transition = Mapping[S, FiniteDistribution[S]]
+Transition = Mapping[S, Optional[FiniteDistribution[S]]]
 ```
 
-The outer map will have $n$ keys consisting of each of $\{s_1, s_2, \ldots, s_n\}$. The inner map's keys will be only the states transitioned to (from the outer map's state key) with non-zero probability. To make things concrete, here's a toy `Transition` type example of a city with highly unpredictable weather outcomes from one day to the next (note: `Categorical` type inherits from `FiniteDistribution` type in the code at [rl/distribution.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/distribution.py)):
+When the key in the `Mapping` is a non-terminal state, the `FiniteDistribution[S]` it maps to will only contain the set of states transitioned to from the non-terminal state with non-zero probability. To make things concrete, here's a toy `Transition` type example of a city with highly unpredictable weather outcomes from one day to the next (note: `Categorical` type inherits from `FiniteDistribution` type in the code at [rl/distribution.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/distribution.py)):
 
 ```python
 {
@@ -375,27 +386,29 @@ It is common to view this as a directed graph, as depicted in Figure \ref{fig:we
 ![Weather Markov Process \label{fig:weather_mp}](./chapter2/weather_mp.png "Weather Markov Process")
 </div>
 
-Now we are ready to write the code for the `FiniteMarkovProcess` class. We implement the `transition` method by simply returning the `Categorical` distribution the given `state: S` maps to in the attribute `self.transition_map: Transition[S]`. Note that along with the `transition` method, we have also implemented the `__repr__` method for a well-formatted display of `self.transition_map`.
+Now we are ready to write the code for the `FiniteMarkovProcess` class. The `__init__` method (constructor) takes as argument a `transition_map: Transition[S]` as we had described above. Along with the `transition_map` attribute, we have another attribute `non_terminal_states: Sequence[S]` that is an ordered sequence of the non-terminal states. We implement the `transition` method by simply returning the `Categorical` distribution the given `state: S` maps to in the attribute `self.transition_map: Transition[S]`. Note that along with the `transition` method, we have also implemented the `__repr__` method for a well-formatted display of `self.transition_map`.
 
 ```python
 class FiniteMarkovProcess(MarkovProcess[S]):
     
-    state_space: Sequence[S]
+    non_terminal_states: Sequence[S]
     transition_map: Transition[S]
-    transition_matrix: np.ndarray
 
     def __init__(self, transition_map: Transition[S]):
-        self.state_space = list(transition_map.keys())
+        self.non_terminal_states = [s for s, v in transition_map.items()
+                                    if v is not None]
         self.transition_map = transition_map
-        self.transition_matrix = self.get_transition_matrix()
 
     def __repr__(self) -> str:
         display = ""
 
         for s, d in self.transition_map.items():
-            display += f"From State {s}:\n"
-            for s1, p in d.table():
-                display += f"  To State {s1} with Probability {p:.3f}\n"
+            if d is None:
+                display += f"{s} is a Terminal State\n"
+            else:
+                display += f"From State {s}:\n"
+                for s1, p in d.table():
+                    display += f"  To State {s1} with Probability {p:.3f}\n"
 
         return display
 
@@ -514,7 +527,7 @@ From State InventoryState(on_hand=1, on_order=1):
 From State InventoryState(on_hand=2, on_order=0):
   To State InventoryState(on_hand=2, on_order=0) with Probability 0.368
   To State InventoryState(on_hand=1, on_order=0) with Probability 0.368
-  To State InventoryState(on_hand=0, on_order=0) with Probability 0.264
+  To State InventoryState(on_hand=0, on_order=0) with Probability 0.264   
 ```
 
 For a graphical view of this Markov Process, see Figure \ref{fig:inventory_mp}. The nodes are the states, labeled with their corresponding $\alpha$ and $\beta$ values. The directed edges are the probabilistic state transitions from 6pm on a day to 6pm on the next day, with the transition probabilities labeled on them.
@@ -529,13 +542,13 @@ There is a rich and interesting theory for Markov Processes. However, we will no
 
 ## Stationary Distribution of a Markov Process
 \begin{definition} 
- The {\em Stationary Distribution} of a (Stationary) Markov Process with state space $\mathcal{S}$ and transition probability function $\mathcal{P}: \mathcal{S} \times \mathcal{S} \rightarrow [0, 1]$ is a probability distribution function $\pi: \mathcal{S} \rightarrow [0, 1]$ such that:
-  $$\pi(s) = \sum_{s'\in \mathcal{S}} \pi(s) \cdot \mathcal{P}(s', s) \text{ for all } s \in \mathcal{S}$$
+ The {\em Stationary Distribution} of a (Stationary) Markov Process with state space $\mathcal{S} = \mathcal{N}$ and transition probability function $\mathcal{P}: \mathcal{N} \times \mathcal{N} \rightarrow [0, 1]$ is a probability distribution function $\pi: \mathcal{N} \rightarrow [0, 1]$ such that:
+  $$\pi(s) = \sum_{s'\in \mathcal{N}} \pi(s) \cdot \mathcal{P}(s', s) \text{ for all } s \in \mathcal{N}$$
 \end{definition}
 
 The intuitive view of the stationary distribution $\pi$ is that (under specific conditions we are not listing here) if we let the Markov Process run forever, then in the long run the states occur at specific time steps with relative frequencies (probabilities) given by a distribution $\pi$ that is independent of the time step. The probability of occurrence of a specific state $s$ at a time step (asymptotically far out in the future) should be equal to the sum-product of probabilities of occurrence of all the states at the previous time step and the transition probabilities from those states to $s$. But since the states' occurrence probabilities are invariant in time, the $\pi$ distribution for the previous time step is the same as the $\pi$ distribution for the time step we considered. This argument holds for all states $s$, and that is exactly the statement of the definition of *Stationary Distribution* formalized above.
 
-If we specialize this definition of *Stationary Distribution* to Finite-States Stationary Markov Processes with state space $\mathcal{S} = \{s_1, s_2, \ldots, s_n\}$, then we can express the Stationary Distribution $\pi$ as follows:
+If we specialize this definition of *Stationary Distribution* to Finite-States Stationary Markov Processes with state space $\mathcal{S} = \{s_1, s_2, \ldots, s_n\} = \mathcal{N}$, then we can express the Stationary Distribution $\pi$ as follows:
 $$\pi(s_j) = \sum_{i=1}^n \pi(s_i) \cdot \mathcal{P}(s_i, s_j) \text{ for all } j = 1, 2, \ldots n$$
 Abusing notation, let us refer to $\pi$ as a column vector of length $n$ and let us refer to $\mathcal{P}$ as the $n \times n$ transition probability matrix (rows are source states, columns are destination states with each row summing to 1).
 Then, the statement of the above definition can be succinctly expressed as:
@@ -544,15 +557,21 @@ which can be re-written as:
 $$\mathcal{P}^T \cdot \pi = \pi$$
 But this is simply saying that $\pi$ is an eigenvector of $\mathcal{P}^T$ with eigenvalue of 1. So then, it should be easy to obtain the stationary distribution $\pi$ from an eigenvectors and eigenvalues calculation of $\mathcal{P}^T$. 
 
-Let us write code to compute the stationary distribution. We shall add two methods in the `FiniteMarkovProcess` class, one for setting up the transition probability matrix $\mathcal{P}$ (`get_transition_matrix` method) and another to calculate the stationary distribution $\pi$ (`get_stationary_distribution`) from the transition probability matrix. Here's the code for the two methods (the full code for `FiniteMarkovProcess` is in the file [`rl/markov_process.py`](https://github.com/TikhonJelvis/RL-book/blob/master/rl/markov_process.py)):
+Let us write code to compute the stationary distribution. We shall add two methods in the `FiniteMarkovProcess` class, one for setting up the transition probability matrix $\mathcal{P}$ (`get_transition_matrix` method) and another to calculate the stationary distribution $\pi$ (`get_stationary_distribution`) from the transition probability matrix. Note that $\mathcal{P}$ is restricted to $\mathcal{N} \times \mathcal{N} \rightarrow [0, 1]$ (rather than $\mathcal{N} \times \mathcal{S} \rightarrow [0, 1]$) because these probability transitions suffice for all the calculations we will be performing for Finite Markov Processes. Here's the code for the two methods (the full code for `FiniteMarkovProcess` is in the file [`rl/markov_process.py`](https://github.com/TikhonJelvis/RL-book/blob/master/rl/markov_process.py)):
 
 ```python
     def get_transition_matrix(self) -> np.ndarray:
-        sz = len(self.state_space)
+        sz = len(self.non_terminal_states)
         mat = np.zeros((sz, sz))
-        for i, s1 in enumerate(self.state_space):
-            for j, s2 in enumerate(self.state_space):
-                mat[i, j] = self.transition_map[s1].get(s2, 0.)
+
+        for i, s1 in enumerate(self.non_terminal_states):
+            for j, s2 in enumerate(self.non_terminal_states):
+                next_states = self.transition(s1)
+                if next_states is None:
+                    mat[i, j] = 0.0
+                else:
+                    mat[i, j] = next_states.probability(s2)
+
         return mat
 
     def get_stationary_distribution(self) -> FiniteDistribution[S]:
@@ -562,9 +581,10 @@ Let us write code to compute the stationary distribution. We shall add two metho
         eig_vec_of_unit_eig_val = np.real(
             eig_vecs[:, index_of_first_unit_eig_val])
         return Categorical([
-            (self.state_space[i], ev)
+            (self.non_terminal_states[i], ev)
             for i, ev in enumerate(eig_vec_of_unit_eig_val /
                                    sum(eig_vec_of_unit_eig_val))
+        ])
 ```
 
 We will skip the theory that tells us about the conditions under which a stationary distribution is well-defined, or the conditions under which there is a unique stationary distribution. Instead, we will just go ahead with this calculation here assuming this Markov Process satisfies those conditions (it does!). So, we simply seek the index of the `eig_vals` vector with eigenvalue equal to 1 (accounting for floating-point error). Next, we pull out the column of the `eig_vecs` matrix at the `eig_vals` index calculated above, and convert it into a real-valued vector (eigenvectors/eigenvalues calculations are, in general, complex numbers calculations - see the reference for the `np.linalg.eig` function). So this gives us the real-valued eigenvector with eigenvalue equal to 1.  Finally, we have to normalize the eigenvector so it's values add up to 1 (since we want probabilities), and return the probabilities as a `Categorical` distribution).
@@ -577,14 +597,14 @@ Running this code for the simple case of capacity $C=2$ and poisson mean $\lambd
  InventoryState(on_hand=0, on_order=2): 0.117,
  InventoryState(on_hand=1, on_order=0): 0.162,
  InventoryState(on_hand=1, on_order=1): 0.162,
- InventoryState(on_hand=2, on_order=0): 0.162}
+ InventoryState(on_hand=2, on_order=0): 0.162}   
 ```
 
 This tells us that On-Hand of 0 and On-Order of 1 is the state occurring most frequently (28% of the time) when the system is played out indefinitely.   
 
 Let us summarize the 3 different representations we've covered:
 
-* Functional Representation: as given by the `transition` method, i.e., given a state, the `transition` method returns a probability distribution of next states. This representation is valuable when performing simulations by sampling the next state from the returned probability distribution of the next state. This is applicable to the general case of Markov Processes (including infinite state spaces).
+* Functional Representation: as given by the `transition` method, i.e., given a state, the `transition` method returns a probability distribution of next states (or `None`). This representation is valuable when performing simulations by sampling the next state from the returned probability distribution of the next state. This is applicable to the general case of Markov Processes (including infinite state spaces).
 * Sparse Data Structure Representation: as given by `transition map: Transition`, which is convenient for compact storage and useful for visualization (eg: `__repr__` method display or as a directed graph figure). This is applicable only to Finite Markov Processes.
 * Dense Data Structure Representation: as given by the `get_transition_matrix` 2D numpy array, which is useful for performing linear algebra that is often required to calculate mathematical properties of the process (eg: to calculate the stationary distribution). This is applicable only to Finite Markov Processes.
 
@@ -594,12 +614,12 @@ Now we are ready to move to our next topic of *Markov Reward Processes*. We'd li
 
 As we've said earlier, the reason we covered Markov Processes is because we want to make our way to Markov Decision Processes (the framework for Reinforcement Learning algorithms) by adding incremental features to Markov Processes. Now we cover an intermediate framework between Markov Processes and Markov Decision Processes, known as Markov Reward Processes. We essentially just include the notion of a numerical *reward* to a Markov Process each time we transition from one state to the next. These rewards will be random, and all we need to do is to specify the probability distributions of these rewards as we make state transitions. 
 
-The main purpose of Markov Reward Processes is to calculate how much reward we would accumulate (in expectation, starting from each of the states) if we let the Process run indefinitely, bearing in mind that future rewards need to be discounted appropriately (otherwise the sum of rewards could blow up to $\infty$). In order to solve the problem of calculating expected accumulative rewards from each state, we will first set up some formalism for Markov Reward Processes, develop some (elegant) theory on calculating rewards accumulation, write plenty of code (based on the theory), and apply the theory and code to the simple inventory example (which we will embellish with rewards equal to negative of the costs incurred at the store).
+The main purpose of Markov Reward Processes is to calculate how much reward we would accumulate (in expectation, from each of the non-terminal states) if we let the Process run indefinitely, bearing in mind that future rewards need to be discounted appropriately (otherwise the sum of rewards could blow up to $\infty$). In order to solve the problem of calculating expected accumulative rewards from each non-terminal state, we will first set up some formalism for Markov Reward Processes, develop some (elegant) theory on calculating rewards accumulation, write plenty of code (based on the theory), and apply the theory and code to the simple inventory example (which we will embellish with rewards equal to negative of the costs incurred at the store).
 
 \begin{definition}
 A {\em Markov Reward Process} is a Markov Process, along with:
 \begin{itemize}
-\item A time-indexed sequence of {\em Reward} random variables $R_t \in \mathbb{R}$ for each time $t=1, 2, \ldots$
+\item A time-indexed sequence of {\em Reward} random variables $R_t \in \mathbb{R}$ for time steps $t=1, 2, \ldots$
 \item Markov Property (including Rewards): $\mathbb{P}[(R_{t+1}, S_{t+1}) | S_t, S_{t-1}, \ldots, S_0] = \mathbb{P}[(R_{t+1}, S_{t+1}) | S_t]$ for all $t \geq 0$
 \item Specification of a discount factor $\gamma \in [0,1]$
  \end{itemize}
@@ -610,21 +630,22 @@ The role of $\gamma$ only comes in discounting future rewards when accumulating 
 It pays to emphasize again (like we emphasized for Markov Processes), that the definitions and theory of Markov Reward Processes are for discrete-time, for countable state spaces and countable set of pairs of next state and reward transitions (with the knowledge that the definitions and theory are analogously extensible to continuous-time and uncountable spaces/transitions). Since we commonly assume Stationarity of Markov Processes, we shall also (by default) assume Stationarity for Markov Reward Processes, i.e., $\mathbb{P}[(R_{t+1}, S_{t+1}) | S_t]$ is independent of $t$. 
 
 With the default assumption of stationarity, the transition probabilities of a Markov Reward Process can, in the most general case, be expressed as a transition probability function:
-$$\mathcal{P}_R: \mathcal{S} \times \mathbb{R} \times \mathcal{S} \rightarrow [0,1]$$
+$$\mathcal{P}_R: \mathcal{N} \times \mathbb{R} \times \mathcal{S} \rightarrow [0,1]$$
 defined as:
 $$\mathcal{P}_R(s,r,s') = \mathbb{P}[(R_{t+1}=r, S_{t+1}=s') | S_t=s]$$
 such that
-$$\sum_{s'\in \mathcal{S}} \sum_{r \in \mathbb{R}} \mathcal{P}_R(s,r,s') = 1 \text{ for all } s \in \mathcal{S}$$
+$$\sum_{s'\in \mathcal{S}} \sum_{r \in \mathbb{R}} \mathcal{P}_R(s,r,s') = 1 \text{ for all } s \in \mathcal{N}$$
 
-The subsection on *Start States* we had covered for Markov Processes naturally applies to Markov Reward Processes as well. So we won't repeat the section here, rather we will simply highlight that when it comes to simulations, we need a separate specification of the probability distribution of start states. Also, let's think about how to model the notion of a "terminal state" for a Markov Reward Process. It's not enough to just model an absorbing state (like we did for Markov Processes), wherein we transition back to the same state with 100% probability. We also need to model the additional constraint that the reward associated with the 100% probability transition back to the same state has a value of 0 (otherwise, the state will be terminal in the underlying Markov Process but in the Markov Reward Process, we will continue to accumulate rewards, and hence, non-terminal). If all sequences of a Markov Reward Process terminate in this manner (modeled as absorbing states with zero reward in the self-transition), we call it an episodic Markov Reward Process. Markov Reward Process that go on forever (either with non-zero probability of movement to other states or with non-zero rewards) are known as continuing Markov Reward Process. 
+The subsection on *Start States* we had covered for Markov Processes naturally applies to Markov Reward Processes as well. So we won't repeat the section here, rather we will simply highlight that when it comes to simulations, we need a separate specification of the probability distribution of start states. Also, by inheriting from our framework of Markov Processes, we model the notion of a "process termination" by explicitly specifying states as terminal states or non-terminal states. If all random sequences of states in a Markov Reward Process terminate, we refer to it as *episodic* sequences (otherwise, we refer to it as *continuing* sequences). 
 
-Let us now proceed to write some code that captures this formalism. We shall create a derived *abstract* class `MarkovRewardProcess` that inherits from the abstract class `MarkovProcess`. Analogous to `MarkovProcess`'s `@abstractmethod transition` (that represents $\mathcal{P}$), `MarkovRewardProcess` has an `@abstractmethod transition_reward` that represents $\mathcal{P}_R$. Also, analogous to `MarkovProcess`'s method `simulate`, `MarkovRewardProcess` has the method `simulate_reward`. These analogous methods extend the interface to return a pair: next state $S_{t+1}$ and reward $R_{t+1}$, given current state $S_t$ (versus the `MarkovProcess` methods whose interfaces return simply the next state $S_{t+1}$). Let's clarify this with actual code:
+Let's write some code that captures this formalism. We create a derived *abstract* class `MarkovRewardProcess` that inherits from the abstract class `MarkovProcess`. Analogous to `MarkovProcess`'s `@abstractmethod transition` (that represents $\mathcal{P}$), `MarkovRewardProcess` has an `@abstractmethod transition_reward` that represents $\mathcal{P}_R$. Note that the return type of `transition_reward` is `Optional[Distribution[Tuple[S, float]]]` which means it returns `None` for a terminal `state: S` and it returns `Distribution[Tuple[S, float]]` for a non-terminal `state: S`, representing the probability distribution of (next state, reward) pairs transitioned to. Also, analogous to `MarkovProcess`'s `simulate` method, `MarkovRewardProcess` has the method `simulate_reward` which returns an `Iterable` of `Tuple[S, float]`, i.e., a stream of (state, reward) pairs. Here's the actual code:
 
 ```python
 class MarkovRewardProcess(MarkovProcess[S]):
 
     @abstractmethod
-    def transition_reward(self, state: S) -> Distribution[Tuple[S, float]]:
+    def transition_reward(self, state: S)\
+            -> Optional[Distribution[Tuple[S, float]]]:
         pass
 
     def simulate_reward(self, start_state: S) -> Iterable[Tuple[S, float]]:
@@ -633,36 +654,43 @@ class MarkovRewardProcess(MarkovProcess[S]):
 
         while True:
             yield state, reward
-            state, reward = self.transition_reward(state).sample()
+            next_distribution = self.transition_reward(state)
+            if next_distribution is None:
+                break
+            else:
+                state, reward = next_distribution.sample()
 ```
 
 So the idea is that if someone wants to model a Markov Reward Process, they'd simply have to create a concrete class that implements the interface of the abstract class `MarkovRewardProcess` (specifically implement the `@abstractmethod transition_reward`). But note that the `@abstractmethod transition` of `MarkovProcess` also needs to be implemented to make the whole thing concrete. However, we don't have to implement it in the concrete class implementing the interface of `MarkovRewardProcess` - in fact, we can implement it in the `MarkovRewardProcess` class itself by tapping the method `transition_reward`. Here's the code for the `transition` method in `MarkovRewardProcess`:
 
 ```python
-    def transition(self, state: S) -> Distribution[S]:
+    def transition(self, state: S) -> Optional[Distribution[S]]:
+        distribution = self.transition_reward(state)
+        if distribution is None:
+            return None
+        else:
+            def next_state(distribution=distribution):
+                next_s, _ = distribution.sample()
+                return next_s
 
-        def next_state(state=state):
-            next_s, _ = self.transition_reward(state).sample()
-            return next_s
-
-        return SampledDistribution(next_state)
+            return SampledDistribution(next_state)
 ```
 
-Note that since the `transition_reward` method is abstract in `MarkovRewardProcess`, the only thing the `transition` method can do is tap the `sample` method of the abstract `Distribution` object produced by `transition_reward`. The full code for the `MarkovRewardProcess` class shown above is in the file [rl/markov_process.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/markov_process.py).
+Note that since the `transition_reward` method is abstract in `MarkovRewardProcess`, the only thing the `transition` method can do is tap the `sample` method of the abstract `Distribution` object produced by `transition_reward` and return a `SampledDistribution`. The full code for the `MarkovRewardProcess` class shown above is in the file [rl/markov_process.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/markov_process.py).
 
 
 Now let us develop some more theory. Given a specification of $\mathcal{P}_R$, we can extract:
 \begin{itemize}
-\item The transition probability function $\mathcal{P}: \mathcal{S} \times \mathcal{S} \rightarrow [0,1]$ of the implicit Markov Process defined as:
+\item The transition probability function $\mathcal{P}: \mathcal{N} \times \mathcal{S} \rightarrow [0,1]$ of the implicit Markov Process defined as:
 $$\mathcal{P}(s, s') = \sum_{r\in \mathbb{R}} \mathcal{P}_R(s,r,s')$$
 \item The reward transition function:
-$$\mathcal{R}_T: \mathcal{S} \times \mathcal{S} \rightarrow \mathbb{R}$$
+$$\mathcal{R}_T: \mathcal{N} \times \mathcal{S} \rightarrow \mathbb{R}$$
 defined as:
 $$\mathcal{R}_T(s,s') = \mathbb{E}[R_{t+1}|S_{t+1}=s',S_t=s] = \sum_{r\in \mathcal{R}} \frac {\mathcal{P}_R(s,r,s')} {\mathcal{P}(s,s')} \cdot r = \sum_{r\in \mathcal{R}} \frac {\mathcal{P}_R(s,r,s')} {\sum_{r\in \mathbb{R}} \mathcal{P}_R(s,r,s')} \cdot r$$
 \end{itemize}
 
 The Rewards specification of most Markov Reward Processes we encounter in practice can be directly expressed as the reward transition function $\mathcal{R}_T$ (versus the more general specification of $\mathcal{P}_R$). Lastly, we want to highlight that we can transform either of $\mathcal{P}_R$ or $\mathcal{R}_T$ into a "more compact" reward function that is sufficient to perform key calculations involving Markov Reward Processes. This reward function 
-$$\mathcal{R}: \mathcal{S} \rightarrow \mathbb{R}$$
+$$\mathcal{R}: \mathcal{N} \rightarrow \mathbb{R}$$
 is defined as:
 $$\mathcal{R}(s) = \mathbb{E}[R_{t+1}|S_t=s] = \sum_{s' \in \mathcal{S}} \mathcal{P}(s,s') \cdot \mathcal{R}_T(s,s') = \sum_{s'\in \mathcal{S}} \sum_{r\in\mathbb{R}} \mathcal{P}_R(s,r,s') \cdot r$$
 
@@ -748,21 +776,21 @@ The above code can be found in the file [rl/chapter2/simple_inventory_mrp.py](ht
 Certain calculations for Markov Reward Processes can be performed easily if:
 
 * The state space is finite ($\mathcal{S} = \{s_1, s_2, \ldots, s_n\}$), and
-* The set of pairs of next state and reward transitions from each of the states is finite
+* The set of pairs of next state and reward transitions from each of the states in $\mathcal{N}$ is finite
 
-If we satisfy the above two characteristics, we refer to the Markov Reward Process as a Finite Markov Reward Process. So let us write some code for a Finite Markov Reward Process. We create a concrete class `FiniteMarkovRewardProcess` that primarily inherits from `FiniteMarkovProcess` (a concrete class) and secondarily implements the interface of the abstract class `MarkovRewardProcess`. Our first task is to think about the data structure required to specify an instance of `FiniteMarkovRewardProcess` (i.e., the data structure we'd pass to the `__init__` method of `FiniteMarkovRewardProcess`). Analogous to how we curried $\mathcal{P}$ for a Markov Process as $\mathcal{S} \rightarrow (\mathcal{S} \rightarrow [0,1])$ (where $\mathcal{S} = \{s_1, s_2, \ldots, s_n\}$), here we curry $\mathcal{P}_R$ as:
-$$\mathcal{S} \rightarrow (\mathcal{S} \times \mathbb{R} \rightarrow [0, 1])$$
-Since $\mathcal{S}$ is finite and since the set of pairs of next state and reward transitions are also finite, this leads to the analog of the `Transition` data type for the case of Finite Markov Reward Processes as follows:
+If we satisfy the above two characteristics, we refer to the Markov Reward Process as a Finite Markov Reward Process. So let us write some code for a Finite Markov Reward Process. We create a concrete class `FiniteMarkovRewardProcess` that primarily inherits from `FiniteMarkovProcess` (a concrete class) and secondarily implements the interface of the abstract class `MarkovRewardProcess`. Our first task is to think about the data structure required to specify an instance of `FiniteMarkovRewardProcess` (i.e., the data structure we'd pass to the `__init__` method of `FiniteMarkovRewardProcess`). Analogous to how we curried $\mathcal{P}$ for a Markov Process as $\mathcal{N} \rightarrow (\mathcal{S} \rightarrow [0,1])$ (where $\mathcal{S} = \{s_1, s_2, \ldots, s_n\}$ and $\mathcal{N}$ has $m \leq n$ states), here we curry $\mathcal{P}_R$ as:
+$$\mathcal{N} \rightarrow (\mathcal{S} \times \mathbb{R} \rightarrow [0, 1])$$
+Since $\mathcal{S}$ is finite and since the set of pairs of next state and reward transitions are also finite, this leads to the analog of the `Transition` data type for the case of Finite Markov Reward Processes (named `RewardTransition`) as follows:
 
 ```python
-RewardTransition = Mapping[S, FiniteDistribution[Tuple[S, float]]]
+RewardTransition = Mapping[S, Optional[FiniteDistribution[Tuple[S, float]]]]
 ```
 
 With this as input to ``__init__`` (input named `transition_reward_map: RewardTransition[S]`), the `FiniteMarkovRewardProcess` class has three responsibilities:
 
 * It needs to implement the `transition_reward` method analogous to the implementation of the `transition` method in `FiniteMarkovProcess`
 * It needs to create a `transition_map: Transition` (extracted from `transition_reward_map: RewardTransition`) in order to instantiate its concrete parent `FiniteMarkovProcess`.
-* It needs to compute the reward fuction $\mathcal{R}: \mathcal{S} \rightarrow \mathbb{R}$ from the transition probability function $\mathcal{P}_R$ (i.e. from `transition_reward_map: RewardTransition`) based on the expectation calculation we specified above (as mentioned earlier, $\mathcal{R}$ is key to the relevant calculations we shall soon be performing on Finite Markov Reward Processes). To perform further calculations with the reward function $\mathcal{R}$, we need to produce it as a 1D numpy array (i.e., a vector) attribute of the class (we name it as `reward_function_vec`).
+* It needs to compute the reward fuction $\mathcal{R}: \mathcal{N} \rightarrow \mathbb{R}$ from the transition probability function $\mathcal{P}_R$ (i.e. from `transition_reward_map: RewardTransition`) based on the expectation calculation we specified above (as mentioned earlier, $\mathcal{R}$ is key to the relevant calculations we shall soon be performing on Finite Markov Reward Processes). To perform further calculations with the reward function $\mathcal{R}$, we need to produce it as a 1D numpy array (i.e., a vector) attribute of the class (we name it as `reward_function_vec`).
 
 Here's the code that fulfils the above three responsibilities:
 
@@ -775,29 +803,34 @@ class FiniteMarkovRewardProcess(FiniteMarkovProcess[S],
 
     def __init__(self, transition_reward_map: RewardTransition[S]):
 
-        transition_map: Dict[S, FiniteDistribution[S]] = {}
+        transition_map: Dict[S, Optional[FiniteDistribution[S]]] = {}
 
         for state, trans in transition_reward_map.items():
-            probabilities: Dict[S, float] = defaultdict(float)
+            if trans is None:
+                transition_map[state] = None
+            else:
+                probabilities: Dict[S, float] = defaultdict(float)
+                for (next_state, _), probability in trans.table():
+                    probabilities[next_state] += probability
 
-            for (next_state, _), probability in trans.table():
-                probabilities[next_state] += probability
-
-            transition_map[state] = Categorical(list(probabilities.items()))
+                transition_map[state] = Categorical(
+                    list(probabilities.items())
+                )
 
         super().__init__(transition_map)
 
         self.transition_reward_map = transition_reward_map
 
         self.reward_function_vec = np.array([
-            sum(probability * reward for (
-                _,
-                reward), probability in transition_reward_map[state].table())
-            for state in self.state_space
+            sum(probability * reward for (_, reward), probability in
+                transition_reward_map[state].table())
+            for state in self.non_terminal_states
         ])
+    transition_reward_map: RewardTransition[S]
+    reward_function_vec: np.ndarray
 
     def transition_reward(self, state: S) ->\
-            FiniteDistribution[Tuple[S, float]]:
+            Optional[FiniteDistribution[Tuple[S, float]]]:
         return self.transition_reward_map[state]
 ```
 
@@ -818,7 +851,7 @@ This calculation is shown below:
 $$\mathcal{R}_T((\alpha, \beta), (0, C - (\alpha + \beta))) = - h \alpha - p (\sum_{j=\alpha+\beta+1}^{\infty} f(j) \cdot (j - (\alpha + \beta)))$$
  $$= - h \alpha - p (\lambda (1 - F(\alpha + \beta - 1)) -  (\alpha + \beta)(1 - F(\alpha + \beta)))$$ 
 
-So now we have a specification of $\mathcal{R}_T$, but when it comes to our coding interface, we are expected to specify $\mathcal{P}_R$ as that is the interface through which we create a `FiniteMarkovRewardProcess`. Fear not - a specification of $\mathcal{P}_R$ is easy once we have a specification of $\mathcal{R}_T$. We simply create 4-tuples $(s,r,s',p)$ for all $s,s' \in \mathcal{S}$ such that $r=\mathcal{R}_T(s, s')$ and $p=\mathcal{P}(s,s')$ (we know $\mathcal{P}$ along with $\mathcal{R}_T$), and the set of all these 4-tuples (for all $s,s' \in \mathcal{S}$) constitute the specification of $\mathcal{P}_R$, i.e., $\mathcal{P}_R(s,r,s') = p$. This turns our reward-definition-altered mathematical model of a Finite Markov Reward Process into a programming model of the `FiniteMarkovRewardProcess` class. This reward-definition-altered model enables us to gain from the fact that we can leverage the algorithms we'll be  writing for Finite Markov Reward Processes (including some simple and elegant linear-algebra-based solutions). The downside of this reward-definition-altered model is that it prevents us from performing simulations of the specific rewards encountered when transitioning from one state to another (because we no longer capture the probabilities of individual reward outcomes). Note that we can indeed perform simulations, but each transition step in the simulation will only show us the "mean reward" (specifically, the expected reward conditioned on current state and next state).
+So now we have a specification of $\mathcal{R}_T$, but when it comes to our coding interface, we are expected to specify $\mathcal{P}_R$ as that is the interface through which we create a `FiniteMarkovRewardProcess`. Fear not - a specification of $\mathcal{P}_R$ is easy once we have a specification of $\mathcal{R}_T$. We simply create 4-tuples $(s,r,s',p)$ for all $s \in \mathcal{N}, s' \in \mathcal{S}$ such that $r=\mathcal{R}_T(s, s')$ and $p=\mathcal{P}(s,s')$ (we know $\mathcal{P}$ along with $\mathcal{R}_T$), and the set of all these 4-tuples (for all $s \in \mathcal{N}, s' \in \mathcal{S}$) constitute the specification of $\mathcal{P}_R$, i.e., $\mathcal{P}_R(s,r,s') = p$. This turns our reward-definition-altered mathematical model of a Finite Markov Reward Process into a programming model of the `FiniteMarkovRewardProcess` class. This reward-definition-altered model enables us to gain from the fact that we can leverage the algorithms we'll be  writing for Finite Markov Reward Processes (including some simple and elegant linear-algebra-based solutions). The downside of this reward-definition-altered model is that it prevents us from performing simulations of the specific rewards encountered when transitioning from one state to another (because we no longer capture the probabilities of individual reward outcomes). Note that we can indeed perform simulations, but each transition step in the simulation will only show us the "mean reward" (specifically, the expected reward conditioned on current state and next state).
 
 In fact, most Markov Processes you'd encounter in practice can be modeled as a combination of $\mathcal{R}_T$ and $\mathcal{P}$, and you'd simply follow the above $\mathcal{R}_T$ to $\mathcal{P}_R$ representation transformation drill to present this information in the form of $\mathcal{P}_R$ to instantiate a `FiniteMarkovRewardProcess`. We designed the interface to accept $\mathcal{P}_R$ as input since that is the most general interface for specifying Markov Reward Processes.
 
@@ -880,17 +913,15 @@ The above code is in the file [rl/chapter2/simple_inventory_mrp.py](https://gith
 
 ## Value Function of a Markov Reward Process
 
-Now we are ready to formally define the main problem involving Markov Reward Processes. As we've said earlier, we'd like to compute the "expected accumulated rewards" from any given state. However, if we simply add up the rewards in a simulation trace following time step $t$ as $\sum_{i=t+1}^{\infty} R_i = R_{t+1} + R_{t+2} + \ldots$, the sum would often diverge to infinity. This is where the discount factor $\gamma$ comes into play. We define the (random) *Return* $G_t$ as the "discounted accumulation of future rewards" following time step $t$. Formally,
+Now we are ready to formally define the main problem involving Markov Reward Processes. As we've said earlier, we'd like to compute the "expected accumulated rewards" from any non-terminal state. However, if we simply add up the rewards in a simulation trace following time step $t$ as $\sum_{i=t+1}^{\infty} R_i = R_{t+1} + R_{t+2} + \ldots$, the sum would often diverge to infinity. This is where the discount factor $\gamma$ comes into play. We define the (random) *Return* $G_t$ as the "discounted accumulation of future rewards" following time step $t$. Formally,
 $$G_t = \sum_{i=t+1}^{\infty} \gamma^{i-t-1} \cdot R_i = R_{t+1} + \gamma \cdot R_{t+2} + \gamma^2 \cdot R_{t+3} + \ldots$$
 
-Note that $\gamma$ can range from a value of 0 on one extreme (called "myopic") to a value of 1 on another extreme (called "far-sighted"). "Myopic" means the Return is the same as Reward (no accumulation of future Rewards in the Return). Note that "far-sighted" is indeed applicable to episodic Markov Reward Processes (where all random sequences of the Process end in an absorbing state AND the rewards associated with the infinite looping at the absorbing states are 0, otherwise non-zero infinite looping will lead to infinite Return).
+Note that $\gamma$ can range from a value of 0 on one extreme (called "myopic") to a value of 1 on another extreme (called "far-sighted"). "Myopic" means the Return is the same as Reward (no accumulation of future Rewards in the Return). Note that "far-sighted" is indeed applicable to episodic Markov Reward Processes (where all random sequences of the process terminate). Apart from the Return divergence consideration, $\gamma < 1$ helps algorithms become more tractable (as we shall see later when we get to Reinforcement Learning). We should also point out that the reason to have $\gamma < 1$ is not just for mathematical convenience or computational tractability - there are valid modeling reasons to discount Rewards when accumulating to a Return. When Reward is modeled as a financial quantity (revenues, costs, profits etc.), as will be the case in most financial applications, it makes sense to incorporate [time-value-of-money](https://en.wikipedia.org/wiki/Time_value_of_money) which is a fundamental concept in Economics/Finance that says there is greater benefit in receiving a dollar now versus later (which is the economic reason why interest is paid or earned). So it is common to set $\gamma$ to be the discounting based on the prevailing interest rate ($\gamma = \frac 1 {1+r}$ where $r$ is the interest rate over a single time step). Another technical reason for setting $\gamma < 1$ is that our models often don't fully capture future uncertainty and so, discounting with $\gamma$ acts to undermine future rewards that might not be accurate (due to future uncertainty modeling limitations). Lastly, from an AI perspective, if we want to build machines that acts like humans, psychologists have indeed demonstrated that human/animal behavior prefers immediate reward over future reward.
 
-Apart from the Return divergence consideration, $\gamma < 1$ helps algorithms become more tractable (as we shall see later when we get to Reinforcement Learning). We should also point out that the reason to have $\gamma < 1$ is not just for mathematical convenience or computational tractability - there are valid modeling reasons to discount Rewards when accumulating to a Return. When Reward is modeled as a financial quantity (revenues, costs, profits etc.), as will be the case in most financial applications, it makes sense to incorporate [time-value-of-money](https://en.wikipedia.org/wiki/Time_value_of_money) which is a fundamental concept in Economics/Finance that says there is greater benefit in receiving a dollar now versus later (which is the economic reason why interest is paid or earned). So it is common to set $\gamma$ to be the discounting based on the prevailing interest rate ($\gamma = \frac 1 {1+r}$ where $r$ is the interest rate over a single time step). Another technical reason for setting $\gamma < 1$ is that our models often don't fully capture future uncertainty and so, discounting with $\gamma$ acts to undermine future rewards that might not be accurate (due to future uncertainty modeling limitations). Lastly, from an AI perspective, if we want to build machines that acts like humans, psychologists have indeed demonstrated that human/animal behavior prefers immediate reward over future reward.
-
-As you might imagine now, we'd want to identify states with large expected returns and states with small expected returns. This, in fact, is the main problem involving a Markov Reward Process - to compute the "Expected Return" associated with each state in the Markov Reward Process. Formally, we are interested in computing the *Value Function*
-$$V: \mathcal{S} \rightarrow \mathbb{R}$$
+As you might imagine now, we'd want to identify non-terminal states with large expected returns and those with small expected returns. This, in fact, is the main problem involving a Markov Reward Process - to compute the "Expected Return" associated with each non-terminal state in the Markov Reward Process. Formally, we are interested in computing the *Value Function*
+$$V: \mathcal{N} \rightarrow \mathbb{R}$$
 defined as:
-$$V(s) = \mathbb{E}[G_t|S_t=s] \text{ for all } s \in \mathcal{S}, \text{ for all } t = 0, 1, 2, \ldots$$
+$$V(s) = \mathbb{E}[G_t|S_t=s] \text{ for all } s \in \mathcal{N}, \text{ for all } t = 0, 1, 2, \ldots$$
 
 Note that we are (as usual) assuming the fact that the Markov Reward Process is stationary (time-invariant probabilities of state transitions and rewards). Now we show a creative piece of mathematics due to [Richard Bellman](https://en.wikipedia.org/wiki/Richard_E._Bellman). Bellman noted that the Value Function has a recursive structure. Specifically, 
 
@@ -902,7 +933,7 @@ V(s) & = \mathbb{E}[R_{t+1}|S_t=s] + \gamma \cdot \mathbb{E}[R_{t+2}|S_t=s] + \g
 & \hspace{4mm} + \ldots \\
 & = \mathcal{R}(s) + \gamma \cdot \sum_{s'\in \mathcal{S}} \mathcal{P}(s, s') \cdot \mathcal{R}(s') + \gamma^2 \cdot \sum_{s' \in \mathcal{S}} \mathcal{P}(s, s') \sum_{s'' \in \mathcal{S}} \mathcal{P}(s', s'') \cdot \mathcal{R}(s'') + \ldots \\
 & = \mathcal{R}(s) + \gamma \cdot \sum_{s' \in \mathcal{S}} \mathcal{P}(s,s')\cdot ( \mathcal{R}(s') + \gamma \cdot \sum_{s'' \in \mathcal{S}} \mathcal{P}(s', s'') \cdot \mathcal{R}(s'') + \ldots ) \\
-& = \mathcal{R}(s) + \gamma \cdot \sum_{s' \in \mathcal{S}} \mathcal{P}(s, s') \cdot V(s') \text{ for all } s \in \mathcal{S}
+& = \mathcal{R}(s) + \gamma \cdot \sum_{s' \in \mathcal{S}} \mathcal{P}(s, s') \cdot V(s') \text{ for all } s \in \mathcal{N}
 \end{split}
 \label{eq:mrp_bellman_eqn}
 \end{equation} 
@@ -914,22 +945,23 @@ We refer to this recursive equation \eqref{eq:mrp_bellman_eqn} for the Value Fun
 ![Visualization of MRP Bellman Equation \label{fig:mrp_bellman_tree}](./chapter2/mrp_bellman_tree.png "Visualization of MRP Bellman Equation")
 </div>
 
-For the case of Finite Markov Reward Processes, $\mathcal{S} = \{s_1, s_2, \ldots, s_n\}$. Let us abuse notation and refer to $V$ as a column vector of length $n$, $\mathcal{P}$ as a $n \times n$ matrix, and $\mathcal{R}$ as a column vector of length $n$, so we can express the above equation in vector and matrix notation as follows:
+For the case of Finite Markov Reward Processes, assume $\mathcal{S} = \{s_1, s_2, \ldots, s_n\}$ and assume $\mathcal{N}$ has $m \leq n$ states. Let us abuse notation and refer to $V$ as a column vector of length $m$, $\mathcal{P}$ as a $m \times m$ matrix, and $\mathcal{R}$ as a column vector of length $m$ (all rows/columns these corresponding to states in $\mathcal{N}$), so we can express the above equation in vector and matrix notation as follows:
 
 $$V = \mathcal{R} + \gamma \mathcal{P} \cdot V$$
 Therefore,
 \begin{equation}
-\Rightarrow V = (I_n - \gamma \mathcal{P})^{-1} \cdot \mathcal{R}
+\Rightarrow V = (I_m - \gamma \mathcal{P})^{-1} \cdot \mathcal{R}
 \label{eq:mrp_bellman_linalg_solve}
 \end{equation}
-where $I_n$ is the $n \times n$ identity matrix.
+where $I_m$ is the $m \times m$ identity matrix.
 
 Let us write some code to implement the calculation of Equation \eqref{eq:mrp_bellman_linalg_solve}. In the `FiniteMarkovRewardProcess` class, we implement the method `get_value_function_vec` that performs the above calculation for the Value Function $V$ in terms of the reward function $\mathcal{R}$ and the transition probability function $\mathcal{P}$ of the implicit Markov Process. The Value Function $V$ is produced as a 1D numpy array (i.e. a vector). Here's the code:
 
 ```python
     def get_value_function_vec(self, gamma) -> np.ndarray:
         return np.linalg.inv(
-            np.eye(len(self.state_space)) - gamma * self.transition_matrix
+            np.eye(len(self.non_terminal_states)) -
+            gamma * self.get_transition_matrix()
         ).dot(self.reward_function_vec)
 
 ```
@@ -937,28 +969,28 @@ Let us write some code to implement the calculation of Equation \eqref{eq:mrp_be
 Invoking this `get_value_function_vec` method on `SimpleInventoryMRPFinite` for the simple case of capacity $C=2$ and poisson mean $\lambda = 1.0$ yields the following result:
 
 ```
-{InventoryState(on_hand=0, on_order=0): -35.511,
+{InventoryState(on_hand=0, on_order=1): -27.932,
+ InventoryState(on_hand=0, on_order=0): -35.511,
  InventoryState(on_hand=1, on_order=0): -28.932,
+ InventoryState(on_hand=2, on_order=0): -30.345,
  InventoryState(on_hand=0, on_order=2): -28.345,
- InventoryState(on_hand=1, on_order=1): -29.345,
- InventoryState(on_hand=0, on_order=1): -27.932,
- InventoryState(on_hand=2, on_order=0): -30.345}   
+ InventoryState(on_hand=1, on_order=1): -29.345}
 ```
 
 The corresponding values of the attribute `reward_function_vec` (i.e., $\mathcal{R}$) are:
 
 ```
-{InventoryState(on_hand=0, on_order=0): -10.0,
+{InventoryState(on_hand=0, on_order=1): -2.325,
+ InventoryState(on_hand=0, on_order=0): -10.0,
  InventoryState(on_hand=1, on_order=0): -3.325,
+ InventoryState(on_hand=2, on_order=0): -2.274,
  InventoryState(on_hand=0, on_order=2): -0.274,
- InventoryState(on_hand=1, on_order=1): -1.274,
- InventoryState(on_hand=0, on_order=1): -2.325,
- InventoryState(on_hand=2, on_order=0): -2.274}   
+ InventoryState(on_hand=1, on_order=1): -1.274}   
 ```
 
 This tells us that On-Hand of 0 and On-Order of 2 has the highest expected reward. However, the Value Function is highest for On-Hand of 0 and On-Order of 1.
 
-This computation for the Value Function works if the state space is not too large (matrix to be inverted has size equal to state space size). When the state space is large, this direct matrix-inversion method doesn't work and we have to resort to numerical methods to solve the recursive Bellman equation. This is the topic of Dynamic Programming and Reinforcement Learning algorithms that we shall learn in this book. 
+This computation for the Value Function works if the state space is not too large (matrix to be inverted has size equal to number of non-terminal states). When the state space is large, this direct matrix-inversion method doesn't work and we have to resort to numerical methods to solve the recursive Bellman equation. This is the topic of Dynamic Programming and Reinforcement Learning algorithms that we shall learn in this book. 
 
 ## Summary of Key Learnings from this Chapter
 
