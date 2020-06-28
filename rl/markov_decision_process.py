@@ -18,7 +18,7 @@ class Policy(ABC, Generic[S, A]):
 
     '''
     @abstractmethod
-    def act(self, state: S) -> Distribution[A]:
+    def act(self, state: S) -> Optional[Distribution[A]]:
         pass
 
 
@@ -26,17 +26,23 @@ class FinitePolicy(Policy[S, A]):
     ''' A policy where the state and action spaces are finite.
 
     '''
-    policy_map: Mapping[S, FiniteDistribution[A]]
+    policy_map: Mapping[S, Optional[FiniteDistribution[A]]]
 
-    def __init__(self, policy_map: Mapping[S, FiniteDistribution[A]]):
+    def __init__(
+        self,
+        policy_map: Mapping[S, Optional[FiniteDistribution[A]]]
+    ):
         self.policy_map = policy_map
 
     def __repr__(self) -> str:
         display = ""
         for s, d in self.policy_map.items():
-            display += f"For State {s}:\n"
-            for a, p in d.table():
-                display += f"  Do Action {a} with Probability {p:.3f}\n"
+            if d is None:
+                display += f"{s} is a Terminal State\n"
+            else:
+                display += f"For State {s}:\n"
+                for a, p in d.table():
+                    display += f"  Do Action {a} with Probability {p:.3f}\n"
         return display
 
     def act(self, state: S) -> FiniteDistribution[A]:
@@ -122,11 +128,11 @@ class FiniteMarkovDecisionProcess(MarkovDecisionProcess[S, A]):
 
     # Note: For now, this is only available on finite MDPs; this might
     # change in the future.
-    def actions(self, state: S) -> Iterable[A]:
+    def actions(self, state: S) -> Optional[Iterable[A]]:
         '''All the actions allowed for the given state.
 
         '''
         if self.mapping[state] is None:
-            return {}.keys()
+            return None
         else:
             return self.mapping[state].keys()
