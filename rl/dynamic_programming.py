@@ -52,7 +52,6 @@ def converge(values: Iterator[X], done: Callable[[X, X], bool]) -> Iterator[X]:
         if done(a, b):
             yield b
         else:
-            print(b)
             a = b
 
     raise Exception('Iterator too for converge.')
