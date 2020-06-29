@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from collections import defaultdict
-from typing import (DefaultDict, Dict, Iterable, Generic, Mapping, Tuple,
-                    TypeVar, Optional)
+from typing import (DefaultDict, Dict, Iterable, Generic, Mapping,
+                    Tuple, Sequence, TypeVar, Optional)
 
 from rl.distribution import (Categorical, Distribution, FiniteDistribution,
                              SampledDistribution)
@@ -66,9 +66,12 @@ class FiniteMarkovDecisionProcess(MarkovDecisionProcess[S, A]):
     '''
 
     mapping: StateActionMapping[S, A]
+    non_terminal_states: Sequence[S]
 
     def __init__(self, mapping: StateActionMapping[S, A]):
         self.mapping = mapping
+        self.non_terminal_states = [s for s, v in mapping.items()
+                                    if v is not None]
 
     def __repr__(self) -> str:
         display = ""
