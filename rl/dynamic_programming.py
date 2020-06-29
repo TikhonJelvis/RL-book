@@ -50,38 +50,33 @@ def converge(values: Iterator[X], done: Callable[[X, X], bool]) -> Iterator[X]:
 
     for b in values:
         if done(a, b):
-            yield b
+            break
         else:
             a = b
-
-    raise Exception('Iterator too for converge.')
-
-
-def converged(v1: V[S], v2: V[S]) -> bool:
-    return max([abs(v1[s] - v2[s]) for s in v1.keys()]) < DEFAULT_TOLERANCE
+            yield b
 
 
-def bellman_opt_update(
-    v: V[S],
-    mdp: FiniteMarkovDecisionProcess[S, A],
+def condition_evaluate_mrp(a1: np.ndarray, a2: np.ndarray) -> bool:
+    return max(abs(a1 - a2)) < DEFAULT_TOLERANCE
+
+
+def evaluate_mrp(
+    mrp: FiniteMarkovRewardProcess[S],
     gamma: float
 ) -> V[S]:
-    '''Do one update of the value function for a given MDP.'''
-    def update_s(s: S) -> float:
-        q_values: List[float] = []
-        action_map = mdp.mapping[s]
+    '''Calculate the value function for the given Markov Reward
+    Process.
+    '''
+    def update(v: np.ndarray) -> np.ndarray:
+        return mrp.reward_function_vec + gamma * mrp.transition_matrix.dot(v)
 
-        for a in mdp.actions(s):
-            q_val: float = 0.
-            for (next_s, r), p in action_map[a].table():
-                next_state_vf = v[next_s]\
-                    if mdp.mapping[next_s] is not None else 0.
-                q_val += p * (r + gamma * next_state_vf)
-            q_values.append(q_val)
+    v_0: np.ndarray = np.zeros(len(mrp.non_terminal_states))
 
-        return max(q_values)
-
-    return {s: update_s(s) for s in v.keys()}
+    vf_array = list(converge(
+        iterate(update, v_0),
+        done=condition_evaluate_mrp
+    ))[-1]
+    return {mrp.non_terminal_states[i]: v for i, v in enumerate(vf_array)}
 
 
 def greedy_policy_from_vf(
@@ -112,46 +107,13 @@ def greedy_policy_from_vf(
     return FinitePolicy(greedy_policy_dict)
 
 
-def value_iteration(
-    mdp: FiniteMarkovDecisionProcess[S, A],
-    gamma: float
-) -> Tuple[V[S], FinitePolicy[S, A]]:
-    '''Calculate the value function (V*) of the given MDP by applying the
-    value_update function repeatedly until the values start
-    converging.
-    '''
-    def update(v: V[S]) -> V[S]:
-        return bellman_opt_update(v, mdp, gamma)
-
-    v_0: V[S] = {s: 0.0 for s in mdp.non_terminal_states}
-    opt_vf: V[S] = list(converge(iterate(update, v_0), done=converged))[-1]
-
-    opt_policy: FinitePolicy[S, A] = greedy_policy_from_vf(
-        mdp,
-        opt_vf,
-        gamma
-    )
-
-    return opt_vf, opt_policy
-
-
-def evaluate_mrp(
-    mrp: FiniteMarkovRewardProcess[S],
-    gamma: float
-) -> V[S]:
-    '''Calculate the value function for the given Markov Reward
-    Process.
-    '''
-    def update(v: np.ndarray) -> np.ndarray:
-        return mrp.reward_function_vec + gamma * mrp.transition_matrix.dot(v)
-
-    v_0: np.ndarray = np.zeros(len(mrp.non_terminal_states))
-
-    vf_array = list(converge(
-        iterate(update, v_0),
-        done=lambda x, y: max(abs(x-y)) < DEFAULT_TOLERANCE
-    ))[-1]
-    return {mrp.non_terminal_states[i]: v for i, v in enumerate(vf_array)}
+def condition_policy_iteration(
+    x1: Tuple[V[S], FinitePolicy[S, A]],
+    x2: Tuple[V[S], FinitePolicy[S, A]]
+) -> bool:
+    return max(
+        abs(x1[0][s] - x2[0][s]) for s in x1[0].keys()
+    ) < DEFAULT_TOLERANCE
 
 
 def policy_iteration(
@@ -186,7 +148,63 @@ def policy_iteration(
         for s in mdp.non_terminal_states
     })
     vf_pi_0 = (v_0, pi_0)
-    return list(converge(iterate(update, vf_pi_0), done=converged))[-1]
+    return list(converge(
+        iterate(update, vf_pi_0),
+        done=condition_policy_iteration
+    ))[-1]
+
+
+def bellman_opt_update(
+    v: V[S],
+    mdp: FiniteMarkovDecisionProcess[S, A],
+    gamma: float
+) -> V[S]:
+    '''Do one update of the value function for a given MDP.'''
+    def update_s(s: S) -> float:
+        q_values: List[float] = []
+        action_map = mdp.mapping[s]
+
+        for a in mdp.actions(s):
+            q_val: float = 0.
+            for (next_s, r), p in action_map[a].table():
+                next_state_vf = v[next_s]\
+                    if mdp.mapping[next_s] is not None else 0.
+                q_val += p * (r + gamma * next_state_vf)
+            q_values.append(q_val)
+
+        return max(q_values)
+
+    return {s: update_s(s) for s in v.keys()}
+
+
+def condition_value_iteration(v1: V[S], v2: V[S]) -> bool:
+    return max([abs(v1[s] - v2[s]) for s in v1.keys()]) < DEFAULT_TOLERANCE
+
+
+def value_iteration(
+    mdp: FiniteMarkovDecisionProcess[S, A],
+    gamma: float
+) -> Tuple[V[S], FinitePolicy[S, A]]:
+    '''Calculate the value function (V*) of the given MDP by applying the
+    value_update function repeatedly until the values start
+    converging.
+    '''
+    def update(v: V[S]) -> V[S]:
+        return bellman_opt_update(v, mdp, gamma)
+
+    v_0: V[S] = {s: 0.0 for s in mdp.non_terminal_states}
+    opt_vf: V[S] = list(converge(
+        iterate(update, v_0),
+        done=condition_value_iteration
+    ))[-1]
+
+    opt_policy: FinitePolicy[S, A] = greedy_policy_from_vf(
+        mdp,
+        opt_vf,
+        gamma
+    )
+
+    return opt_vf, opt_policy
 
 
 if __name__ == '__main__':
