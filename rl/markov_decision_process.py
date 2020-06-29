@@ -2,13 +2,11 @@ from abc import ABC, abstractmethod
 from collections import defaultdict
 from typing import (DefaultDict, Dict, Iterable, Generic, Mapping,
                     Tuple, Sequence, TypeVar, Optional)
-
 from rl.distribution import (Categorical, Distribution, FiniteDistribution,
                              SampledDistribution)
 from rl.markov_process import (FiniteMarkovRewardProcess, MarkovRewardProcess)
 
 A = TypeVar('A')
-
 S = TypeVar('S')
 
 
