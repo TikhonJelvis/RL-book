@@ -156,8 +156,8 @@ def evaluate_mrp(
 
 def policy_iteration(
     mdp: FiniteMarkovDecisionProcess[S, A],
-    matrix_method_for_mrp_eval: bool,
-    gamma: float
+    gamma: float,
+    matrix_method_for_mrp_eval: bool = False
 ) -> Tuple[V[S], FinitePolicy[S, A]]:
     '''Calculate the value function (V*) of the given MDP by improving
     the policy repeatedly after evaluating the value function for a policy
