@@ -226,7 +226,7 @@ class FiniteMarkovRewardProcess(FiniteMarkovProcess[S],
             Optional[FiniteDistribution[Tuple[S, float]]]:
         return self.transition_reward_map[state]
 
-    def get_value_function_vec(self, gamma) -> np.ndarray:
+    def get_value_function_vec(self, gamma: float) -> np.ndarray:
         return np.linalg.inv(
             np.eye(len(self.non_terminal_states)) -
             gamma * self.transition_matrix
@@ -238,7 +238,7 @@ class FiniteMarkovRewardProcess(FiniteMarkovProcess[S],
             for i, r in enumerate(self.reward_function_vec)
         })
 
-    def display_value_function(self, gamma):
+    def display_value_function(self, gamma: float):
         pprint({
             self.non_terminal_states[i]: round(v, 3)
             for i, v in enumerate(self.get_value_function_vec(gamma))
