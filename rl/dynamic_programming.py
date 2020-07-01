@@ -56,8 +56,8 @@ def converge(values: Iterator[X], done: Callable[[X, X], bool]) -> Iterator[X]:
             yield b
 
 
-def condition_evaluate_mrp(a1: np.ndarray, a2: np.ndarray) -> bool:
-    return max(abs(a1 - a2)) < DEFAULT_TOLERANCE
+def condition_vf_dict(v1: V[S], v2: V[S]) -> bool:
+    return max([abs(v1[s] - v2[s]) for s in v1.keys()]) < DEFAULT_TOLERANCE
 
 
 def evaluate_mrp(
@@ -67,16 +67,17 @@ def evaluate_mrp(
     '''Calculate the value function for the given Markov Reward
     Process.
     '''
-    def update(v: np.ndarray) -> np.ndarray:
-        return mrp.reward_function_vec + gamma * mrp.transition_matrix.dot(v)
+    def update(v: V[S]) -> V[S]:
+        return {s: mrp.reward_function_vec[i] + gamma *
+                sum(p * v[s1] for s1, p in mrp.transition_map[s].table())
+                for i, s in enumerate(mrp.non_terminal_states)}
 
-    v_0: np.ndarray = np.zeros(len(mrp.non_terminal_states))
+    v_0: V[S] = {s: 0. for s in mrp.non_terminal_states}
 
-    vf_array = list(converge(
+    return list(converge(
         iterate(update, v_0),
-        done=condition_evaluate_mrp
+        done=condition_vf_dict
     ))[-1]
-    return {mrp.non_terminal_states[i]: v for i, v in enumerate(vf_array)}
 
 
 def greedy_policy_from_vf(
@@ -177,10 +178,6 @@ def bellman_opt_update(
     return {s: update_s(s) for s in v.keys()}
 
 
-def condition_value_iteration(v1: V[S], v2: V[S]) -> bool:
-    return max([abs(v1[s] - v2[s]) for s in v1.keys()]) < DEFAULT_TOLERANCE
-
-
 def value_iteration(
     mdp: FiniteMarkovDecisionProcess[S, A],
     gamma: float
@@ -195,7 +192,7 @@ def value_iteration(
     v_0: V[S] = {s: 0.0 for s in mdp.non_terminal_states}
     opt_vf: V[S] = list(converge(
         iterate(update, v_0),
-        done=condition_value_iteration
+        done=condition_vf_dict
     ))[-1]
 
     opt_policy: FinitePolicy[S, A] = greedy_policy_from_vf(
