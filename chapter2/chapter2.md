@@ -386,7 +386,7 @@ It is common to view this as a directed graph, as depicted in Figure \ref{fig:we
 ![Weather Markov Process \label{fig:weather_mp}](./chapter2/weather_mp.png "Weather Markov Process")
 </div>
 
-Now we are ready to write the code for the `FiniteMarkovProcess` class. The `__init__` method (constructor) takes as argument a `transition_map: Transition[S]` as we had described above. Along with the `transition_map` attribute, we have another attribute `non_terminal_states: Sequence[S]` that is an ordered sequence of the non-terminal states. We implement the `transition` method by simply returning the `Categorical` distribution the given `state: S` maps to in the attribute `self.transition_map: Transition[S]`. Note that along with the `transition` method, we have also implemented the `__repr__` method for a well-formatted display of `self.transition_map`.
+Now we are ready to write the code for the `FiniteMarkovProcess` class. The `__init__` method (constructor) takes as argument a `transition_map: Transition[S]` as we had described above. Along with the attribute `transition_map`, we also have an attribute `non_terminal_states: Sequence[S]` that is an ordered sequence of the non-terminal states. We implement the `transition` method by simply returning the `Categorical` distribution the given `state: S` maps to in the attribute `self.transition_map: Transition[S]`. Note that along with the `transition` method, we have also implemented the `__repr__` method for a well-formatted display of `self.transition_map`.
 
 ```python
 class FiniteMarkovProcess(MarkovProcess[S]):
@@ -550,14 +550,15 @@ The intuitive view of the stationary distribution $\pi$ is that (under specific 
 
 If we specialize this definition of *Stationary Distribution* to Finite-States Stationary Markov Processes with state space $\mathcal{S} = \{s_1, s_2, \ldots, s_n\} = \mathcal{N}$, then we can express the Stationary Distribution $\pi$ as follows:
 $$\pi(s_j) = \sum_{i=1}^n \pi(s_i) \cdot \mathcal{P}(s_i, s_j) \text{ for all } j = 1, 2, \ldots n$$
-Abusing notation, let us refer to $\pi$ as a column vector of length $n$ and let us refer to $\mathcal{P}$ as the $n \times n$ transition probability matrix (rows are source states, columns are destination states with each row summing to 1).
-Then, the statement of the above definition can be succinctly expressed as:
-$$\pi^T = \pi^T \cdot \mathcal{P}$$
-which can be re-written as:
-$$\mathcal{P}^T \cdot \pi = \pi$$
-But this is simply saying that $\pi$ is an eigenvector of $\mathcal{P}^T$ with eigenvalue of 1. So then, it should be easy to obtain the stationary distribution $\pi$ from an eigenvectors and eigenvalues calculation of $\mathcal{P}^T$. 
 
-Let us write code to compute the stationary distribution. We shall add two methods in the `FiniteMarkovProcess` class, one for setting up the transition probability matrix $\mathcal{P}$ (`get_transition_matrix` method) and another to calculate the stationary distribution $\pi$ (`get_stationary_distribution`) from the transition probability matrix. Note that $\mathcal{P}$ is restricted to $\mathcal{N} \times \mathcal{N} \rightarrow [0, 1]$ (rather than $\mathcal{N} \times \mathcal{S} \rightarrow [0, 1]$) because these probability transitions suffice for all the calculations we will be performing for Finite Markov Processes. Here's the code for the two methods (the full code for `FiniteMarkovProcess` is in the file [`rl/markov_process.py`](https://github.com/TikhonJelvis/RL-book/blob/master/rl/markov_process.py)):
+Below we use bold-face notation to represent functions as vectors and matrices (since we assume finite states). So, $\bpi$ is a column vector of length $n$ and $\bm{\mathcal{P}}$ is the $n \times n$ transition probability matrix (rows are source states, columns are destination states with each row summing to 1).
+Then, the statement of the above definition can be succinctly expressed as:
+$$\bm{\pi^T} = \bm{\pi^T} \cdot \bm{\mathcal{P}}$$
+which can be re-written as:
+$$\bm{\mathcal{P}^T} \cdot \bpi = \bpi$$
+But this is simply saying that $\bpi$ is an eigenvector of $\bm{\mathcal{P}^T}$ with eigenvalue of 1. So then, it should be easy to obtain the stationary distribution $\bpi$ from an eigenvectors and eigenvalues calculation of $\bm{\mathcal{P}^T}$. 
+
+Let us write code to compute the stationary distribution. We shall add two methods in the `FiniteMarkovProcess` class, one for setting up the transition probability matrix $\bm{\mathcal{P}}$ (`get_transition_matrix` method) and another to calculate the stationary distribution $\bpi$ (`get_stationary_distribution`) from the transition probability matrix. Note that $\bm{\mathcal{P}}$ is restricted to $\mathcal{N} \times \mathcal{N} \rightarrow [0, 1]$ (rather than $\mathcal{N} \times \mathcal{S} \rightarrow [0, 1]$) because these probability transitions suffice for all the calculations we will be performing for Finite Markov Processes. Here's the code for the two methods (the full code for `FiniteMarkovProcess` is in the file [`rl/markov_process.py`](https://github.com/TikhonJelvis/RL-book/blob/master/rl/markov_process.py)):
 
 ```python
     def get_transition_matrix(self) -> np.ndarray:
@@ -945,20 +946,20 @@ We refer to this recursive equation \eqref{eq:mrp_bellman_eqn} for the Value Fun
 ![Visualization of MRP Bellman Equation \label{fig:mrp_bellman_tree}](./chapter2/mrp_bellman_tree.png "Visualization of MRP Bellman Equation")
 </div>
 
-For the case of Finite Markov Reward Processes, assume $\mathcal{S} = \{s_1, s_2, \ldots, s_n\}$ and assume $\mathcal{N}$ has $m \leq n$ states. Let us abuse notation and refer to $V$ as a column vector of length $m$, $\mathcal{P}$ as a $m \times m$ matrix, and $\mathcal{R}$ as a column vector of length $m$ (all rows/columns these corresponding to states in $\mathcal{N}$), so we can express the above equation in vector and matrix notation as follows:
+For the case of Finite Markov Reward Processes, assume $\mathcal{S} = \{s_1, s_2, \ldots, s_n\}$ and assume $\mathcal{N}$ has $m \leq n$ states. Below we use bold-face notation to represent functions as column vectors and matrices since we have finite states/transitions. So, $\bv$ is a column vector of length $m$, $\bm{\mathcal{P}}$ is an $m \times m$ matrix, and $\bm{\mathcal{R}}$ is a column vector of length $m$ (rows/columns corresponding to states in $\mathcal{N}$), so we can express the above equation in vector and matrix notation as follows:
 
-$$V = \mathcal{R} + \gamma \mathcal{P} \cdot V$$
+$$\bv = \bm{\mathcal{R}} + \gamma \bm{\mathcal{P}} \cdot \bv$$
 Therefore,
 \begin{equation}
-\Rightarrow V = (I_m - \gamma \mathcal{P})^{-1} \cdot \mathcal{R}
+\Rightarrow \bv = (\bm{I_m} - \gamma \bm{\mathcal{P}})^{-1} \cdot \bm{\mathcal{R}}
 \label{eq:mrp_bellman_linalg_solve}
 \end{equation}
-where $I_m$ is the $m \times m$ identity matrix.
+where $\bm{I_m}$ is the $m \times m$ identity matrix.
 
 Let us write some code to implement the calculation of Equation \eqref{eq:mrp_bellman_linalg_solve}. In the `FiniteMarkovRewardProcess` class, we implement the method `get_value_function_vec` that performs the above calculation for the Value Function $V$ in terms of the reward function $\mathcal{R}$ and the transition probability function $\mathcal{P}$ of the implicit Markov Process. The Value Function $V$ is produced as a 1D numpy array (i.e. a vector). Here's the code:
 
 ```python
-    def get_value_function_vec(self, gamma) -> np.ndarray:
+    def get_value_function_vec(self, gamma: float) -> np.ndarray:
         return np.linalg.inv(
             np.eye(len(self.non_terminal_states)) -
             gamma * self.get_transition_matrix()
