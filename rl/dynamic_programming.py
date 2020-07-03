@@ -1,6 +1,5 @@
 from rl.markov_decision_process import (FiniteMarkovDecisionProcess,
                                         FiniteMarkovRewardProcess)
-import numpy as np
 from typing import Callable, Mapping, Iterator, TypeVar, List, Tuple, Dict
 from rl.markov_decision_process import FinitePolicy
 from rl.distribution import FiniteDistribution, Categorical
