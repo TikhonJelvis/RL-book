@@ -272,13 +272,11 @@ $endif$
 \DeclareMathOperator*{\argmin}{arg\,min}
 \DeclareMathOperator*{\argmax}{arg\,max}
 
-\newcommand{\bvpi}{\bm{V^{\pi}}}
-\newcommand{\bvs}{\bm{V^*}}
-\newcommand{\bbpi}{\bm{B^{\pi}}}
-\newcommand{\bbs}{\bm{B^*}}
+\newcommand{\bvpi}{\bm{V}^{\pi}}
+\newcommand{\bvs}{\bm{V}^*}
+\newcommand{\bbpi}{\bm{B}^{\pi}}
+\newcommand{\bbs}{\bm{B}^*}
 \newcommand{\bv}{\bm{V}}
-\newcommand{\bpi}{\bm{\pi}}
-\newcommand{\bpis}{\bm{\pi^*}}
 
 
 % At last: 
