@@ -551,14 +551,14 @@ The intuitive view of the stationary distribution $\pi$ is that (under specific 
 If we specialize this definition of *Stationary Distribution* to Finite-States Stationary Markov Processes with state space $\mathcal{S} = \{s_1, s_2, \ldots, s_n\} = \mathcal{N}$, then we can express the Stationary Distribution $\pi$ as follows:
 $$\pi(s_j) = \sum_{i=1}^n \pi(s_i) \cdot \mathcal{P}(s_i, s_j) \text{ for all } j = 1, 2, \ldots n$$
 
-Below we use bold-face notation to represent functions as vectors and matrices (since we assume finite states). So, $\bpi$ is a column vector of length $n$ and $\bm{\mathcal{P}}$ is the $n \times n$ transition probability matrix (rows are source states, columns are destination states with each row summing to 1).
+Below we use bold-face notation to represent functions as vectors and matrices (since we assume finite states). So, $\bm{pi}$ is a column vector of length $n$ and $\bm{\mathcal{P}}$ is the $n \times n$ transition probability matrix (rows are source states, columns are destination states with each row summing to 1).
 Then, the statement of the above definition can be succinctly expressed as:
-$$\bm{\pi^T} = \bm{\pi^T} \cdot \bm{\mathcal{P}}$$
+$$\bm{\pi}^T = \bm{\pi}^T \cdot \bm{\mathcal{P}}$$
 which can be re-written as:
-$$\bm{\mathcal{P}^T} \cdot \bpi = \bpi$$
-But this is simply saying that $\bpi$ is an eigenvector of $\bm{\mathcal{P}^T}$ with eigenvalue of 1. So then, it should be easy to obtain the stationary distribution $\bpi$ from an eigenvectors and eigenvalues calculation of $\bm{\mathcal{P}^T}$. 
+$$\bm{\mathcal{P}}^T \cdot \bm{\pi} = \bm{\pi}$$
+But this is simply saying that $\bm{pi}$ is an eigenvector of $\bm{\mathcal{P}}^T$ with eigenvalue of 1. So then, it should be easy to obtain the stationary distribution $\bm{pi}$ from an eigenvectors and eigenvalues calculation of $\bm{\mathcal{P}}^T$. 
 
-Let us write code to compute the stationary distribution. We shall add two methods in the `FiniteMarkovProcess` class, one for setting up the transition probability matrix $\bm{\mathcal{P}}$ (`get_transition_matrix` method) and another to calculate the stationary distribution $\bpi$ (`get_stationary_distribution`) from the transition probability matrix. Note that $\bm{\mathcal{P}}$ is restricted to $\mathcal{N} \times \mathcal{N} \rightarrow [0, 1]$ (rather than $\mathcal{N} \times \mathcal{S} \rightarrow [0, 1]$) because these probability transitions suffice for all the calculations we will be performing for Finite Markov Processes. Here's the code for the two methods (the full code for `FiniteMarkovProcess` is in the file [`rl/markov_process.py`](https://github.com/TikhonJelvis/RL-book/blob/master/rl/markov_process.py)):
+Let us write code to compute the stationary distribution. We shall add two methods in the `FiniteMarkovProcess` class, one for setting up the transition probability matrix $\bm{\mathcal{P}}$ (`get_transition_matrix` method) and another to calculate the stationary distribution $\bm{pi}$ (`get_stationary_distribution`) from the transition probability matrix. Note that $\bm{\mathcal{P}}$ is restricted to $\mathcal{N} \times \mathcal{N} \rightarrow [0, 1]$ (rather than $\mathcal{N} \times \mathcal{S} \rightarrow [0, 1]$) because these probability transitions suffice for all the calculations we will be performing for Finite Markov Processes. Here's the code for the two methods (the full code for `FiniteMarkovProcess` is in the file [`rl/markov_process.py`](https://github.com/TikhonJelvis/RL-book/blob/master/rl/markov_process.py)):
 
 ```python
     def get_transition_matrix(self) -> np.ndarray:
@@ -687,7 +687,7 @@ $$\mathcal{P}(s, s') = \sum_{r\in \mathbb{R}} \mathcal{P}_R(s,r,s')$$
 \item The reward transition function:
 $$\mathcal{R}_T: \mathcal{N} \times \mathcal{S} \rightarrow \mathbb{R}$$
 defined as:
-$$\mathcal{R}_T(s,s') = \mathbb{E}[R_{t+1}|S_{t+1}=s',S_t=s] = \sum_{r\in \mathcal{R}} \frac {\mathcal{P}_R(s,r,s')} {\mathcal{P}(s,s')} \cdot r = \sum_{r\in \mathcal{R}} \frac {\mathcal{P}_R(s,r,s')} {\sum_{r\in \mathbb{R}} \mathcal{P}_R(s,r,s')} \cdot r$$
+$$\mathcal{R}_T(s,s') = \mathbb{E}[R_{t+1}|S_{t+1}=s',S_t=s] = \sum_{r\in \mathbb{R}} \frac {\mathcal{P}_R(s,r,s')} {\mathcal{P}(s,s')} \cdot r = \sum_{r\in \mathbb{R}} \frac {\mathcal{P}_R(s,r,s')} {\sum_{r\in \mathbb{R}} \mathcal{P}_R(s,r,s')} \cdot r$$
 \end{itemize}
 
 The Rewards specification of most Markov Reward Processes we encounter in practice can be directly expressed as the reward transition function $\mathcal{R}_T$ (versus the more general specification of $\mathcal{P}_R$). Lastly, we want to highlight that we can transform either of $\mathcal{P}_R$ or $\mathcal{R}_T$ into a "more compact" reward function that is sufficient to perform key calculations involving Markov Reward Processes. This reward function 

@@ -1,4 +1,4 @@
-mapping# Chapter 3: Markov Decision Processes
+# Chapter 3: Markov Decision Processes
 
 We've said before that this book is about "sequential decisioning" under "sequential uncertainty". In the previous chapter, we covered the "sequential uncertainty" aspect with the framework of Markov Processes, and we extended the framework to also incoporate the notion of uncertain "Reward" each time we make a state transition - we called this extended framework Markov Reward Processes. However, this framework had no notion of "sequential decisioning". In this chapter, we will further extend the framework of Markov Reward Processes to incorporate the notion of "sequential decisioning", formally known as Markov Decision Processes. Before we step into the formalism of Markov Decision Processes, let us develop some intuition and motivation for the need to have such a framework - to handle sequential decisioning. Let's do this by re-visiting the simple inventory example we covered in the previous chapter.
 
@@ -89,7 +89,7 @@ defined as:
 
 $$\mathcal{R}_T(s,a,s') = \mathbb{E}[R_{t+1}|(S_{t+1}=s',S_t=s,A_t=a)]$$
 
-$$ = \sum_{r\in \mathcal{R}} \frac {\mathcal{P}_R(s,a,r,s')} {\mathcal{P}(s,a,s')} \cdot r = \sum_{r\in \mathcal{R}} \frac {\mathcal{P}_R(s,a,r,s')} {\sum_{r\in \mathbb{R}} \mathcal{P}_R(s,a,r,s')} \cdot r$$
+$$ = \sum_{r\in \mathbb{R}} \frac {\mathcal{P}_R(s,a,r,s')} {\mathcal{P}(s,a,s')} \cdot r = \sum_{r\in \mathbb{R}} \frac {\mathcal{P}_R(s,a,r,s')} {\sum_{r\in \mathbb{R}} \mathcal{P}_R(s,a,r,s')} \cdot r$$
 
 The Rewards specification of most Markov Decision Processes we encounter in practice can be directly expressed as the reward transition function $\mathcal{R}_T$ (versus the more general specification of $\mathcal{P}_R$). Lastly, we want to highlight that we can transform either of $\mathcal{P}_R$ or $\mathcal{R}_T$ into a "more compact" reward function that is sufficient to perform key calculations involving Markov Decision Processes. This reward function
 
@@ -196,7 +196,7 @@ This section has an important insight - that if we evaluate a Markov Decision Pr
 
 Let's say we are given a fixed policy $\pi$ and an MDP specified by it's state-reward transition probability function $\mathcal{P}_R$. Then the transition probability function $\mathcal{P}_R^{\pi}$ of the MRP implied by the evaluation of the MDP with the policy $\pi$ is defined as:
 
-$$\mathcal{P}_R^{\pi}(s,s',r) = \sum_{a\in \mathcal{A}} \pi(s,a) \cdot \mathcal{P}_R(s,a,s',r)$$ 
+$$\mathcal{P}_R^{\pi}(s,r,s') = \sum_{a\in \mathcal{A}} \pi(s,a) \cdot \mathcal{P}_R(s,a,r,s')$$ 
 
 Likewise,
 
@@ -634,7 +634,7 @@ Note that Equation \eqref{eq:mdp_bellman_opt_eqn_vq} and Equation \eqref{eq:mdp_
 
 Again, it pays to emphasize that the Bellman Optimality Equations don't directly give us a recipe to calculate the Optimal Value Function or the policy/policies that achieve the Optimal Value Function - they simply state a powerful mathematical property of the Optimal Value Function that (as we shall see later in this book) will help us come up with algorithms (Dynamic Programming and Reinforcement Learning) to calculate the Optimal Value Function and the associated policy/policies that achieve the Optimal Value Function.
 
-We have been using the phrase "policy/policies that achieve the Optimal Value Function", but we haven't yet provided a clear definition of such a policy (or policies). In fact, as mentioned earlier, it's not clear from the definition of $V^*$ if such a policy (one that would achieve $V^*$) exists (because it's conceivable that different policies $\pi$ achieve the maximization of $V^{\pi}(s)$ for different states $s\in \mathcal{N}$). Now we are ready to dig into the notion of an *Optimal Policy* $\pi^*: \mathcal{N} \times \mathcal{A} \rightarrow [0, 1]$. Here's the formal definition:
+We have been using the phrase "policy/policies that achieve the Optimal Value Function", but we haven't yet provided a clear definition of such a policy (or policies). In fact, as mentioned earlier, it's not clear from the definition of $V^*$ if such a policy (one that would achieve $V^*$) exists (because it's conceivable that different policies $\pi$ achieve the maximization of $V^{\pi}(s)$ for different states $s\in \mathcal{N}$). So apriori, we shall define an *Optimal Policy* $\pi^*: \mathcal{N} \times \mathcal{A} \rightarrow [0, 1]$ as one that "dominates" all other policies with respect to the Value Functions for the policies. Formally,
 
 $$\pi^* \in \Pi \text{ is an Optimal Policy if } V^{\pi^*}(s) \geq V^{\pi}(s) \text{ {\em for all} } \pi \in \Pi \text{ and {\em for all states} } s \in \mathcal{N}$$
 
