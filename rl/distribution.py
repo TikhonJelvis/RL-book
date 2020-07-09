@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 import random
-from typing import Callable, Generic, Iterable, List, Set, Tuple, TypeVar
+from typing import (Callable, Generic, Iterable, Set, Tuple,
+                    TypeVar, Sequence, List)
 
 A = TypeVar('A')
 
@@ -26,7 +27,7 @@ class SampledDistribution(Distribution[A]):
     def __init__(self, sampler: Callable[[], A]):
         self.sampler = sampler
 
-    def sample(self):
+    def sample(self) -> A:
         return self.sampler()
 
 
@@ -36,7 +37,7 @@ class FiniteDistribution(Distribution[A], ABC):
 
     '''
     @abstractmethod
-    def table(self) -> List[Tuple[A, float]]:
+    def table(self) -> Sequence[Tuple[A, float]]:
         '''Returns a tabular representaiton of the probability density
         function (PDF) for this distribution.
 
@@ -64,7 +65,7 @@ class Constant(FiniteDistribution[A]):
     def sample(self) -> A:
         return self.value
 
-    def table(self) -> List[Tuple[A, float]]:
+    def table(self) -> Sequence[Tuple[A, float]]:
         return [(self.value, 1)]
 
     def probability(self, outcome: A) -> float:
@@ -80,9 +81,9 @@ class Bernoulli(FiniteDistribution[bool]):
         self.p = p
 
     def sample(self) -> bool:
-        return random.uniform(0, 1) < self.p
+        return random.uniform(0, 1) <= self.p
 
-    def table(self) -> List[Tuple[bool, float]]:
+    def table(self) -> Sequence[Tuple[bool, float]]:
         return [(True, self.p), (False, 1 - self.p)]
 
     def probability(self, outcome: bool) -> float:
@@ -102,7 +103,7 @@ class Choose(FiniteDistribution[A]):
     def sample(self) -> A:
         return random.choice(list(self.options))
 
-    def table(self) -> List[Tuple[A, float]]:
+    def table(self) -> Sequence[Tuple[A, float]]:
         length = len(self.options)
         return [(x, 1.0 / length) for x in self.options]
 
@@ -117,25 +118,27 @@ class Categorical(FiniteDistribution[A]):
 
     '''
 
-    outcomes: List[A]
-    probabilities: List[float]
+    outcomes: Sequence[A]
+    probabilities: Sequence[float]
 
     def __init__(self, distribution: Iterable[Tuple[A, float]]):
-        self.outcomes = []
-        self.probabilities = []
+        outcomes: List[A] = []
+        probabilities: List[A] = []
 
         for outcome, probability in distribution:
-            self.outcomes += [outcome]
-            self.probabilities += [probability]
+            outcomes += [outcome]
+            probabilities += [probability]
+
+        self.outcomes = outcomes
 
         # Normalize probabilities to sum to 1
-        total = sum(self.probabilities)
-        self.probabilities = [p / total for p in self.probabilities]
+        total = sum(probabilities)
+        self.probabilities = [p / total for p in probabilities]
 
     def sample(self) -> A:
         return random.choices(self.outcomes, weights=self.probabilities)[0]
 
-    def table(self) -> List[Tuple[A, float]]:
+    def table(self) -> Sequence[Tuple[A, float]]:
         return list(zip(self.outcomes, self.probabilities))
 
     def probability(self, outcome: A) -> float:

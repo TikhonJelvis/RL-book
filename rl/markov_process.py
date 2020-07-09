@@ -63,13 +63,11 @@ class FiniteMarkovProcess(MarkovProcess[S]):
 
     non_terminal_states: Sequence[S]
     transition_map: Transition[S]
-    transition_matrix: np.ndarray
 
     def __init__(self, transition_map: Transition[S]):
         self.non_terminal_states = [s for s, v in transition_map.items()
                                     if v is not None]
         self.transition_map = transition_map
-        self.transition_matrix = self.get_transition_matrix()
 
     def __repr__(self) -> str:
         display = ""
@@ -101,8 +99,11 @@ class FiniteMarkovProcess(MarkovProcess[S]):
     def transition(self, state: S) -> Optional[FiniteDistribution[S]]:
         return self.transition_map[state]
 
+    def states(self) -> Iterable[S]:
+        return self.transition_map.keys()
+
     def get_stationary_distribution(self) -> FiniteDistribution[S]:
-        eig_vals, eig_vecs = np.linalg.eig(self.transition_matrix.T)
+        eig_vals, eig_vecs = np.linalg.eig(self.get_transition_matrix().T)
         index_of_first_unit_eig_val = np.where(
             np.abs(eig_vals - 1) < 1e-8)[0][0]
         eig_vec_of_unit_eig_val = np.real(
@@ -226,10 +227,10 @@ class FiniteMarkovRewardProcess(FiniteMarkovProcess[S],
             Optional[FiniteDistribution[Tuple[S, float]]]:
         return self.transition_reward_map[state]
 
-    def get_value_function_vec(self, gamma) -> np.ndarray:
+    def get_value_function_vec(self, gamma: float) -> np.ndarray:
         return np.linalg.inv(
             np.eye(len(self.non_terminal_states)) -
-            gamma * self.transition_matrix
+            gamma * self.get_transition_matrix()
         ).dot(self.reward_function_vec)
 
     def display_reward_function(self):
@@ -238,7 +239,7 @@ class FiniteMarkovRewardProcess(FiniteMarkovProcess[S],
             for i, r in enumerate(self.reward_function_vec)
         })
 
-    def display_value_function(self, gamma):
+    def display_value_function(self, gamma: float):
         pprint({
             self.non_terminal_states[i]: round(v, 3)
             for i, v in enumerate(self.get_value_function_vec(gamma))
