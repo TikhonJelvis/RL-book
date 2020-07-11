@@ -24,11 +24,11 @@ class FinitePolicy(Policy[S, A]):
     ''' A policy where the state and action spaces are finite.
 
     '''
-    policy_map: Mapping[S, Optional[FiniteDistribution[A]]]
+    policy_map: Mapping[S, FiniteDistribution[A]]
 
     def __init__(
         self,
-        policy_map: Mapping[S, Optional[FiniteDistribution[A]]]
+        policy_map: Mapping[S, FiniteDistribution[A]]
     ):
         self.policy_map = policy_map
 
@@ -90,12 +90,14 @@ class FiniteMarkovDecisionProcess(MarkovDecisionProcess[S, A]):
     # work even if the policy is *not* finite.
     def apply_policy(self, policy: Policy[S, A]) -> MarkovRewardProcess[S]:
 
+        mapping = self.mapping
         class Process(MarkovRewardProcess[S]):
 
             def transition_reward(self, state: S)\
                     -> Optional[Distribution[Tuple[S, float]]]:
 
-                action_map: Optional[ActionMapping[A, S]] = self.mapping[state]
+                action_map: Optional[ActionMapping[A, S]] = mapping[state]
+
                 if action_map is None:
                     return None
                 else:
@@ -114,11 +116,13 @@ class FiniteMarkovDecisionProcess(MarkovDecisionProcess[S, A]):
 
         for state in self.mapping:
             action_map: Optional[ActionMapping[A, S]] = self.mapping[state]
+
             if action_map is None:
                 transition_mapping[state] = None
             else:
                 outcomes: DefaultDict[Tuple[S, float], float]\
                     = defaultdict(float)
+
                 for action, p_action in policy.act(state).table():
                     for outcome, p_state in action_map[action].table():
                         outcomes[outcome] += p_action * p_state
@@ -129,11 +133,14 @@ class FiniteMarkovDecisionProcess(MarkovDecisionProcess[S, A]):
 
     # Note: For now, this is only available on finite MDPs; this might
     # change in the future.
-    def actions(self, state: S) -> Optional[Iterable[A]]:
+    def actions(self, state: S) -> Iterable[A]:
         '''All the actions allowed for the given state.
 
+        This will be empty for terminal states.
+
         '''
-        if self.mapping[state] is None:
-            return None
+        actions = self.mapping[state]
+        if actions is None:
+            return iter([])
         else:
-            return self.mapping[state].keys()
+            return actions.keys()
