@@ -1,9 +1,4 @@
-from __future__ import annotations
-
-from abc import ABC, abstractmethod
-from dataclasses import dataclass
-from typing import (Callable, Generic, Iterator, Mapping, TypeVar, List,
-                    Tuple, Dict)
+from typing import (Dict, Mapping, TypeVar, List, Tuple)
 import operator
 
 from rl.iterate import converge, iterate
@@ -18,76 +13,33 @@ X = TypeVar('X')
 
 DEFAULT_TOLERANCE = 1e-5
 
-
-Self = TypeVar('Self', bound='FunctionRepresentation')
-
-
-class FunctionRepresentation(ABC, Generic[X]):
-    @abstractmethod
-    def __getitem__(self, key: X) -> float:
-        pass
-
-    @abstractmethod
-    def update(self, key, value):
-        pass
-
-    @abstractmethod
-    def update_all(self, update):
-        pass
-
-    @abstractmethod
-    def within(self, other, tolerance=DEFAULT_TOLERANCE):
-        '''Are all the values in the given FunctionRepresentation within the
-        given bound of the values in this FunctionRepresentation?
-
-        '''
-        pass
-
-
-@dataclass
-class TabularRepresentation(FunctionRepresentation, Generic[X]):
-    mapping: Mapping[X, float]
-
-    def __getitem__(self, key):
-        return self.mapping[key]
-
-    def update(self, key, value):
-        return TabularRepresentation(
-            {x: value if x == key else old_value
-             for x, old_value in self.mapping.items()})
-
-    def update_all(self, update):
-        return TabularRepresentation({x: update(self, x) for x in self.mapping})
-
-    def within(self, other, tolerance=DEFAULT_TOLERANCE):
-        return all(abs(self[k] - other[k]) < DEFAULT_TOLERANCE
-                   for k in self.mapping.keys())
-
-
 # A representation of a value function for a finite MDP with states of
 # type S
-V = TabularRepresentation[S]
+V = Mapping[S, float]
+
+
+def condition_vf_dict(v1: V[S], v2: V[S]) -> bool:
+    return max([abs(v1[s] - v2[s]) for s in v1.keys()]) < DEFAULT_TOLERANCE
 
 
 def evaluate_mrp(
     mrp: FiniteMarkovRewardProcess[S],
     gamma: float
-) -> Iterator[V[S]]:
+) -> V[S]:
     '''Calculate the value function for the given Markov Reward
     Process.
     '''
-    def update_s(v, s: S) -> float:
-        next_states = mrp.transition_reward(s)
+    def update(v: V[S]) -> V[S]:
+        return {s: mrp.reward_function_vec[i] + gamma *
+                sum(p * v[s1] for s1, p in mrp.transition_map[s].table())
+                for i, s in enumerate(mrp.non_terminal_states)}
 
-        if next_states is None:
-            return 0.0  # terminal state
-        else:
-            return \
-                v[s] + gamma * sum(p * v[s1] for s1, p in next_states.table())
+    v_0: V[S] = {s: 0. for s in mrp.non_terminal_states}
 
-    v_0: V[S] = TabularRepresentation({s: 0. for s in mrp.non_terminal_states})
-
-    return iterate(lambda v: v.update_all(update_s), v_0)
+    return list(converge(
+        iterate(update, v_0),
+        done=condition_vf_dict
+    ))[-1]
 
 
 def greedy_policy_from_vf(
