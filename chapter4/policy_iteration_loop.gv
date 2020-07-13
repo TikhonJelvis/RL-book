@@ -1,0 +1,12 @@
+digraph policy_iteration_loop
+{
+  nodesep = 1.5
+  rankdir = LR
+
+  P [label="&#960;", shape=none, width="1.5", height="0.5", fontsize="20", color=blue4, fontcolor=blue4]
+  V [label="V", shape=none, width="1.5", height="0.5", fontsize="20", color=red4, fontcolor=red4]
+
+  P:n->V:n [label=<Evaluation:V = V<SUP>&#960;</SUP>>, color=Blue, fontcolor=Blue]
+  V:s->P:s [label=<Improvement: &#960; = G(V)>, color=crimson fontcolor=crimson]
+}
+

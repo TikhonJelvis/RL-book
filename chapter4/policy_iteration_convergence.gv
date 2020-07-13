@@ -1,0 +1,13 @@
+digraph policy_iteration_convergence
+{
+  nodesep = 10.0
+  rankdir = LR
+  splines = false
+
+  P [label=<&#960;<SUP>*</SUP>>, shape=none, fontsize="30", color=blue4, fontcolor=blue4]
+  V [label=<V<SUP>*</SUP>>, shape=none, fontsize="30", color=red4, fontcolor=red4]
+
+  P:e -> V:w [label="At Convergence", color=Blue, fontcolor=darkgreen]
+  V:w -> P:e [color=crimson fontcolor=crimson]
+}
+
