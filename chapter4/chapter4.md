@@ -377,15 +377,188 @@ This says that evaluating the MDP with the deterministic greedy policy $G(\bvs)$
 
 ## Generalized Policy Iteration
 
+In this section, we dig into the structure of the Policy Iteration algorithm and show how this structure can be generalized. Let us start by looking at a 2-dimensional layout of how the Value Functions progress in Policy Iteration from the starting Value Function $\bm{V_0}$ to the final Value Function $\bvs$.
+
+$$\pi_1 = G(\bm{V_0}), \bm{V_0} \rightarrow \bm{B}^{\pi_1}(\bm{V_0}) \rightarrow (\bm{B}^{\pi_1})^2(\bm{V_0}) \rightarrow \ldots (\bm{B}^{\pi_1})^i(\bm{V_0}) \rightarrow \ldots \bm{V}^{\pi_1} = \bm{V_1}$$
+$$\pi_2 = G(\bm{V_1}), \bm{V_1} \rightarrow \bm{B}^{\pi_2}(\bm{V_1}) \rightarrow (\bm{B}^{\pi_2})^2(\bm{V_1}) \rightarrow \ldots (\bm{B}^{\pi_2})^i(\bm{V_1}) \rightarrow \ldots \bm{V}^{\pi_2} = \bm{V_2}$$
+$$\ldots$$
+$$\ldots$$
+$$\pi_{j+1} = G(\bm{V_j}), \bm{V_j} \rightarrow \bm{B}^{\pi_{j+1}}(\bm{V_j}) \rightarrow (\bm{B}^{\pi_{j+1}})^2(\bm{V_j}) \rightarrow \ldots (\bm{B}^{\pi_{j+1}})^i(\bm{V_j}) \rightarrow \ldots \bm{V}^{\pi_{j+1}} = \bvs$$
+
+Each row in the layout above represents the progression of the Value Function for a specific policy. Each row starts with the creation of the policy (for that row) using the Greedy Policy Function $G$, and the remainder of the row consists of successive applications of the Bellman Policy Operator (using that row's policy) until convergence to the Value Function for that row's policy. So each row starts with a Policy Improvement step followed by Policy Evaluation. Notice how the end of one row dovetails into the start of the next row with application of the Greedy Policy Function $G$. It's also important to recognize that Greedy Policy Function as well as Bellman Policy Operator apply to *all states* in $\mathcal{N}$. So, in fact, the entire Policy Evaluation algorithm has 3 nested loops. The outermost loop is over the rows in this 2-dimensional layout (each iteration in this outermost loop creates an improved policy). The loop within this outermost loop is over the columns in each row (each iteration in this loop applies the Bellman Policy Operator, i.e. the steps in Policy Evaluation). The innermost loop is over each state in $\mathcal{N}$ since we need to sweep through all states in updating the Value Function when the Bellman Policy Operator is applied on a Value Function (we also need to sweep through all states in applying the Greedy Policy Function to improve the policy).
+
+A higher-level view of Policy Iteration is to think of Policy Evaluation and Policy Improvement going back and forth iteratively - Policy Evaluation takes a policy and creates the Value Function for that policy, while Policy Improvement takes a Value Function and creates a Greedy Policy from it (that is improved relative to the previous policy). This is depicted in Figure \ref{fig:policy_iteration_loop}. It is important to recognize that this loop of Policy Evaluation and Policy Improvement works to make the Value Function and the Policy increasingly consistent with each other, until we reach convergence when the Value Function and Policy become completely consistent with each other (as illustrated in Figure \ref{fig:policy_iteration_convergence}).
+
+![Policy Iteration Loop \label{fig:policy_iteration_loop}](./chapter4/policy_iteration_loop.png "Policy Iteration as a loop of Policy Evaluation and Policy Improvement")
+
+![Policy Iteration Convergence \label{fig:policy_iteration_convergence}](./chapter4/policy_iteration_convergence.png "At Convergence of Policy Iteration")
+
+We'd also like to share a visual of Policy Iteration that is quite popular in much of the literature on Dynamic Programming. It is the visual of Figure \ref{fig:vf_policy_intersecting_lines}. It's a somewhat fuzzy sort of visual, but it has it's benefits in terms of pedagogy of Policy Iteration. The idea behind this image is that the lower line represents the "policy line" indicating the progression of the policies as Policy Iteration algorithm moves along and the upper line represents the "value function line" indicating the progression of the Value Functions as Policy Iteration algorithm moves along. The arrows pointing towards the upper line ("value function line") represent a Policy Evaluation for a given policy $\pi$, yielding the point (Value Function) $\bm{V}^{\pi}$ on the upper line. The arrows pointing towards the lower line ("policy line") represent a Greedy Policy Improvement from a Value Function $\bm{V}^{\pi}$, yielding the  point (policy) $\pi' = G(\bm{V}^{\pi})$ on the lower line. The key concept here is that Policy Evaluation (arrows pointing to upper line) and Policy Improvement (arrows pointing to lower line) are "competing" - they "push in different directions" even as they aim to get the Value Function and Policy to be consistent with each other. This concept of simultaneously trying to compete and trying to be consistent might seem confusing and contradictory, so it deserves a proper explanation. Things become clear by noting that there are actually two notions of consistency between a Value Function $\bv$ and Policy $\pi$.
+
+1. The notion of the Value Function $\bv$ being consistent with/close to the Value Function $\bvpi$ of the policy $\pi$.
+2. The notion of the Policy $\pi$ being consistent with/close to the Greedy Policy $G(\bv$) of the Value Function $\bv$.
+
+Policy Evaluation aims for the first notion of consistency, but in the process, makes it worse in terms of the second notion of consistency. Policy Improvement aims for the second notion of consistency, but in the process, makes it worse in terms of the first notion of consistency. This also helps us understand the rationale for alternating between Policy Evaluation and Policy Improvement so that neither of the above two notions of consistency slip up too much (thanks to the alternating propping up of the two notions of consistency). Also, note that as Policy Iteration progresses, the upper line and lower line get closer and closer and the "pushing in different directions" looks more and more collaborative rather than competing (the gaps in consistency becomes lesser and lesser). In the end, the two lines intersect, when there is no more pushing to do for either of Policy Evaluation or Policy Improvement since at convergence, $\pi^*$ and $\bvs$ have become completely consistent.
+
+![Progression Lines of Value Function and Policy in Policy Iteration \label{fig:vf_policy_intersecting_lines}](./chapter4/vf_policy_intersecting_lines.png "Progression Lines of Value Function and Policy in Policy Iteration")
+
+Now we are ready to talk about Generalized Policy Iteration - the idea that neither of Evaluation and Improvement steps need to go fully towards the notion of consistency they are respectively striving for. As a simple example, think of modifying Policy Evaluation (say for a policy $\pi$) to not go all the way to $\bm{V}^{\pi}$, but instead just perform say 3 Bellman Policy Evaluations. This means it would partially bridge the gap on the first notion of consistency (getting closer to $\bm{V}^{\pi}$ but not go all the way to $\bm{V}^{\pi}$), but it would also mean not slipping too much on the second notion of consistency. As another example, think of updating just 5 of the states (say in a large state space) with the Greedy Policy Improvement function (rather than the normal Greedy Policy Improvement function that operates on all the states). This means it would partially bridge the gap on the second notion of consistency (getting closer to $G(\bm{V}^{\pi})$ but not go all the way to $G(\bm{V}^{\pi})$), but it would also mean not slipping too much on the first notion of consistency. A concrete example of Generalized Policy Iteration is in fact Value Iteration. In Value Iteration, we apply the Bellman Policy Iterator just once before moving on to Policy Improvement. In a 2-dimensional layout, this is what Value Iteration looks like:
+
+
+$$\pi_1 = G(\bm{V_0}), \bm{V_0} \rightarrow \bm{B}^{\pi_1}(\bm{V_0}) = \bm{V_1}$$
+$$\pi_2 = G(\bm{V_1}), \bm{V_1} \rightarrow \bm{B}^{\pi_2}(\bm{V_1}) = \bm{V_2}$$
+$$\ldots$$
+$$\ldots$$
+$$\pi_{j+1} = G(\bm{V_j}), \bm{V_j} \rightarrow \bm{B}^{\pi_{j+1}}(\bm{V_j}) = \bvs$$
+
+So the greedy policy improvement step is unchanged, but Policy Evaluation is reduced to just a single Bellman Policy Operator application. In fact, pretty much all algorithms in Reinforcement Learning can be viewed as special cases of Generalized Policy Iteration. In Reinforcement Learning algorithms, we often do the evaluation for just a single state (versus for all states in usual Policy Iteration, or even in Value Iteration) and we also often do the policy improvement for just a single state. So many Reinforcement Learning algorithms are an alternating sequence of single-state evaluation and single-state policy improvement (where the single-state is the state produced by sampling or the state that is encountered in a real-world environment interaction). Figure \ref{fig:generalized_policy_iteration_lines} illustrates Generalized Policy Iteration as the red arrows (versus the black arrows which correspond to usual Policy Iteration algorithm). Note how the red arrows don't go all the way to either the "value function line"" or the "policy line" but the red arrows do go some part of the way towards the line they are meant to go towards at that stage in the algorithm.
+
+![Progression Lines of Value Function and Policy in Generalized Policy Iteration \label{fig:generalized_policy_iteration_lines}](./chapter4/gpi.png "Progression Lines of Value Function and Policy in Policy Iteration and Generalized Policy Iteration")
+
+We would go so far as to say that the Bellman Equations and the concept of Generalized Policy Iteration are the two most important concepts to internalize in the study of Reinforcement Learning, and we highly encourage you to think along the lines of these two ideas when we present several algorithms later in this book. The importance of the concept of Generalize Policy Iteration (GPI) might not be fully visible to you yet, but we hope that GPI will be your mantra by the time you finish this book. For now, let's just note the key takeaway regarding GPI - it is any algorithm to solve MDP control that alternates between *some form of* value evaluation for a policy and *some form of* policy improvement. We will bring up GPI several times later in this book.
+
 ## Aysnchronous Dynamic Programming
 
+The classical Dynamic Programming algorithms we have described in this chapter are qualified as *Synchronous* Dynamic Programming algorithms. The word *synchronous* refers to two things:
+
+1. All states' values are updated in each iteration
+2. The mathematical description of the algorithms corresponds to all the states' value updates to occur simultaneously. However, in code we write (in Python, where computation is serial and not parallel), the way to implement this simultaneous update is by creating a new copy of the Value Function vector and sweeping through all states to assign values to the new copy from the values in the old copy. 
+
+In practice, Dynamic Programming algorithms are typically implemented as *Asynchronous* algorithms, where the above two constraints (all states updated simultaneously) are relaxed. The term *asynchronous* affords a lot of flexibility - we can update a subset of states in each iteration, and we can update states in any order we like. A natural outcome of this relaxation of the synchronous constraint is that we can just maintain one vector for the value function and update the values *in-place*. This has considerable benefits as an updated value for a state is immediately available for updates of other states (note: in synchronous, with the old and new value function vectors, one has to wait for the entire states sweep to be over until an updated state value is available for another state's update). In fact, in-place updates of value function is the norm in practical implementations of algorithms to solve the MDP Control problem.
+
+Another feature of practical asynchronous algorithms is that we can prioritize the order in which state values are updated. There are many ways in which algorithms assign priorities, and we'll just highlight a simple but effective way of prioritizing state value updates. It's known as *prioritized sweeping*. We maintain a queue of the states sorted by their "value function gaps" $g: \mathcal{N} \rightarrow \mathbb{R}$ (illustrated below as an example for Value Iteration):
+
+$$g(s) = |V(s) - \argmax_{a\in \mathcal{A}} (\mathcal{R}(s,a) + \sum_{s' \in \mathcal{S}} \mathcal{P}(s,a,s') \cdot V(s'))| \text{ for all } s \in \mathcal{N}$$
+
+After each state's value is updated with the Bellman Optimality Operator, we update the Value Function Gap for all the states whose Value Function Gap does get changed as a result of this state value update. These are exactly the states from which we have a probabilistic transition to the state whose value just got updated. What this also means is that we need to maintain the reverse transition dynamics in our data structure representation. So, after each state value update, the queue of states is resorted (by their value function gaps). We always pull out the state with the largest value function gap (from the top of the queue), and update the value function for that state. This prioritizes updates of states with the largest gaps, and it ensures that we quickly get to a point where all value function gaps are low enough.
+
+Another form of Asynchronous Dynamic Programming worth mentioning here is *Real-Time Dynamic Programming* (RTDP). RTDP means we run a Dynamic Programming algorithm *while* the agent is experiencing real-time interaction with the environment. When a state is visited during the real-time interaction, we make an update for that state's value. Then, as we transition to another state as a result of the real-time interaction, we update that new state's value, and so on. Note also that in RTDP, the choice of action is the real-time action executed by the agent, which the environment responds to. This action choice is governed by the policy implied by the value function for the encountered state at that point in time in the real-time interaction.
+
+Finally, we need to highlight that often special types of structures of MDPs can benefit from specific customizations of Dynamic Programming algorithms (typically, Asynchronous). One such specialization is when states are encountered just once in each sequence, and all sequences terminate - this structure can be conceptualized as a [Directed Acylic Graph](https://en.wikipedia.org/wiki/Directed_acyclic_graph) wherein each non-terminal node in the Directed Acyclic Graph (DAG) represents a pair of non-terminal state and action, and each terminal node in the DAG represents a terminal state (the graph edges represent probabilistic transitions of the MDP). In this specialization, the MDP Prediction and Control problems can be solved in a fairly simple manner - by walking backwards on the DAG from the terminal nodes and setting the Value Function of visited states (in the backward DAG walk) using the Bellman Optimality Equation (for Control) or Bellman Policy Equation (for Prediction). Here we don't need the iterative approach of Policy Evaluation or Policy Iteration or Value Iteration. Rather, all these Dynamic Programming algorithms essentially reduce to a simple back-propagation of the Value Function on the DAG. This means, states are visited (and their Value Functions set) in the order determined by the reverse sequence of a [Topological Sort](https://en.wikipedia.org/wiki/Topological_sorting) on the DAG. We shall make this DAG back-propagation DP algorithm clear for a special DAG structure - Finite-Horizon MDPs - where all sequences terminate after a fixed number of time steps. This special case of Finite-Horizon MDPs is fairly common in Financial Applications and so, we cover it in detail in the next section.
+
 ## Finite-Horizon Dynamic Programming: Backward Induction
+
+In Finite-Horizon MDPs, not only is each sequence episodic (i.e., terminating), each sequence terminates after a fixed (finite) number of time steps, that we shall denote as $T$. So, all states at time-step $T$ are terminal states and all states before time-step $T$ are non-terminal. Let us denote the set of time steps $t = 0, 1, \ldots, T$ as $\mathcal{U}$. Assume the set of states for time step $t \in \mathcal{U}$ is $\mathcal{S}_t$. As mentioned previously, in these type of non-stationary situations, we augment each state to include the index of the time step so that the augmented state at time step $t$ is $(t, s_t)$ for $s_t \in \mathcal{S}_t$. The entire MDP's (augmented) state space $\mathcal{S}$ is:
+
+$$\{(t, s_t) | t \in \mathcal{U}, s_t \in \mathcal{S}_t\}$$
+
+The set of terminal states $\mathcal{T}$ is:
+
+$$\{(T, s_T) | s_T \in \mathcal{S}_T\}$$
+
+As usual, the set of non-terminal states $\mathcal{N} = \mathcal{S} - \mathcal{T}$.
+
+Let us denote the allowable actions for states in $\mathcal{S}_t$ as $\mathcal{A}_t$ (although in a more generic setting, as we shall represent in our code, each state $(t, s_t)$  has it's own set of allowable actions, denoted $\mathcal{A}(s_t)$, for ease of exposition, here we shall treat all states at a particular time step to have the same set of allowable actions). Let us denote the entire action space $\mathcal{A}$ of the MDP as the union of all the $\mathcal{A}_t$ over all $t = 0, 1, \ldots, T$.
+
+The state-reward transition probability function
+
+$$\mathcal{P}_R: \mathcal{N} \times \mathcal{A} \times \mathbb{R} \times \mathcal{S} \rightarrow [0, 1]$$
+
+is given by:
+
+$$\mathcal{P}_R((t, s_t), a_t, r_{t+1}, (t+1, s_{t+1})) = (\mathcal{P}_R)_t(s_t, a_t, r_{t+1}, s_{t+1})$$
+for $t < T , s_t \in \mathcal{S}_t, a_t \in \mathcal{A}_t, s_{t+1} \in \mathcal{S}_{t+1}$, and
+
+$$\mathcal{P}_R((t, s_t), a_t, r_{t+1}, (t', s_{t'})) = 0 \text{ otherwise }$$
+
+where
+
+$$(\mathcal{P}_R)_t: \mathcal{S}_t \times \mathcal{A}_t \times \mathbb{R} \times \mathcal{S}_{t+1} \rightarrow [0, 1]$$
+
+are the separate state-reward transition probability functions for each of the time steps $t = 0, 1, \ldots, T-1$.
+
+So it is convenient to represent a finite-horizon MDP with separate state-reward transition probability functions $(\mathcal{P}_R)_t$ for each time step. Likewise, it is convenient to represent any policy of the MDP
+
+$$\pi: \mathcal{N} \times \mathcal{A} \rightarrow [0, 1]$$
+
+as:
+
+$$\pi((t, s_t), a_t) = \pi_t(s_t, a_t)$$
+
+where
+
+$$\pi_t: \mathcal{S}_t \times \mathcal{A}_t \rightarrow [0, 1]$$
+
+are the separate policies for each of the time steps $t = 0, 1, \ldots, T-1$
+
+Likewise, it is convenient to represent the state transition probability function as a sequence of state transition probability functions
+
+$$\mathcal{P}_t: \mathcal{S}_t \times \mathcal{A}_t \times \mathcal{S}_{t+1} \rightarrow [0,1]$$
+
+for each of the time steps $t = 0, 1, \ldots, T-1$, defined as:
+
+$$\mathcal{P}_t(s_t, a_t, s_{t+1}) = \sum_{r_{t+1}\in \mathbb{R}} (\mathcal{P}_R)_t(s_t,a_t, r_{t+1},s_{t+1})$$
+
+Likewise, it is convenient to represent the reward function as a sequence of reward functions
+
+$$\mathcal{R}_t: \mathcal{S}_t \times \mathcal{A}_t \rightarrow \mathbb{R}$$
+
+for each of the time steps $t = 0, 1, \ldots, T-1$, defined as:
+
+$$\mathcal{R}_t(s_t,a_t) = \sum_{s_{t+1}\in \mathcal{S}_{t+1}} \sum_{r_{t+1}\in\mathbb{R}} (\mathcal{P}_R)_t(s_t,a_t,r_{t+1},s_{t+1}) \cdot r_{t+1}$$
+
+Consequently, the Value Function for a given policy $\pi$
+
+$$V^{\pi}: \mathcal{N} \rightarrow \mathbb{R}$$
+
+can be conveniently represented in terms of a sequence of Value Functions
+
+$$V^{\pi_t}_t: \mathcal{S}_t \rightarrow \mathbb{R}$$
+
+for each of time steps $t = 0, 1, \ldots, T-1$, defined as:
+
+$$V^{\pi}((t, s_t)) = V^{\pi_t}_t(s_t) \text{ for all } t = 0, 1, \ldots, T-1, s_t \in \mathcal{S}_t$$
+
+Thus, the Bellman Policy Equation can be written as:
+
+\begin{equation}
+V^{\pi_t}_t(s_t) = \sum_{a_t \in \mathcal{A}_t} \pi_t(s_t, a_t) \cdot (\mathcal{R}_t(s_t, a_t) + \gamma \cdot \sum_{s_{t+1} \in \mathcal{S}_{t+1}} \mathcal{P}_t(s_t, a_t, s_{t+1}) \cdot V^{\pi_{t+1}}_{t+1}(s_{t+1}))
+\label{eq:bellman_policy_equation_finite_horizon}
+\end{equation}
+for all $t = 0, 1, \ldots, T-1, s_t \in \mathcal{S}_t$
+
+For the case of a Finite MDP, this yields a simple algorithm to calculate $V^{\pi_t}_t$ for all $t$:
+
+* Set
+$$V^{\pi_{T-1}}_{T-1}(s_{T-1}) = \sum_{a_{T-1} \in \mathcal{A}_{T-1}} \pi_{T-1}(s_{T-1}, a_{T-1}) \cdot \mathcal{R}_{T-1}(s_{T-1}, a_{T-1})$$
+for all $s_{T-1} \in \mathcal{S}_{T-1}$
+* For t = $T-2$ decrementing down to $t=0$, use Equation \eqref{eq:bellman_policy_equation_finite_horizon} to calculate $V^{\pi_t}_t$ for all $t = 0, 1, \ldots, T-2$ from the known values of $V^{\pi_{t+1}}_{t+1}$ (since we are decrementing in time index $t$).
+
+Likewise, the Optimal Value Function
+
+$$V^*: \mathcal{N} \rightarrow \mathbb{R}$$
+
+can be conveniently represented in terms of a sequence of Value Functions
+
+$$V^*_t: \mathcal{S}_t \rightarrow \mathbb{R}$$
+
+for each of time steps $t = 0, 1, \ldots, T-1$, defined as:
+
+$$V^*((t, s_t)) = V^*_t(s_t) \text{ for all } t = 0, 1, \ldots, T-1, s_t \in \mathcal{S}_t$$
+
+Thus, the Bellman Optimality Equation can be written as:
+
+\begin{equation}
+V^*_t(s_t) = \max_{a_t \in \mathcal{A}_t} \{\mathcal{R}_t(s_t, a_t) + \gamma \cdot \sum_{s_{t+1} \in \mathcal{S}_{t+1}} \mathcal{P}_t(s_t, a_t, s_{t+1}) \cdot V^*_{t+1}(s_{t+1})\}
+\label{eq:bellman_optimality_equation_finite_horizon}
+\end{equation}
+for all $t = 0, 1, \ldots, T-1, s_t \in \mathcal{S}_t$
+
+For the case of a Finite MDP, this yields a simple algorithm to calculate $V^*_t$ for all $t$:
+
+* Set
+$$V^*_{T-1}(s_{T-1}) = \max_{a_{T-1} \in \mathcal{A}_{T-1}} \mathcal{R}_{T-1}(s_{T-1}, a_{T-1})$$
+for all $s_{T-1} \in \mathcal{S}_{T-1}$
+* For t = $T-2$ decrementing down to $t=0$, use Equation \eqref{eq:bellman_policy_equation_finite_horizon} to calculate $V^*_t$ for all $t = 0, 1, \ldots, T-2$ from the known values of $V^*_{t+1}$ (since we are decrementing in time index $t$).
+
+Note that these algorithms for finite-horizon finite MDPs do not require any "iterations to convergence" like we had for Policy Evaluation and Value Iteration. Rather, in these algorithms we simply walk back in time and immediately know the Value Functions from the next time step's Value Functions (which is already known since we walk back in time). This technique of "backpropagation of Value Function" goes by the name of *Backward Induction* algorithms, and is quite commonplace in many Financial applications (as we shall see later in this book).
+
 
 ## Extensions to Non-Finite Cases
 
 Much of the theory we covered for Dynamic Programming also applies to non-finite cases. In this section, we point out the specifics that extends to non-finite cases and the specifics that don't. In particular, note that each Dynamic algorithm makes a sweep through states (looping over all states) which is obviously non-possible. 
 
-Running time of the 3 Dynamic Programming Algorithms.
+Running time of the 3 Dynamic Programming Algorithms and running time of Backward Induction algorithms.
 
 
 ### Approximate Dynamic Programming
