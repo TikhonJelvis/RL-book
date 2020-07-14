@@ -13,6 +13,7 @@
 % for typesetting ordinary math.  
 \usepackage{amsmath}
 \usepackage{amssymb}
+\usepackage{bm}
 % if you use exotic symbols you need to import specific packages, eg. for
 % electrical engineering diagrams, musical notation, exotic currency symbols,
 % the unspeakable rites of freemasonry etc.
@@ -266,8 +267,16 @@ $endif$
 \newcommand{\prob}{\mathcal{P}}
 \newcommand{\rew}{\mathcal{R}}
 \newcommand{\states}{\mathcal{S}}
+\newcommand{\actions}{\mathcal{S}}
+
 \DeclareMathOperator*{\argmin}{arg\,min}
 \DeclareMathOperator*{\argmax}{arg\,max}
+
+\newcommand{\bvpi}{\bm{V}^{\pi}}
+\newcommand{\bvs}{\bm{V}^*}
+\newcommand{\bbpi}{\bm{B}^{\pi}}
+\newcommand{\bbs}{\bm{B}^*}
+\newcommand{\bv}{\bm{V}}
 
 
 % At last: 
