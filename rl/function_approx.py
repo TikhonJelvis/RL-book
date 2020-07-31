@@ -39,7 +39,7 @@ class Tabular(FunctionApprox):
         xy_vals_seq: Sequence[Tuple[X, float]]
     ) -> None:
         for x, y in xy_vals_seq:
-            count = self.counts_map[x]
+            count: int = self.counts_map[x]
             self.values_map[x] = (self.values_map[x] * count + y) / (count + 1)
             self.counts_map[x] = count + 1
 
@@ -99,10 +99,10 @@ class LinearFunctionApprox(FunctionApprox):
         self,
         xy_vals_seq: Sequence[Tuple[X, float]]
     ) -> None:
-        grad = self.regularized_loss_gradient(xy_vals_seq)
-        decay1 = self.adam_gradient.decay1
-        decay2 = self.adam_gradient.decay2
-        alpha = self.adam_gradient.learning_rate
+        grad: np.ndarray = self.regularized_loss_gradient(xy_vals_seq)
+        decay1: float = self.adam_gradient.decay1
+        decay2: float = self.adam_gradient.decay2
+        alpha: float = self.adam_gradient.learning_rate
         self.adam_cache1 = decay1 * self.adam_cache1 + (1 - decay1) * grad
         self.adam_cache2 = decay2 * self.adam_cache2 + (1 - decay2) * grad ** 2
         self.weights -= alpha * self.adam_cache1 / \
@@ -164,14 +164,15 @@ class DNNApprox(FunctionApprox):
         """
         These are Xavier input parameters
         """
-        inp_size = len(self.feature_functions)
-        weights = []
+        inp_size: int = len(self.feature_functions)
+        wts: List[np.ndarray] = []
         for layer_neurons in self.dnn_spec.neurons:
-            mat = np.random.rand(layer_neurons, inp_size) / np.sqrt(inp_size)
-            weights.append(mat)
+            wts.append(
+                np.random.rand(layer_neurons, inp_size) / np.sqrt(inp_size)
+            )
             inp_size = layer_neurons + 1
-        weights.append(np.random.randn(1, inp_size) / np.sqrt(inp_size))
-        return weights
+        wts.append(np.random.randn(1, inp_size) / np.sqrt(inp_size))
+        return wts
 
     def forward_propagation(
         self,
@@ -185,11 +186,11 @@ class DNNApprox(FunctionApprox):
                  and the last value represents the output of the DNN (as a
                  2-D array of length n x 1)
         """
-        inp = self.get_feature_values(x_values_seq)
-        outputs = [inp]
+        inp: np.ndarray = self.get_feature_values(x_values_seq)
+        outputs: List[np.ndarray] = [inp]
         for w in self.weights[:-1]:
-            out = self.dnn_spec.hidden_activation(np.dot(inp, w.T))
-            inp = np.insert(out, 0, 1., axis=1)
+            out: np.ndarray = self.dnn_spec.hidden_activation(np.dot(inp, w.T))
+            inp: np.ndarray = np.insert(out, 0, 1., axis=1)
             outputs.append(inp)
         outputs.append(
             self.dnn_spec.output_activation(np.dot(inp, self.weights[-1].T))
@@ -214,11 +215,11 @@ class DNNApprox(FunctionApprox):
         :return: list (of length L+1) of |O_l| x (|I_l| + 1) 2-D array,
                  i.e., same as the type of self.weights
         """
-        outputs = fwd_prop[-1]
-        layer_inputs = fwd_prop[:-1]
-        deriv = (dObj_dOL.reshape(-1, 1) *
-                 self.dnn_spec.output_activation_deriv(outputs)).T
-        back_prop = []
+        outputs: np.ndarray = fwd_prop[-1]
+        layer_inputs: Sequence[np.ndarray] = fwd_prop[:-1]
+        deriv: np.ndarray = (dObj_dOL.reshape(-1, 1) *
+                             self.dnn_spec.output_activation_deriv(outputs)).T
+        back_prop: List[np.ndarray] = []
         # layer l deriv represents dObj/dS_l where S_l = I_l . weights_l
         # (S_l is the result of applying layer l without the activation func)
         # deriv_l is a 2-D array of dimension |I_{l+1}| x n = |O_l| x n
@@ -254,8 +255,8 @@ class DNNApprox(FunctionApprox):
         Loss(w) = \sum_i (f(x_i; w) - y_i)^2 where f is the DNN func
         """
         x_vals, y_vals = zip(*xy_vals_seq)
-        fwd_prop = self.forward_propagation(x_vals)
-        errors = fwd_prop[-1][:, 0] - np.array(y_vals)
+        fwd_prop: Sequence[np.ndarray] = self.forward_propagation(x_vals)
+        errors: np.ndarray = fwd_prop[-1][:, 0] - np.array(y_vals)
         return [x / len(errors) + self.regularization_coeff * self.weights[i]
                 for i, x in enumerate(
                     self.backward_propagation(fwd_prop, errors)
@@ -265,10 +266,11 @@ class DNNApprox(FunctionApprox):
         self,
         xy_values_seq: Sequence[Tuple[X, float]]
     ) -> None:
-        grad = self.regularized_loss_gradient(xy_values_seq)
-        decay1 = self.adam_gradient.decay1
-        decay2 = self.adam_gradient.decay2
-        alpha = self.adam_gradient.learning_rate
+        grad: Sequence[np.ndarray] = \
+            self.regularized_loss_gradient(xy_values_seq)
+        decay1: float = self.adam_gradient.decay1
+        decay2: float = self.adam_gradient.decay2
+        alpha: float = self.adam_gradient.learning_rate
         for i, g in enumerate(grad):
             self.adam_cache1[i] = decay1 * self.adam_cache1[i] + \
                 (1 - decay1) * g
@@ -299,7 +301,7 @@ if __name__ == '__main__':
     def superv_func(pt):
         return alpha + np.dot(beta, pt)
 
-    n = norm(loc=0., scale=1.)
+    n = norm(loc=0., scale=2.)
     xy_vals_seq: Sequence[Tuple[Tuple[float, float, float], float]] = \
         [(x, superv_func(x) + n.rvs(size=1)[0]) for x in pts]
 
@@ -322,14 +324,14 @@ if __name__ == '__main__':
     )
 
     print("Linear Gradient Solve")
-    for _ in range(50):
+    for _ in range(100):
         lfa.update(xy_vals_seq)
         print("Weights")
         pprint(lfa.weights)
         errors: np.ndarray = lfa.evaluate(pts) - \
             np.array([y for _, y in xy_vals_seq])
         print("Mean Squared Error")
-        pprint(np.sum(errors * errors))
+        pprint(np.mean(errors * errors))
         print()
 
     lfa.direct_solve(xy_vals_seq)
@@ -338,7 +340,7 @@ if __name__ == '__main__':
     print()
 
     ds = DNNSpec(
-        neurons=[2, 2],
+        neurons=[2],
         hidden_activation=lambda x: x,
         hidden_activation_deriv=lambda x: np.ones_like(x),
         output_activation=lambda x: x,
@@ -359,5 +361,5 @@ if __name__ == '__main__':
         errors: np.ndarray = dnna.evaluate(pts) - \
             np.array([y for _, y in xy_vals_seq])
         print("Mean Squared Error")
-        pprint(np.sum(errors * errors))
+        pprint(np.mean(errors * errors))
         print()
