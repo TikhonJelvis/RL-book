@@ -1,9 +1,10 @@
+import operator
+from typing import Callable, Mapping, Iterator, TypeVar, List, Tuple, Dict
+
 from rl.markov_decision_process import (FiniteMarkovDecisionProcess,
                                         FiniteMarkovRewardProcess)
-from typing import Callable, Mapping, Iterator, TypeVar, List, Tuple, Dict
 from rl.markov_decision_process import FinitePolicy
-from rl.distribution import FiniteDistribution, Categorical
-import operator
+from rl.distribution import Categorical, Constant, Choose, FiniteDistribution
 
 A = TypeVar('A')
 S = TypeVar('S')
@@ -68,7 +69,7 @@ def evaluate_mrp(
     '''
     def update(v: V[S]) -> V[S]:
         return {s: mrp.reward_function_vec[i] + gamma *
-                sum(p * v[s1] for s1, p in mrp.transition_map[s].table())
+                sum(p * v[s1] for s1, p in mrp.transition_map[s])
                 for i, s in enumerate(mrp.non_terminal_states)}
 
     v_0: V[S] = {s: 0. for s in mrp.non_terminal_states}
@@ -93,16 +94,14 @@ def greedy_policy_from_vf(
 
         for a in mdp.actions(s):
             q_val: float = 0.
-            for (next_s, r), p in action_map[a].table():
+            for (next_s, r), p in action_map[a]:
                 next_state_vf = vf[next_s]\
                     if mdp.mapping[next_s] is not None else 0.
                 q_val += p * (r + gamma * next_state_vf)
             q_values.append((a, q_val))
 
-        greedy_policy_dict[s] = Categorical([(
-            max(q_values, key=operator.itemgetter(1))[0],
-            1.
-        )])
+        greedy_policy_dict[s] =\
+            Constant(max(q_values, key=operator.itemgetter(1))[0])
 
     return FinitePolicy(greedy_policy_dict)
 
@@ -142,9 +141,9 @@ def policy_iteration(
 
         return policy_vf, improved_pi
 
-    v_0 = {s: 0.0 for s in mdp.non_terminal_states}
-    pi_0 = FinitePolicy({
-        s: Categorical([(a, 1. / len(mdp.actions(s))) for a in mdp.actions(s)])
+    v_0: Mapping[S, float] = {s: 0.0 for s in mdp.non_terminal_states}
+    pi_0: FinitePolicy[S, A] = FinitePolicy({
+        s: Choose((mdp.actions(s)))
         for s in mdp.non_terminal_states
     })
     vf_pi_0 = (v_0, pi_0)
@@ -166,7 +165,7 @@ def bellman_opt_update(
 
         for a in mdp.actions(s):
             q_val: float = 0.
-            for (next_s, r), p in action_map[a].table():
+            for (next_s, r), p in action_map[a]:
                 next_state_vf = v[next_s]\
                     if mdp.mapping[next_s] is not None else 0.
                 q_val += p * (r + gamma * next_state_vf)
@@ -208,9 +207,9 @@ if __name__ == '__main__':
     from pprint import pprint
 
     transition_reward_map = {
-        1: Categorical([((1, 7.0), 0.6), ((2, 5.0), 0.3), ((3, 2.0), 0.1)]),
-        2: Categorical([((1, -2.0), 0.1), ((2, 4.0), 0.2), ((3, 0.0), 0.7)]),
-        3: Categorical([((1, 3.0), 0.2), ((2, 8.0), 0.6), ((3, 4.0), 0.2)])
+        1: Categorical({(1, 7.0): 0.6, (2, 5.0): 0.3, (3, 2.0): 0.1}),
+        2: Categorical({(1, -2.0): 0.1, (2, 4.0): 0.2, (3, 0.0): 0.7}),
+        3: Categorical({(1, 3.0): 0.2, (2, 8.0): 0.6, (3, 4.0): 0.2})
     }
     gamma = 0.9
 

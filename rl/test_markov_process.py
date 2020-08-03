@@ -36,7 +36,7 @@ class FiniteFlipFlop(FiniteMarkovProcess[bool]):
     '''
     def __init__(self, p: float):
         transition_map = {
-            b: Categorical([(not b, p), (b, 1 - p)])
+            b: Categorical({not b: p, b: 1 - p})
             for b in (True, False)
         }
         super().__init__(transition_map)
@@ -110,11 +110,11 @@ class TestFiniteMarkovProcess(unittest.TestCase):
     def test_stationary_distribution(self):
         distribution = self.flip_flop.get_stationary_distribution().table()
         expected = [(True, 0.5), (False, 0.5)]
-        np.testing.assert_almost_equal(distribution, expected)
+        np.testing.assert_almost_equal(list(distribution.items()), expected)
 
         distribution = self.biased.get_stationary_distribution().table()
         expected = [(True, 0.5), (False, 0.5)]
-        np.testing.assert_almost_equal(distribution, expected)
+        np.testing.assert_almost_equal(list(distribution.items()), expected)
 
     def test_display(self):
         # Just test that the display functions don't error out.

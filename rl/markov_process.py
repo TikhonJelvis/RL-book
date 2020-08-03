@@ -77,7 +77,7 @@ class FiniteMarkovProcess(MarkovProcess[S]):
                 display += f"{s} is a Terminal State\n"
             else:
                 display += f"From State {s}:\n"
-                for s1, p in d.table():
+                for s1, p in d:
                     display += f"  To State {s1} with Probability {p:.3f}\n"
 
         return display
@@ -108,16 +108,16 @@ class FiniteMarkovProcess(MarkovProcess[S]):
             np.abs(eig_vals - 1) < 1e-8)[0][0]
         eig_vec_of_unit_eig_val = np.real(
             eig_vecs[:, index_of_first_unit_eig_val])
-        return Categorical([
-            (self.non_terminal_states[i], ev)
+        return Categorical({
+            self.non_terminal_states[i]: ev
             for i, ev in enumerate(eig_vec_of_unit_eig_val /
                                    sum(eig_vec_of_unit_eig_val))
-        ])
+        })
 
     def display_stationary_distribution(self):
         pprint({
             s: round(p, 3)
-            for s, p in self.get_stationary_distribution().table()
+            for s, p in self.get_stationary_distribution()
         })
 
     def generate_image(self) -> graphviz.Digraph:
@@ -128,7 +128,7 @@ class FiniteMarkovProcess(MarkovProcess[S]):
 
         for s, v in self.transition_map.items():
             if v is not None:
-                for s1, p in v.table():
+                for s1, p in v:
                     d.edge(str(s), str(s1), label=str(p))
 
         return d
@@ -193,22 +193,22 @@ class FiniteMarkovRewardProcess(FiniteMarkovProcess[S],
                 transition_map[state] = None
             else:
                 probabilities: Dict[S, float] = defaultdict(float)
-                for (next_state, _), probability in trans.table():
+                for (next_state, _), probability in trans:
                     probabilities[next_state] += probability
 
-                transition_map[state] = Categorical(
-                    list(probabilities.items())
-                )
+                transition_map[state] = Categorical(probabilities)
 
         super().__init__(transition_map)
 
         self.transition_reward_map = transition_reward_map
 
-        self.reward_function_vec = np.array([
-            sum(probability * reward for (_, reward), probability in
-                transition_reward_map[state].table())
-            for state in self.non_terminal_states
-        ])
+        next_states = transition_reward_map[state]
+        if next_states is not None:
+            self.reward_function_vec = np.array([
+                sum(probability * reward for (_, reward), probability in
+                    next_states)
+                for state in self.non_terminal_states
+            ])
 
     def __repr__(self) -> str:
         display = ""
@@ -217,7 +217,7 @@ class FiniteMarkovRewardProcess(FiniteMarkovProcess[S],
                 display += f"{s} is a Terminal State\n"
             else:
                 display += f"From State {s}:\n"
-                for (s1, r), p in d.table():
+                for (s1, r), p in d:
                     display +=\
                         f"  To [State {s1} and Reward {r:.3f}]"\
                         + f" with Probability {p:.3f}\n"
