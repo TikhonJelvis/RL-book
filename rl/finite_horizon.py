@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+from collections import defaultdict
 import dataclasses
 from dataclasses import dataclass
-from typing import Dict, Generic, Optional, Protocol, TypeVar
+from typing import (Dict, Generic, List, Mapping,
+                    Optional, Protocol, Sequence, TypeVar)
 
 from rl.distribution import FiniteDistribution
-from rl.markov_process import FiniteMarkovProcess
+from rl.markov_process import FiniteMarkovProcess, Transition
 
 
 class HasTime(Protocol):
@@ -25,20 +27,7 @@ S = TypeVar('S')
 S_time = TypeVar('S_time', bound=HasTime, covariant=True)
 
 
-class FiniteHorizon(Protocol[S_time]):
-    '''A finite-horizon process has two properties: a state space that
-    keeps track of time (HasTime) and a time limit that determines
-    when the process ends. The time in the state is an int that starts
-    and 0 and increments with every step; states where the time is
-    equal to the time limit are terminal states.
-
-    '''
-    time_limit: int
-
-
-# Types for applying a finite horizon to existing processes:
-
-@dataclass
+@dataclass(frozen=True)
 class WithTime(Generic[S]):
     '''A wrapper that augments a state of type S with a time field.
 
@@ -76,3 +65,24 @@ def finite_horizon_markov_process(
                 None if s_next is None else s_next.map(set_time)
 
     return FiniteMarkovProcess(transition_map)
+
+
+# TODO: Better name...
+def unwrap_finite_horizon_markov_process(
+        process: FiniteMarkovProcess[S_time],
+        limit: int
+) -> Sequence[Transition[S_time]]:
+    '''Given a finite-horizon process, break the transition between each
+    time step (starting with 0) into its own data structure. This
+    representation makes it easier to implement backwards
+    induction.
+
+    '''
+    states: Dict[int, List[S_time]] = defaultdict(list)
+    for state in process.states():
+        states[state.time] += [state]
+
+    def transition_from(time: int) -> Transition[S_time]:
+        return {state: process.transition(state) for state in states[time]}
+
+    return [transition_from(time) for time in range(0, limit)]
