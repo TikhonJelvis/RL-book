@@ -73,7 +73,12 @@ class FiniteDistribution(Distribution[A], ABC):
         to each element of this distribution.
 
         '''
-        return Categorical({f(x): p for x, p in self})
+        result: Dict[B, float] = defaultdict(float)
+
+        for x, p in self:
+            result[f(x)] += p
+
+        return Categorical(result)
 
 
 # TODO: Rename?
