@@ -7,6 +7,7 @@ from typing import (Dict, Generic, List, Optional,
                     Protocol, Sequence, Tuple, TypeVar)
 
 from rl.distribution import FiniteDistribution
+from rl.dynamic_programming import V
 from rl.markov_process import FiniteMarkovRewardProcess, RewardTransition
 
 
@@ -90,3 +91,22 @@ def unwrap_finite_horizon_markov_process(
                 for state in states[time]}
 
     return [transition_from(time) for time in range(0, limit)]
+
+
+def evaluate(steps: Sequence[RewardTransition[S_time]]) -> V[S_time]:
+    '''Evaluate the given finite Markov reward process using backwards
+    induction, given that the process stops after limit time steps.
+
+    '''
+    v: Dict[S_time, float] = defaultdict(float)
+
+    for step in reversed(steps):
+        for s in step:
+            outcome = step[s]
+            if outcome is None:
+                v[s] = 0.0  # 0 reward in terminal state
+            else:
+                for (next_s, r), p in outcome:
+                    v[s] += p * (v[next_s] + r)
+
+    return v

@@ -2,9 +2,8 @@ import unittest
 
 from rl.distribution import Categorical
 import rl.test_distribution as distribution
-from rl.finite_horizon import (
-    finite_horizon_markov_process, unwrap_finite_horizon_markov_process,
-    WithTime)
+from rl.finite_horizon import (evaluate, finite_horizon_markov_process,
+                               unwrap_finite_horizon_markov_process, WithTime)
 from rl.markov_process import FiniteMarkovRewardProcess
 
 
@@ -72,3 +71,8 @@ class TestFiniteHorizon(unittest.TestCase):
             distribution.assert_almost_equal(
                 self, got[WithTime(False, time)],
                 expected[WithTime(False, time)])
+
+    def test_evaluate(self):
+        process = finite_horizon_markov_process(self.finite_flip_flop, 10)
+        steps = unwrap_finite_horizon_markov_process(process, 10)
+        print(evaluate(steps))
