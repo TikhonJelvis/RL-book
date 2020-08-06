@@ -3,11 +3,11 @@ from __future__ import annotations
 from collections import defaultdict
 import dataclasses
 from dataclasses import dataclass
-from typing import (Dict, Generic, List, Mapping,
-                    Optional, Protocol, Sequence, TypeVar)
+from typing import (Dict, Generic, List, Optional,
+                    Protocol, Sequence, Tuple, TypeVar)
 
 from rl.distribution import FiniteDistribution
-from rl.markov_process import FiniteMarkovProcess, Transition
+from rl.markov_process import FiniteMarkovRewardProcess, RewardTransition
 
 
 class HasTime(Protocol):
@@ -39,10 +39,13 @@ class WithTime(Generic[S]):
         return dataclasses.replace(self, time=self.time + 1)
 
 
+RewardOutcome = FiniteDistribution[Tuple[WithTime[S], float]]
+
+
 def finite_horizon_markov_process(
-        process: FiniteMarkovProcess[S],
-        limit: int) -> FiniteMarkovProcess[WithTime[S]]:
-    '''Turn a normal FiniteMarkovProcess into one with a finite horizon
+        process: FiniteMarkovRewardProcess[S],
+        limit: int) -> FiniteMarkovRewardProcess[WithTime[S]]:
+    '''Turn a normal FiniteMarkovRewardProcess into one with a finite horizon
     that stops after limit steps.
 
     Note that this makes the data representation of the process
@@ -51,27 +54,27 @@ def finite_horizon_markov_process(
 
     '''
     transition_map: Dict[WithTime[S],
-                         Optional[FiniteDistribution[WithTime[S]]]] = {}
+                         Optional[RewardOutcome]] = {}
 
     for time in range(0, limit):
-        def set_time(s: S) -> WithTime[S]:
-            return WithTime(state=s, time=time + 1)
+        def set_time(s_r: Tuple[S, float]) -> Tuple[WithTime[S], float]:
+            return (WithTime(state=s_r[0], time=time + 1), s_r[1])
 
-        for s in process.transition_map:
-            s_next = process.transition(s)
+        for s in process.transition_reward_map:
+            outcome = process.transition_reward(s)
             s_time = WithTime(state=s, time=time)
 
             transition_map[s_time] = \
-                None if s_next is None else s_next.map(set_time)
+                None if outcome is None else outcome.map(set_time)
 
-    return FiniteMarkovProcess(transition_map)
+    return FiniteMarkovRewardProcess(transition_map)
 
 
 # TODO: Better name...
 def unwrap_finite_horizon_markov_process(
-        process: FiniteMarkovProcess[S_time],
+        process: FiniteMarkovRewardProcess[S_time],
         limit: int
-) -> Sequence[Transition[S_time]]:
+) -> Sequence[RewardTransition[S_time]]:
     '''Given a finite-horizon process, break the transition between each
     time step (starting with 0) into its own data structure. This
     representation makes it easier to implement backwards
@@ -82,7 +85,8 @@ def unwrap_finite_horizon_markov_process(
     for state in process.states():
         states[state.time] += [state]
 
-    def transition_from(time: int) -> Transition[S_time]:
-        return {state: process.transition(state) for state in states[time]}
+    def transition_from(time: int) -> RewardTransition[S_time]:
+        return {state: process.transition_reward(state)
+                for state in states[time]}
 
     return [transition_from(time) for time in range(0, limit)]

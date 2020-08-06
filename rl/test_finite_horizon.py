@@ -5,25 +5,25 @@ import rl.test_distribution as distribution
 from rl.finite_horizon import (
     finite_horizon_markov_process, unwrap_finite_horizon_markov_process,
     WithTime)
-from rl.markov_process import FiniteMarkovProcess
+from rl.markov_process import FiniteMarkovRewardProcess
 
 
-class FiniteFlipFlop(FiniteMarkovProcess[bool]):
+class FlipFlop(FiniteMarkovRewardProcess[bool]):
     ''' A version of FlipFlop implemented with the FiniteMarkovProcess machinery.
 
     '''
 
     def __init__(self, p: float):
-        transition_map = {
-            b: Categorical({not b: p, b: 1 - p})
+        transition_reward_map = {
+            b: Categorical({(not b, 2.0): p, (b, 1.0): 1 - p})
             for b in (True, False)
         }
-        super().__init__(transition_map)
+        super().__init__(transition_reward_map)
 
 
 class TestFiniteHorizon(unittest.TestCase):
     def setUp(self):
-        self.finite_flip_flop = FiniteFlipFlop(0.7)
+        self.finite_flip_flop = FlipFlop(0.7)
 
     def test_finite_horizon_markov_process(self):
         finite = finite_horizon_markov_process(self.finite_flip_flop, 10)
@@ -36,14 +36,15 @@ class TestFiniteHorizon(unittest.TestCase):
         for state in expected_states:
             expected_transition[state] =\
                 Categorical({
-                    WithTime(state.state, state.time + 1): 0.3,
-                    WithTime(not state.state, state.time + 1): 0.7
+                    (WithTime(state.state, state.time + 1), 1.0): 0.3,
+                    (WithTime(not state.state, state.time + 1), 2.0): 0.7
                 })
 
         for state in expected_states:
-            distribution.assert_almost_equal(self,
-                                             finite.transition_map[state],
-                                             expected_transition[state])
+            distribution.assert_almost_equal(
+                self,
+                finite.transition_reward_map[state],
+                expected_transition[state])
 
     def test_unwrap_finite_horizon_markov_process(self):
         finite = finite_horizon_markov_process(self.finite_flip_flop, 10)
@@ -51,12 +52,12 @@ class TestFiniteHorizon(unittest.TestCase):
         def transition_for(time):
             return {
                 WithTime(True, time): Categorical({
-                    WithTime(True, time + 1): 0.3,
-                    WithTime(False, time + 1): 0.7,
+                    (WithTime(True, time + 1), 1.0): 0.3,
+                    (WithTime(False, time + 1), 2.0): 0.7,
                 }),
                 WithTime(False, time): Categorical({
-                    WithTime(True, time + 1): 0.7,
-                    WithTime(False, time + 1): 0.3,
+                    (WithTime(True, time + 1), 2.0): 0.7,
+                    (WithTime(False, time + 1), 1.0): 0.3,
                 })
             }
 
