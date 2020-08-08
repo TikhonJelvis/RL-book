@@ -181,7 +181,7 @@ So to satisfy $O_L = g_L(S_L) = \mathbb{E}_p[y|S_L]$, we require that
 O_L = g_L(S_L) = A'(S_L)
 \label{eq:glm_eqn}
 \end{equation}
-The above equation is important since it tells us that the output layer activation function must be set to be the derivative of the $A(\cdot)$ function. In the theory of generalized linear models, the derivative of the $A(\cdot)$ function serves as the *canonical link function* for a given probability distribution of the response variable conditional on the predictor variable.
+The above equation is important since it tells us that the output layer activation function $g_L(\cdot)$ must be set to be the derivative of the $A(\cdot)$ function. In the theory of generalized linear models, the derivative of the $A(\cdot)$ function serves as the *canonical link function* for a given probability distribution of the response variable conditional on the predictor variable.
 
 Now we are equipped to derive a simple expression for $P_L$.
 
@@ -189,6 +189,7 @@ Now we are equipped to derive a simple expression for $P_L$.
 $$P_L = \frac {\partial \mathcal{L}}{\partial S_L} = \frac {O_L - y} {d(\tau)}$$
 \end{theorem}
 
+\begin{proof}
 The Cross-Entropy Loss (Negative Log-Likelihood) for a single training data point $(x, y)$ is given by:
 
 $$\mathcal{L} = - \log{(h(y, \tau))} + \frac {A(S_L) - S_L \cdot y} {d(\tau)}$$
