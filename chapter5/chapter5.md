@@ -183,9 +183,11 @@ $$\mathbb{E}_p[y|S_L] = g_L(S_L) = O_L$$
 Therefore,
 
 \begin{equation}
-A'(S_L) = O_L
+A'(S_L) = g_L(S_L) = O_L
 \label{eq:glm_eqn}
 \end{equation}
+
+The above equation is an important one that tells us that the derivative of the $A(\cdot)$ function is in fact the output layer activation function. In the theory of generalized linear models, the derivative of the $A(\cdot)$ function serves as the *canonical link function* for a given probability distribution of the response variable conditional on the predictor variable.
 
 The Cross-Entropy Loss (Negative Log-Likelihood) for a single training data point $(x, y)$ is given by:
 
