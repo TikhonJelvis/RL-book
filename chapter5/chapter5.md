@@ -136,7 +136,7 @@ Note that $\bm{P_{l+1}} \cdot \bm{w_{l+1}}$ is the inner-product of the $dim(\bm
 Now all we need to do is to calculate $\bm{P_L} = \nabla_{\bm{S_L}} \mathcal{L}$ so that we can run this recursive formulation for $\bm{P_l}$, estimate the gradient for any given data in each iteration, and perform gradient descent to arrive at $\bm{w_l^*}$ for all $l = 0, 1, \ldots L$.
 
 Firstly, note that $\bm{S_L}, \bm{O_L}, \bm{P_L}$ are all scalars, so let's just write them as $S_L, O_L, P_L$ respectively (without the bold-facing) to make it explicit in the derivation that they are scalars. Specifically, the gradient
-$$\nabla_{\bm{S_L}} \mathcal{L} = \frac {\partial \mathcal{L}}{partial S_L}$$
+$$\nabla_{\bm{S_L}} \mathcal{L} = \frac {\partial \mathcal{L}}{\partial S_L}$$
 
 To calculate $\frac {\partial \mathcal{L}} {\partial S_L}$, we need to assume a functional form for $\mathbb{P}[y|S_L]$. We work with a fairly generic exponential functional form for the probability distribution function:
 
