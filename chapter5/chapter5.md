@@ -149,12 +149,11 @@ For our neural network function approximation, we assume that $\tau$ is a consta
 
 $$\mathbb{P}[y|S_L] = p(y|S_L, \tau) = h(y, \tau) \cdot e^{\frac {S_L \cdot y - A(S_L)} {d(\tau)}}$$
 
-Moreover, we require the scalar prediction of the neural network $O_L = g_L(S_L)$ to be $\mathbb{E}_p[y|S_L]$. In this setting, we state and prove the analytical expression for $P_L$.
+We require the scalar prediction of the neural network $O_L = g_L(S_L)$ to be equal to $\mathbb{E}_p[y|S_L]$. So the question is - what function $g_L: \mathbb{R} \rightarrow \mathbb{R}$ (in terms of the functional form of $p(y|S_L, \tau)$) would satisfy the requirement that $O_L = g_L(S_L) = \mathbb{E}_p[y|S_L]$? To answer this question, we first establish the following Lemma:
 
-\begin{theorem}
-$$P_L = \frac {\partial \mathcal{L}}{\partial S_L} = \frac {O_L - y} {d(\tau)}$$
-\end{theorem}
-
+\begin{lemma}
+$$\mathbb{E}_p[y|S_L] = A'(S_L)$$
+\end{lemma}
 \begin{proof}
 Since
 
@@ -175,19 +174,20 @@ $$\int_{-\infty}^{\infty}  h(y, \tau) \cdot e^{\frac {S_L \cdot y - A(S_L)} {d(\
 $$\Rightarrow \int_{-\infty}^{\infty}  p(y | S_L, \tau) \cdot (y - A'(S_L)) \cdot dy = 0$$
 
 $$\Rightarrow \mathbb{E}_p[y|S_L] = A'(S_L)$$
+\end{proof}
 
-We also know that:
-
-$$\mathbb{E}_p[y|S_L] = g_L(S_L) = O_L$$
-
-Therefore,
-
+So to satisfy $O_L = g_L(S_L) = \mathbb{E}_p[y|S_L]$, we require that
 \begin{equation}
-A'(S_L) = g_L(S_L) = O_L
+O_L = g_L(S_L) = A'(S_L)
 \label{eq:glm_eqn}
 \end{equation}
+The above equation is important since it tells us that the output layer activation function must be set to be the derivative of the $A(\cdot)$ function. In the theory of generalized linear models, the derivative of the $A(\cdot)$ function serves as the *canonical link function* for a given probability distribution of the response variable conditional on the predictor variable.
 
-The above equation is an important one that tells us that the derivative of the $A(\cdot)$ function is in fact the output layer activation function. In the theory of generalized linear models, the derivative of the $A(\cdot)$ function serves as the *canonical link function* for a given probability distribution of the response variable conditional on the predictor variable.
+Now we are equipped to derive a simple expression for $P_L$.
+
+\begin{theorem}
+$$P_L = \frac {\partial \mathcal{L}}{\partial S_L} = \frac {O_L - y} {d(\tau)}$$
+\end{theorem}
 
 The Cross-Entropy Loss (Negative Log-Likelihood) for a single training data point $(x, y)$ is given by:
 
