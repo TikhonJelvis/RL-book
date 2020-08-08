@@ -48,25 +48,12 @@ class FiniteDistribution(Distribution[A], ABC):
         '''
         pass
 
-    def __iter__(self) -> Iterator[Tuple[A, float]]:
-        return iter(self.table().items())
-
-    @abstractmethod
     def probability(self, outcome: A) -> float:
         '''Returns the probability of the given outcome according to this
         distribution.
 
         '''
-        pass
-
-    def __eq__(self, other: object) -> bool:
-        if isinstance(other, FiniteDistribution):
-            return self.table() == other.table()
-        else:
-            return False
-
-    def __repr__(self) -> str:
-        return repr(self.table())
+        return self.table()[outcome]
 
     def map(self, f: Callable[[A], B]) -> FiniteDistribution[B]:
         '''Return a new distribution that is the result of applying a function
@@ -79,6 +66,27 @@ class FiniteDistribution(Distribution[A], ABC):
             result[f(x)] += p
 
         return Categorical(result)
+
+    # TODO: Can we get rid of f or make it optional? Right now, I
+    # don't think that's possible with mypy.
+    def expectation(self, f: Callable[[A], float]) -> float:
+        '''Calculate the expected value of the distribution, using the given
+        function to turn the outcomes into numbers.
+
+        '''
+        return sum(p * f(x) for x, p in self)
+
+    def __iter__(self) -> Iterator[Tuple[A, float]]:
+        return iter(self.table().items())
+
+    def __eq__(self, other: object) -> bool:
+        if isinstance(other, FiniteDistribution):
+            return self.table() == other.table()
+        else:
+            return False
+
+    def __repr__(self) -> str:
+        return repr(self.table())
 
 
 # TODO: Rename?

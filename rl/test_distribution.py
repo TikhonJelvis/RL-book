@@ -21,6 +21,8 @@ class TestFiniteDistribution(unittest.TestCase):
     def setUp(self):
         self.die = Choose({1, 2, 3, 4, 5, 6})
 
+        self.ragged = Categorical({0: 0.9, 1: 0.05, 2: 0.025, 3: 0.025})
+
     def test_map(self):
         plusOne = self.die.map(lambda x: x + 1)
         assert_almost_equal(self, plusOne, Choose({2, 3, 4, 5, 6, 7}))
@@ -31,6 +33,14 @@ class TestFiniteDistribution(unittest.TestCase):
         greaterThan4 = self.die.map(lambda x: x > 4)
         assert_almost_equal(self, greaterThan4,
                             Categorical({True: 1/3, False: 2/3}))
+
+    def test_expectation(self):
+        self.assertAlmostEqual(self.die.expectation(float), 3.5)
+
+        even = self.die.map(lambda n: n % 2 == 0)
+        self.assertAlmostEqual(even.expectation(float), 0.5)
+
+        self.assertAlmostEqual(self.ragged.expectation(float), 0.175)
 
 
 class TestConstant(unittest.TestCase):
