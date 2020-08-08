@@ -2,9 +2,10 @@ from abc import ABC, abstractmethod
 from collections import defaultdict
 from typing import (DefaultDict, Dict, Iterable, Generic, Mapping,
                     Tuple, Sequence, TypeVar, Optional)
-from rl.distribution import (Categorical, Distribution, FiniteDistribution,
-                             SampledDistribution)
-from rl.markov_process import (FiniteMarkovRewardProcess, MarkovRewardProcess)
+from rl.distribution import (Constant, Categorical, Distribution,
+                             FiniteDistribution, SampledDistribution)
+from rl.markov_process import (
+    FiniteMarkovRewardProcess, MarkovRewardProcess, StateReward)
 
 A = TypeVar('A')
 S = TypeVar('S')
@@ -18,6 +19,16 @@ class Policy(ABC, Generic[S, A]):
     @abstractmethod
     def act(self, state: S) -> Optional[Distribution[A]]:
         pass
+
+
+class Always(Policy[S, A]):
+    action: A
+
+    def __init__(self, action: A):
+        self.action = action
+
+    def act(self, _: S) -> Optional[Distribution[A]]:
+        return Constant(self.action)
 
 
 class FinitePolicy(Policy[S, A]):
@@ -52,8 +63,11 @@ class MarkovDecisionProcess(ABC, Generic[S, A]):
     def apply_policy(self, policy: Policy[S, A]) -> MarkovRewardProcess[S]:
         pass
 
+    def step(self, state: S,
+             action: A) -> Optional[Distribution[Tuple[S, float]]]:
+        return self.apply_policy(Always(action)).transition_reward(state)
 
-StateReward = FiniteDistribution[Tuple[S, float]]
+
 ActionMapping = Mapping[A, StateReward[S]]
 StateActionMapping = Mapping[S, Optional[ActionMapping[A, S]]]
 
@@ -132,6 +146,9 @@ class FiniteMarkovDecisionProcess(MarkovDecisionProcess[S, A]):
 
         return FiniteMarkovRewardProcess(transition_mapping)
 
+    def action_mapping(self, state: S) -> Optional[ActionMapping[A, S]]:
+        return self.mapping[state]
+
     # Note: For now, this is only available on finite MDPs; this might
     # change in the future.
     def actions(self, state: S) -> Optional[Iterable[A]]:
@@ -140,3 +157,10 @@ class FiniteMarkovDecisionProcess(MarkovDecisionProcess[S, A]):
         '''
         actions = self.mapping[state]
         return None if actions is None else actions.keys()
+
+    def states(self) -> Iterable[S]:
+        '''Iterate over all the states in this process—terminal *and*
+        non-terminal.
+
+        '''
+        return self.mapping.keys()
