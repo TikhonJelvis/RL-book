@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from collections import defaultdict
-from typing import (DefaultDict, Dict, Iterable, Generic, Mapping,
+from typing import (DefaultDict, Dict, Iterable, Iterator, Generic, Mapping,
                     Tuple, Sequence, TypeVar, Optional)
 from rl.distribution import (Constant, Categorical, Distribution,
                              FiniteDistribution, SampledDistribution)
@@ -56,6 +56,9 @@ class FinitePolicy(Policy[S, A]):
 
     def act(self, state: S) -> Optional[FiniteDistribution[A]]:
         return self.policy_map[state]
+
+    def states(self) -> Iterator[S]:
+        return iter(self.policy_map.keys())
 
 
 class MarkovDecisionProcess(ABC, Generic[S, A]):
