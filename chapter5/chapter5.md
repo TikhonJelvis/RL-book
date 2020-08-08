@@ -80,13 +80,16 @@ The activation function $g_l$ applies point-wise on each dimension of vector $\b
 $$\bm{O_l} = g_l(\bm{S_l}) \text{ for all } l = 0, 1, \ldots, L$$
 
 Our goal is to derive an expression for the loss gradient $\nabla_{\bm{w_l}} \mathcal{L}$ for all $l = 0, 1, \ldots, L$. We can reduce this problem of calculating the loss gradient to the problem of calculating $\bm{P_l} = \nabla_{\bm{S_l}} \mathcal{L}$ for all $l = 0, 1, \ldots, L$, as revealed by the following chain-rule calculation (the symbol $\otimes$ refers to [outer-product](https://en.wikipedia.org/wiki/Outer_product) of two vectors resulting in a matrix):
-$$\nabla_{\bm{w_l}} \mathcal{L} = \nabla_{\bm{S_l}} \mathcal{L} \cdot \nabla_{\bm{w_l}} \bm{S_l} = \bm{P_l} \otimes \bm{I_l}$$
+$$\nabla_{\bm{w_l}} \mathcal{L} = \nabla_{\bm{S_l}} \mathcal{L} \cdot \nabla_{\bm{w_l}} \bm{S_l} = \bm{P_l} \otimes \bm{I_l} \text{ for all } l = 0, 1, \ldots L$$
 
 The outer-product of the $dim(\bm{O_l})$ size vector $\bm{P_l}$ and the $dim(\bm{I_l})$ size vector $\bm{I_l}$ gives a matrix of size $dim(\bm{O_l}) \times dim(\bm{I_l})$.
 
 If we include $L^2$ regularization (with $\lambda_l$ as the regularization coefficient in layer $l$), then:
 
-$$\nabla_{\bm{w_l}} \mathcal{L} = \bm{P_l} \otimes \bm{I_l} + \lambda_l \cdot \bm{w_l}$$
+\begin{equation}
+\nabla_{\bm{w_l}} \mathcal{L} = \bm{P_l} \otimes \bm{I_l} + \lambda_l \cdot \bm{w_l} \text{ for all } l = 0, 1, \ldots, L
+\label{eq:loss_gradient_formula}
+\end{equation}
 
 Here's the summary of our notation:
 
@@ -122,6 +125,7 @@ Now that we have reduced the loss gradient calculation to calculation of $\bm{P_
 For all $l = 0, 1, \ldots, L-1$,
 $$\bm{P_l} = (\bm{P_{l+1}} \cdot \bm{w_{l+1}}) \circ g_l'(\bm{S_l})$$
 where the symbol $\cdot$ represents vector-matrix multiplication and the symbol $\circ$ represents \href{https://en.wikipedia.org/wiki/Hadamard_product_(matrices)}{Hadamard Product}, i.e., point-wise multiplication of two vectors of the same dimension.
+\label{th:recursive_gradient_formulation}
 \end{theorem}
 
 \begin{proof}
@@ -133,7 +137,7 @@ $$\bm{P_l} = \nabla_{\bm{S_l}} \mathcal{L} = \nabla_{\bm{S_{l+1}}} \mathcal{L} \
 
 Note that $\bm{P_{l+1}} \cdot \bm{w_{l+1}}$ is the inner-product of the $dim(\bm{O_{l+1}})$ size vector $\bm{P_{l+1}}$ and the $dim(\bm{O_{l+1}}) \times dim(\bm{I_{l+1}})$ size matrix $\bm{w_{l+1}}$, and the resultant $dim(\bm{I_{l+1}}) = dim(\bm{O_l})$ size vector $\bm{P_{l+1}} \cdot \bm{w_{l+1}}$ is multiplied point-wise (Hadamard product) with the $dim(\bm{O_l})$ size vector $g_l'(\bm{S_l})$ to yield the $dim(\bm{O_l})$ size vector $\bm{P_l}$.
 
-Now all we need to do is to calculate $\bm{P_L} = \nabla_{\bm{S_L}} \mathcal{L}$ so that we can run this recursive formulation for $\bm{P_l}$, estimate the gradient for any given data in each iteration, and perform gradient descent to arrive at $\bm{w_l^*}$ for all $l = 0, 1, \ldots L$.
+Now all we need to do is to calculate $\bm{P_L} = \nabla_{\bm{S_L}} \mathcal{L}$ so that we can run this recursive formulation for $\bm{P_l}$, estimate the loss gradient $\nabla_{\bm{w_l}} \mathcal{L}$ for any given data (using Equation \eqref{eq:loss_gradient_formula}), and perform gradient descent to arrive at $\bm{w_l^*}$ for all $l = 0, 1, \ldots L$.
 
 Firstly, note that $\bm{S_L}, \bm{O_L}, \bm{P_L}$ are all scalars, so let's just write them as $S_L, O_L, P_L$ respectively (without the bold-facing) to make it explicit in the derivation that they are scalars. Specifically, the gradient
 $$\nabla_{\bm{S_L}} \mathcal{L} = \frac {\partial \mathcal{L}}{\partial S_L}$$
@@ -203,7 +207,7 @@ $$P_L = \frac {\partial \mathcal{L}}{\partial S_L} = \frac {O_L - y}{d(\tau)}$$
 
 \end{proof}
 
-At each iteration of gradient descent, we require an estimate of the loss gradient up to a constant factor. So we can ignore the constant $d(\tau)$ and simply say that $P_L = O_L - y$ (up to a constant factor). This is a rather convenient estimate of $P_L$ for a given data point $(x,y)$ since it represents the neural network prediction error for that data point. When presented with a sequence of data points $[(x_{t,i}, y_{t,i})|1\leq i \leq n_t]$ in iteration $t$, we simply average the prediction errors across these presented data points. Then, beginning with this estimate of $P_L$, we can use the recursive formulation of $\bm{P_l}$ to calculate the gradient of the loss function with respect to all the parameters of the neural network (backpropagation algorithm).
+At each iteration of gradient descent, we require an estimate of the loss gradient up to a constant factor. So we can ignore the constant $d(\tau)$ and simply say that $P_L = O_L - y$ (up to a constant factor). This is a rather convenient estimate of $P_L$ for a given data point $(x,y)$ since it represents the neural network prediction error for that data point. When presented with a sequence of data points $[(x_{t,i}, y_{t,i})|1\leq i \leq n_t]$ in iteration $t$, we simply average the prediction errors across these presented data points. Then, beginning with this estimate of $P_L$, we can use the recursive formulation of $\bm{P_l}$ (Theorem \ref{th:recursive_gradient_formulation}) to calculate the gradient of the loss function (Equation \eqref{eq:loss_gradient_formula}) with respect to all the parameters of the neural network (backpropagation algorithm).
 
 Here are some common specializations of the functional form for the conditional probability distribution $\mathbb{P}[y|S_L]$, along with the corresponding activation function $g_L$ of the output layer:
 
