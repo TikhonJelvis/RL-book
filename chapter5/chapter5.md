@@ -162,11 +162,11 @@ $$\int_{-\infty}^{\infty} p(y | S_L, \tau) \cdot dy = 1,$$
 
 the partial derivative of the left-hand-side of the above equation with respect to $S_L$ is zero. In other words,
 
-$$\frac {\partial \int_{-\infty}^{\infty} p(y | S_L, \tau) \cdot dy}{\partial S_L} = 0$$
+$$\frac {\partial \{\int_{-\infty}^{\infty} p(y | S_L, \tau) \cdot dy\}}{\partial S_L} = 0$$
 
 Hence,
 
-$$\\frac {\partial \int_{-\infty}^{\infty}  h(y, \tau) \cdot e^{\frac {S_L \cdot y - A(S_L)} {d(\tau)}} \cdot dy}{\partial S_L} = 0$$
+$$\frac {\partial \{\int_{-\infty}^{\infty}  h(y, \tau) \cdot e^{\frac {S_L \cdot y - A(S_L)} {d(\tau)}} \cdot dy\}}{\partial S_L} = 0$$
 
 Taking the partial derivative inside the integral, we get:
 
@@ -174,8 +174,16 @@ $$\int_{-\infty}^{\infty}  h(y, \tau) \cdot e^{\frac {S_L \cdot y - A(S_L)} {d(\
 
 $$\Rightarrow \int_{-\infty}^{\infty}  p(y | S_L, \tau) \cdot (y - A'(S_L)) \cdot dy = 0$$
 
+$$\Rightarrow \mathbb{E}_p[y|S_L] = A'(S_L)$$
+
+We also know that:
+
+$$\mathbb{E}_p[y|S_L] = g_L(S_L) = O_L$$
+
+Therefore,
+
 \begin{equation}
-\Rightarrow \mathbb{E}_p[y|S_L] = g_L(S_L) = O_L = A'(S_L)
+A'(S_L) = O_L
 \label{eq:glm_eqn}
 \end{equation}
 
@@ -192,13 +200,13 @@ $$P_L = \frac {\partial \mathcal{L}}{\partial S_L} = \frac {O_L - y}{d(\tau)}$$
 
 \end{proof}
 
-At each iteration of gradient descent, we require an estimate of the loss gradient up to a constant factor, so we can ignore the constant $d(\tau)$ and simply say that $P_L = O_L - y$ (up to a constant factor). This is a rather convenient estimate of $P_L$ for a given data point $(x,y)$ since it represents the neural network prediction error for that data point. When presented with a sequence of data points $[(x_{t,i}, y_{t,i}|1\leq i \leq n_t]$ in iteration $t$, we simply average the prediction errors across these presented data points. Then, beginning with this estimate of $P_L$, we can use the recursive formulation of $\bm{P_l}$ to calculate the gradient of the loss function with respect to all the parameters of the neural network (backpropagation algorithm).
+At each iteration of gradient descent, we require an estimate of the loss gradient up to a constant factor. So we can ignore the constant $d(\tau)$ and simply say that $P_L = O_L - y$ (up to a constant factor). This is a rather convenient estimate of $P_L$ for a given data point $(x,y)$ since it represents the neural network prediction error for that data point. When presented with a sequence of data points $[(x_{t,i}, y_{t,i})|1\leq i \leq n_t]$ in iteration $t$, we simply average the prediction errors across these presented data points. Then, beginning with this estimate of $P_L$, we can use the recursive formulation of $\bm{P_l}$ to calculate the gradient of the loss function with respect to all the parameters of the neural network (backpropagation algorithm).
 
-Here are some common specializations of the functional form for the conditional probability distribution $\mathbb{P}[y|\bm{S_L}]$, along with the corresponding activation function $g_L$ of the output layer:
+Here are some common specializations of the functional form for the conditional probability distribution $\mathbb{P}[y|S_L]$, along with the corresponding activation function $g_L$ of the output layer:
 
-* Normal distribution $y \sim \mathcal{N}(\mu, \sigma^2)$: $\bm{S_L} = \mu, \tau = \sigma, h(y, \tau) = \frac {e^{\frac {-y^2} {2 \tau^2}}} {\sqrt{2 \pi} \tau}, A(\bm{S_L}) = \frac {\bm{S_L}^2} {2}, d(\tau) = \tau^2$. $g_L(\bm{S_L}) = \mathbb{E}[y|\bm{S_L}] = \bm{S_L}$, hence output layer activation function $g_L$ is the identity function. This means that the linear function approximation of the previous section is exactly the same as a neural network with 0 hidden layers (just the output layer) and with the output layer activation function equal to the identity function.
-* Bernoulli distribution for binary-valued $y$, parameterized by $p$: $\bm{S_L} = \log{(\frac p {1-p})}, \tau = 1, h(y, \tau) = 1, d(\tau) = 1, A(\bm{S_L}) = \log{(1+e^{\bm{S_L}})}$. $g_L(\bm{S_L}) = \mathbb{E}[y|\bm{S_L}] = \frac 1 {1+e^{-\bm{S_L}}}$, hence the output layer activation function $g_L$ is the logistic function.
-* Poisson distribution for $y$ parameterized by $\lambda$: $\bm{S_L} = \log{\lambda}, \tau = 1, d(\tau) = 1, h(y, \tau) = \frac 1 {y!}, A(\bm{S_L}) = e^{\bm{S_L}}$). $g_L(\bm{S_L}) = \mathbb{E}[y|\bm{S_L}] = e^{\bm{S_L}}$, hence the output layer activation function $g_L$ is the exponential function.
+* Normal distribution $y \sim \mathcal{N}(\mu, \sigma^2)$: $S_L = \mu, \tau = \sigma, h(y, \tau) = \frac {e^{\frac {-y^2} {2 \tau^2}}} {\sqrt{2 \pi} \tau}, A(S_L) = \frac {S_L^2} {2}, d(\tau) = \tau^2$. $g_L(S_L) = \mathbb{E}[y|S_L] = S_L$, hence output layer activation function $g_L$ is the identity function. This means that the linear function approximation of the previous section is exactly the same as a neural network with 0 hidden layers (just the output layer) and with the output layer activation function equal to the identity function.
+* Bernoulli distribution for binary-valued $y$, parameterized by $p$: $S_L = \log{(\frac p {1-p})}, \tau = 1, h(y, \tau) = 1, d(\tau) = 1, A(S_L) = \log{(1+e^{S_L})}$. $g_L(S_L) = \mathbb{E}[y|S_L] = \frac 1 {1+e^{-S_L}}$, hence the output layer activation function $g_L$ is the logistic function. This generalizes to [softmax](https://en.wikipedia.org/wiki/Softmax_function) $g_L$ when we generalize this framework to multivariate $y$, which in turn enables us to do classify inputs $x$ into a finite set of categories represented by $y$ as [one-hot-encodings](https://en.wikipedia.org/wiki/One-hot).
+* Poisson distribution for $y$ parameterized by $\lambda$: $S_L = \log{\lambda}, \tau = 1, d(\tau) = 1, h(y, \tau) = \frac 1 {y!}, A(S_L) = e^{S_L}$. $g_L(S_L) = \mathbb{E}[y|S_L] = e^{S_L}$, hence the output layer activation function $g_L$ is the exponential function.
 
 ## Tabular as an Exact Approximation
 
