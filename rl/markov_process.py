@@ -204,13 +204,11 @@ class FiniteMarkovRewardProcess(FiniteMarkovProcess[S],
 
         self.transition_reward_map = transition_reward_map
 
-        next_states = transition_reward_map[state]
-        if next_states is not None:
-            self.reward_function_vec = np.array([
-                sum(probability * reward for (_, reward), probability in
-                    next_states)
-                for state in self.non_terminal_states
-            ])
+        self.reward_function_vec = np.array([
+            sum(probability * reward for (_, reward), probability in
+                transition_reward_map[state])
+            for state in self.non_terminal_states
+        ])
 
     def __repr__(self) -> str:
         display = ""
