@@ -11,10 +11,6 @@ from rl.distribution import (Categorical, Distribution, FiniteDistribution,
 
 S = TypeVar('S')
 
-Transition = Mapping[S, Optional[FiniteDistribution[S]]]
-
-RewardTransition = Mapping[S, Optional[FiniteDistribution[Tuple[S, float]]]]
-
 
 class MarkovProcess(ABC, Generic[S]):
     '''A Markov process with states of type S.
@@ -51,6 +47,9 @@ class MarkovProcess(ABC, Generic[S]):
                 break
             else:
                 state = next_states.sample()
+
+
+Transition = Mapping[S, Optional[FiniteDistribution[S]]]
 
 
 class FiniteMarkovProcess(MarkovProcess[S]):
@@ -176,6 +175,9 @@ class MarkovRewardProcess(MarkovProcess[S]):
                 break
             else:
                 state, reward = next_distribution.sample()
+
+
+RewardTransition = Mapping[S, Optional[FiniteDistribution[Tuple[S, float]]]]
 
 
 class FiniteMarkovRewardProcess(FiniteMarkovProcess[S],
