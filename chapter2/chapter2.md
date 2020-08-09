@@ -456,7 +456,6 @@ class InventoryState:
     def inventory_position(self) -> int:
         return self.on_hand + self.on_order
 
-
 class SimpleInventoryMPFinite(FiniteMarkovProcess[InventoryState]):
 
     def __init__(
@@ -477,17 +476,13 @@ class SimpleInventoryMPFinite(FiniteMarkovProcess[InventoryState]):
                 state = InventoryState(alpha, beta)
                 ip = state.inventory_position()
                 beta1 = self.capacity - ip
-                state_probs_list: List[Tuple[InventoryState, float]] = [
-                    (InventoryState(ip - i, beta1), self.poisson_distr.pmf(i))
-                    for i in range(ip)
-                ]
-                state_probs_list.append(
-                    (
-                        InventoryState(0, beta1),
-                        1 - self.poisson_distr.cdf(ip - 1)
-                    )
-                )
-                d[InventoryState(alpha, beta)] = Categorical(state_probs_list)
+                state_probs_map: Mapping[InventoryState, float] = {
+                    InventoryState(ip - i, beta1):
+                    (self.poisson_distr.pmf(i) if i < ip else
+                     1 - self.poisson_distr.cdf(ip - 1))
+                    for i in range(ip + 1)
+                }
+                d[InventoryState(alpha, beta)] = Categorical(state_probs_map)
         return d
 ```
 
@@ -593,12 +588,12 @@ We will skip the theory that tells us about the conditions under which a station
 Running this code for the simple case of capacity $C=2$ and poisson mean $\lambda = 1.0$ (instance of `SimpleInventoryMPFinite`) produces the following output for the stationary distribution $\pi$:
 
 ```
-{InventoryState(on_hand=0, on_order=0): 0.117,
+{InventoryState(on_hand=2, on_order=0): 0.162,
+ InventoryState(on_hand=0, on_order=0): 0.117,
+ InventoryState(on_hand=1, on_order=0): 0.162,
  InventoryState(on_hand=0, on_order=1): 0.279,
  InventoryState(on_hand=0, on_order=2): 0.117,
- InventoryState(on_hand=1, on_order=0): 0.162,
- InventoryState(on_hand=1, on_order=1): 0.162,
- InventoryState(on_hand=2, on_order=0): 0.162}   
+ InventoryState(on_hand=1, on_order=1): 0.162}
 ```
 
 This tells us that On-Hand of 0 and On-Order of 1 is the state occurring most frequently (28% of the time) when the system is played out indefinitely.   
@@ -892,18 +887,15 @@ class SimpleInventoryMRPFinite(FiniteMarkovRewardProcess[InventoryState]):
                 ip = state.inventory_position()
                 beta1 = self.capacity - ip
                 base_reward = - self.holding_cost * state.on_hand
-                sr_probs_list: List[Tuple[Tuple[InventoryState, float],
-                                          float]] =\
-                    [((InventoryState(ip - i, beta1), base_reward),
-                      self.poisson_distr.pmf(i)) for i in range(ip)]
+                sr_probs_map: Dict[Tuple[InventoryState, float], float] =\
+                    {(InventoryState(ip - i, beta1), base_reward):
+                     self.poisson_distr.pmf(i) for i in range(ip)}
                 probability = 1 - self.poisson_distr.cdf(ip - 1)
                 reward = base_reward - self.stockout_cost *\
                     (probability * (self.poisson_lambda - ip) +
                      ip * self.poisson_distr.pmf(ip))
-                sr_probs_list.append(
-                    ((InventoryState(0, beta1), reward), probability)
-                )
-                d[state] = Categorical(sr_probs_list)
+                sr_probs_map[(InventoryState(0, beta1), reward)] = probability
+                d[state] = Categorical(sr_probs_map)
         return d
 ```
 
@@ -965,26 +957,26 @@ Let us write some code to implement the calculation of Equation \eqref{eq:mrp_be
 
 ```
 
-Invoking this `get_value_function_vec` method on `SimpleInventoryMRPFinite` for the simple case of capacity $C=2$ and poisson mean $\lambda = 1.0$ yields the following result:
+Invoking this `get_value_function_vec` method on `SimpleInventoryMRPFinite` for the simple case of capacity $C=2$, poisson mean $\lambda = 1.0$, holding cost $h=1.0$, stockout cost $p=10.0$, and discount factor $\gamma=0.9$ yields the following result:
 
 ```
-{InventoryState(on_hand=0, on_order=1): -27.932,
- InventoryState(on_hand=0, on_order=0): -35.511,
+{InventoryState(on_hand=0, on_order=0): -35.511,
  InventoryState(on_hand=1, on_order=0): -28.932,
- InventoryState(on_hand=2, on_order=0): -30.345,
+ InventoryState(on_hand=0, on_order=1): -27.932,
  InventoryState(on_hand=0, on_order=2): -28.345,
+ InventoryState(on_hand=2, on_order=0): -30.345,
  InventoryState(on_hand=1, on_order=1): -29.345}
 ```
 
 The corresponding values of the attribute `reward_function_vec` (i.e., $\mathcal{R}$) are:
 
 ```
-{InventoryState(on_hand=0, on_order=1): -2.325,
- InventoryState(on_hand=0, on_order=0): -10.0,
+{InventoryState(on_hand=0, on_order=0): -10.0,
  InventoryState(on_hand=1, on_order=0): -3.325,
- InventoryState(on_hand=2, on_order=0): -2.274,
+ InventoryState(on_hand=0, on_order=1): -2.325,
  InventoryState(on_hand=0, on_order=2): -0.274,
- InventoryState(on_hand=1, on_order=1): -1.274}   
+ InventoryState(on_hand=2, on_order=0): -2.274,
+ InventoryState(on_hand=1, on_order=1): -1.274}
 ```
 
 This tells us that On-Hand of 0 and On-Order of 2 has the highest expected reward. However, the Value Function is highest for On-Hand of 0 and On-Order of 1.

@@ -449,19 +449,17 @@ class SimpleInventoryMDPCap(FiniteMarkovDecisionProcess[InventoryState, int]):
                 d1: Dict[int, Categorical[Tuple[InventoryState, float]]] = {}
 
                 for order in range(self.capacity - ip + 1):
-                    sr_probs_list: List[Tuple[Tuple[InventoryState, float],
-                                              float]] =\
-                        [((InventoryState(ip - i, order), base_reward),
-                          self.poisson_distr.pmf(i)) for i in range(ip)]
+                    sr_probs_dict: Dict[Tuple[InventoryState, float], float] =\
+                        {(InventoryState(ip - i, order), base_reward):
+                         self.poisson_distr.pmf(i) for i in range(ip)}
 
                     probability: float = 1 - self.poisson_distr.cdf(ip - 1)
                     reward: float = base_reward - self.stockout_cost *\
                         (probability * (self.poisson_lambda - ip) +
                          ip * self.poisson_distr.pmf(ip))
-                    sr_probs_list.append(
-                        ((InventoryState(0, order), reward), probability)
-                    )
-                    d1[order] = Categorical(sr_probs_list)
+                    sr_probs_dict[(InventoryState(0, order), reward)] = \
+                        probability
+                    d1[order] = Categorical(sr_probs_dict)
 
                 d[state] = d1
         return d
@@ -682,7 +680,7 @@ Finally, we prove by contradiction that $\pi_D^*$ is an Optimal Policy. So assum
 
 Equation \eqref{eq:mdp_optimal_policy} was a key construction in the above proof. In fact, Equation \eqref{eq:mdp_optimal_policy} will go hand-in-hand with the Bellman Optimality Equations in designing the various Dynamic Programming and Reinforcement Learning algorithms to solve the MDP Control problem (i.e., to solve for $V^*$, $Q^*$ and $\pi^*$). Lastly, it's important to note that unlike the Prediction problem which has a straightforward linear-algebra solution for small state spaces, the Control problem is non-linear and so, doesn't have an analogous straightforward linear-algebra solution. The simplest solutions for the Control problem (even for small state spaces) are the Dynamic Programming algorithms we will cover in the next chapter.
 
-## Variants and extensions of MDPs
+## Variants and Extensions of MDPs
 
 ### Size of Spaces and Discrete versus Continuous
 
