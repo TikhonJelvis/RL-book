@@ -306,19 +306,21 @@ class FiniteMarkovDecisionProcess(MarkovDecisionProcess[S, A]):
                 display += f"From State {s}:\n"
                 for a, d1 in d.items():
                     display += f"  With Action {a}:\n"
-                    for (s1, r), p in d1.table():
+                    for (s1, r), p in d1:
                         display += f"    To [State {s} and "\
                             + f"Reward {r:.3f}] with Probability {p:.3f}\n"
         return display
 
     def apply_policy(self, policy: Policy[S, A]) -> MarkovRewardProcess[S]:
 
+        mapping = self.mapping
+
         class Process(MarkovRewardProcess[S]):
 
             def transition_reward(self, state: S)\
                     -> Optional[Distribution[Tuple[S, float]]]:
 
-                action_map: Optional[ActionMapping[A, S]] = self.mapping[state]
+                action_map: Optional[ActionMapping[A, S]] = mapping[state]
                 if action_map is None:
                     return None
                 else:
@@ -331,10 +333,8 @@ class FiniteMarkovDecisionProcess(MarkovDecisionProcess[S, A]):
         return Process()
 
     def actions(self, state: S) -> Optional[Iterable[A]]:
-        if self.mapping[state] is None:
-            return None
-        else:
-            return self.mapping[state].keys()
+        actions = self.mapping[state]
+        return None if actions is None else actions.keys()
 ```
 
 Now that we've implemented a finite MDP, let's implement a finite policy that maps each non-terminal state to a probability distribution over a finite set of actions (and maps each terminal state to `None`). So we create a concrete class `FinitePolicy` that implements the interface of the abstract class `Policy` (specifically implements the `@abstractmethod act`). The input to the constructor (`__init__` method) is `policy_map: Mapping[S, Optional[FiniteDistribution[A]]]` since this type captures the structure of the $\pi: \mathcal{N} \times \mathcal{A} \rightarrow [0, 1]$ function in the curried form:
@@ -343,9 +343,6 @@ for the case of finite $\mathcal{S}$ and finite $\mathcal{A}$. The `act` method 
 
 ```python
 class FinitePolicy(Policy[S, A]):
-    ''' A policy where the state and action spaces are finite.
-
-    '''
     policy_map: Mapping[S, Optional[FiniteDistribution[A]]]
 
     def __init__(
@@ -361,11 +358,11 @@ class FinitePolicy(Policy[S, A]):
                 display += f"{s} is a Terminal State\n"
             else:
                 display += f"For State {s}:\n"
-                for a, p in d.table():
+                for a, p in d:
                     display += f"  Do Action {a} with Probability {p:.3f}\n"
         return display
 
-    def act(self, state: S) -> FiniteDistribution[A]:
+    def act(self, state: S) -> Optional[FiniteDistribution[A]]:
         return self.policy_map[state]
 ```   
 
@@ -384,11 +381,12 @@ Armed with a `FinitePolicy` class, we can now write a method `apply_finite_polic
             else:
                 outcomes: DefaultDict[Tuple[S, float], float]\
                     = defaultdict(float)
-                for action, p_action in policy.act(state).table():
-                    for outcome, p_state in action_map[action].table():
-                        outcomes[outcome] += p_action * p_state
-
-                transition_mapping[state] = Categorical(outcomes.items())
+                actions = policy.act(state)
+                if actions is not None:
+                    for action, p_action in actions:
+                        for outcome, p_state in action_map[action]:
+                            outcomes[outcome] += p_action * p_state
+                transition_mapping[state] = Categorical(outcomes)
 
         return FiniteMarkovRewardProcess(transition_mapping)
 ```      

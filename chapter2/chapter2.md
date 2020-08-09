@@ -386,7 +386,7 @@ It is common to view this as a directed graph, as depicted in Figure \ref{fig:we
 ![Weather Markov Process \label{fig:weather_mp}](./chapter2/weather_mp.png "Weather Markov Process")
 </div>
 
-Now we are ready to write the code for the `FiniteMarkovProcess` class. The `__init__` method (constructor) takes as argument a `transition_map: Transition[S]` as we had described above. Along with the attribute `transition_map`, we also have an attribute `non_terminal_states: Sequence[S]` that is an ordered sequence of the non-terminal states. We implement the `transition` method by simply returning the `Categorical` distribution the given `state: S` maps to in the attribute `self.transition_map: Transition[S]`. Note that along with the `transition` method, we have also implemented the `__repr__` method for a well-formatted display of `self.transition_map`.
+Now we are ready to write the code for the `FiniteMarkovProcess` class. The `__init__` method (constructor) takes as argument a `transition_map: Transition[S]` as we had described above. Along with the attribute `transition_map`, we also have an attribute `non_terminal_states: Sequence[S]` that is an ordered sequence of the non-terminal states. We implement the `transition` method by simply returning the `Optional[FiniteDistribution]` the given `state: S` maps to in the attribute `self.transition_map: Transition[S]`. Note that along with the `transition` method, we have implemented the `__repr__` method for a well-formatted display of `self.transition_map`.
 
 ```python
 class FiniteMarkovProcess(MarkovProcess[S]):
@@ -407,12 +407,12 @@ class FiniteMarkovProcess(MarkovProcess[S]):
                 display += f"{s} is a Terminal State\n"
             else:
                 display += f"From State {s}:\n"
-                for s1, p in d.table():
+                for s1, p in d:
                     display += f"  To State {s1} with Probability {p:.3f}\n"
 
         return display
 
-    def transition(self, state: S) -> FiniteDistribution[S]:
+    def transition(self, state: S) -> Optional[FiniteDistribution[S]]:
         return self.transition_map[state]
 ```
 
@@ -581,11 +581,11 @@ Let us write code to compute the stationary distribution. We shall add two metho
             np.abs(eig_vals - 1) < 1e-8)[0][0]
         eig_vec_of_unit_eig_val = np.real(
             eig_vecs[:, index_of_first_unit_eig_val])
-        return Categorical([
-            (self.non_terminal_states[i], ev)
+        return Categorical({
+            self.non_terminal_states[i]: ev
             for i, ev in enumerate(eig_vec_of_unit_eig_val /
                                    sum(eig_vec_of_unit_eig_val))
-        ])
+        })
 ```
 
 We will skip the theory that tells us about the conditions under which a stationary distribution is well-defined, or the conditions under which there is a unique stationary distribution. Instead, we will just go ahead with this calculation here assuming this Markov Process satisfies those conditions (it does!). So, we simply seek the index of the `eig_vals` vector with eigenvalue equal to 1 (accounting for floating-point error). Next, we pull out the column of the `eig_vecs` matrix at the `eig_vals` index calculated above, and convert it into a real-valued vector (eigenvectors/eigenvalues calculations are, in general, complex numbers calculations - see the reference for the `np.linalg.eig` function). So this gives us the real-valued eigenvector with eigenvalue equal to 1.  Finally, we have to normalize the eigenvector so it's values add up to 1 (since we want probabilities), and return the probabilities as a `Categorical` distribution).
@@ -811,24 +811,22 @@ class FiniteMarkovRewardProcess(FiniteMarkovProcess[S],
                 transition_map[state] = None
             else:
                 probabilities: Dict[S, float] = defaultdict(float)
-                for (next_state, _), probability in trans.table():
+                for (next_state, _), probability in trans:
                     probabilities[next_state] += probability
 
-                transition_map[state] = Categorical(
-                    list(probabilities.items())
-                )
+                transition_map[state] = Categorical(probabilities)
 
         super().__init__(transition_map)
 
         self.transition_reward_map = transition_reward_map
 
-        self.reward_function_vec = np.array([
-            sum(probability * reward for (_, reward), probability in
-                transition_reward_map[state].table())
-            for state in self.non_terminal_states
-        ])
-    transition_reward_map: RewardTransition[S]
-    reward_function_vec: np.ndarray
+        next_states = transition_reward_map[state]
+        if next_states is not None:
+            self.reward_function_vec = np.array([
+                sum(probability * reward for (_, reward), probability in
+                    next_states)
+                for state in self.non_terminal_states
+            ])
 
     def transition_reward(self, state: S) ->\
             Optional[FiniteDistribution[Tuple[S, float]]]:
