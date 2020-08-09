@@ -165,4 +165,4 @@ class Categorical(FiniteDistribution[A]):
         return self.probabilities
 
     def probability(self, outcome: A) -> float:
-        return self.probabilities[outcome]
+        return self.probabilities.get(outcome, 0.)
