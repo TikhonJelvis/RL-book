@@ -130,7 +130,7 @@ def policy_iteration(
         vf, pi = vf_policy
         mrp: FiniteMarkovRewardProcess[S] = mdp.apply_finite_policy(pi)
         policy_vf: V[S] = {mrp.non_terminal_states[i]: v for i, v in
-                           enumerate(mrp.get_value_function_vec())}\
+                           enumerate(mrp.get_value_function_vec(gamma))}\
             if matrix_method_for_mrp_eval else evaluate_mrp(mrp, gamma)
 
         improved_pi: FinitePolicy[S, A] = greedy_policy_from_vf(
