@@ -76,18 +76,15 @@ class SimpleInventoryMRPFinite(FiniteMarkovRewardProcess[InventoryState]):
                 ip = state.inventory_position()
                 beta1 = self.capacity - ip
                 base_reward = - self.holding_cost * state.on_hand
-                sr_probs_list: List[Tuple[Tuple[InventoryState, float],
-                                          float]] =\
-                    [((InventoryState(ip - i, beta1), base_reward),
-                      self.poisson_distr.pmf(i)) for i in range(ip)]
+                sr_probs_map: Dict[Tuple[InventoryState, float], float] =\
+                    {(InventoryState(ip - i, beta1), base_reward):
+                     self.poisson_distr.pmf(i) for i in range(ip)}
                 probability = 1 - self.poisson_distr.cdf(ip - 1)
                 reward = base_reward - self.stockout_cost *\
                     (probability * (self.poisson_lambda - ip) +
                      ip * self.poisson_distr.pmf(ip))
-                sr_probs_list.append(
-                    ((InventoryState(0, beta1), reward), probability)
-                )
-                d[state] = Categorical(sr_probs_list)
+                sr_probs_map[(InventoryState(0, beta1), reward)] = probability
+                d[state] = Categorical(sr_probs_map)
         return d
 
 
