@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Tuple, Dict, List
+from typing import Tuple, Dict
 from rl.markov_process import MarkovRewardProcess
 from rl.markov_process import FiniteMarkovRewardProcess
 from rl.markov_process import RewardTransition
