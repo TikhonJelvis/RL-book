@@ -24,11 +24,11 @@ class FinitePolicy(Policy[S, A]):
     ''' A policy where the state and action spaces are finite.
 
     '''
-    policy_map: Mapping[S, FiniteDistribution[A]]
+    policy_map: Mapping[S, Optional[FiniteDistribution[A]]]
 
     def __init__(
         self,
-        policy_map: Mapping[S, FiniteDistribution[A]]
+        policy_map: Mapping[S, Optional[FiniteDistribution[A]]]
     ):
         self.policy_map = policy_map
 
@@ -89,8 +89,8 @@ class FiniteMarkovDecisionProcess(MarkovDecisionProcess[S, A]):
     # to be compatible with MarkovRewardProcess, apply_policy has to
     # work even if the policy is *not* finite.
     def apply_policy(self, policy: Policy[S, A]) -> MarkovRewardProcess[S]:
-
         mapping = self.mapping
+
         class Process(MarkovRewardProcess[S]):
 
             def transition_reward(self, state: S)\
