@@ -1,5 +1,5 @@
 
-# Chapter 1: Markov Processes
+# Markov Processes
 
 This book is about "Sequential Decisioning under Sequential Uncertainty". In this chapter, we will ignore the "sequential decisioning" aspect and focus just on the "sequential uncertainty" aspect.
 
@@ -102,6 +102,8 @@ Note that if we had modeled the state $S_t$ as the entire stock price history $(
  The corresponding dataclass for Process 2 is shown below:
  
  ```python
+handy_map: Mapping[Optional[bool], int] = {True: -1, False: 1, None: 0}
+
 @dataclass
 class Process2:
     @dataclass
@@ -109,7 +111,7 @@ class Process2:
         price: int
         is_prev_move_up: Optional[bool]
 
-    alpha2: float = 0.75  # strength of reverse-pull (value in  [0,1])
+    alpha2: float = 0.75  # strength of reverse-pull (value in [0,1])
 
     def up_prob(self, state: State) -> float:
         return 0.5 * (1 + self.alpha2 * handy_map[state.is_prev_move_up])
@@ -217,7 +219,7 @@ def process3_price_traces(
         for _ in range(num_traces)])
 ```
 
-As suggested for Process 1, you can plot graphs of simulation traces of the stock price, or plot graphs of the terminal distributions of the stock price at various time points for Processes 2 and 3, by playing with the [code][stock_price_simulations.py].
+As suggested for Process 1, you can plot graphs of simulation traces of the stock price, or plot graphs of the terminal distributions of the stock price at various time points for Processes 2 and 3, by playing with this [code][stock_price_simulations.py].
 
 [stock_price_simulations.py]: https://github.com/TikhonJelvis/RL-book/blob/master/src/chapter2/stock_price_simulations.py
 
@@ -333,10 +335,10 @@ class StockPriceMP3(MarkovProcess[StateMP3]):
     def transition(self, state: StateMP3) -> Categorical[StateMP3]:
         up_p = self.up_prob(state)
 
-        return Categorical([
-            (StateMP3(state.num_up_moves + 1, state.num_down_moves), up_p),
-            (StateMP3(state.num_up_moves, state.num_down_moves + 1), 1 - up_p)
-        ])
+        return Categorical({
+            StateMP3(state.num_up_moves + 1, state.num_down_moves): up_p,
+            StateMP3(state.num_up_moves, state.num_down_moves + 1): 1 - up_p
+        })
 ```
 
 To generate simulation traces, we write the following function:
@@ -375,9 +377,9 @@ When the key in the `Mapping` is a non-terminal state, the `FiniteDistribution[S
 
 ```python
 {
-  "Rain": Categorical([("Rain", 0.3), ("Nice", 0.7)]),
-  "Snow": Categorical([("Rain", 0.4), ("Snow", 0.6)]),
-  "Nice": Categorical([("Rain", 0.2), ("Snow", 0.3), ("Nice", 0.5)])
+  "Rain": Categorical({"Rain": 0.3, "Nice": 0.7}),
+  "Snow": Categorical({"Rain": 0.4, "Snow": 0.6}),
+  "Nice": Categorical({"Rain": 0.2, "Snow": 0.3, "Nice": 0.5})
 }
 ```
 It is common to view this as a directed graph, as depicted in Figure \ref{fig:weather_mp}. The nodes are the states and the directed edges are the probabilistic state transitions, with the transition probabilities labeled on them.
@@ -562,11 +564,7 @@ Let us write code to compute the stationary distribution. We shall add two metho
 
         for i, s1 in enumerate(self.non_terminal_states):
             for j, s2 in enumerate(self.non_terminal_states):
-                next_states = self.transition(s1)
-                if next_states is None:
-                    mat[i, j] = 0.0
-                else:
-                    mat[i, j] = next_states.probability(s2)
+                mat[i, j] = self.transition(s1).probability(s2)
 
         return mat
 

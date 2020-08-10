@@ -238,7 +238,7 @@ def evaluate_mrp(
 ) -> V[S]:
     def update(v: V[S]) -> V[S]:
         return {s: mrp.reward_function_vec[i] + gamma *
-                sum(p * v[s1] for s1, p in mrp.transition_map[s])
+                sum(p * v.get(s1, 0.) for s1, p in mrp.transition_map[s])
                 for i, s in enumerate(mrp.non_terminal_states)}
 
     v_0: V[S] = {s: 0. for s in mrp.non_terminal_states}
@@ -288,9 +288,7 @@ def greedy_policy_from_vf(
         for a in mdp.actions(s):
             q_val: float = 0.
             for (next_s, r), p in action_map[a]:
-                next_state_vf = vf[next_s]\
-                    if mdp.mapping[next_s] is not None else 0.
-                q_val += p * (r + gamma * next_state_vf)
+                q_val += p * (r + gamma * vf.get(next_s, 0.))
             q_values.append((a, q_val))
 
         greedy_policy_dict[s] =\
@@ -564,18 +562,9 @@ def bellman_opt_update(
     gamma: float
 ) -> V[S]:
     def update_s(s: S) -> float:
-        q_values: List[float] = []
-        action_map = mdp.mapping[s]
-
-        for a in mdp.actions(s):
-            q_val: float = 0.
-            for (next_s, r), p in action_map[a]:
-                next_state_vf = v[next_s]\
-                    if mdp.mapping[next_s] is not None else 0.
-                q_val += p * (r + gamma * next_state_vf)
-            q_values.append(q_val)
-
-        return max(q_values)
+        return max(sum(p * (r + gamma * v.get(next_s, 0.))
+                       for (next_s, r), p in mdp.mapping[s][a])
+                   for a in mdp.actions(s))
 
     return {s: update_s(s) for s in v.keys()}
 

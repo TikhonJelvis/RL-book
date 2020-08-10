@@ -1,4 +1,4 @@
-mapping# Chapter 3: Markov Decision Processes
+# Markov Decision Processes
 
 We've said before that this book is about "sequential decisioning" under "sequential uncertainty". In the previous chapter, we covered the "sequential uncertainty" aspect with the framework of Markov Processes, and we extended the framework to also incoporate the notion of uncertain "Reward" each time we make a state transition - we called this extended framework Markov Reward Processes. However, this framework had no notion of "sequential decisioning". In this chapter, we will further extend the framework of Markov Reward Processes to incorporate the notion of "sequential decisioning", formally known as Markov Decision Processes. Before we step into the formalism of Markov Decision Processes, let us develop some intuition and motivation for the need to have such a framework - to handle sequential decisioning. Let's do this by re-visiting the simple inventory example we covered in the previous chapter.
 
@@ -384,8 +384,8 @@ Armed with a `FinitePolicy` class, we can now write a method `apply_finite_polic
                 actions = policy.act(state)
                 if actions is not None:
                     for action, p_action in actions:
-                        for outcome, p_state in action_map[action]:
-                            outcomes[outcome] += p_action * p_state
+                        for outcome, p_state_reward in action_map[action]:
+                            outcomes[outcome] += p_action * p_state_reward
                 transition_mapping[state] = Categorical(outcomes)
 
         return FiniteMarkovRewardProcess(transition_mapping)
