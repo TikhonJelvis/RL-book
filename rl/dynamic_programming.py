@@ -1,59 +1,20 @@
-import operator
 from typing import Callable, Mapping, Iterator, TypeVar, List, Tuple, Dict
 
 from rl.markov_decision_process import (FiniteMarkovDecisionProcess,
                                         FiniteMarkovRewardProcess)
 from rl.markov_decision_process import FinitePolicy
 from rl.distribution import Categorical, Constant, Choose, FiniteDistribution
+from rl.gen_utils.fixed_point import iterate, converge
+import operator
 
 A = TypeVar('A')
 S = TypeVar('S')
-X = TypeVar('X')
 
 # A representation of a value function for a finite MDP with states of
 # type S
 V = Mapping[S, float]
 
 DEFAULT_TOLERANCE = 1e-5
-
-
-# It would be more efficient if you iterated in place instead of
-# returning a copy of the value each time, but the functional version
-# of the code is a lot cleaner and easier to work with.
-def iterate(step: Callable[[X], X], start: X) -> Iterator[X]:
-    '''Find the fixed point of a function f by applying it to its own
-    result, yielding each intermediate value.
-
-    That is, for a function f, iterate(f, x) will give us a generator
-    producing:
-
-    x, f(x), f(f(x)), f(f(f(x)))...
-
-    '''
-    state = start
-
-    while True:
-        yield state
-        state = step(state)
-
-
-def converge(values: Iterator[X], done: Callable[[X, X], bool]) -> Iterator[X]:
-    '''Read from a stream of values until two consecutive values satisfy
-    the given done function.
-
-    Will error out if the stream runs out before the predicate is
-    satisfied (including streams with 0 or 1 values) and will loop
-    forever if the stream doesn't end *or* converge.
-
-    '''
-    a = next(values)
-
-    for b in values:
-        if done(a, b):
-            break
-        else:
-            a = b
-            yield b
 
 
 def condition_vf_dict(v1: V[S], v2: V[S]) -> bool:
