@@ -125,8 +125,8 @@ class FiniteMarkovDecisionProcess(MarkovDecisionProcess[S, A]):
                 actions = policy.act(state)
                 if actions is not None:
                     for action, p_action in actions:
-                        for outcome, p_state in action_map[action]:
-                            outcomes[outcome] += p_action * p_state
+                        for outcome, p_state_reward in action_map[action]:
+                            outcomes[outcome] += p_action * p_state_reward
 
                 transition_mapping[state] = Categorical(outcomes)
 
