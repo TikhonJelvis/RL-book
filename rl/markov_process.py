@@ -87,11 +87,7 @@ class FiniteMarkovProcess(MarkovProcess[S]):
 
         for i, s1 in enumerate(self.non_terminal_states):
             for j, s2 in enumerate(self.non_terminal_states):
-                next_states = self.transition(s1)
-                if next_states is None:
-                    mat[i, j] = 0.0
-                else:
-                    mat[i, j] = next_states.probability(s2)
+                mat[i, j] = self.transition(s1).probability(s2)
 
         return mat
 
