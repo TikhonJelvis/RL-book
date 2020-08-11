@@ -917,16 +917,17 @@ Note that we are (as usual) assuming the fact that the Markov Reward Process is 
 \begin{equation}
 \begin{split}
 V(s) & = \mathbb{E}[R_{t+1}|S_t=s] + \gamma \cdot \mathbb{E}[R_{t+2}|S_t=s] + \gamma^2 \cdot \mathbb{E}[R_{t+3}|S_t=s] + \ldots \\
-& = \mathcal{R}(s) + \gamma \cdot \sum_{s'\in \mathcal{S}} \mathbb{P}[S_{t+1}=s'|S_t=s] \cdot \mathbb{E}[R_{t+2}|S_{t+1}=s'] \\
-& \hspace{4mm} + \gamma^2 \cdot \sum_{s' \in \mathcal{S}} \mathbb{P}[S_{t+1}=s'|S_t=s] \sum_{s'' \in \mathcal{S}} \mathbb{P}[S_{t+2}=s''|S_{t+1}=s'] \cdot \mathbb{E}[R_{t+3}|S_{t+2}=s''] \\
+& = \mathcal{R}(s) + \gamma \cdot \sum_{s'\in \mathcal{N}} \mathbb{P}[S_{t+1}=s'|S_t=s] \cdot \mathbb{E}[R_{t+2}|S_{t+1}=s'] \\
+& \hspace{4mm} + \gamma^2 \cdot \sum_{s' \in \mathcal{N}} \mathbb{P}[S_{t+1}=s'|S_t=s] \sum_{s'' \in \mathcal{N}} \mathbb{P}[S_{t+2}=s''|S_{t+1}=s'] \cdot \mathbb{E}[R_{t+3}|S_{t+2}=s''] \\
 & \hspace{4mm} + \ldots \\
-& = \mathcal{R}(s) + \gamma \cdot \sum_{s'\in \mathcal{S}} \mathcal{P}(s, s') \cdot \mathcal{R}(s') + \gamma^2 \cdot \sum_{s' \in \mathcal{S}} \mathcal{P}(s, s') \sum_{s'' \in \mathcal{S}} \mathcal{P}(s', s'') \cdot \mathcal{R}(s'') + \ldots \\
-& = \mathcal{R}(s) + \gamma \cdot \sum_{s' \in \mathcal{S}} \mathcal{P}(s,s')\cdot ( \mathcal{R}(s') + \gamma \cdot \sum_{s'' \in \mathcal{S}} \mathcal{P}(s', s'') \cdot \mathcal{R}(s'') + \ldots ) \\
-& = \mathcal{R}(s) + \gamma \cdot \sum_{s' \in \mathcal{S}} \mathcal{P}(s, s') \cdot V(s') \text{ for all } s \in \mathcal{N}
+& = \mathcal{R}(s) + \gamma \cdot \sum_{s'\in \mathcal{N}} \mathcal{P}(s, s') \cdot \mathcal{R}(s') + \gamma^2 \cdot \sum_{s' \in \mathcal{N}} \mathcal{P}(s, s') \sum_{s'' \in \mathcal{N}} \mathcal{P}(s', s'') \cdot \mathcal{R}(s'') + \ldots \\
+& = \mathcal{R}(s) + \gamma \cdot \sum_{s' \in \mathcal{N}} \mathcal{P}(s,s')\cdot ( \mathcal{R}(s') + \gamma \cdot \sum_{s'' \in \mathcal{N}} \mathcal{P}(s', s'') \cdot \mathcal{R}(s'') + \ldots ) \\
+& = \mathcal{R}(s) + \gamma \cdot \sum_{s' \in \mathcal{N}} \mathcal{P}(s, s') \cdot V(s') \text{ for all } s \in \mathcal{N}
 \end{split}
 \label{eq:mrp_bellman_eqn}
 \end{equation} 
 
+Note that although the transitions to random states $s',s'', \ldots$ are in the state space of $\mathcal{S}$ rather than $\mathcal{N}$, the right-hand-side above sums over states $s', s'', \ldots$ only in $\mathcal{N}$ because transitions to terminal states (in $\mathcal{T} = \mathcal{S} - \mathcal{N}$) don't contribute any reward beyond the rewards produced *before reaching* the terminal state.
 
 We refer to this recursive equation \eqref{eq:mrp_bellman_eqn} for the Value Function as the Bellman Equation for Markov Reward Processes. Figure \ref{fig:mrp_bellman_tree} is a convenient visualization aid of this important equation. In the rest of the book, we will depict quite a few of these type of state-transition visualizations to aid with creating mental models of key concepts.
 

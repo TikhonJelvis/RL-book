@@ -262,16 +262,25 @@ $$G: \mathbb{R}^m \rightarrow (\mathcal{N} \rightarrow \mathcal{A})$$
 interpreted as a function mapping a Value Function $\bv$ (represented as a vector) to a deterministic policy $\pi_D': \mathcal{N} \rightarrow \mathcal{A}$, is defined as:
 
 \begin{equation}
-G(\bv)(s) = \pi_D'(s) = \argmax_{a\in \mathcal{A}} \{\mathcal{R}(s,a) + \gamma \sum_{s' \in \mathcal{S}} \mathcal{P}(s,a,s') \cdot \bv(s')\}
+G(\bv)(s) = \pi_D'(s) = \argmax_{a\in \mathcal{A}} \{\mathcal{R}(s,a) + \gamma \sum_{s' \in \mathcal{N}} \mathcal{P}(s,a,s') \cdot \bv(s') \} \text{ for all } s \in \mathcal{N}
 \label{eq:greedy_policy_function1}
 \end{equation}
+We shall use Equation \eqref{eq:greedy_policy_function1} in our mathematical exposition but we require a different (but equivalent) expression for $G(\bv)(s)$ to guide us with our code since the interface for `FiniteMarkovDecisionProcess` operates on $\mathcal{P}_R$, rather than $\mathcal{R}$ and $\mathcal{P}$. The equivalent expression for $G(\bv)(s)$ is as follows:
 \begin{equation}
- = \argmax_{a\in \mathcal{A}} \{\sum_{r\in \mathbb{R}} \sum_{s' \in \mathcal{S}} \mathcal{P}_R(s,a,r,s') \cdot (r  + \gamma \cdot \bv(s'))\} \text{ for all } s\in \mathcal{N}
+ G(\bv)(s )= \argmax_{a\in \mathcal{A}} \{\sum_{s'\in \mathcal{S}} \sum_{r \in \mathbb{R}} \mathcal{P}_R(s,a,r,s') \cdot (r  + \gamma \cdot \bm{W}(s'))\} \text{ for all } s\in \mathcal{N}
 \label{eq:greedy_policy_function2}
 \end{equation}
 
-We shall use Equation \eqref{eq:greedy_policy_function1} in our mathematical exposition and we shall use Equation \eqref{eq:greedy_policy_function2} in our code since the interface for `FiniteMarkovDecisionProcess` has a representation for $\mathcal{P}_R$ but not for $\mathcal{R}$ and $\mathcal{P}$. Now let's write some code to create this "greedy policy" from a given value function.
+where $\bm{W} \in \mathbb{R}^n$ is defined as:
 
+$$\bm{W}(s') =
+\begin{cases}
+\bv(s') & \text{ if } s' \in \mathcal{N} \\
+0 & \text{ if } s' \in \mathcal{T} = \mathcal{S} - \mathcal{N}
+\end{cases}
+$$
+
+Now let's write some code to create this "greedy policy" from a given value function, guided by Equation \eqref{eq:greedy_policy_function2}.
 ```python
 def greedy_policy_from_vf(
     mdp: FiniteMarkovDecisionProcess[S, A],
@@ -297,7 +306,7 @@ def greedy_policy_from_vf(
     return FinitePolicy(greedy_policy_dict)
 ```
 
-As you can see above, we loop through all the non-terminal states that serve as keys in `greedy_policy_dict: Dict[S, FiniteDistribution[A]]`. The inner loop goes through all the actions in $\mathcal{A}(s)$ and computes Q-Value $Q(s,a)$ as the sum (over all $(r,s')$ pairs) of $\mathcal{P}_R(s,a,r,s') \cdot (r  + \gamma \cdot \bv(s'))$  for each non-terminal state $s$ and for each of it's allowable actions $\mathcal{A}(s)$. Finally, we calculate $\argmax_a Q(s,a)$ for all non-terminal states $s$, and return it as a `FinitePolicy` (which is our greedy policy).
+As you can see above, we loop through all the non-terminal states that serve as keys in `greedy_policy_dict: Dict[S, FiniteDistribution[A]]`. The inner loop goes through all the actions in $\mathcal{A}(s)$ and computes Q-Value $Q(s,a)$ as the sum (over all $(r,s')$ pairs) of $\mathcal{P}_R(s,a,r,s') \cdot (r  + \gamma \cdot \bv(s'))$. Finally, we calculate $\argmax_a Q(s,a)$ for all non-terminal states $s$, and return it as a `FinitePolicy` (which is our greedy policy).
 
 The word "Greedy" is a reference to the term "Greedy Algorithm", which means an algorithm that takes heuristic steps guided by locally-optimal choices in the hope of moving towards a global optimum. Here, the reference to *Greedy Policy* means if we have a policy $\pi$ and its corresponding Value Function $\bvpi$ (obtained say using Policy Evaluation algorithm), then applying the Greedy Policy function $G$ on $\bvpi$ gives us a deterministic policy $\pi_D': \mathcal{N} \rightarrow \mathcal{A}$ that is hopefully "better" than $\pi$ in the sense that $\bm{V}^{\pi_D'}$ is "greater" than $\bvpi$. We shall now make this statement precise and show how to use the *Greedy Policy Function* to perform *Policy Improvement*.
 
@@ -339,10 +348,10 @@ $$\bm{B}^{\pi_D'}(\bvpi) \geq \bvpi$$
 
 Note that:
 
-$$\bm{B}^{\pi_D'}(\bvpi)(s) = \mathcal{R}(s,\pi_D'(s)) + \gamma \sum_{s'\in \mathcal{S}} \mathcal{P}(s,\pi_D'(s),s') \cdot \bvpi(s') \text{ for all } s \in \mathcal{N}$$
+$$\bm{B}^{\pi_D'}(\bvpi)(s) = \mathcal{R}(s,\pi_D'(s)) + \gamma \sum_{s'\in \mathcal{N}} \mathcal{P}(s,\pi_D'(s),s') \cdot \bvpi(s') \text{ for all } s \in \mathcal{N}$$
 
-From Equation \eqref{eq:greedy_policy_function1}, we know that for each $s \in \mathcal{N}$, $\pi_D'(s) = G(\bvpi)(s)$ is the action that maximizes $\{\mathcal{R}(s,a) + \gamma \sum_{s' \in \mathcal{S}} \mathcal{P}(s,a,s') \cdot \bvpi(s')\}$. Therefore,
-$$\bm{B}^{\pi_D'}(\bvpi)(s) = \max_{a \in \mathcal{A}} \{\mathcal{R}(s,a) + \gamma \sum_{s' \in \mathcal{S}} \mathcal{P}(s,a,s') \cdot \bvpi(s')\} = \max_{a \in \mathcal{A}} Q^{\pi}(s,a) \text{ for all } s \in \mathcal{N}$$
+From Equation \eqref{eq:greedy_policy_function1}, we know that for each $s \in \mathcal{N}$, $\pi_D'(s) = G(\bvpi)(s)$ is the action that maximizes $\{\mathcal{R}(s,a) + \gamma \sum_{s' \in \mathcal{N}} \mathcal{P}(s,a,s') \cdot \bvpi(s')\}$. Therefore,
+$$\bm{B}^{\pi_D'}(\bvpi)(s) = \max_{a \in \mathcal{A}} \{\mathcal{R}(s,a) + \gamma \sum_{s' \in \mathcal{N}} \mathcal{P}(s,a,s') \cdot \bvpi(s')\} = \max_{a \in \mathcal{A}} Q^{\pi}(s,a) \text{ for all } s \in \mathcal{N}$$
 Let's compare this equation against the Bellman Policy Equation for $\pi$ (below):
 $$\bvpi(s) = \sum_{a \in \mathcal{A}} \pi(s, a) \cdot Q^{\pi}(s, a) \text{ for all } s \in \mathcal{N}$$
 We see that $\bvpi(s)$ is a weighted average of $Q^{\pi}(s,a)$ (with weights equal to probabilities $\pi(s,a)$ over choices of $a$) while $\bm{B}^{\pi_D'}(\bvpi)(s)$ is the maximum (over choices of $a$) of $Q^{\pi}(s,a)$. Therefore,
@@ -354,15 +363,15 @@ $$\text{If } (\bm{B}^{\pi_D'})^{i+1}(\bvpi) \geq (\bm{B}^{\pi_D'})^i(\bvpi), \te
 
 Since $(\bm{B}^{\pi_D'})^{i+1}(\bvpi) = \bm{B}^{\pi_D'}((\bm{B}^{\pi_D'})^i(\bvpi))$, from the definition of Bellman Policy Operator (Equation \eqref{eq:bellman_policy_operator}), we can write the following two equations:
 
-$$(\bm{B}^{\pi_D'})^{i+2}(\bvpi)(s) = \mathcal{R}(s,\pi_D'(s)) + \gamma \sum_{s'\in \mathcal{S}} \mathcal{P}(s,\pi_D'(s),s') \cdot (\bm{B}^{\pi_D'})^{i+1}(\bvpi)(s') \text{ for all } s \in \mathcal{N}$$
-$$(\bm{B}^{\pi_D'})^{i+1}(\bvpi)(s) = \mathcal{R}(s,\pi_D'(s)) + \gamma \sum_{s'\in \mathcal{S}} \mathcal{P}(s,\pi_D'(s),s') \cdot (\bm{B}^{\pi_D'})^i(\bvpi)(s') \text{ for all } s \in \mathcal{N}$$
+$$(\bm{B}^{\pi_D'})^{i+2}(\bvpi)(s) = \mathcal{R}(s,\pi_D'(s)) + \gamma \sum_{s'\in \mathcal{N}} \mathcal{P}(s,\pi_D'(s),s') \cdot (\bm{B}^{\pi_D'})^{i+1}(\bvpi)(s') \text{ for all } s \in \mathcal{N}$$
+$$(\bm{B}^{\pi_D'})^{i+1}(\bvpi)(s) = \mathcal{R}(s,\pi_D'(s)) + \gamma \sum_{s'\in \mathcal{N}} \mathcal{P}(s,\pi_D'(s),s') \cdot (\bm{B}^{\pi_D'})^i(\bvpi)(s') \text{ for all } s \in \mathcal{N}$$
 Subtracting each side of the second equation from the first equation yields:
 
 $$(\bm{B}^{\pi_D'})^{i+2}(\bvpi)(s) - (\bm{B}^{\pi_D'})^{i+1}(s)$$
-$$= \gamma \sum_{s' \in \mathcal{S}} \mathcal{P}(s, \pi_D'(s), s') \cdot ((\bm{B}^{\pi_D'})^{i+1}(\bvpi)(s') - (\bm{B}^{\pi_D'})^i(\bvpi)(s'))$$
+$$= \gamma \sum_{s' \in \mathcal{N}} \mathcal{P}(s, \pi_D'(s), s') \cdot ((\bm{B}^{\pi_D'})^{i+1}(\bvpi)(s') - (\bm{B}^{\pi_D'})^i(\bvpi)(s'))$$
 for all $s \in \mathcal{N}$
 
-Since $\gamma \mathcal{P}(s,\pi_D'(s),s')$ consists of all non-negative values and since the induction step assumes $(\bm{B}^{\pi_D'})^{i+1}(\bvpi)(s') \geq (\bm{B}^{\pi_D'})^i(\bvpi)(s')$ for all $s' \in \mathcal{S}$, the right-hand-side of this equation is non-negative,  meaning the left-hand-side of this equation is non-negative, i.e., 
+Since $\gamma \mathcal{P}(s,\pi_D'(s),s')$ consists of all non-negative values and since the induction step assumes $(\bm{B}^{\pi_D'})^{i+1}(\bvpi)(s') \geq (\bm{B}^{\pi_D'})^i(\bvpi)(s')$ for all $s' \in \mathcal{N}$, the right-hand-side of this equation is non-negative,  meaning the left-hand-side of this equation is non-negative, i.e., 
 $$(\bm{B}^{\pi_D'})^{i+2}(\bvpi)(s) \geq (\bm{B}^{\pi_D'})^{i+1}(\bvpi)(s) \text{ for all } s \in \mathcal{N}$$
 
 This completes the proof by induction.
@@ -387,9 +396,9 @@ We end these iterations (over $j$) when $\bm{V_{j+1}}$ is essentially the same a
 $$\bm{V_j} = (\bm{B}^{G(\bm{V_j})})^i(\bm{V_j}) = \bm{V_{j+1}} \text{ for all } i = 0, 1, 2, \ldots$$
 In particular, this equation should hold for $i = 1$:
 
-$$\bm{V_j}(s) = \bm{B}^{G(\bm{V_j})}(\bm{V_j})(s) = \mathcal{R}(s, G(\bm{V_j})(s)) + \gamma \sum_{s' \in \mathcal{S}} \mathcal{P}(s, G(\bm{V_j})(s), s') \cdot \bm{V_j}(s') \text{ for all } s \in \mathcal{N}$$
-From Equation \eqref{eq:greedy_policy_function1}, we know that for each $s \in \mathcal{N}$, $\pi_{j+1}(s) = G(\bm{V_j})(s)$ is the action that maximizes $\{\mathcal{R}(s,a) + \gamma \sum_{s' \in \mathcal{S}} \mathcal{P}(s,a,s') \cdot \bm{V_j}(s')\}$. Therefore,
-$$\bm{V_j}(s) = \max_{a \in \mathcal{A}} \{\mathcal{R}(s,a) + \gamma \sum_{s' \in \mathcal{S}} \mathcal{P}(s,a,s') \cdot \bm{V_j}(s')\} \text{ for all  } s \in \mathcal{N}$$ 
+$$\bm{V_j}(s) = \bm{B}^{G(\bm{V_j})}(\bm{V_j})(s) = \mathcal{R}(s, G(\bm{V_j})(s)) + \gamma \sum_{s' \in \mathcal{N}} \mathcal{P}(s, G(\bm{V_j})(s), s') \cdot \bm{V_j}(s') \text{ for all } s \in \mathcal{N}$$
+From Equation \eqref{eq:greedy_policy_function1}, we know that for each $s \in \mathcal{N}$, $\pi_{j+1}(s) = G(\bm{V_j})(s)$ is the action that maximizes $\{\mathcal{R}(s,a) + \gamma \sum_{s' \in \mathcal{N}} \mathcal{P}(s,a,s') \cdot \bm{V_j}(s')\}$. Therefore,
+$$\bm{V_j}(s) = \max_{a \in \mathcal{A}} \{\mathcal{R}(s,a) + \gamma \sum_{s' \in \mathcal{N}} \mathcal{P}(s,a,s') \cdot \bm{V_j}(s')\} \text{ for all  } s \in \mathcal{N}$$ 
 
 But this in fact is the MDP Bellman Optimality Equation which would mean that $\bm{V_j} = \bvs$, i.e., when $V_j$ is close enough to $V_{j+1}$, Policy Iteration would have converged to the Optimal Value Function. The associated deterministic policy at the convergence of the Policy Iteration algorithm ($\pi_j: \mathcal{N} \rightarrow \mathcal{A}$) is an Optimal Policy because $\bm{V}^{\pi_j} = \bm{V_j} = \bvs$, meaning that evaluating the MDP with the deterministic policy $\pi_j$ achieves the Optimal Value Function (depicted in Figure \ref{fig:policy_iteration_convergence}). This means Policy Iteration algorithm solves the MDP Control problem. This proves the following Theorem:
 
@@ -462,17 +471,26 @@ $$\bbs: \mathbb{R}^m \rightarrow \mathbb{R}^m$$
 as the following (non-linear) transformation of a vector (representing a Value Function) in the vector space $\mathbb{R}^m$
 
 \begin{equation}
-\bbs(\bv)(s) = \max_{a\in \mathcal{A}} \{\mathcal{R}(s,a) + \gamma \sum_{s' \in \mathcal{S}} \mathcal{P}(s,a,s') \cdot \bv(s')\}
+\bbs(\bv)(s) = \max_{a\in \mathcal{A}} \{\mathcal{R}(s,a) + \gamma \sum_{s' \in \mathcal{N}} \mathcal{P}(s,a,s') \cdot \bv(s')\} \text{ for all } s \in \mathcal{N}
 \label{eq:bellman_optimality_operator1}
 \end{equation}
+We shall use Equation \eqref{eq:bellman_optimality_operator1} in our mathematical exposition but we require a different (but equivalent) expression for $\bbs(\bv)(s)$ to guide us with our code since the interface for `FiniteMarkovDecisionProcess` operates on $\mathcal{P}_R$, rather than $\mathcal{R}$ and $\mathcal{P}$. The equivalent expression for $\bbs(\bv)(s)$ is as follows:
+
 \begin{equation}
- = \max_{a\in \mathcal{A}} \{\sum_{r \in \mathbb{R}} \sum_{s' \in \mathcal{S}} \mathcal{P}_R(s,a,r,s') \cdot (r + \gamma \cdot \bv(s'))\} \text{ for all } s \in \mathcal{N}
+ \bbs(\bv)(s) = \max_{a\in \mathcal{A}} \{\sum_{s' \in \mathcal{S}} \sum_{r \in \mathbb{R}} \mathcal{P}_R(s,a,r,s') \cdot (r + \gamma \cdot \bm{W}(s'))\} \text{ for all } s \in \mathcal{N}
 \label{eq:bellman_optimality_operator2}
 \end{equation}
 
-We shall use Equation \eqref{eq:bellman_optimality_operator1} in our mathematical exposition and we shall use the Equation \eqref{eq:bellman_optimality_operator2} in our code since the interface for `FiniteMarkovDecisionProcess` has a representation for $\mathcal{P}_R$ but not for $\mathcal{R}$ and $\mathcal{P}$. 
+where $\bm{W} \in \mathbb{R}^n$ is defined (same as in the case of Equation \eqref{eq:greedy_policy_function2}) as:
 
-For each $s\in \mathcal{N}$, the action $a\in \mathcal{A}$ that produces the maximization in \eqref{eq:bellman_optimality_operator1} is the action prescribed by the deterministic policy $\pi_D$ in \eqref{eq:greedy_policy_function1}. Therefore, if we apply the Bellman Policy Operator on any Value Function $\bv \in \mathbb{R}^m$ using the Greedy Policy $G(\bv)$, it should be identical to applying the Bellman Optimality Operator.
+$$\bm{W}(s') =
+\begin{cases}
+\bv(s') & \text{ if } s' \in \mathcal{N} \\
+0 & \text{ if } s' \in \mathcal{T} = \mathcal{S} - \mathcal{N}
+\end{cases}
+$$
+
+For each $s\in \mathcal{N}$, the action $a\in \mathcal{A}$ that produces the maximization in \eqref{eq:bellman_optimality_operator1} is the action prescribed by the deterministic policy $\pi_D$ in \eqref{eq:greedy_policy_function1}. Therefore, if we apply the Bellman Policy Operator on any Value Function $\bv \in \mathbb{R}^m$ using the Greedy Policy $G(\bv)$, it should be identical to applying the Bellman Optimality Operator. Therefore,
 
 \begin{equation}
 \bm{B}^{G(\bv)}(\bv) = \bbs(\bv) \text{ for all } \bv \in \mathbb{R}^m
@@ -481,13 +499,13 @@ For each $s\in \mathcal{N}$, the action $a\in \mathcal{A}$ that produces the max
 
 In particular, it's interesting to observe that by specializing $\bv$ to be the Value Function $\bvpi$ for a policy $\pi$, we get:
 $$\bm{B}^{G(\bvpi)}(\bvpi) = \bbs(\bvpi)$$
-which is a succinct representation of the first stage of Policy Evaluation with an improved policy $G(\bvpi)$ (note how all three of Bellman Policy Operator, the Bellman Optimality Operator and Greedy Policy Function come together in this equation).
+which is a succinct representation of the first stage of Policy Evaluation with an improved policy $G(\bvpi)$ (note how all three of Bellman Policy Operator, Bellman Optimality Operator and Greedy Policy Function come together in this equation).
 
 Much like how the Bellman Policy Operator $\bbpi$ was motivated by the MDP Bellman Policy Equation (equivalently, the MRP Bellman Equation), Bellman Optimality Operator $\bbs$ is motivated by the MDP Bellman Optimality Equation (expressed below):
 
-$$\bvs(s) = \max_{a \in \mathcal{A}} \{ \mathcal{R}(s,a) + \gamma \sum_{s' \in \mathcal{S}} \mathcal{P}(s,a,s') \cdot \bvs(s') \} \text{ for all } s \in \mathcal{N}$$
+$$\bvs(s) = \max_{a \in \mathcal{A}} \{ \mathcal{R}(s,a) + \gamma \sum_{s' \in \mathcal{N}} \mathcal{P}(s,a,s') \cdot \bvs(s') \} \text{ for all } s \in \mathcal{N}$$
 
-Note that the MDP Bellman Optimality Equation can be expressed as:
+Therefore, we can express the MDP Bellman Optimality Equation succinctly as:
 
 $$\bvs = \bbs(\bvs)$$
 
@@ -504,18 +522,18 @@ This proof is a bit harder than the proof we did for $\bbpi$. Here we'd need to 
 1. Monotonicity Property, i.e, for all $\bm{X}, \bm{Y} \in \mathbb{R}^m$,
 $$\text{ If } \bm{X}(s) \geq \bm{Y}(s) \text{ for all } s \in \mathcal{N}, \text{ then } \bbs(\bm{X})(s) \geq \bbs(\bm{Y})(s) \text{ for all } s \in \mathcal{N}$$
 Observe that for each state $s \in \mathcal{N}$ and each action $a \in \mathcal{A}$,
-$$\{\mathcal{R}(s,a) + \gamma \sum_{s' \in \mathcal{S}} \mathcal{P}(s,a,s') \cdot \bm{X}(s')\} - \{\mathcal{R}(s,a) + \gamma \sum_{s' \in \mathcal{S}} \mathcal{P}(s,a,s') \cdot \bm{Y}(s')\}$$
-$$ = \gamma \sum_{s' \in \mathcal{S}} \mathcal{P}(s,a,s') \cdot (\bm{X}(s') - \bm{Y}(s')) \geq 0$$
+$$\{\mathcal{R}(s,a) + \gamma \sum_{s' \in \mathcal{N}} \mathcal{P}(s,a,s') \cdot \bm{X}(s')\} - \{\mathcal{R}(s,a) + \gamma \sum_{s' \in \mathcal{N}} \mathcal{P}(s,a,s') \cdot \bm{Y}(s')\}$$
+$$ = \gamma \sum_{s' \in \mathcal{N}} \mathcal{P}(s,a,s') \cdot (\bm{X}(s') - \bm{Y}(s')) \geq 0$$
 Therefore for each state $s \in \mathcal{N}$,
 $$\bbs(\bm{X})(s) - \bbs(\bm{Y})(s)$$
-$$= \max_{a\in \mathcal{A}} \{\mathcal{R}(s,a) + \gamma \sum_{s' \in \mathcal{S}} \mathcal{P}(s,a,s') \cdot \bm{X}(s')\} - \max_{a \in \mathcal{A}} \{\mathcal{R}(s,a) + \gamma \sum_{s' \in \mathcal{S}} \mathcal{P}(s,a,s') \cdot \bm{Y}(s')\} \geq 0$$
+$$= \max_{a\in \mathcal{A}} \{\mathcal{R}(s,a) + \gamma \sum_{s' \in \mathcal{N}} \mathcal{P}(s,a,s') \cdot \bm{X}(s')\} - \max_{a \in \mathcal{A}} \{\mathcal{R}(s,a) + \gamma \sum_{s' \in \mathcal{N}} \mathcal{P}(s,a,s') \cdot \bm{Y}(s')\} \geq 0$$
 
 2. Constant Shift Property, i.e., for all $\bm{X} \in \mathbb{R}^m$, $c \in \mathbb{R}$,
 $$\bbs(\bm{X} + c)(s) = \bbs(\bm{X})(s) + \gamma c \text{ for all } s \in \mathcal{N}$$
 In the above statement, adding a constant ($\in \mathbb{R}$) to a Value Function ($\in \mathbb{R}^m$) adds the constant point-wise to all states of the Value Function (to all dimensions of the vector representing the Value Function). In other words, a constant $\in \mathbb{R}$ might as well be treated as a Value Function with the same (constant) value for all states. Therefore,
 
-$$\bbs(\bm{X}+c)(s) = \max_{a \in \mathcal{A}} \{ \mathcal{R}(s,a) + \gamma \sum_{s' \in \mathcal{S}} \mathcal{P}(s,a,s') \cdot (\bm{X}(s) + c) \}$$
-$$ = \max_{a \in \mathcal{A}} \{ \mathcal{R}(s,a) + \gamma \sum_{s' \in \mathcal{S}} \mathcal{P}(s,a,s') \cdot \bm{X}(s) \} + \gamma c = \bbs(\bm{X}) + \gamma c$$
+$$\bbs(\bm{X}+c)(s) = \max_{a \in \mathcal{A}} \{ \mathcal{R}(s,a) + \gamma \sum_{s' \in \mathcal{N}} \mathcal{P}(s,a,s') \cdot (\bm{X}(s) + c) \}$$
+$$ = \max_{a \in \mathcal{A}} \{ \mathcal{R}(s,a) + \gamma \sum_{s' \in \mathcal{N}} \mathcal{P}(s,a,s') \cdot \bm{X}(s) \} + \gamma c = \bbs(\bm{X}) + \gamma c$$
 
 With these two properties of $\bbs$ in place, let's prove that $\bbs$ is a contraction function. For given $\bm{X}, \bm{Y} \in \mathbb{R}^m$, assume:
 $$\max_{s \in \mathcal{N}} |(\bm{X} - \bm{Y})(s)| = c$$
@@ -753,7 +771,7 @@ In practice, Dynamic Programming algorithms are typically implemented as *Asynch
 
 Another feature of practical asynchronous algorithms is that we can prioritize the order in which state values are updated. There are many ways in which algorithms assign priorities, and we'll just highlight a simple but effective way of prioritizing state value updates. It's known as *prioritized sweeping*. We maintain a queue of the states sorted by their "value function gaps" $g: \mathcal{N} \rightarrow \mathbb{R}$ (illustrated below as an example for Value Iteration):
 
-$$g(s) = |V(s) - \argmax_{a\in \mathcal{A}} (\mathcal{R}(s,a) + \sum_{s' \in \mathcal{S}} \mathcal{P}(s,a,s') \cdot V(s'))| \text{ for all } s \in \mathcal{N}$$
+$$g(s) = |V(s) - \argmax_{a\in \mathcal{A}} (\mathcal{R}(s,a) + \sum_{s' \in \mathcal{N}} \mathcal{P}(s,a,s') \cdot V(s'))| \text{ for all } s \in \mathcal{N}$$
 
 After each state's value is updated with the Bellman Optimality Operator, we update the Value Function Gap for all the states whose Value Function Gap does get changed as a result of this state value update. These are exactly the states from which we have a probabilistic transition to the state whose value just got updated. What this also means is that we need to maintain the reverse transition dynamics in our data structure representation. So, after each state value update, the queue of states is resorted (by their value function gaps). We always pull out the state with the largest value function gap (from the top of the queue), and update the value function for that state. This prioritizes updates of states with the largest gaps, and it ensures that we quickly get to a point where all value function gaps are low enough.
 
