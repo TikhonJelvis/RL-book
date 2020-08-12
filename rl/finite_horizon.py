@@ -113,12 +113,12 @@ def evaluate_state_reward(v: V[S],
         return result.expectation(lambda s_r: v[s_r[0]] + s_r[1])
 
 
-def evaluate(steps: Sequence[RewardTransition[S_time]]) -> V[S_time]:
+def evaluate(steps: Sequence[RewardTransition[S]]) -> V[S]:
     '''Evaluate the given finite Markov reward process using backwards
     induction, given that the process stops after limit time steps.
 
     '''
-    v: Dict[S_time, float] = defaultdict(float)
+    v: Dict[S, float] = defaultdict(float)
 
     for step in reversed(steps):
         for s in step:
@@ -188,16 +188,16 @@ def unwrap_finite_horizon_MDP(
 
 
 def optimal_policy(
-        steps: Sequence[StateActionMapping[S_time, A]]
-) -> FinitePolicy[S_time, A]:
+        steps: Sequence[StateActionMapping[S, A]]
+) -> FinitePolicy[S, A]:
     '''Use backwards induction to find the optimal policy for the given
     finite Markov decision process.
 
     '''
-    p: Dict[S_time, Optional[FiniteDistribution[A]]] = {}
-    v: Dict[S_time, float] = defaultdict(float)
+    p: Dict[S, Optional[FiniteDistribution[A]]] = {}
+    v: Dict[S, float] = defaultdict(float)
 
-    def best_action(actions: ActionMapping[A, S_time]) -> Tuple[A, float]:
+    def best_action(actions: ActionMapping[A, S]) -> Tuple[A, float]:
         action_values =\
             ((a, evaluate_state_reward(v, actions[a])) for a in actions)
         return max(action_values, key=lambda a_v: a_v[1])
