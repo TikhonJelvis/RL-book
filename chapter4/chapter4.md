@@ -280,6 +280,8 @@ $$\bm{W}(s') =
 \end{cases}
 $$
 
+Note that in Equation \eqref{eq:greedy_policy_function}, because we have to work with $\mathcal{P}_R$, we need to consider transitions to all states $s' \in \mathcal{S}$ (versus transition to all states $s' \in \mathcal{N}$ in Equation \eqref{eq:greedy_policy_function1}), and so, we need to handle the transitions to states $s' in \mathcal{T}$ carefully (essentially by using the $\bm{W}$ function as described above).
+
 Now let's write some code to create this "greedy policy" from a given value function, guided by Equation \eqref{eq:greedy_policy_function2}.
 ```python
 def greedy_policy_from_vf(
@@ -489,6 +491,8 @@ $$\bm{W}(s') =
 0 & \text{ if } s' \in \mathcal{T} = \mathcal{S} - \mathcal{N}
 \end{cases}
 $$
+
+Note that in Equation \eqref{eq:bellman_optimality_operator2}, because we have to work with $\mathcal{P}_R$, we need to consider transitions to all states $s' \in \mathcal{S}$ (versus transition to all states $s' \in \mathcal{N}$ in Equation \eqref{eq:bellman_optimality_operator1}), and so, we need to handle the transitions to states $s' in \mathcal{T}$ carefully (essentially by using the $\bm{W}$ function as described above).
 
 For each $s\in \mathcal{N}$, the action $a\in \mathcal{A}$ that produces the maximization in \eqref{eq:bellman_optimality_operator1} is the action prescribed by the deterministic policy $\pi_D$ in \eqref{eq:greedy_policy_function1}. Therefore, if we apply the Bellman Policy Operator on any Value Function $\bv \in \mathbb{R}^m$ using the Greedy Policy $G(\bv)$, it should be identical to applying the Bellman Optimality Operator. Therefore,
 
