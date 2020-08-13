@@ -89,6 +89,7 @@ class FiniteMarkovDecisionProcess(MarkovDecisionProcess[S, A]):
     # to be compatible with MarkovRewardProcess, apply_policy has to
     # work even if the policy is *not* finite.
     def apply_policy(self, policy: Policy[S, A]) -> MarkovRewardProcess[S]:
+        mapping = self.mapping
 
         mapping = self.mapping
 
@@ -98,6 +99,7 @@ class FiniteMarkovDecisionProcess(MarkovDecisionProcess[S, A]):
                     -> Optional[Distribution[Tuple[S, float]]]:
 
                 action_map: Optional[ActionMapping[A, S]] = mapping[state]
+
                 if action_map is None:
                     return None
                 else:
@@ -116,6 +118,7 @@ class FiniteMarkovDecisionProcess(MarkovDecisionProcess[S, A]):
 
         for state in self.mapping:
             action_map: Optional[ActionMapping[A, S]] = self.mapping[state]
+
             if action_map is None:
                 transition_mapping[state] = None
             else:
@@ -134,9 +137,16 @@ class FiniteMarkovDecisionProcess(MarkovDecisionProcess[S, A]):
 
     # Note: For now, this is only available on finite MDPs; this might
     # change in the future.
-    def actions(self, state: S) -> Optional[Iterable[A]]:
+    def actions(self, state: S) -> Iterable[A]:
         '''All the actions allowed for the given state.
+
+        This will be empty for terminal states.
 
         '''
         actions = self.mapping[state]
-        return None if actions is None else actions.keys()
+
+        if actions is None:
+            return iter([])
+        else:
+            return actions.keys()
+
