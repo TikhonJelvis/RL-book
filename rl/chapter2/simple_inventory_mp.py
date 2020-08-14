@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Tuple, Mapping, Dict
+from typing import Mapping, Dict
 from rl.distribution import Categorical
 from rl.markov_process import Transition, FiniteMarkovProcess
 from scipy.stats import poisson
