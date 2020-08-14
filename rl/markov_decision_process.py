@@ -91,8 +91,6 @@ class FiniteMarkovDecisionProcess(MarkovDecisionProcess[S, A]):
     def apply_policy(self, policy: Policy[S, A]) -> MarkovRewardProcess[S]:
         mapping = self.mapping
 
-        mapping = self.mapping
-
         class Process(MarkovRewardProcess[S]):
 
             def transition_reward(self, state: S)\
@@ -149,4 +147,3 @@ class FiniteMarkovDecisionProcess(MarkovDecisionProcess[S, A]):
             return iter([])
         else:
             return actions.keys()
-
