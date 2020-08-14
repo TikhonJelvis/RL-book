@@ -1,10 +1,4 @@
-from typing import Callable, Mapping, Iterator, TypeVar, List, Tuple, Dict
-
-from rl.markov_decision_process import (FiniteMarkovDecisionProcess,
-                                        FiniteMarkovRewardProcess)
-from rl.markov_decision_process import FinitePolicy
-from rl.distribution import Categorical, Constant, Choose, FiniteDistribution
-
+from typing import Mapping, Iterator, TypeVar, List, Tuple, Dict
 import operator
 
 from rl.iterate import converged, iterate
@@ -71,7 +65,7 @@ def greedy_policy_from_vf(
     for s in mdp.non_terminal_states:
 
         q_values: List[Tuple[A, float]] = []
-        action_map: Optional[ActionMapping[A, S]] = mdp.mapping[s]
+        action_map: ActionMapping[A, S] = mdp.mapping[s]
 
         for a in mdp.actions(s):
             q_val: float = 0.
