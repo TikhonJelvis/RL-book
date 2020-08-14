@@ -118,11 +118,11 @@ def converge(values: Iterator[X], done: Callable[[X, X], bool]) -> Iterator[X]:
     yield a
 
     for b in values:
-        yield b
         if done(a, b):
             break
         else:
             a = b
+            yield b
 ```
 
 The above function takes the generated values from `iterate` (argument `values: Iterator[X]`) and a signal to indicate convergence (argument `done: Callable[[X, X], bool]`), and produces the generated values until `done` is `True`. It is the user's responsibility to write the function `done` and pass it to `converge`. Now let's use these two functions to solve for $x=\cos(x)$.
@@ -162,7 +162,7 @@ This prints a trace with the index of the stream and the value at that index as 
 18: 0.739
 ```
 
-We encourage you to try other starting values (other than the one we have above: $x_0 = 0.0$) and see the trace. We also encourage you to identify other function $f$ which are contractions in an appropriate metric. The above fixed-point code is in the file [rl/gen_utils/fixed_point.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/gen_utils/fixed_point.py).
+We encourage you to try other starting values (other than the one we have above: $x_0 = 0.0$) and see the trace. We also encourage you to identify other function $f$ which are contractions in an appropriate metric. The above fixed-point code is in the file [rl/iterate.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/iterate.py). In this file, you will find two more functions `last` and `converged` to produce the final value of the given iterator when it's values converge according to the `done` function.
 
 ## Bellman Policy Operator and Policy Evaluation Algorithm
 
@@ -225,17 +225,20 @@ We stop the algorithm when $d(\bm{V_i}, \bm{V_{i+1}}) = \max_{s \in \mathcal{N}}
 It pays to emphasize that Banach Fixed-Point Theorem not only assures convergence to the unique solution $\bvpi$ (no matter what Value Function $\bm{V_0}$ we start the algorithm with), it also assures a reasonable speed of convergence (dependent on the choice of starting Value Function $\bm{V_0}$ and the choice of $\gamma$). Now let's write the code for Policy Evaluation.
 
 ```python
+DEFAULT_TOLERANCE = 1e-5
 V = Mapping[S, float]
 
-DEFAULT_TOLERANCE = 1e-5
-
-def condition_vf_dict(v1: V[S], v2: V[S]) -> bool:
-    return max([abs(v1[s] - v2[s]) for s in v1.keys()]) < DEFAULT_TOLERANCE
+def almost_equal_vfs(
+    v1: V[S],
+    v2: V[S],
+    tolerance: float = DEFAULT_TOLERANCE
+) -> bool:
+    return max([abs(v1[s] - v2[s]) for s in v1.keys()]) < tolerance
 
 def evaluate_mrp(
     mrp: FiniteMarkovRewardProcess[S],
     gamma: float
-) -> V[S]:
+) -> Iterator[V[S]]:
     def update(v: V[S]) -> V[S]:
         return {s: mrp.reward_function_vec[i] + gamma *
                 sum(p * v.get(s1, 0.) for s1, p in mrp.transition_map[s])
@@ -243,13 +246,16 @@ def evaluate_mrp(
 
     v_0: V[S] = {s: 0. for s in mrp.non_terminal_states}
 
-    return list(converge(
-        iterate(update, v_0),
-        done=condition_vf_dict
-    ))[-1]
+    return iterate(update, v_0)
+
+def evaluate_mrp_result(
+    mrp: FiniteMarkovRewardProcess[S],
+    gamma: float
+) -> V[S]:
+    return converged(evaluate_mrp(mrp, gamma=gamma), done=almost_equal_vfs)
 ```
 
-The code should be fairly self-explanatory. Since the Policy Evaluation problem applies to Finite MRPs, the function `evaluate` above takes as input `mrp: FiniteMarkovDecisionProcess[S]` and a `gamma: float` to produce a Value Function of type `V[S]` which is an alias for `Mapping[S, float]` (representing $\mathcal{N} \rightarrow \mathbb{R}$). The function `update` in `evaluate_mrp` represents the application of the Bellman Policy Operator $\bbpi$. Note the familiar use of `converge(iterate(...))` as we had done for the cosine example.
+The code should be fairly self-explanatory. Since the Policy Evaluation problem applies to Finite MRPs, the function `evaluate_mrp` above takes as input `mrp: FiniteMarkovDecisionProcess[S]` and a `gamma: float` to produce an `Iterator` on the Value Function of type `V[S]` (alias for `Mapping[S, float]`) that represents $\mathcal{N} \rightarrow \mathbb{R}$. The function `update` in `evaluate_mrp` represents the application of the Bellman Policy Operator $\bbpi$. The function `evaluate_mrp_result` produces the Value Function for the given `mrp` and the given `gamma`, returning the last value function on the `Iterator` (which terminates based on the `almost_equal_vfs` function, considering the maximum of the absolute value differences between the value functions for each of the states). Note that `evaluate_mrp` is useful for debugging (by looking at the trace of value functions in the execution of the Policy Evaluation algorithm) while `evaluate_mrp_result` produces the desired output Value Function.
 
 If the number of non-terminal states of a given MRP is $m$, then the running time of each iteration is $O(m^2)$. Note though that to construct an MRP from a given MDP and a given policy, we have to perform $O(m^2\cdot k)$ operations, where $k = |\mathcal{A}|$.
 
@@ -280,7 +286,7 @@ $$\bm{W}(s') =
 \end{cases}
 $$
 
-Note that in Equation \eqref{eq:greedy_policy_function}, because we have to work with $\mathcal{P}_R$, we need to consider transitions to all states $s' \in \mathcal{S}$ (versus transition to all states $s' \in \mathcal{N}$ in Equation \eqref{eq:greedy_policy_function1}), and so, we need to handle the transitions to states $s' in \mathcal{T}$ carefully (essentially by using the $\bm{W}$ function as described above).
+Note that in Equation \eqref{eq:greedy_policy_function2}, because we have to work with $\mathcal{P}_R$, we need to consider transitions to all states $s' \in \mathcal{S}$ (versus transition to all states $s' \in \mathcal{N}$ in Equation \eqref{eq:greedy_policy_function1}), and so, we need to handle the transitions to states $s' in \mathcal{T}$ carefully (essentially by using the $\bm{W}$ function as described above).
 
 Now let's write some code to create this "greedy policy" from a given value function, guided by Equation \eqref{eq:greedy_policy_function2}.
 ```python
@@ -294,7 +300,7 @@ def greedy_policy_from_vf(
     for s in mdp.non_terminal_states:
 
         q_values: List[Tuple[A, float]] = []
-        action_map = mdp.mapping[s]
+        action_map: ActionMapping[A, S] = mdp.mapping[s]
 
         for a in mdp.actions(s):
             q_val: float = 0.
@@ -308,7 +314,7 @@ def greedy_policy_from_vf(
     return FinitePolicy(greedy_policy_dict)
 ```
 
-As you can see above, we loop through all the non-terminal states that serve as keys in `greedy_policy_dict: Dict[S, FiniteDistribution[A]]`. The inner loop goes through all the actions in $\mathcal{A}(s)$ and computes Q-Value $Q(s,a)$ as the sum (over all $(r,s')$ pairs) of $\mathcal{P}_R(s,a,r,s') \cdot (r  + \gamma \cdot \bv(s'))$. Finally, we calculate $\argmax_a Q(s,a)$ for all non-terminal states $s$, and return it as a `FinitePolicy` (which is our greedy policy).
+As you can see above, we loop through all the non-terminal states that serve as keys in `greedy_policy_dict: Dict[S, FiniteDistribution[A]]`. The inner loop goes through all the actions in $\mathcal{A}(s)$ and computes Q-Value $Q(s,a)$ as the sum (over all $(r,s')$ pairs) of $\mathcal{P}_R(s,a,r,s') \cdot (r  + \gamma \cdot \bm{W}(s'))$. Finally, we calculate $\argmax_a Q(s,a)$ for all non-terminal states $s$, and return it as a `FinitePolicy` (which is our greedy policy).
 
 The word "Greedy" is a reference to the term "Greedy Algorithm", which means an algorithm that takes heuristic steps guided by locally-optimal choices in the hope of moving towards a global optimum. Here, the reference to *Greedy Policy* means if we have a policy $\pi$ and its corresponding Value Function $\bvpi$ (obtained say using Policy Evaluation algorithm), then applying the Greedy Policy function $G$ on $\bvpi$ gives us a deterministic policy $\pi_D': \mathcal{N} \rightarrow \mathcal{A}$ that is hopefully "better" than $\pi$ in the sense that $\bm{V}^{\pi_D'}$ is "greater" than $\bvpi$. We shall now make this statement precise and show how to use the *Greedy Policy Function* to perform *Policy Improvement*.
 
@@ -411,27 +417,16 @@ For a Finite MDP with $|\mathcal{N}| = m$, Policy Iteration algorithm converges 
 
 ![Policy Iteration Convergence \label{fig:policy_iteration_convergence}](./chapter4/policy_iteration_convergence.png "At Convergence of Policy Iteration")
 
-Now let's write some code for Policy Iteration Algorithm. Unlike Policy Evaluation which repeatedly operates on Value Functions (and returns a Value Function), Policy Iteration repeatedly operates on a on a pair of Value Function and Policy (and returns a pair of Value Function and Policy). In the code below, notice the type `Tuple[V[S], FinitePolicy[S, A]]` that represents a pair of Value Function and Policy. `condition_policy_iteration` is a function to decide termination based on the distance between two successive Value Functions in Policy Iteration. The function `policy_iteration` performs a fixed-point calculation on a pair of Value Function and Policy, with repeated applications of the function `update`. So once you have understood the `update` function, the below implementation of Policy Iteration algorithm will be clear. The `update` function, after splitting its input `vf_policy` into `vf: V[S]` and `pi: FinitePolicy[S, A]`, creates a MRP (`mrp: FiniteMarkovRewardProcess[S]`) from the combination of the input `mdp` and `pi`. Then it performs a policy evaluation on `mrp` (using the `evaluate_mrp` function) to produce a Value Function `policy_vf: V[S]`, and finally creates a greedy (improved) policy named `improved_pi` from `policy_vf` (using the previously-written function `greedy_policy_from_vf`). Thus the function `update` performs a Policy Evaluation followed by a Policy Improvement. Notice also that `policy_iteration` offers the option to perform the matrix-inversion-based computation of Value Function for the given policy (`get_value_function_vec` method of the `mrp` object), in case the state space is not too large.
+Now let's write some code for Policy Iteration Algorithm. Unlike Policy Evaluation which repeatedly operates on Value Functions (and returns a Value Function), Policy Iteration repeatedly operates on a pair of Value Function and Policy (and returns a pair of Value Function and Policy). In the code below, notice the type `Tuple[V[S], FinitePolicy[S, A]]` that represents a pair of Value Function and Policy. The function `policy_iteration` repeatedly applies the function `update` on a pair of Value Function and Policy. The `update` function, after splitting its input `vf_policy` into `vf: V[S]` and `pi: FinitePolicy[S, A]`, creates a MRP (`mrp: FiniteMarkovRewardProcess[S]`) from the combination of the input `mdp` and `pi`. Then it performs a policy evaluation on `mrp` (using the `evaluate_mrp` function) to produce a Value Function `policy_vf: V[S]`, and finally creates a greedy (improved) policy named `improved_pi` from `policy_vf` (using the previously-written function `greedy_policy_from_vf`). Thus the function `update` performs a Policy Evaluation followed by a Policy Improvement. Notice also that `policy_iteration` offers the option to perform the matrix-inversion-based computation of Value Function for a given policy (`get_value_function_vec` method of the `mrp` object), in case the state space is not too large. `policy_iteration` returns an `Iterator` on pairs of Value Function and Policy produced by this process of repeated Policy Evaluation and Policy Improvement.  `almost_equal_vf_pis` is the function to decide termination based on the distance between two successive Value Functions produced by Policy Iteration. `policy_iteration_result` returns the final (optimal) pair of Value Function and Policy (from the `Iterator` produced by `policy_iteration`), based on the termination criterion of `almost_equal_vf_pis`.
 
 ```python
 DEFAULT_TOLERANCE = 1e-5
-
-def condition_policy_iteration(
-    x1: Tuple[V[S], FinitePolicy[S, A]],
-    x2: Tuple[V[S], FinitePolicy[S, A]]
-) -> bool:
-    return max(
-        abs(x1[0][s] - x2[0][s]) for s in x1[0].keys()
-    ) < DEFAULT_TOLERANCE
 
 def policy_iteration(
     mdp: FiniteMarkovDecisionProcess[S, A],
     gamma: float,
     matrix_method_for_mrp_eval: bool = False
-) -> Tuple[V[S], FinitePolicy[S, A]]:
-    '''Calculate the value function (V*) of the given MDP by improving
-    the policy repeatedly after evaluating the value function for a policy
-    '''
+) -> Iterator[Tuple[V[S], FinitePolicy[S, A]]]:
 
     def update(vf_policy: Tuple[V[S], FinitePolicy[S, A]])\
             -> Tuple[V[S], FinitePolicy[S, A]]:
@@ -440,8 +435,7 @@ def policy_iteration(
         mrp: FiniteMarkovRewardProcess[S] = mdp.apply_finite_policy(pi)
         policy_vf: V[S] = {mrp.non_terminal_states[i]: v for i, v in
                            enumerate(mrp.get_value_function_vec(gamma))}\
-            if matrix_method_for_mrp_eval else evaluate_mrp(mrp, gamma)
-
+            if matrix_method_for_mrp_eval else evaluate_mrp_result(mrp, gamma)
         improved_pi: FinitePolicy[S, A] = greedy_policy_from_vf(
             mdp,
             policy_vf,
@@ -450,16 +444,25 @@ def policy_iteration(
 
         return policy_vf, improved_pi
 
-    v_0: Mapping[S, float] = {s: 0.0 for s in mdp.non_terminal_states}
-    pi_0: FinitePolicy[S, A] = FinitePolicy({
-        s: Choose((mdp.actions(s)))
-        for s in mdp.non_terminal_states
-    })
-    vf_pi_0 = (v_0, pi_0)
-    return list(converge(
-        iterate(update, vf_pi_0),
-        done=condition_policy_iteration
-    ))[-1]
+    v_0: V[S] = {s: 0.0 for s in mdp.non_terminal_states}
+    pi_0: FinitePolicy[S, A] = FinitePolicy(
+        {s: Choose(set(mdp.actions(s))) for s in mdp.non_terminal_states}
+    )
+    return iterate(update, (v_0, pi_0))
+
+def almost_equal_vf_pis(
+    x1: Tuple[V[S], FinitePolicy[S, A]],
+    x2: Tuple[V[S], FinitePolicy[S, A]]
+) -> bool:
+    return max(
+        abs(x1[0][s] - x2[0][s]) for s in x1[0].keys()
+    ) < DEFAULT_TOLERANCE
+
+def policy_iteration_result(
+    mdp: FiniteMarkovDecisionProcess[S, A],
+    gamma: float,
+) -> Tuple[V[S], FinitePolicy[S, A]]:
+    return converged(policy_iteration(mdp, gamma), done=almost_equal_vf_pis)
 ```
 
 If the number of non-terminal states of a given MDP is $m$ and the number of actions ($|\mathcal{A}|$) is $k$, then the running time of Policy Improvement is $O(m^2\cdot k)$ and we've already seen before that each iteration of Policy Evaluation is $O(m^2\cdot k)$.
@@ -569,53 +572,6 @@ We stop the algorithm when $d(\bm{V_i}, \bm{V_{i+1}}) = \max_{s \in \mathcal{N}}
 
 It pays to emphasize that Banach Fixed-Point Theorem not only assures convergence to the unique solution $\bvs$ (no matter what Value Function $\bm{V_0}$ we start the algorithm with), it also assures a reasonable speed of convergence (dependent on the choice of starting Value Function $\bm{V_0}$ and the choice of $\gamma$).
 
-Now let's write the code for Value Iteration. The function `value_iteration` below performs the Value Iteration algorithm with the now-familiar pattern of `converge(iterate(...))` using the termination condition function `condition_vf_dict` (that we had seen previously for Policy Evaluation) and using the function `update` (which is essentially the function `bellman_opt_update`) for application of the Bellman Optimality Operator. So we just need to understand `bellman_opt_update`. It's fairly simple: it prepares the Q-Values for a state by looping through all the allowable actions for the state, and then calculates the maximum of those Q-Values (over the actions). The Q-Value calculation is straightforward, using the $\mathcal{P}_R$ probabilities represented in the `mapping` attribute of the `mdp` object (essentially Equation \eqref{eq:bellman_optimality_operator2})
-
-
-```python
-DEFAULT_TOLERANCE = 1e-5
-
-def condition_vf_dict(v1: V[S], v2: V[S]) -> bool:
-    return max([abs(v1[s] - v2[s]) for s in v1.keys()]) < DEFAULT_TOLERANCE
-
-def bellman_opt_update(
-    v: V[S],
-    mdp: FiniteMarkovDecisionProcess[S, A],
-    gamma: float
-) -> V[S]:
-    def update_s(s: S) -> float:
-        return max(sum(p * (r + gamma * v.get(next_s, 0.))
-                       for (next_s, r), p in mdp.mapping[s][a])
-                   for a in mdp.actions(s))
-
-    return {s: update_s(s) for s in v.keys()}
-
-
-def value_iteration(
-    mdp: FiniteMarkovDecisionProcess[S, A],
-    gamma: float
-) -> Tuple[V[S], FinitePolicy[S, A]]:
-    def update(v: V[S]) -> V[S]:
-        return bellman_opt_update(v, mdp, gamma)
-
-    v_0: V[S] = {s: 0.0 for s in mdp.non_terminal_states}
-    opt_vf: V[S] = list(converge(
-        iterate(update, v_0),
-        done=condition_vf_dict
-    ))[-1]
-
-    opt_policy: FinitePolicy[S, A] = greedy_policy_from_vf(
-        mdp,
-        opt_vf,
-        gamma
-    )
-
-    return opt_vf, opt_policy
-```
-
-If the number of non-terminal states of a given MDP is $m$ and the number of actions ($|\mathcal{A}|$) is $k$, then the running time of each iteration of Value Iteration is $O(m^2\cdot k)$.
-
-We encourage you to play with the above implementations of Policy Evaluation, Policy Iteration and Value Iteration (code in the file [rl/dynamic_programming.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/dynamic_programming.py)) by running it on MDPs/Policies of your choice, and observing the traces of the algorithms.
 
 ## Optimal Policy from Optimal Value Function
 
@@ -637,6 +593,61 @@ $$\bm{B}^{G(\bvs)}(\bvs) = \bvs$$
 The above equation says $\bvs$ is the Fixed-Point of the Bellman Policy Operator $\bm{B}^{G(\bvs)}$. However, we know that $\bm{B}^{G(\bvs)}$ has a unique Fixed-Point equal to $\bm{V}^{G(\bvs)}$. Therefore,
 $$\bm{V}^{G(\bvs)} = \bvs$$
 This says that evaluating the MDP with the deterministic greedy policy $G(\bvs)$ (policy created from the Optimal Value Function $\bvs$ using the Greedy Policy Function $G$) in fact achieves the Optimal Value Function $\bvs$. In other words, $G(\bvs)$ is the (Deterministic) Optimal Policy $\pi^*$ we've been seeking.
+
+Now let's write the code for Value Iteration. The function `value_iteration` returns an `Iterator` on Value Functions (of type `V[S]`) produced by the Value Iteration algorithm. It uses the function `bellman_opt_update` for application of the Bellman Optimality Operator. `bellman_opt_update` prepares the Q-Values for a state by looping through all the allowable actions for the state, and then calculates the maximum of those Q-Values (over the actions). The Q-Value calculation is straightforward, using the $\mathcal{P}_R$ probabilities represented in the `mapping` attribute of the `mdp` object (essentially Equation \eqref{eq:bellman_optimality_operator2}). The function `value_iteration_result` returns the final (optimal) Value Function, together with it's associated Optimal Policy. It simply returns the last Value Function of the `Iterable[V[S]]` returned by `value_iteration`, using the termination condition specified in `almost_equal_vfs`.
+
+```python
+DEFAULT_TOLERANCE = 1e-5
+
+def bellman_opt_update(
+    v: V[S],
+    mdp: FiniteMarkovDecisionProcess[S, A],
+    gamma: float
+) -> V[S]:
+    def update_s(s: S) -> float:
+        return max(sum(p * (r + gamma * v.get(next_s, 0.))
+                       for (next_s, r), p in mdp.mapping[s][a])
+                   for a in mdp.actions(s))
+
+    return {s: update_s(s) for s in v.keys()}
+
+def value_iteration(
+    mdp: FiniteMarkovDecisionProcess[S, A],
+    gamma: float
+) -> Iterator[V[S]]:
+    def update(v: V[S]) -> V[S]:
+        return bellman_opt_update(v, mdp, gamma)
+
+    v_0: V[S] = {s: 0.0 for s in mdp.non_terminal_states}
+    return iterate(update, v_0)
+
+def almost_equal_vfs(
+    v1: V[S],
+    v2: V[S],
+    tolerance: float = DEFAULT_TOLERANCE
+) -> bool:
+    return max([abs(v1[s] - v2[s]) for s in v1.keys()]) < tolerance
+
+def value_iteration_result(
+    mdp: FiniteMarkovDecisionProcess[S, A],
+    gamma: float
+) -> Tuple[V[S], FinitePolicy[S, A]]:
+    opt_vf: V[S] = converged(
+        value_iteration(mdp, gamma),
+        done=almost_equal_vfs
+    )
+    opt_policy: FinitePolicy[S, A] = greedy_policy_from_vf(
+        mdp,
+        opt_vf,
+        gamma
+    )
+
+    return opt_vf, opt_policy
+```
+
+If the number of non-terminal states of a given MDP is $m$ and the number of actions ($|\mathcal{A}|$) is $k$, then the running time of each iteration of Value Iteration is $O(m^2\cdot k)$.
+
+We encourage you to play with the above implementations of Policy Evaluation, Policy Iteration and Value Iteration (code in the file [rl/dynamic_programming.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/dynamic_programming.py)) by running it on MDPs/Policies of your choice, and observing the traces of the algorithms.
 
 ## Revisiting the Simple Inventory Example
 
@@ -669,8 +680,8 @@ Now let's write some code to evaluate `si_mdp` with the policy `fdp`.
 from pprint import pprint
 implied_mrp: FiniteMarkovRewardProcess[InventoryState] =\
     si_mdp.apply_finite_policy(fdp)
-user_gamme = 0.9
-pprint(evaluate_mrp(implied_mrp, gamma=user_gamma))
+user_gamma = 0.9
+pprint(evaluate_mrp_result(implied_mrp, gamma=user_gamma))
 ```
 
 This prints the following Value Function.
@@ -687,7 +698,10 @@ This prints the following Value Function.
 Next, let's run Policy Iteration.
 
 ```python
-opt_vf_pi, opt_policy_pi = policy_iteration(si_mdp, gamma=user_gamma)
+opt_vf_pi, opt_policy_pi = policy_iteration_result(
+    si_mdp,
+    gamma=user_gamma
+)
 pprint(opt_vf_pi)
 print(opt_policy_pi)
 ```
@@ -719,7 +733,8 @@ For State InventoryState(on_hand=2, on_order=0):
 As we can see, the Optimal Policy is to not order if the Inventory Position (sum of On-Hand and On-Order) is greater than 1 unit and to order 1 unit if the Inventory Position is 0 or 1. Finally, let's run Value Iteration.
 
 ```python
-opt_vf_vi, opt_policy_vi = value_iteration(si_mdp, gamma=user_gamma)
+opt_vf_vi, opt_policy_vi = value_iteration_result(si_mdp, gamma=user_gamma
+)
 pprint(opt_vf_vi)
 print(opt_policy_vi)
 ```
