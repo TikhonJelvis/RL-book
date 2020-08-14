@@ -1,5 +1,5 @@
 
-# Chapter 1: Markov Processes
+# Markov Processes
 
 This book is about "Sequential Decisioning under Sequential Uncertainty". In this chapter, we will ignore the "sequential decisioning" aspect and focus just on the "sequential uncertainty" aspect.
 
@@ -102,6 +102,8 @@ Note that if we had modeled the state $S_t$ as the entire stock price history $(
  The corresponding dataclass for Process 2 is shown below:
  
  ```python
+handy_map: Mapping[Optional[bool], int] = {True: -1, False: 1, None: 0}
+
 @dataclass
 class Process2:
     @dataclass
@@ -109,7 +111,7 @@ class Process2:
         price: int
         is_prev_move_up: Optional[bool]
 
-    alpha2: float = 0.75  # strength of reverse-pull (value in  [0,1])
+    alpha2: float = 0.75  # strength of reverse-pull (value in [0,1])
 
     def up_prob(self, state: State) -> float:
         return 0.5 * (1 + self.alpha2 * handy_map[state.is_prev_move_up])
@@ -217,7 +219,7 @@ def process3_price_traces(
         for _ in range(num_traces)])
 ```
 
-As suggested for Process 1, you can plot graphs of simulation traces of the stock price, or plot graphs of the terminal distributions of the stock price at various time points for Processes 2 and 3, by playing with the [code][stock_price_simulations.py].
+As suggested for Process 1, you can plot graphs of simulation traces of the stock price, or plot graphs of the terminal distributions of the stock price at various time points for Processes 2 and 3, by playing with this [code][stock_price_simulations.py].
 
 [stock_price_simulations.py]: https://github.com/TikhonJelvis/RL-book/blob/master/src/chapter2/stock_price_simulations.py
 
@@ -333,10 +335,10 @@ class StockPriceMP3(MarkovProcess[StateMP3]):
     def transition(self, state: StateMP3) -> Categorical[StateMP3]:
         up_p = self.up_prob(state)
 
-        return Categorical([
-            (StateMP3(state.num_up_moves + 1, state.num_down_moves), up_p),
-            (StateMP3(state.num_up_moves, state.num_down_moves + 1), 1 - up_p)
-        ])
+        return Categorical({
+            StateMP3(state.num_up_moves + 1, state.num_down_moves): up_p,
+            StateMP3(state.num_up_moves, state.num_down_moves + 1): 1 - up_p
+        })
 ```
 
 To generate simulation traces, we write the following function:
@@ -375,9 +377,9 @@ When the key in the `Mapping` is a non-terminal state, the `FiniteDistribution[S
 
 ```python
 {
-  "Rain": Categorical([("Rain", 0.3), ("Nice", 0.7)]),
-  "Snow": Categorical([("Rain", 0.4), ("Snow", 0.6)]),
-  "Nice": Categorical([("Rain", 0.2), ("Snow", 0.3), ("Nice", 0.5)])
+  "Rain": Categorical({"Rain": 0.3, "Nice": 0.7}),
+  "Snow": Categorical({"Rain": 0.4, "Snow": 0.6}),
+  "Nice": Categorical({"Rain": 0.2, "Snow": 0.3, "Nice": 0.5})
 }
 ```
 It is common to view this as a directed graph, as depicted in Figure \ref{fig:weather_mp}. The nodes are the states and the directed edges are the probabilistic state transitions, with the transition probabilities labeled on them.
@@ -386,7 +388,7 @@ It is common to view this as a directed graph, as depicted in Figure \ref{fig:we
 ![Weather Markov Process \label{fig:weather_mp}](./chapter2/weather_mp.png "Weather Markov Process")
 </div>
 
-Now we are ready to write the code for the `FiniteMarkovProcess` class. The `__init__` method (constructor) takes as argument a `transition_map: Transition[S]` as we had described above. Along with the attribute `transition_map`, we also have an attribute `non_terminal_states: Sequence[S]` that is an ordered sequence of the non-terminal states. We implement the `transition` method by simply returning the `Categorical` distribution the given `state: S` maps to in the attribute `self.transition_map: Transition[S]`. Note that along with the `transition` method, we have also implemented the `__repr__` method for a well-formatted display of `self.transition_map`.
+Now we are ready to write the code for the `FiniteMarkovProcess` class. The `__init__` method (constructor) takes as argument a `transition_map: Transition[S]` as we had described above. Along with the attribute `transition_map`, we also have an attribute `non_terminal_states: Sequence[S]` that is an ordered sequence of the non-terminal states. We implement the `transition` method by simply returning the `Optional[FiniteDistribution]` the given `state: S` maps to in the attribute `self.transition_map: Transition[S]`. Note that along with the `transition` method, we have implemented the `__repr__` method for a well-formatted display of `self.transition_map`.
 
 ```python
 class FiniteMarkovProcess(MarkovProcess[S]):
@@ -407,12 +409,12 @@ class FiniteMarkovProcess(MarkovProcess[S]):
                 display += f"{s} is a Terminal State\n"
             else:
                 display += f"From State {s}:\n"
-                for s1, p in d.table():
+                for s1, p in d:
                     display += f"  To State {s1} with Probability {p:.3f}\n"
 
         return display
 
-    def transition(self, state: S) -> FiniteDistribution[S]:
+    def transition(self, state: S) -> Optional[FiniteDistribution[S]]:
         return self.transition_map[state]
 ```
 
@@ -456,7 +458,6 @@ class InventoryState:
     def inventory_position(self) -> int:
         return self.on_hand + self.on_order
 
-
 class SimpleInventoryMPFinite(FiniteMarkovProcess[InventoryState]):
 
     def __init__(
@@ -477,17 +478,13 @@ class SimpleInventoryMPFinite(FiniteMarkovProcess[InventoryState]):
                 state = InventoryState(alpha, beta)
                 ip = state.inventory_position()
                 beta1 = self.capacity - ip
-                state_probs_list: List[Tuple[InventoryState, float]] = [
-                    (InventoryState(ip - i, beta1), self.poisson_distr.pmf(i))
-                    for i in range(ip)
-                ]
-                state_probs_list.append(
-                    (
-                        InventoryState(0, beta1),
-                        1 - self.poisson_distr.cdf(ip - 1)
-                    )
-                )
-                d[InventoryState(alpha, beta)] = Categorical(state_probs_list)
+                state_probs_map: Mapping[InventoryState, float] = {
+                    InventoryState(ip - i, beta1):
+                    (self.poisson_distr.pmf(i) if i < ip else
+                     1 - self.poisson_distr.cdf(ip - 1))
+                    for i in range(ip + 1)
+                }
+                d[InventoryState(alpha, beta)] = Categorical(state_probs_map)
         return d
 ```
 
@@ -567,11 +564,7 @@ Let us write code to compute the stationary distribution. We shall add two metho
 
         for i, s1 in enumerate(self.non_terminal_states):
             for j, s2 in enumerate(self.non_terminal_states):
-                next_states = self.transition(s1)
-                if next_states is None:
-                    mat[i, j] = 0.0
-                else:
-                    mat[i, j] = next_states.probability(s2)
+                mat[i, j] = self.transition(s1).probability(s2)
 
         return mat
 
@@ -581,11 +574,11 @@ Let us write code to compute the stationary distribution. We shall add two metho
             np.abs(eig_vals - 1) < 1e-8)[0][0]
         eig_vec_of_unit_eig_val = np.real(
             eig_vecs[:, index_of_first_unit_eig_val])
-        return Categorical([
-            (self.non_terminal_states[i], ev)
+        return Categorical({
+            self.non_terminal_states[i]: ev
             for i, ev in enumerate(eig_vec_of_unit_eig_val /
                                    sum(eig_vec_of_unit_eig_val))
-        ])
+        })
 ```
 
 We will skip the theory that tells us about the conditions under which a stationary distribution is well-defined, or the conditions under which there is a unique stationary distribution. Instead, we will just go ahead with this calculation here assuming this Markov Process satisfies those conditions (it does!). So, we simply seek the index of the `eig_vals` vector with eigenvalue equal to 1 (accounting for floating-point error). Next, we pull out the column of the `eig_vecs` matrix at the `eig_vals` index calculated above, and convert it into a real-valued vector (eigenvectors/eigenvalues calculations are, in general, complex numbers calculations - see the reference for the `np.linalg.eig` function). So this gives us the real-valued eigenvector with eigenvalue equal to 1.  Finally, we have to normalize the eigenvector so it's values add up to 1 (since we want probabilities), and return the probabilities as a `Categorical` distribution).
@@ -593,12 +586,12 @@ We will skip the theory that tells us about the conditions under which a station
 Running this code for the simple case of capacity $C=2$ and poisson mean $\lambda = 1.0$ (instance of `SimpleInventoryMPFinite`) produces the following output for the stationary distribution $\pi$:
 
 ```
-{InventoryState(on_hand=0, on_order=0): 0.117,
+{InventoryState(on_hand=2, on_order=0): 0.162,
+ InventoryState(on_hand=0, on_order=0): 0.117,
+ InventoryState(on_hand=1, on_order=0): 0.162,
  InventoryState(on_hand=0, on_order=1): 0.279,
  InventoryState(on_hand=0, on_order=2): 0.117,
- InventoryState(on_hand=1, on_order=0): 0.162,
- InventoryState(on_hand=1, on_order=1): 0.162,
- InventoryState(on_hand=2, on_order=0): 0.162}   
+ InventoryState(on_hand=1, on_order=1): 0.162}
 ```
 
 This tells us that On-Hand of 0 and On-Order of 1 is the state occurring most frequently (28% of the time) when the system is played out indefinitely.   
@@ -811,24 +804,22 @@ class FiniteMarkovRewardProcess(FiniteMarkovProcess[S],
                 transition_map[state] = None
             else:
                 probabilities: Dict[S, float] = defaultdict(float)
-                for (next_state, _), probability in trans.table():
+                for (next_state, _), probability in trans:
                     probabilities[next_state] += probability
 
-                transition_map[state] = Categorical(
-                    list(probabilities.items())
-                )
+                transition_map[state] = Categorical(probabilities)
 
         super().__init__(transition_map)
 
         self.transition_reward_map = transition_reward_map
 
-        self.reward_function_vec = np.array([
-            sum(probability * reward for (_, reward), probability in
-                transition_reward_map[state].table())
-            for state in self.non_terminal_states
-        ])
-    transition_reward_map: RewardTransition[S]
-    reward_function_vec: np.ndarray
+        next_states = transition_reward_map[state]
+        if next_states is not None:
+            self.reward_function_vec = np.array([
+                sum(probability * reward for (_, reward), probability in
+                    next_states)
+                for state in self.non_terminal_states
+            ])
 
     def transition_reward(self, state: S) ->\
             Optional[FiniteDistribution[Tuple[S, float]]]:
@@ -894,18 +885,15 @@ class SimpleInventoryMRPFinite(FiniteMarkovRewardProcess[InventoryState]):
                 ip = state.inventory_position()
                 beta1 = self.capacity - ip
                 base_reward = - self.holding_cost * state.on_hand
-                sr_probs_list: List[Tuple[Tuple[InventoryState, float],
-                                          float]] =\
-                    [((InventoryState(ip - i, beta1), base_reward),
-                      self.poisson_distr.pmf(i)) for i in range(ip)]
+                sr_probs_map: Dict[Tuple[InventoryState, float], float] =\
+                    {(InventoryState(ip - i, beta1), base_reward):
+                     self.poisson_distr.pmf(i) for i in range(ip)}
                 probability = 1 - self.poisson_distr.cdf(ip - 1)
                 reward = base_reward - self.stockout_cost *\
                     (probability * (self.poisson_lambda - ip) +
                      ip * self.poisson_distr.pmf(ip))
-                sr_probs_list.append(
-                    ((InventoryState(0, beta1), reward), probability)
-                )
-                d[state] = Categorical(sr_probs_list)
+                sr_probs_map[(InventoryState(0, beta1), reward)] = probability
+                d[state] = Categorical(sr_probs_map)
         return d
 ```
 
@@ -929,16 +917,17 @@ Note that we are (as usual) assuming the fact that the Markov Reward Process is 
 \begin{equation}
 \begin{split}
 V(s) & = \mathbb{E}[R_{t+1}|S_t=s] + \gamma \cdot \mathbb{E}[R_{t+2}|S_t=s] + \gamma^2 \cdot \mathbb{E}[R_{t+3}|S_t=s] + \ldots \\
-& = \mathcal{R}(s) + \gamma \cdot \sum_{s'\in \mathcal{S}} \mathbb{P}[S_{t+1}=s'|S_t=s] \cdot \mathbb{E}[R_{t+2}|S_{t+1}=s'] \\
-& \hspace{4mm} + \gamma^2 \cdot \sum_{s' \in \mathcal{S}} \mathbb{P}[S_{t+1}=s'|S_t=s] \sum_{s'' \in \mathcal{S}} \mathbb{P}[S_{t+2}=s''|S_{t+1}=s'] \cdot \mathbb{E}[R_{t+3}|S_{t+2}=s''] \\
+& = \mathcal{R}(s) + \gamma \cdot \sum_{s'\in \mathcal{N}} \mathbb{P}[S_{t+1}=s'|S_t=s] \cdot \mathbb{E}[R_{t+2}|S_{t+1}=s'] \\
+& \hspace{4mm} + \gamma^2 \cdot \sum_{s' \in \mathcal{N}} \mathbb{P}[S_{t+1}=s'|S_t=s] \sum_{s'' \in \mathcal{N}} \mathbb{P}[S_{t+2}=s''|S_{t+1}=s'] \cdot \mathbb{E}[R_{t+3}|S_{t+2}=s''] \\
 & \hspace{4mm} + \ldots \\
-& = \mathcal{R}(s) + \gamma \cdot \sum_{s'\in \mathcal{S}} \mathcal{P}(s, s') \cdot \mathcal{R}(s') + \gamma^2 \cdot \sum_{s' \in \mathcal{S}} \mathcal{P}(s, s') \sum_{s'' \in \mathcal{S}} \mathcal{P}(s', s'') \cdot \mathcal{R}(s'') + \ldots \\
-& = \mathcal{R}(s) + \gamma \cdot \sum_{s' \in \mathcal{S}} \mathcal{P}(s,s')\cdot ( \mathcal{R}(s') + \gamma \cdot \sum_{s'' \in \mathcal{S}} \mathcal{P}(s', s'') \cdot \mathcal{R}(s'') + \ldots ) \\
-& = \mathcal{R}(s) + \gamma \cdot \sum_{s' \in \mathcal{S}} \mathcal{P}(s, s') \cdot V(s') \text{ for all } s \in \mathcal{N}
+& = \mathcal{R}(s) + \gamma \cdot \sum_{s'\in \mathcal{N}} \mathcal{P}(s, s') \cdot \mathcal{R}(s') + \gamma^2 \cdot \sum_{s' \in \mathcal{N}} \mathcal{P}(s, s') \sum_{s'' \in \mathcal{N}} \mathcal{P}(s', s'') \cdot \mathcal{R}(s'') + \ldots \\
+& = \mathcal{R}(s) + \gamma \cdot \sum_{s' \in \mathcal{N}} \mathcal{P}(s,s')\cdot ( \mathcal{R}(s') + \gamma \cdot \sum_{s'' \in \mathcal{N}} \mathcal{P}(s', s'') \cdot \mathcal{R}(s'') + \ldots ) \\
+& = \mathcal{R}(s) + \gamma \cdot \sum_{s' \in \mathcal{N}} \mathcal{P}(s, s') \cdot V(s') \text{ for all } s \in \mathcal{N}
 \end{split}
 \label{eq:mrp_bellman_eqn}
 \end{equation} 
 
+Note that although the transitions to random states $s',s'', \ldots$ are in the state space of $\mathcal{S}$ rather than $\mathcal{N}$, the right-hand-side above sums over states $s', s'', \ldots$ only in $\mathcal{N}$ because transitions to terminal states (in $\mathcal{T} = \mathcal{S} - \mathcal{N}$) don't contribute any reward beyond the rewards produced *before reaching* the terminal state.
 
 We refer to this recursive equation \eqref{eq:mrp_bellman_eqn} for the Value Function as the Bellman Equation for Markov Reward Processes. Figure \ref{fig:mrp_bellman_tree} is a convenient visualization aid of this important equation. In the rest of the book, we will depict quite a few of these type of state-transition visualizations to aid with creating mental models of key concepts.
 
@@ -967,26 +956,26 @@ Let us write some code to implement the calculation of Equation \eqref{eq:mrp_be
 
 ```
 
-Invoking this `get_value_function_vec` method on `SimpleInventoryMRPFinite` for the simple case of capacity $C=2$ and poisson mean $\lambda = 1.0$ yields the following result:
+Invoking this `get_value_function_vec` method on `SimpleInventoryMRPFinite` for the simple case of capacity $C=2$, poisson mean $\lambda = 1.0$, holding cost $h=1.0$, stockout cost $p=10.0$, and discount factor $\gamma=0.9$ yields the following result:
 
 ```
-{InventoryState(on_hand=0, on_order=1): -27.932,
- InventoryState(on_hand=0, on_order=0): -35.511,
+{InventoryState(on_hand=0, on_order=0): -35.511,
  InventoryState(on_hand=1, on_order=0): -28.932,
- InventoryState(on_hand=2, on_order=0): -30.345,
+ InventoryState(on_hand=0, on_order=1): -27.932,
  InventoryState(on_hand=0, on_order=2): -28.345,
+ InventoryState(on_hand=2, on_order=0): -30.345,
  InventoryState(on_hand=1, on_order=1): -29.345}
 ```
 
 The corresponding values of the attribute `reward_function_vec` (i.e., $\mathcal{R}$) are:
 
 ```
-{InventoryState(on_hand=0, on_order=1): -2.325,
- InventoryState(on_hand=0, on_order=0): -10.0,
+{InventoryState(on_hand=0, on_order=0): -10.0,
  InventoryState(on_hand=1, on_order=0): -3.325,
- InventoryState(on_hand=2, on_order=0): -2.274,
+ InventoryState(on_hand=0, on_order=1): -2.325,
  InventoryState(on_hand=0, on_order=2): -0.274,
- InventoryState(on_hand=1, on_order=1): -1.274}   
+ InventoryState(on_hand=2, on_order=0): -2.274,
+ InventoryState(on_hand=1, on_order=1): -1.274}
 ```
 
 This tells us that On-Hand of 0 and On-Order of 2 has the highest expected reward. However, the Value Function is highest for On-Hand of 0 and On-Order of 1.

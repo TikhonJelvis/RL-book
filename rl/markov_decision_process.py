@@ -39,11 +39,11 @@ class FinitePolicy(Policy[S, A]):
                 display += f"{s} is a Terminal State\n"
             else:
                 display += f"For State {s}:\n"
-                for a, p in d.table():
+                for a, p in d:
                     display += f"  Do Action {a} with Probability {p:.3f}\n"
         return display
 
-    def act(self, state: S) -> FiniteDistribution[A]:
+    def act(self, state: S) -> Optional[FiniteDistribution[A]]:
         return self.policy_map[state]
 
 
@@ -80,7 +80,7 @@ class FiniteMarkovDecisionProcess(MarkovDecisionProcess[S, A]):
                 display += f"From State {s}:\n"
                 for a, d1 in d.items():
                     display += f"  With Action {a}:\n"
-                    for (s1, r), p in d1.table():
+                    for (s1, r), p in d1:
                         display += f"    To [State {s} and "\
                             + f"Reward {r:.3f}] with Probability {p:.3f}\n"
         return display
@@ -123,11 +123,13 @@ class FiniteMarkovDecisionProcess(MarkovDecisionProcess[S, A]):
                 outcomes: DefaultDict[Tuple[S, float], float]\
                     = defaultdict(float)
 
-                for action, p_action in policy.act(state).table():
-                    for outcome, p_state in action_map[action].table():
-                        outcomes[outcome] += p_action * p_state
+                actions = policy.act(state)
+                if actions is not None:
+                    for action, p_action in actions:
+                        for outcome, p_state_reward in action_map[action]:
+                            outcomes[outcome] += p_action * p_state_reward
 
-                transition_mapping[state] = Categorical(outcomes.items())
+                transition_mapping[state] = Categorical(outcomes)
 
         return FiniteMarkovRewardProcess(transition_mapping)
 
@@ -140,6 +142,7 @@ class FiniteMarkovDecisionProcess(MarkovDecisionProcess[S, A]):
 
         '''
         actions = self.mapping[state]
+
         if actions is None:
             return iter([])
         else:

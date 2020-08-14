@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Tuple, Dict, List
+from typing import Tuple, Dict
 from rl.markov_decision_process import FiniteMarkovDecisionProcess
 from rl.markov_decision_process import FinitePolicy, StateActionMapping
 from rl.markov_process import FiniteMarkovProcess, FiniteMarkovRewardProcess
@@ -48,19 +48,17 @@ class SimpleInventoryMDPCap(FiniteMarkovDecisionProcess[InventoryState, int]):
                 d1: Dict[int, Categorical[Tuple[InventoryState, float]]] = {}
 
                 for order in range(self.capacity - ip + 1):
-                    sr_probs_list: List[Tuple[Tuple[InventoryState, float],
-                                              float]] =\
-                        [((InventoryState(ip - i, order), base_reward),
-                          self.poisson_distr.pmf(i)) for i in range(ip)]
+                    sr_probs_dict: Dict[Tuple[InventoryState, float], float] =\
+                        {(InventoryState(ip - i, order), base_reward):
+                         self.poisson_distr.pmf(i) for i in range(ip)}
 
                     probability: float = 1 - self.poisson_distr.cdf(ip - 1)
                     reward: float = base_reward - self.stockout_cost *\
                         (probability * (self.poisson_lambda - ip) +
                          ip * self.poisson_distr.pmf(ip))
-                    sr_probs_list.append(
-                        ((InventoryState(0, order), reward), probability)
-                    )
-                    d1[order] = Categorical(sr_probs_list)
+                    sr_probs_dict[(InventoryState(0, order), reward)] = \
+                        probability
+                    d1[order] = Categorical(sr_probs_dict)
 
                 d[state] = d1
         return d

@@ -63,3 +63,14 @@ def converged(values: Iterator[X], done: Callable[[X, X], bool]) -> X:
     Will loop forever if the input iterator doesn't end *or* converge.
     '''
     return last(converge(values, done))
+
+
+if __name__ == '__main__':
+    import numpy as np
+    x = 0.0
+    values = converge(
+        iterate(lambda y: np.cos(y), x),
+        lambda a, b: np.abs(a - b) < 1e-3
+    )
+    for i, v in enumerate(values):
+        print(f"{i}: {v:.3f}")

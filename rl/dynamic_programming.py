@@ -1,4 +1,4 @@
-from typing import (Dict, Iterator, Mapping, List, Optional, Tuple, TypeVar)
+from typing import Mapping, Iterator, TypeVar, List, Tuple, Dict
 import operator
 
 from rl.iterate import converged, iterate
@@ -40,8 +40,7 @@ def evaluate_mrp(
     '''
     def update(v: V[S]) -> V[S]:
         return {s: mrp.reward_function_vec[i] + gamma *
-                sum(p * v.get(s1, 0.) for s1, p in
-                    mrp.transition_map[s].table())
+                sum(p * v.get(s1, 0.) for s1, p in mrp.transition_map[s])
                 for i, s in enumerate(mrp.non_terminal_states)}
 
     v_0: V[S] = {s: 0. for s in mrp.non_terminal_states}
@@ -66,18 +65,16 @@ def greedy_policy_from_vf(
     for s in mdp.non_terminal_states:
 
         q_values: List[Tuple[A, float]] = []
-        action_map: Optional[ActionMapping[A, S]] = mdp.mapping[s]
+        action_map: ActionMapping[A, S] = mdp.mapping[s]
 
         for a in mdp.actions(s):
             q_val: float = 0.
-
-            for (next_s, r), p in action_map[a].table():
+            for (next_s, r), p in action_map[a]:
                 q_val += p * (r + gamma * vf.get(next_s, 0.))
             q_values.append((a, q_val))
 
-        greedy_policy_dict[s] = Constant(
-            max(q_values, key=operator.itemgetter(1))[0]
-        )
+        greedy_policy_dict[s] =\
+            Constant(max(q_values, key=operator.itemgetter(1))[0])
 
     return FinitePolicy(greedy_policy_dict)
 
@@ -138,7 +135,7 @@ def bellman_opt_update(
     '''Do one update of the value function for a given MDP.'''
     def update_s(s: S) -> float:
         return max(sum(p * (r + gamma * v.get(next_s, 0.))
-                       for (next_s, r), p in mdp.mapping[s][a].table())
+                       for (next_s, r), p in mdp.mapping[s][a])
                    for a in mdp.actions(s))
 
     return {s: update_s(s) for s in v.keys()}
@@ -181,9 +178,9 @@ if __name__ == '__main__':
     from pprint import pprint
 
     transition_reward_map = {
-        1: Categorical([((1, 7.0), 0.6), ((2, 5.0), 0.3), ((3, 2.0), 0.1)]),
-        2: Categorical([((1, -2.0), 0.1), ((2, 4.0), 0.2), ((3, 0.0), 0.7)]),
-        3: Categorical([((1, 3.0), 0.2), ((2, 8.0), 0.6), ((3, 4.0), 0.2)])
+        1: Categorical({(1, 7.0): 0.6, (2, 5.0): 0.3, (3, 2.0): 0.1}),
+        2: Categorical({(1, -2.0): 0.1, (2, 4.0): 0.2, (3, 0.0): 0.7}),
+        3: Categorical({(1, 3.0): 0.2, (2, 8.0): 0.6, (3, 4.0): 0.2})
     }
     gamma = 0.9
 
