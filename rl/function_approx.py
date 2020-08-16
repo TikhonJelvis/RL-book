@@ -388,31 +388,31 @@ if __name__ == '__main__':
         lambda x: x[2]
     ]
 
-#     lfa = LinearFunctionApprox(
-#         feature_functions=ffs,
-#         adam_gradient=ag,
-#         regularization_coeff=0.
-#     )
-# 
-#     lfa_ds = lfa.direct_solve(xy_vals_seq)
-#     print("Direct Solve")
-#     pprint(lfa_ds.weights)
-#     errors: np.ndarray = lfa_ds.evaluate(pts) - \
-#         np.array([y for _, y in xy_vals_seq])
-#     print("Mean Squared Error")
-#     pprint(np.mean(errors * errors))
-#     print()
-# 
-#     print("Linear Gradient Solve")
-#     for _ in range(100):
-#         print("Weights")
-#         pprint(lfa.weights)
-#         errors: np.ndarray = lfa.evaluate(pts) - \
-#             np.array([y for _, y in xy_vals_seq])
-#         print("Mean Squared Error")
-#         pprint(np.mean(errors * errors))
-#         lfa = lfa.update(xy_vals_seq)
-#         print()
+     lfa = LinearFunctionApprox(
+         feature_functions=ffs,
+         adam_gradient=ag,
+         regularization_coeff=0.
+     )
+ 
+     lfa_ds = lfa.direct_solve(xy_vals_seq)
+     print("Direct Solve")
+     pprint(lfa_ds.weights)
+     errors: np.ndarray = lfa_ds.evaluate(pts) - \
+         np.array([y for _, y in xy_vals_seq])
+     print("Mean Squared Error")
+     pprint(np.mean(errors * errors))
+     print()
+ 
+     print("Linear Gradient Solve")
+     for _ in range(100):
+         print("Weights")
+         pprint(lfa.weights)
+         errors: np.ndarray = lfa.evaluate(pts) - \
+             np.array([y for _, y in xy_vals_seq])
+         print("Mean Squared Error")
+         pprint(np.mean(errors * errors))
+         lfa = lfa.update(xy_vals_seq)
+         print()
 
     ds = DNNSpec(
         neurons=[2],
