@@ -1,13 +1,17 @@
+from __future__ import annotations
 from abc import ABC
-from typing import Sequence, Mapping, Tuple, TypeVar, Callable, List
+from typing import Sequence, Mapping, Tuple, TypeVar, Callable, List, Dict, \
+    Generic, Optional
+from copy import deepcopy
 import numpy as np
 from dataclasses import dataclass
+from more_itertools import pairwise
 
 X = TypeVar('X')
 SMALL_NUM = 1e-6
 
 
-class FunctionApprox(ABC):
+class FunctionApprox(ABC, Generic[X]):
 
     def evaluate(self, x_values_seq: Sequence[X]) -> np.ndarray:
         pass
@@ -18,18 +22,27 @@ class FunctionApprox(ABC):
     def update(
         self,
         xy_vals_seq: Sequence[Tuple[X, float]]
-    ) -> None:
+    ) -> FunctionApprox[X]:
         pass
 
 
+@dataclass(frozen=True)
 class Tabular(FunctionApprox):
 
     values_map: Mapping[X, float]
     counts_map: Mapping[X, int]
 
-    def __init__(self, mapping: Mapping[X, float]) -> None:
-        self.values_map = mapping
-        self.counts_maps = {x: 0 for x in mapping.keys()}
+    def __init__(
+        self,
+        values_map: Mapping[X, float],
+        counts_map: Mapping[X, int] = None
+    ) -> None:
+        object.__setattr__(self, "values_map", values_map)
+        object.__setattr__(
+            self,
+            "counts_map",
+            {x: 0. for x in values_map} if counts_map else counts_map
+        )
 
     def evaluate(self, x_values_seq: Sequence[X]) -> np.ndarray:
         return np.array([self.values_map[x] for x in x_values_seq])
@@ -37,51 +50,102 @@ class Tabular(FunctionApprox):
     def update(
         self,
         xy_vals_seq: Sequence[Tuple[X, float]]
-    ) -> None:
+    ) -> Tabular[X]:
+        values_map: Dict[X, float] = deepcopy(self.values_map)
+        counts_map: Dict[X, int] = deepcopy(self.counts_map)
         for x, y in xy_vals_seq:
-            count: int = self.counts_map[x]
-            self.values_map[x] = (self.values_map[x] * count + y) / (count + 1)
-            self.counts_map[x] = count + 1
+            count: int = counts_map[x]
+            values_map[x] = (values_map[x] * count + y) / (count + 1)
+            counts_map[x] = count + 1
+        return Tabular(values_map, counts_map)
 
 
-@dataclass
+@dataclass(frozen=True)
 class AdamGradient:
     learning_rate: float
     decay1: float
     decay2: float
 
 
+@dataclass(frozen=True)
+class Weights:
+    adam_gradient: AdamGradient
+    weights: np.ndarray
+    adam_cache1: np.ndarray
+    adam_cache2: np.ndarray
+
+    def __init__(
+        self,
+        adam_gradient: AdamGradient,
+        weights: np.ndarray,
+        adam_cache1: Optional[np.ndarray] = None,
+        adam_cache2: Optional[np.ndarray] = None,
+
+    ) -> None:
+        object.__setattr__(self, "adam_gradient", adam_gradient)
+        object.__setattr__(self, "weights", weights)
+        object.__setattr__(
+            self,
+            "adam_cache1",
+            np.zeros_like(weights) if adam_cache1 is None else adam_cache1
+        )
+        object.__setattr__(
+            self,
+            "adam_cache2",
+            np.zeros_like(weights) if adam_cache2 is None else adam_cache2
+        )
+
+    def update(self, gradient: np.ndarray) -> Weights:
+        new_adam_cache1: np.ndarray = self.adam_gradient.decay1 * \
+            self.adam_cache1 + (1 - self.adam_gradient.decay1) * gradient
+        new_adam_cache2: np.ndarray = self.adam_gradient.decay2 * \
+            self.adam_cache2 + (1 - self.adam_gradient.decay2) * gradient ** 2
+        new_weights: np.ndarray = self.weights - \
+            self.adam_gradient.learning_rate * self.adam_cache1 / \
+            (np.sqrt(self.adam_cache2) + SMALL_NUM) * \
+            np.sqrt(1 - self.adam_gradient.decay2) / \
+            (1 - self.adam_gradient.decay1)
+        return Weights(
+            adam_gradient=self.adam_gradient,
+            weights=new_weights,
+            adam_cache1=new_adam_cache1,
+            adam_cache2=new_adam_cache2,
+        )
+
+
+@dataclass(frozen=True)
 class LinearFunctionApprox(FunctionApprox):
 
     feature_functions: Sequence[Callable[[X], float]]
-    adam_gradient: AdamGradient
     regularization_coeff: float
-    weights: np.ndarray
-    adam_cache1: List[np.ndarray]
-    adam_cache2: List[np.ndarray]
+    weights: Weights
 
     def __init__(
         self,
         feature_functions: Sequence[Callable[[X], float]],
         adam_gradient: AdamGradient,
-        regularization_coeff: float = 0
+        regularization_coeff: float = 0.,
+        weights: Optional[Weights] = None
     ) -> None:
-        self.feature_functions = feature_functions
-        self.adam_gradient = adam_gradient
-        self.regularization_coeff = regularization_coeff
-        num_features = len(feature_functions)
-        self.weights = np.zeros(num_features)
-        self.adam_cache1 = np.zeros(num_features)
-        self.adam_cache2 = np.zeros(num_features)
+        object.__setattr__(self, "feature_functions", feature_functions)
+        object.__setattr__(self, "regularization_coeff", regularization_coeff)
+        object.__setattr__(
+            self,
+            "weights",
+            Weights(
+                adam_gradient,
+                np.zeros(len(feature_functions) + 1)
+            ) if weights is None else weights
+        )
 
     def get_feature_values(self, x_values_seq: Sequence[X]) -> np.ndarray:
-        return np.array([[f(x) for f in self.feature_functions]
+        return np.array([[1.] + [f(x) for f in self.feature_functions]
                          for x in x_values_seq])
 
     def evaluate(self, x_values_seq: Sequence[X]) -> np.ndarray:
         return np.dot(
             self.get_feature_values(x_values_seq),
-            self.weights
+            self.weights.weights
         )
 
     def regularized_loss_gradient(
@@ -90,39 +154,46 @@ class LinearFunctionApprox(FunctionApprox):
     ) -> np.ndarray:
         x_vals, y_vals = zip(*xy_vals_seq)
         feature_vals: np.ndarray = self.get_feature_values(x_vals)
-        diff: np.ndarray = np.dot(feature_vals, self.weights) \
+        diff: np.ndarray = np.dot(feature_vals, self.weights.weights) \
             - np.array(y_vals)
         return np.dot(feature_vals.T, diff) / len(diff) \
-            + self.regularization_coeff * self.weights
+            + self.regularization_coeff * self.weights.weights
 
     def update(
         self,
         xy_vals_seq: Sequence[Tuple[X, float]]
-    ) -> None:
-        grad: np.ndarray = self.regularized_loss_gradient(xy_vals_seq)
-        decay1: float = self.adam_gradient.decay1
-        decay2: float = self.adam_gradient.decay2
-        alpha: float = self.adam_gradient.learning_rate
-        self.adam_cache1 = decay1 * self.adam_cache1 + (1 - decay1) * grad
-        self.adam_cache2 = decay2 * self.adam_cache2 + (1 - decay2) * grad ** 2
-        self.weights -= alpha * self.adam_cache1 / \
-            (np.sqrt(self.adam_cache2) + SMALL_NUM) * \
-            np.sqrt(1 - decay2) / (1 - decay1)
+    ) -> LinearFunctionApprox[X]:
+        return LinearFunctionApprox(
+            feature_functions=self.feature_functions,
+            adam_gradient=self.weights.adam_gradient,
+            regularization_coeff=self.regularization_coeff,
+            weights=self.weights.update(
+                self.regularized_loss_gradient(xy_vals_seq)
+            )
+        )
 
     def direct_solve(
         self,
         xy_vals_seq: Sequence[Tuple[X, float]]
-    ) -> None:
+    ) -> LinearFunctionApprox[X]:
         x_vals, y_vals = zip(*xy_vals_seq)
         feature_vals: np.ndarray = self.get_feature_values(x_vals)
         feature_vals_T: np.ndarray = feature_vals.T
         left: np.ndarray = np.dot(feature_vals_T, feature_vals) \
-            + self.regularization_coeff * np.eye(len(self.weights))
+            + self.regularization_coeff * np.eye(len(self.weights.weights))
         right: np.ndarray = np.dot(feature_vals_T, y_vals)
-        self.weights = np.dot(np.linalg.inv(left), right)
+        return LinearFunctionApprox(
+            feature_functions=self.feature_functions,
+            adam_gradient=self.weights.adam_gradient,
+            regularization_coeff=self.regularization_coeff,
+            weights=Weights(
+                adam_gradient=self.weights.adam_gradient,
+                weights=np.dot(np.linalg.inv(left), right)
+            )
+        )
 
 
-@dataclass
+@dataclass(frozen=True)
 class DNNSpec:
     neurons: Sequence[int]
     hidden_activation: Callable[[np.ndarray], np.ndarray]
@@ -131,48 +202,49 @@ class DNNSpec:
     output_activation_deriv: Callable[[np.ndarray], np.ndarray]
 
 
+@dataclass(frozen=True)
 class DNNApprox(FunctionApprox):
 
     feature_functions: Sequence[Callable[[X], float]]
     dnn_spec: DNNSpec
-    adam_gradient: AdamGradient
     regularization_coeff: float
-    weights: List[np.ndarray]
-    adam_cache1: List[np.ndarray]
-    adam_cache2: List[np.ndarray]
+    weights: Sequence[Weights]
 
     def __init__(
         self,
         feature_functions: Sequence[Callable[[X], float]],
         dnn_spec: DNNSpec,
         adam_gradient: AdamGradient,
-        regularization_coeff: float = 0
+        regularization_coeff: float = 0.,
+        weights: Optional[Sequence[Weights]] = None
     ) -> None:
-        self.feature_functions = feature_functions
-        self.dnn_spec = dnn_spec
-        self.adam_gradient = adam_gradient
-        self.regularization_coeff = regularization_coeff
-        self.weights = self.initialize_weights()
-        self.adam_cache1 = [np.zeros_like(w) for w in self.weights]
-        self.adam_cache2 = [np.zeros_like(w) for w in self.weights]
+        object.__setattr__(self, "feature_functions", feature_functions)
+        object.__setattr__(self, "dnn_spec", dnn_spec)
+        object.__setattr__(self, "adam_gradient", adam_gradient)
+        object.__setattr__(self, "regularization_coeff", regularization_coeff)
+        object.__setattr__(
+            self,
+            "weights",
+            self.init_weights(adam_gradient) if weights is None else weights
+        )
 
     def get_feature_values(self, x_values_seq: Sequence[X]) -> np.ndarray:
-        return np.array([[f(x) for f in self.feature_functions]
+        return np.array([[1.] + [f(x) for f in self.feature_functions]
                          for x in x_values_seq])
 
-    def initialize_weights(self) -> Sequence[np.ndarray]:
+    def init_weights(
+        self,
+        adam_gradient: AdamGradient
+    ) -> Sequence[Weights]:
         """
         These are Xavier input parameters
         """
-        inp_size: int = len(self.feature_functions)
-        wts: List[np.ndarray] = []
-        for layer_neurons in self.dnn_spec.neurons:
-            wts.append(
-                np.random.rand(layer_neurons, inp_size) / np.sqrt(inp_size)
-            )
-            inp_size = layer_neurons + 1
-        wts.append(np.random.randn(1, inp_size) / np.sqrt(inp_size))
-        return wts
+        augmented_layers = [len(self.feature_functions)] + \
+            self.dnn_spec.neurons + [1]
+        return [Weights(
+            adam_gradient,
+            np.random.randn(output, input + 1) / np.sqrt(input + 1)
+        ) for input, output in pairwise(augmented_layers)]
 
     def forward_propagation(
         self,
@@ -189,11 +261,15 @@ class DNNApprox(FunctionApprox):
         inp: np.ndarray = self.get_feature_values(x_values_seq)
         outputs: List[np.ndarray] = [inp]
         for w in self.weights[:-1]:
-            out: np.ndarray = self.dnn_spec.hidden_activation(np.dot(inp, w.T))
+            out: np.ndarray = self.dnn_spec.hidden_activation(
+                np.dot(inp, w.weights.T)
+            )
             inp: np.ndarray = np.insert(out, 0, 1., axis=1)
             outputs.append(inp)
         outputs.append(
-            self.dnn_spec.output_activation(np.dot(inp, self.weights[-1].T))
+            self.dnn_spec.output_activation(
+                np.dot(inp, self.weights[-1].weights.T)
+            )
         )
         return outputs
 
@@ -236,7 +312,7 @@ class DNNApprox(FunctionApprox):
             # |O_l| x n inner n x (|I_l| + 1) = |O_l| x (|I_l| + 1)
             back_prop.append(np.dot(deriv, layer_inputs[i]))
             # the next line implements the recursive formulation of deriv
-            deriv = (np.dot(self.weights[i].T, deriv) *
+            deriv = (np.dot(self.weights[i].weights.T, deriv) *
                      self.dnn_spec.hidden_activation_deriv(
                          layer_inputs[i].T
                      ))[1:]
@@ -257,28 +333,24 @@ class DNNApprox(FunctionApprox):
         x_vals, y_vals = zip(*xy_vals_seq)
         fwd_prop: Sequence[np.ndarray] = self.forward_propagation(x_vals)
         errors: np.ndarray = fwd_prop[-1][:, 0] - np.array(y_vals)
-        return [x / len(errors) + self.regularization_coeff * self.weights[i]
-                for i, x in enumerate(
-                    self.backward_propagation(fwd_prop, errors)
-                )]
+        return [x / len(errors) + self.regularization_coeff *
+                self.weights[i].weights for i, x in
+                enumerate(self.backward_propagation(fwd_prop, errors))]
 
     def update(
         self,
         xy_values_seq: Sequence[Tuple[X, float]]
-    ) -> None:
-        grad: Sequence[np.ndarray] = \
-            self.regularized_loss_gradient(xy_values_seq)
-        decay1: float = self.adam_gradient.decay1
-        decay2: float = self.adam_gradient.decay2
-        alpha: float = self.adam_gradient.learning_rate
-        for i, g in enumerate(grad):
-            self.adam_cache1[i] = decay1 * self.adam_cache1[i] + \
-                (1 - decay1) * g
-            self.adam_cache2[i] = decay2 * self.adam_cache2[i] + \
-                (1 - decay2) * g ** 2
-            self.weights[i] -= alpha * self.adam_cache1[i] / \
-                (np.sqrt(self.adam_cache2[i]) + SMALL_NUM) * \
-                np.sqrt(1 - decay2) / (1 - decay1)
+    ) -> DNNApprox[X]:
+        return DNNApprox(
+            feature_functions=self.feature_functions,
+            dnn_spec=self.dnn_spec,
+            adam_gradient=self.weights[0].adam_gradient,
+            regularization_coeff=self.regularization_coeff,
+            weights=[w.update(g) for w, g in zip(
+                self.weights,
+                self.regularized_loss_gradient(xy_vals_seq)
+            )]
+        )
 
 
 if __name__ == '__main__':
@@ -311,33 +383,36 @@ if __name__ == '__main__':
         decay2=0.999
     )
     ffs = [
-        lambda _: 1,
         lambda x: x[0],
         lambda x: x[1],
         lambda x: x[2]
     ]
 
-    lfa = LinearFunctionApprox(
-        feature_functions=ffs,
-        adam_gradient=ag,
-        regularization_coeff=0.
-    )
-
-    print("Linear Gradient Solve")
-    for _ in range(100):
-        lfa.update(xy_vals_seq)
-        print("Weights")
-        pprint(lfa.weights)
-        errors: np.ndarray = lfa.evaluate(pts) - \
-            np.array([y for _, y in xy_vals_seq])
-        print("Mean Squared Error")
-        pprint(np.mean(errors * errors))
-        print()
-
-    lfa.direct_solve(xy_vals_seq)
-    print("Direct Solve")
-    pprint(lfa.weights)
-    print()
+#     lfa = LinearFunctionApprox(
+#         feature_functions=ffs,
+#         adam_gradient=ag,
+#         regularization_coeff=0.
+#     )
+# 
+#     lfa_ds = lfa.direct_solve(xy_vals_seq)
+#     print("Direct Solve")
+#     pprint(lfa_ds.weights)
+#     errors: np.ndarray = lfa_ds.evaluate(pts) - \
+#         np.array([y for _, y in xy_vals_seq])
+#     print("Mean Squared Error")
+#     pprint(np.mean(errors * errors))
+#     print()
+# 
+#     print("Linear Gradient Solve")
+#     for _ in range(100):
+#         print("Weights")
+#         pprint(lfa.weights)
+#         errors: np.ndarray = lfa.evaluate(pts) - \
+#             np.array([y for _, y in xy_vals_seq])
+#         print("Mean Squared Error")
+#         pprint(np.mean(errors * errors))
+#         lfa = lfa.update(xy_vals_seq)
+#         print()
 
     ds = DNNSpec(
         neurons=[2],
@@ -355,11 +430,11 @@ if __name__ == '__main__':
     )
     print("DNN Gradient Solve")
     for _ in range(100):
-        dnna.update(xy_vals_seq)
         print("Weights")
         pprint(dnna.weights)
         errors: np.ndarray = dnna.evaluate(pts) - \
             np.array([y for _, y in xy_vals_seq])
         print("Mean Squared Error")
         pprint(np.mean(errors * errors))
+        dnna = dnna.update(xy_vals_seq)
         print()
