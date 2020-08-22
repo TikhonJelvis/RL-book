@@ -11,6 +11,8 @@ from rl.distribution import (Categorical, Distribution, FiniteDistribution,
 
 S = TypeVar('S')
 
+Transition = Mapping[S, Optional[FiniteDistribution[S]]]
+
 
 class MarkovProcess(ABC, Generic[S]):
     '''A Markov process with states of type S.
@@ -47,9 +49,6 @@ class MarkovProcess(ABC, Generic[S]):
                 break
             else:
                 state = next_states.sample()
-
-
-Transition = Mapping[S, Optional[FiniteDistribution[S]]]
 
 
 class FiniteMarkovProcess(MarkovProcess[S]):
@@ -129,6 +128,8 @@ class FiniteMarkovProcess(MarkovProcess[S]):
         return d
 
 
+# Reward processes
+
 class MarkovRewardProcess(MarkovProcess[S]):
     def transition(self, state: S) -> Optional[Distribution[S]]:
         '''Transitions the Markov Reward Process, ignoring the generated
@@ -173,7 +174,8 @@ class MarkovRewardProcess(MarkovProcess[S]):
                 state, reward = next_distribution.sample()
 
 
-RewardTransition = Mapping[S, Optional[FiniteDistribution[Tuple[S, float]]]]
+StateReward = FiniteDistribution[Tuple[S, float]]
+RewardTransition = Mapping[S, Optional[StateReward[S]]]
 
 
 class FiniteMarkovRewardProcess(FiniteMarkovProcess[S],
@@ -219,8 +221,7 @@ class FiniteMarkovRewardProcess(FiniteMarkovProcess[S],
                         + f" with Probability {p:.3f}\n"
         return display
 
-    def transition_reward(self, state: S) ->\
-            Optional[FiniteDistribution[Tuple[S, float]]]:
+    def transition_reward(self, state: S) -> Optional[StateReward[S]]:
         return self.transition_reward_map[state]
 
     def get_value_function_vec(self, gamma: float) -> np.ndarray:
