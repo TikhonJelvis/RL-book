@@ -3,13 +3,13 @@ import numpy as np
 
 
 def plot_list_of_curves(
-        list_of_x_vals,
-        list_of_y_vals,
-        list_of_colors,
-        list_of_curve_labels,
-        x_label=None,
-        y_label=None,
-        title=None
+    list_of_x_vals,
+    list_of_y_vals,
+    list_of_colors,
+    list_of_curve_labels,
+    x_label=None,
+    y_label=None,
+    title=None
 ):
     plt.figure(figsize=(11, 7))
     for i, x_vals in enumerate(list_of_x_vals):

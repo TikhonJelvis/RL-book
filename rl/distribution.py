@@ -42,7 +42,7 @@ class FiniteDistribution(Distribution[A], ABC):
     '''
     @abstractmethod
     def table(self) -> Mapping[A, float]:
-        '''Returns a tabular representaiton of the probability density
+        '''Returns a tabular representation of the probability density
         function (PDF) for this distribution.
 
         '''
@@ -87,6 +87,18 @@ class FiniteDistribution(Distribution[A], ABC):
 
     def __repr__(self) -> str:
         return repr(self.table())
+
+    def map(self, f: Callable[[A], B]) -> FiniteDistribution[B]:
+        '''Return a new distribution that is the result of applying a function
+        to each element of this distribution.
+
+        '''
+        result: Dict[B, float] = defaultdict(float)
+
+        for x, p in self:
+            result[f(x)] += p
+
+        return Categorical(result)
 
 
 # TODO: Rename?
@@ -159,17 +171,10 @@ class Categorical(FiniteDistribution[A]):
     probabilities: Mapping[A, float]
 
     def __init__(self, distribution: Mapping[A, float]):
-        probabilities: Dict[A, float] = defaultdict(float)
-
-        for outcome, probability in distribution.items():
-            probabilities[outcome] += probability
-
+        total = sum(distribution.values())
         # Normalize probabilities to sum to 1
-        total = sum(probabilities.values())
-        for outcome in probabilities:
-            probabilities[outcome] = probabilities[outcome] / total
-
-        self.probabilities = probabilities
+        self.probabilities = {outcome: probability / total
+                              for outcome, probability in distribution.items()}
 
     def sample(self) -> A:
         outcomes = list(self.probabilities.keys())
@@ -180,4 +185,4 @@ class Categorical(FiniteDistribution[A]):
         return self.probabilities
 
     def probability(self, outcome: A) -> float:
-        return self.probabilities[outcome]
+        return self.probabilities.get(outcome, 0.)
