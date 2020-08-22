@@ -960,8 +960,8 @@ $$I_0 = M, I_{t+1} = \max(0, I_t - d_t) \mbox{ for } 0 \leq t < T$$
  $$
  (\mathcal{P}_R)_t(I_t, i, R_t, I_t - k) =
  \begin{cases}
- \frac {e^{-\lambda_i} \lambda_i^{k}} {k} & \text{ if } k < I_t \text{ and } R_t = d_t \cdot P_i\\
- \sum_{j=I_t}^{\infty} \frac {e^{-\lambda_i} \lambda_i^{j}} {j!} & \text{ if } k = I_t \text{ and } R_t = I_t \cdot P_i\\
+ \frac {e^{-\lambda_i} \lambda_i^{k}} {k!} & \text{ if } k < I_t \text{ and } R_t = k \cdot P_i\\
+ \sum_{j=I_t}^{\infty} \frac {e^{-\lambda_i} \lambda_i^{j}} {j!} & \text{ if } k = I_t \text{ and } R_t = k \cdot P_i\\
  0 & \text{ otherwise }
  \end{cases}
  $$
