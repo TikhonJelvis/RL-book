@@ -3,10 +3,11 @@ from __future__ import annotations
 from itertools import groupby
 import dataclasses
 from dataclasses import dataclass
+from operator import itemgetter
 from typing import (
-    Dict, List, Generic, Optional, Sequence, Tuple, TypeVar)
+    Dict, List, Generic, Optional, Sequence, Tuple, TypeVar, Iterator)
 
-from rl.distribution import Constant, FiniteDistribution, Categorical
+from rl.distribution import Constant, FiniteDistribution
 from rl.dynamic_programming import V
 from rl.markov_process import (
     FiniteMarkovRewardProcess, RewardTransition, StateReward)
@@ -49,33 +50,21 @@ def finite_horizon_MRP(
     transition_map: Dict[WithTime[S], Optional[RewardOutcome]] = {}
 
     # Non-terminal states
-    all_states = {s for s in process.states()}
     for time in range(0, limit):
-        def set_time(s_r: Tuple[S, float]) -> Tuple[WithTime[S], float]:
-            return WithTime(state=s_r[0], time=time + 1), s_r[1]
 
-        for s in all_states:
-            result = process.transition_reward(s)
+        for s in process.states():
+            result: Optional[StateReward[S]] = process.transition_reward(s)
             s_time = WithTime(state=s, time=time)
 
-            transition_map[s_time] = None if result is None else Categorical({
-                    (WithTime(state=s1, time=time + 1), r): p
-                    for (s1, r), p in result
-                })
+            transition_map[s_time] = None if result is None else result.map(
+                lambda s_r: (WithTime(state=s_r[0], time=time + 1), s_r[1])
+            )
 
     # Terminal states
-    for s in all_states:
+    for s in process.states():
         transition_map[WithTime(state=s, time=limit)] = None
 
     return FiniteMarkovRewardProcess(transition_map)
-
-
-def sr_distribution_without_time(
-    arg: Optional[StateReward[WithTime[S]]]
-) -> Optional[StateReward[S]]:
-    return None if arg is None else Categorical(
-        {(s.state, r): p for (s, r), p in arg}
-    )
 
 
 # TODO: Better name...
@@ -88,39 +77,37 @@ def unwrap_finite_horizon_MRP(
     induction.
 
     '''
-    def f(x: WithTime[S]) -> int:
+    def time(x: WithTime[S]) -> int:
         return x.time
 
-    return [{s.state: sr_distribution_without_time(
+    def without_time(
+        arg: Optional[StateReward[WithTime[S]]]
+    ) -> Optional[StateReward[S]]:
+        return None if arg is None else arg.map(
+            lambda s_r: (s_r[0].state, s_r[1])
+        )
+
+    return [{s.state: without_time(
         process.transition_reward(s)) for s in states}
-            for _, states in groupby(sorted(process.states(), key=f), key=f)]
+            for _, states in groupby(
+                sorted(process.states(), key=time), key=time
+            )]
 
 
-def evaluate_state_reward(
-    v: V[S],
-    result: Optional[StateReward[S]]
-) -> float:
-    if result is None:
-        return 0.0
-    else:
-        return result.expectation(lambda s_r: v[s_r[0]] + s_r[1])
-
-
-def evaluate(steps: Sequence[RewardTransition[S]]) -> Sequence[V[S]]:
+def evaluate(steps: Sequence[RewardTransition[S]]) -> Iterator[V[S]]:
     '''Evaluate the given finite Markov reward process using backwards
     induction, given that the process stops after limit time steps.
 
     '''
 
-    length = len(steps) - 1
-    v: List[Dict[S, float]] = [{} for _ in range(length)]
-    for i in range(length - 1, -1, -1):
-        for s, res in steps[i].items():
-            v[i][s] = res.expectation(
-                lambda x: (v[i + 1][x[0]] if i < length - 1 else 0.) + x[1]
-            )
+    v: List[Dict[S, float]] = []
 
-    return v
+    for step in reversed(steps[:-1]):
+        v.append({s: res.expectation(
+            lambda x: (v[-1][x[0]] if len(v) > 0 else 0.) + x[1]
+            ) for s, res in step.items()})
+
+    return reversed(v)
 
 
 # Finite-horizon Markov decision processes
@@ -144,32 +131,22 @@ def finite_horizon_MDP(
         {}
 
     # Non-terminal states
-    all_states = [s for s in process.states()]
     for time in range(0, limit):
-        for s in all_states:
+        for s in process.states():
             s_time = WithTime(state=s, time=time)
             actions_map = process.action_mapping(s)
             if actions_map is None:
                 mapping[s_time] = None
             else:
-                mapping[s_time] = {a: Categorical({
-                    (WithTime(state=s1, time=time + 1), r): p
-                    for (s1, r), p in result
-                }) for a, result in actions_map.items()}
+                mapping[s_time] = {a: result.map(
+                    lambda s_r: (WithTime(state=s_r[0], time=time + 1), s_r[1])
+                ) for a, result in actions_map.items()}
 
     # Terminal states
-    for s in all_states:
+    for s in process.states():
         mapping[WithTime(state=s, time=limit)] = None
 
     return FiniteMarkovDecisionProcess(mapping)
-
-
-def action_mapping_without_time(
-    arg: Optional[ActionMapping[A, WithTime[S]]]
-) -> Optional[ActionMapping[A, S]]:
-    return None if arg is None else {a: Categorical(
-        {(s.state, r): p for (s, r), p in sr_distr}
-    ) for a, sr_distr in arg.items()}
 
 
 def unwrap_finite_horizon_MDP(
@@ -180,39 +157,43 @@ def unwrap_finite_horizon_MDP(
     representation makes it easier to implement backwards induction.
 
     '''
-    def f(x: WithTime[S]) -> int:
+    def time(x: WithTime[S]) -> int:
         return x.time
 
-    return [{s.state: action_mapping_without_time(process.action_mapping(s))
+    def without_time(
+        arg: Optional[ActionMapping[A, WithTime[S]]]
+    ) -> Optional[ActionMapping[A, S]]:
+        return None if arg is None else {
+            a: sr_distr.map(lambda s_r: (s_r[0].state, s_r[1]))
+            for a, sr_distr in arg.items()
+        }
+
+    return [{s.state: without_time(process.action_mapping(s))
              for s in states}
-            for _, states in groupby(sorted(process.states(), key=f), key=f)]
+            for _, states in groupby(
+                sorted(process.states(), key=time), key=time
+            )]
 
 
 def optimal_vf_and_policy(
     steps: Sequence[StateActionMapping[S, A]]
-) -> Tuple[Sequence[V[S]], Sequence[FinitePolicy[S, A]]]:
+) -> Iterator[Tuple[V[S], FinitePolicy[S, A]]]:
     '''Use backwards induction to find the optimal policy for the given
     finite Markov decision process.
 
     '''
-    length = len(steps) - 1
-    v: List[Dict[S, float]] = [{} for _ in range(length)]
-    p: List[FinitePolicy[S, A]] = [FinitePolicy({}) for _ in range(length)]
+    v_p: List[Tuple[Dict[S, float], FinitePolicy[S, A]]] = []
 
-    def best_action(actions: ActionMapping[A, S]) -> Tuple[A, float]:
-        action_values =\
-            ((a, evaluate_state_reward(v, actions[a])) for a in actions)
-        return max(action_values, key=lambda a_v: a_v[1])
+    for step in reversed(steps[:-1]):
+        this_v: Dict[S, float] = {}
+        this_a: Dict[S, FiniteDistribution[A]] = {}
+        for s, actions_map in step.items():
+            action_values = ((res.expectation(
+                lambda x: (v_p[-1][0][x[0]] if len(v_p) > 0 else 0.) + x[1]
+            ), a) for a, res in actions_map.items())
+            v_star, a_star = max(action_values, key=itemgetter(0))
+            this_v[s] = v_star
+            this_a[s] = Constant(a_star)
+        v_p.append((this_v, FinitePolicy(this_a)))
 
-    for i in range(length - 1, -1, -1):
-        this_p: Dict[S, FiniteDistribution[A]] = {}
-        for s, actions_map in steps[i].items():
-            action_values = ((a, res.expectation(
-                lambda x: (v[i + 1][x[0]] if i < length - 1 else 0.) + x[1]
-            )) for a, res in actions_map.items())
-            a, r = max(action_values, key=lambda x: x[1])
-            v[i][s] = r
-            this_p[s] = Constant(a)
-        p[i] = FinitePolicy(this_p)
-
-    return v, p
+    return reversed(v_p)
