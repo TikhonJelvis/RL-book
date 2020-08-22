@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-from collections import defaultdict
+from itertools import groupby
 import dataclasses
 from dataclasses import dataclass
-from typing import (Dict, Generic, List, Optional,
-                    Protocol, Sequence, Tuple, TypeVar)
+from typing import (
+    Dict, List, Generic, Optional, Sequence, Tuple, TypeVar)
 
-from rl.distribution import Constant, FiniteDistribution
+from rl.distribution import Constant, FiniteDistribution, Categorical
 from rl.dynamic_programming import V
 from rl.markov_process import (
     FiniteMarkovRewardProcess, RewardTransition, StateReward)
@@ -14,23 +14,7 @@ from rl.markov_decision_process import (
     ActionMapping, FiniteMarkovDecisionProcess, FinitePolicy,
     StateActionMapping)
 
-
-# States with time
-class HasTime(Protocol):
-    '''In our current design, finite-horizon processes have to have time
-    as part of the state.
-
-    A finite-horizon process also an end time T. The idea is that time
-    starts with 0 and increments with every step the process takes;
-    states where time is equal to T are the terminal states of the
-    finite-horizon process.
-
-    '''
-    time: int
-
-
 S = TypeVar('S')
-S_time = TypeVar('S_time', bound=HasTime, covariant=True)
 
 
 @dataclass(frozen=True)
@@ -51,8 +35,9 @@ RewardOutcome = FiniteDistribution[Tuple[WithTime[S], float]]
 # Finite-horizon Markov reward processes
 
 def finite_horizon_MRP(
-        process: FiniteMarkovRewardProcess[S],
-        limit: int) -> FiniteMarkovRewardProcess[WithTime[S]]:
+    process: FiniteMarkovRewardProcess[S],
+    limit: int
+) -> FiniteMarkovRewardProcess[WithTime[S]]:
     '''Turn a normal FiniteMarkovRewardProcess into one with a finite horizon
     that stops after 'limit' steps.
 
@@ -61,68 +46,79 @@ def finite_horizon_MRP(
     every single time step up to the limit.
 
     '''
-    transition_map: Dict[WithTime[S],
-                         Optional[RewardOutcome]] = {}
+    transition_map: Dict[WithTime[S], Optional[RewardOutcome]] = {}
 
     # Non-terminal states
+    all_states = {s for s in process.states()}
     for time in range(0, limit):
         def set_time(s_r: Tuple[S, float]) -> Tuple[WithTime[S], float]:
-            return (WithTime(state=s_r[0], time=time + 1), s_r[1])
+            return WithTime(state=s_r[0], time=time + 1), s_r[1]
 
-        for s in process.states():
+        for s in all_states:
             result = process.transition_reward(s)
             s_time = WithTime(state=s, time=time)
 
-            transition_map[s_time] = \
-                None if result is None else result.map(set_time)
+            transition_map[s_time] = None if result is None else Categorical({
+                    (WithTime(state=s1, time=time + 1), r): p
+                    for (s1, r), p in result
+                })
 
     # Terminal states
-    for s in process.states():
+    for s in all_states:
         transition_map[WithTime(state=s, time=limit)] = None
 
     return FiniteMarkovRewardProcess(transition_map)
 
 
+def sr_distribution_without_time(
+    arg: Optional[StateReward[WithTime[S]]]
+) -> Optional[StateReward[S]]:
+    return None if arg is None else Categorical(
+        {(s.state, r): p for (s, r), p in arg}
+    )
+
+
 # TODO: Better name...
 def unwrap_finite_horizon_MRP(
-        process: FiniteMarkovRewardProcess[S_time],
-        limit: int
-) -> Sequence[RewardTransition[S_time]]:
+    process: FiniteMarkovRewardProcess[WithTime[S]]
+) -> Sequence[RewardTransition[S]]:
     '''Given a finite-horizon process, break the transition between each
     time step (starting with 0) into its own data structure. This
     representation makes it easier to implement backwards
     induction.
 
     '''
-    states: Dict[int, List[S_time]] = defaultdict(list)
-    for state in process.states():
-        states[state.time] += [state]
+    def f(x: WithTime[S]) -> int:
+        return x.time
 
-    def transition_from(time: int) -> RewardTransition[S_time]:
-        return {state: process.transition_reward(state)
-                for state in states[time]}
-
-    return [transition_from(time) for time in range(0, limit)]
+    return [{s.state: sr_distribution_without_time(
+        process.transition_reward(s)) for s in states}
+            for _, states in groupby(sorted(process.states(), key=f), key=f)]
 
 
-def evaluate_state_reward(v: V[S],
-                          result: Optional[StateReward[S]]) -> float:
+def evaluate_state_reward(
+    v: V[S],
+    result: Optional[StateReward[S]]
+) -> float:
     if result is None:
         return 0.0
     else:
         return result.expectation(lambda s_r: v[s_r[0]] + s_r[1])
 
 
-def evaluate(steps: Sequence[RewardTransition[S]]) -> V[S]:
+def evaluate(steps: Sequence[RewardTransition[S]]) -> Sequence[V[S]]:
     '''Evaluate the given finite Markov reward process using backwards
     induction, given that the process stops after limit time steps.
 
     '''
-    v: Dict[S, float] = defaultdict(float)
 
-    for step in reversed(steps):
-        for s in step:
-            v[s] = evaluate_state_reward(v, step[s])
+    length = len(steps) - 1
+    v: List[Dict[S, float]] = [{} for _ in range(length)]
+    for i in range(length - 1, -1, -1):
+        for s, res in steps[i].items():
+            v[i][s] = res.expectation(
+                lambda x: (v[i + 1][x[0]] if i < length - 1 else 0.) + x[1]
+            )
 
     return v
 
@@ -133,8 +129,9 @@ A = TypeVar('A')
 
 
 def finite_horizon_MDP(
-        process: FiniteMarkovDecisionProcess[S, A],
-        limit: int) -> FiniteMarkovDecisionProcess[WithTime[S], A]:
+    process: FiniteMarkovDecisionProcess[S, A],
+    limit: int
+) -> FiniteMarkovDecisionProcess[WithTime[S], A]:
     '''Turn a normal FiniteMarkovDecisionProcess into one with a finite
     horizon that stops after 'limit' steps.
 
@@ -146,71 +143,76 @@ def finite_horizon_MDP(
     mapping: Dict[WithTime[S], Optional[Dict[A, StateReward[WithTime[S]]]]] =\
         {}
 
-    def set_time(s_r: Tuple[S, float]) -> Tuple[WithTime[S], float]:
-        return (WithTime(state=s_r[0], time=time + 1), s_r[1])
-
     # Non-terminal states
+    all_states = [s for s in process.states()]
     for time in range(0, limit):
-        for s in process.states():
+        for s in all_states:
             s_time = WithTime(state=s, time=time)
-            actions = process.action_mapping(s)
-            if actions is None:
+            actions_map = process.action_mapping(s)
+            if actions_map is None:
                 mapping[s_time] = None
             else:
-                mapping[s_time] =\
-                    {a: actions[a].map(set_time) for a in actions}
+                mapping[s_time] = {a: Categorical({
+                    (WithTime(state=s1, time=time + 1), r): p
+                    for (s1, r), p in result
+                }) for a, result in actions_map.items()}
 
     # Terminal states
-    for s in process.states():
+    for s in all_states:
         mapping[WithTime(state=s, time=limit)] = None
 
     return FiniteMarkovDecisionProcess(mapping)
 
 
+def action_mapping_without_time(
+    arg: Optional[ActionMapping[A, WithTime[S]]]
+) -> Optional[ActionMapping[A, S]]:
+    return None if arg is None else {a: Categorical(
+        {(s.state, r): p for (s, r), p in sr_distr}
+    ) for a, sr_distr in arg.items()}
+
+
 def unwrap_finite_horizon_MDP(
-        process: FiniteMarkovDecisionProcess[S_time, A],
-        limit: int) -> Sequence[StateActionMapping[S_time, A]]:
+    process: FiniteMarkovDecisionProcess[WithTime[S], A]
+) -> Sequence[StateActionMapping[S, A]]:
     '''Unwrap a finite Markov decision process into a sequence of
     transitions between each time step (starting with 0). This
     representation makes it easier to implement backwards induction.
 
     '''
-    # TODO: Extract this into a group_by function, or even find a
-    # library function that does the same thing.
-    states: Dict[int, List[S_time]] = defaultdict(list)
-    for state in process.states():
-        states[state.time] += [state]
+    def f(x: WithTime[S]) -> int:
+        return x.time
 
-    def transition_from(time: int) -> StateActionMapping[S_time, A]:
-        return {state: process.action_mapping(state) for state in states[time]}
-
-    return [transition_from(time) for time in range(0, limit)]
+    return [{s.state: action_mapping_without_time(process.action_mapping(s))
+             for s in states}
+            for _, states in groupby(sorted(process.states(), key=f), key=f)]
 
 
-def optimal_policy(
-        steps: Sequence[StateActionMapping[S, A]]
-) -> FinitePolicy[S, A]:
+def optimal_vf_and_policy(
+    steps: Sequence[StateActionMapping[S, A]]
+) -> Tuple[Sequence[V[S]], Sequence[FinitePolicy[S, A]]]:
     '''Use backwards induction to find the optimal policy for the given
     finite Markov decision process.
 
     '''
-    p: Dict[S, Optional[FiniteDistribution[A]]] = {}
-    v: Dict[S, float] = defaultdict(float)
+    length = len(steps) - 1
+    v: List[Dict[S, float]] = [{} for _ in range(length)]
+    p: List[FinitePolicy[S, A]] = [FinitePolicy({}) for _ in range(length)]
 
     def best_action(actions: ActionMapping[A, S]) -> Tuple[A, float]:
         action_values =\
             ((a, evaluate_state_reward(v, actions[a])) for a in actions)
         return max(action_values, key=lambda a_v: a_v[1])
 
-    for step in reversed(steps):
-        for s in step:
-            actions = step[s]
-            if actions is None:
-                p[s] = None
-                v[s] = 0.0
-            else:
-                a, r = best_action(actions)
-                p[s] = Constant(a)
-                v[s] = r
+    for i in range(length - 1, -1, -1):
+        this_p: Dict[S, FiniteDistribution[A]] = {}
+        for s, actions_map in steps[i].items():
+            action_values = ((a, res.expectation(
+                lambda x: (v[i + 1][x[0]] if i < length - 1 else 0.) + x[1]
+            )) for a, res in actions_map.items())
+            a, r = max(action_values, key=lambda x: x[1])
+            v[i][s] = r
+            this_p[s] = Constant(a)
+        p[i] = FinitePolicy(this_p)
 
-    return FinitePolicy(p)
+    return v, p
