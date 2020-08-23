@@ -27,7 +27,7 @@ def almost_equal_vfs(
     tolerance of each other.
 
     '''
-    return max([abs(v1[s] - v2[s]) for s in v1.keys()]) < tolerance
+    return max(abs(v1[s] - v2[s]) for s in v1) < tolerance
 
 
 def evaluate_mrp(
@@ -64,14 +64,10 @@ def greedy_policy_from_vf(
 
     for s in mdp.non_terminal_states:
 
-        q_values: List[Tuple[A, float]] = []
-        action_map: ActionMapping[A, S] = mdp.mapping[s]
-
-        for a in mdp.actions(s):
-            q_val: float = 0.
-            for (next_s, r), p in action_map[a]:
-                q_val += p * (r + gamma * vf.get(next_s, 0.))
-            q_values.append((a, q_val))
+        q_values: Iterator[Tuple[A, float]] = \
+            ((a, mdp.mapping[s][a].expectation(
+                lambda s_r: s_r[1] + gamma * vf.get(s_r[0], 0.)
+            )) for a in mdp.actions(s))
 
         greedy_policy_dict[s] =\
             Constant(max(q_values, key=operator.itemgetter(1))[0])
@@ -116,7 +112,7 @@ def almost_equal_vf_pis(
     x2: Tuple[V[S], FinitePolicy[S, A]]
 ) -> bool:
     return max(
-        abs(x1[0][s] - x2[0][s]) for s in x1[0].keys()
+        abs(x1[0][s] - x2[0][s]) for s in x1[0]
     ) < DEFAULT_TOLERANCE
 
 
@@ -133,12 +129,9 @@ def bellman_opt_update(
     gamma: float
 ) -> V[S]:
     '''Do one update of the value function for a given MDP.'''
-    def update_s(s: S) -> float:
-        return max(sum(p * (r + gamma * v.get(next_s, 0.))
-                       for (next_s, r), p in mdp.mapping[s][a])
-                   for a in mdp.actions(s))
-
-    return {s: update_s(s) for s in v.keys()}
+    return {s: max(mdp.mapping[s][a].expectation(
+        lambda s_r: s_r[1] + gamma * v.get(s_r[0], 0.)
+    ) for a in mdp.actions(s)) for s in v}
 
 
 def value_iteration(
