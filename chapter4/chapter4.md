@@ -824,7 +824,7 @@ $$\mathcal{P}_R: \mathcal{N} \times \mathcal{A} \times \mathbb{R} \times \mathca
 is given by:
 
 $$\mathcal{P}_R((t, s_t), a_t, r_{t+1}, (t+1, s_{t+1})) = (\mathcal{P}_R)_t(s_t, a_t, r_{t+1}, s_{t+1})$$
-for all $t < T , s_t \in \mathcal{S}_t, a_t \in \mathcal{A}_t, s_{t+1} \in \mathcal{S}_{t+1}$, and $= 0$ otherwise, where
+for all $t = 0, 1, \ldots T-1 , s_t \in \mathcal{S}_t, a_t \in \mathcal{A}_t, s_{t+1} \in \mathcal{S}_{t+1}$, and $= 0$ otherwise, where
 
 $$(\mathcal{P}_R)_t: \mathcal{S}_t \times \mathcal{A}_t \times \mathbb{R} \times \mathcal{S}_{t+1} \rightarrow [0, 1]$$
 
@@ -846,22 +846,6 @@ $$\pi_t: \mathcal{S}_t \times \mathcal{A}_t \rightarrow [0, 1]$$
 
 are the separate policies for each of the time steps $t = 0, 1, \ldots, T-1$
 
-Likewise, it is convenient to represent the state transition probability function as a sequence of state transition probability functions
-
-$$\mathcal{P}_t: \mathcal{S}_t \times \mathcal{A}_t \times \mathcal{S}_{t+1} \rightarrow [0,1]$$
-
-for each of the time steps $t = 0, 1, \ldots, T-1$, defined as:
-
-$$\mathcal{P}_t(s_t, a_t, s_{t+1}) = \sum_{r_{t+1}\in \mathbb{R}} (\mathcal{P}_R)_t(s_t,a_t, r_{t+1},s_{t+1})$$
-
-Likewise, it is convenient to represent the reward function as a sequence of reward functions
-
-$$\mathcal{R}_t: \mathcal{S}_t \times \mathcal{A}_t \rightarrow \mathbb{R}$$
-
-for each of the time steps $t = 0, 1, \ldots, T-1$, defined as:
-
-$$\mathcal{R}_t(s_t,a_t) = \sum_{s_{t+1}\in \mathcal{S}_{t+1}} \sum_{r_{t+1}\in\mathbb{R}} (\mathcal{P}_R)_t(s_t,a_t,r_{t+1},s_{t+1}) \cdot r_{t+1}$$
-
 Consequently, the Value Function for a given policy $\pi$ (equivalently, the Value Function for the $\pi$-implied MRP)
 
 $$V^{\pi}: \mathcal{N} \rightarrow \mathbb{R}$$
@@ -874,31 +858,28 @@ for each of time steps $t = 0, 1, \ldots, T-1$, defined as:
 
 $$V^{\pi}((t, s_t)) = V^{\pi_t}_t(s_t) \text{ for all } t = 0, 1, \ldots, T-1, s_t \in \mathcal{S}_t$$
 
-For the case of a finite MDP, assume the number of states in $\mathcal{S}_t$ is $m_t$ for all $t = 0, 1, \ldots, T$.
-
-Then, for each $t = 0, 1, \ldots, T-1$, we can express $V^{\pi_t}_t$ as a vector $\bm{V}^{\pi_t}_t \in \mathbb{R}^{m_t}$.
-
 Then, the Bellman Policy Equation can be written as:
 
 \begin{equation}
-\bm{V}^{\pi_t}_t = \bm{\mathcal{R}}^{\pi_t}_t + \gamma \bm{\mathcal{P}}^{\pi_t}_t \cdot \bm{V}^{\pi_{t+1}}_{t+1} \text{ for all } t = 0, 1, \ldots T-2 \text{ and } \bm{V}^{\pi_{T-1}}_{T-1} = \bm{\mathcal{R}}^{\pi_{T-1}}_{T-1}
+V^{\pi_t}_t(s_t) = \sum_{s_{t+1} \in \mathcal{S}_{t+1}} \sum_{r_{t+1} \in \mathbb{R}} (\mathcal{P}_R^{\pi_t})_t(s_t, a_t, r_{t+1}, s_{t+1}) \cdot (r_{t+1} + \gamma \cdot V^{\pi_{t+1}}_{t+1}(s_{t+1})) \\ \text{ for all } t = 0, 1, \ldots, T-2, s_t \in \mathcal{S_t}
 \label{eq:bellman_policy_equation_finite_horizon}
 \end{equation}
 
-where column vector $\bm{\mathcal{R}}^{\pi_t}_t \in \mathbb{R}^{m_t}$ represents the $\pi$-implied MRP's reward function $\mathcal{R}^{\pi_t}_t: \mathcal{S}_t \rightarrow \mathbb{R}$ defined as:
+\begin{equation}
+V^{\pi_{T-1}}_{T-1}(s_{T-1}) = \sum_{s_T \in \mathcal{S}_T} \sum_{r_T \in \mathbb{R}} (\mathcal{P}_R^{\pi_{T-1}})_{T-1}(s_{T-1}, a_{T-1}, r_T, s_T) \cdot r_T \text{ for all } s_{T-1} \in \mathcal{S}_{T-1}
+\label{eq:bellman_policy_equation_finite_horizon_base}
+\end{equation}
 
-$$\mathcal{R}^{\pi_t}_t(s_t) = \sum_{a_t \in \mathcal{A}_t} \pi_t(s_t, a_t) \cdot \mathcal{R}_t(s_t, a_t) \text{ for all } t = 0, 1, \ldots, T-1, s_t \in \mathcal{S}_t$$
+where $(\mathcal{P}_R^{\pi_t})_t: \mathcal{S}_t \times \mathbb{R} \times \mathcal{S}_{t+1}$ for all $t = 0, 1, \ldots, T-1$ represent the $\pi$-implied MRP's state-reward transition probability functions for the time steps, defined as:
 
-and $\bm{\mathcal{P}}^{\pi_t}_t$ is an $m_t \times m_t$ matrix representing the $\pi$-implied MRP's implicit Markov Process' transition probability function $\mathcal{P}^{\pi_t}_t: \mathcal{S}_t \times \mathcal{S}_{t+1} \rightarrow [0, 1]$ defined as:
+$$(\mathcal{P}_R^{\pi_t})_t(s_t, r_{t+1}, s_{t+1}) = \sum_{a_t \in \mathcal{A}_t} \pi_t(s_t, a_t) \cdot (\mathcal{P}_R)_t(s_t, a_t, r_{t+1}, s_{t+1}) \text{ for all } t = 0, 1, \ldots, T-1$$
 
-$$\mathcal{P}^{\pi_t}_t(s_t, s_{t+1}) = \sum_{a_t \in \mathcal{A}_t} \pi_t(s_t, a_t) \cdot \mathcal{P}_t(s_t, a_t, s_{t+1}) \text{ for all } t = 0, 1, \ldots, T-1, s_t \in \mathcal{S}_t, s_{t+1} \in \mathcal{S}_{t+1}$$
+So for a Finite MDP, this yields a simple algorithm to calculate $V^{\pi_t}_t$ for all $t$:
 
-So for a Finite MDP, this yields a simple algorithm to calculate $\bm{V^}{\pi_t}_t$ for all $t$:
+* Set $V^{\pi_{T-1}}_{T-1}$ according to Equation \eqref{eq:bellman_policy_equation_finite_horizon_base}  
+* For t = $T-2$ decrementing down to $t=0$, use Equation \eqref{eq:bellman_policy_equation_finite_horizon} to calculate $V^{\pi_t}_t$ for all $t = 0, 1, \ldots, T-2$ from the known values of $V^{\pi_{t+1}}_{t+1}$ (since we are decrementing in time index $t$).
 
-* Set $\bm{V}^{\pi_{T-1}}_{T-1} = \bm{\mathcal{R}}^{\pi_{T-1}}_{T-1}$
-* For t = $T-2$ decrementing down to $t=0$, use Equation \eqref{eq:bellman_policy_equation_finite_horizon} to calculate $\bm{V}^{\pi_t}_t$ for all $t = 0, 1, \ldots, T-2$ from the known values of $\bm{V}^{\pi_{t+1}}_{t+1}$ (since we are decrementing in time index $t$).
-
-If $|\mathcal{S}_t|$ is $O(m)$ for all $t$ and $|\mathcal{A}_t|$ is $O(k)$, then the running time of this algorithm is $O(m^2\cdot k \cdot T)$
+If $|\mathcal{S}_t|$ is $O(m)$ for all $t$ and $|\mathcal{A}_t|$ is $O(k)$, then the running time of this algorithm is $O(m^2\cdot k \cdot T)$ ($O(m^2\cdot k \cdot T)$ to convert the MDP to the $\pi$-implied MRP and $O(m^2 \cdot T$) to then calculate the Value Function of the MRP).
 
 Likewise, the Optimal Value Function
 
@@ -915,35 +896,31 @@ $$V^*((t, s_t)) = V^*_t(s_t) \text{ for all } t = 0, 1, \ldots, T-1, s_t \in \ma
 Thus, the Bellman Optimality Equation can be written as:
 
 \begin{equation}
-V^*_t(s_t) = \max_{a_t \in \mathcal{A}_t} \{\mathcal{R}_t(s_t, a_t) + \gamma \cdot \sum_{s_{t+1} \in \mathcal{S}_{t+1}} \mathcal{P}_t(s_t, a_t, s_{t+1}) \cdot V^*_{t+1}(s_{t+1})\}
-\label{eq:bellman_optimality_equation_finite_horizon1}
+V^*_t(s_t) = \max_{a_t \in \mathcal{A}_t} \{\sum_{r_{t+1} \in \mathbb{R}} \sum_{s_{t+1} \in \mathcal{S}_{t+1}} (\mathcal{P}_R)_t(s_t, a_t, r_{t+1}, s_{t+1}) \cdot (r_{t+1} + \gamma \cdot V^*_{t+1}(s_{t+1}))\} \\ \text{ for all } t = 0, 1, \ldots, T-2, s_t \in \mathcal{S}_t
+\label{eq:bellman_optimality_equation_finite_horizon}
 \end{equation}
 \begin{equation}
-= \max_{a_t \in \mathcal{A}_t} \{\sum_{r_{t+1} \in \mathbb{R}} \sum_{s_{t+1} \in \mathcal{S}_{t+1}} (\mathcal{P}_R)_t(s_t, a_t, r_{t+1}, s_{t+1}) \cdot (r_t + \gamma \cdot V^*_{t+1}(s_{t+1}))\}
-\label{eq:bellman_optimality_equation_finite_horizon2}
+V^*_{T-1}(s_{T-1}) = \max_{a_{T-1} \in \mathcal{A}_{T-1}} \{\sum_{r_T \in \mathbb{R}} \sum_{s_T \in \mathcal{S}_T} (\mathcal{P}_R)_{T-1}(s_{T-1}, a_{T-1}, r_T, s_T) \cdot r_T \} \text{ for all } s_{T-1} \in \mathcal{S}_{T-1}
+\label{eq:bellman_optimality_equation_finite_horizon_base}
 \end{equation}
-for all $t = 0, 1, \ldots, T-1, s_t \in \mathcal{S}_t$
 
 The associated Optimal (Deterministic) Policy
 $$(\pi^*_D)_t: \mathcal{S}_t \rightarrow \mathcal{A}_t$$
 is defined as:
 
 \begin{equation}
-(\pi^*_D)_t(s_t) = \argmax_{a_t \in \mathcal{A}_t} \{\mathcal{R}_t(s_t, a_t) + \gamma \cdot \sum_{s_{t+1} \in \mathcal{S}_{t+1}} \mathcal{P}_t(s_t, a_t, s_{t+1}) \cdot V^*_{t+1}(s_{t+1})\}
-\label{eq:optimal_policy_finite_horizon1}
+(\pi^*_D)_t = \argmax_{a_t \in \mathcal{A}_t} \{\sum_{r_{t+1} \in \mathbb{R}} \sum_{s_{t+1} \in \mathcal{S}_{t+1}} (\mathcal{P}_R)_t(s_t, a_t, r_{t+1}, s_{t+1}) \cdot (r_{t+1} + \gamma \cdot V^*_{t+1}(s_{t+1}))\} \text{for all } t = 0, 1, \ldots, T-2, s_t \in \mathcal{S}_t
+\label{eq:optimal_policy_finite_horizon}
 \end{equation}
 \begin{equation}
-= \argmax_{a_t \in \mathcal{A}_t} \{\sum_{r_{t+1} \in \mathbb{R}} \sum_{s_{t+1} \in \mathcal{S}_{t+1}} (\mathcal{P}_R)_t(s_t, a_t, r_{t+1}, s_{t+1}) \cdot (r_t + \gamma \cdot V^*_{t+1}(s_{t+1}))\}
-\label{eq:optimal_policy_finite_horizon2}
+(\pi^*_D)_{T-1} = \argmax_{a_{T-1} \in \mathcal{A}_{T-1}} \{\sum_{r_T \in \mathbb{R}} \sum_{s_T \in \mathcal{S}_T} (\mathcal{P}_R)_{T-1}(s_{T-1}, a_{T-1}, r_T, s_T) \cdot r_T \} \text{for all } s_{T-1} \in \mathcal{S}_{T-1}
+\label{eq:optimal_policy_finite_horizon_base}
 \end{equation}
-for all $t = 0, 1, \ldots, T-1, s_t \in \mathcal{S}_t$
 
 For the case of a Finite MDP, this yields a simple algorithm to calculate $V^*_t$ for all $t$:
 
-* Set
-$$V^*_{T-1}(s_{T-1}) = \max_{a_{T-1} \in \mathcal{A}_{T-1}} \mathcal{R}_{T-1}(s_{T-1}, a_{T-1})$$
-for all $s_{T-1} \in \mathcal{S}_{T-1}$
-* For t = $T-2$ decrementing down to $t=0$, use Equation \eqref{eq:bellman_optimality_equation_finite_horizon2} to calculate $V^*_t$ and Equation \eqref{eq:optimal_policy_finite_horizon2} to calculate $(\pi^*_D)_t$ for all $t = 0, 1, \ldots, T-2$ from the known values of $V^*_{t+1}$ (since we are decrementing in time index $t$).
+* Set $V^*_{T-1}$ according to Equation \eqref{eq:bellman_optimality_equation_finite_horizon_base} and $(\pi^*_D)_{T-1}$ according to Equation \eqref{eq:optimal_policy_finite_horizon_base}
+* For t = $T-2$ decrementing down to $t=0$, use Equation \eqref{eq:bellman_optimality_equation_finite_horizon} to calculate $V^*_t$ and Equation \eqref{eq:optimal_policy_finite_horizon} to calculate $(\pi^*_D)_t$ for all $t = 0, 1, \ldots, T-2$ from the known values of $V^*_{t+1}$ (since we are decrementing in time index $t$).
 
 If $|\mathcal{S}_t|$ is $O(m)$ for all $t$ and $|\mathcal{A}_t|$ is $O(k)$, then the running time of this algorithm is $O(m^2\cdot k \cdot T)$
 
