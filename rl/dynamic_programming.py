@@ -1,12 +1,13 @@
-from typing import Mapping, Iterator, TypeVar, List, Tuple, Dict
+from typing import Mapping, Iterator, TypeVar, Tuple, Dict, Sequence
 import operator
 
 from rl.iterate import converged, iterate
-from rl.markov_decision_process import (ActionMapping,
-                                        FiniteMarkovDecisionProcess,
+from rl.markov_decision_process import (FiniteMarkovDecisionProcess,
                                         FiniteMarkovRewardProcess,
                                         FinitePolicy)
 from rl.distribution import FiniteDistribution, Categorical, Constant, Choose
+import numpy as np
+
 
 A = TypeVar('A')
 S = TypeVar('S')
@@ -18,41 +19,44 @@ DEFAULT_TOLERANCE = 1e-5
 V = Mapping[S, float]
 
 
-def almost_equal_vfs(
-    v1: V[S],
-    v2: V[S],
-    tolerance: float = DEFAULT_TOLERANCE
-) -> bool:
-    '''Return whether the two value function tables are within the given
-    tolerance of each other.
-
-    '''
-    return max(abs(v1[s] - v2[s]) for s in v1) < tolerance
-
-
 def evaluate_mrp(
     mrp: FiniteMarkovRewardProcess[S],
     gamma: float
-) -> Iterator[V[S]]:
+) -> Iterator[np.ndarray]:
     '''Iteratively calculate the value function for the give Markov reward
     process.
 
     '''
-    def update(v: V[S]) -> V[S]:
-        return {s: mrp.reward_function_vec[i] + gamma *
-                sum(p * v.get(s1, 0.) for s1, p in mrp.transition_map[s])
-                for i, s in enumerate(mrp.non_terminal_states)}
+    def update(v: np.ndarray) -> np.ndarray:
+        return mrp.reward_function_vec + gamma * \
+            mrp.get_transition_matrix().dot(v)
 
-    v_0: V[S] = {s: 0. for s in mrp.non_terminal_states}
+    v_0: np.ndarray = np.zeros(len(mrp.non_terminal_states))
 
     return iterate(update, v_0)
+
+
+def almost_equal_np_arrays(
+    v1: np.ndarray,
+    v2: np.ndarray,
+    tolerance: float = DEFAULT_TOLERANCE
+) -> bool:
+    '''Return whether the two value functions as np.ndarray are within the given
+    tolerance of each other.
+
+    '''
+    return max(abs(v1 - v2)) < tolerance
 
 
 def evaluate_mrp_result(
     mrp: FiniteMarkovRewardProcess[S],
     gamma: float
 ) -> V[S]:
-    return converged(evaluate_mrp(mrp, gamma=gamma), done=almost_equal_vfs)
+    v_star: np.ndarray = converged(
+        evaluate_mrp(mrp, gamma=gamma),
+        done=almost_equal_np_arrays
+    )
+    return {s: v_star[i] for i, s in enumerate(mrp.non_terminal_states)}
 
 
 def greedy_policy_from_vf(
@@ -147,6 +151,18 @@ def value_iteration(
 
     v_0: V[S] = {s: 0.0 for s in mdp.non_terminal_states}
     return iterate(update, v_0)
+
+
+def almost_equal_vfs(
+    v1: V[S],
+    v2: V[S],
+    tolerance: float = DEFAULT_TOLERANCE
+) -> bool:
+    '''Return whether the two value function tables are within the given
+    tolerance of each other.
+
+    '''
+    return max(abs(v1[s] - v2[s]) for s in v1) < tolerance
 
 
 def value_iteration_result(
