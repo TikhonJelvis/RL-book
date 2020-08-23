@@ -94,7 +94,10 @@ def unwrap_finite_horizon_MRP(
             )]
 
 
-def evaluate(steps: Sequence[RewardTransition[S]]) -> Iterator[V[S]]:
+def evaluate(
+    steps: Sequence[RewardTransition[S]],
+    gamma: float
+) -> Iterator[V[S]]:
     '''Evaluate the given finite Markov reward process using backwards
     induction, given that the process stops after limit time steps.
 
@@ -104,7 +107,7 @@ def evaluate(steps: Sequence[RewardTransition[S]]) -> Iterator[V[S]]:
 
     for step in reversed(steps[:-1]):
         v.append({s: res.expectation(
-            lambda x: (v[-1][x[0]] if len(v) > 0 else 0.) + x[1]
+            lambda s_r: s_r[1] + gamma * (v[-1][s_r[0]] if len(v) > 0 else 0.)
             ) for s, res in step.items()})
 
     return reversed(v)
@@ -176,7 +179,8 @@ def unwrap_finite_horizon_MDP(
 
 
 def optimal_vf_and_policy(
-    steps: Sequence[StateActionMapping[S, A]]
+    steps: Sequence[StateActionMapping[S, A]],
+    gamma: float
 ) -> Iterator[Tuple[V[S], FinitePolicy[S, A]]]:
     '''Use backwards induction to find the optimal policy for the given
     finite Markov decision process.
@@ -189,7 +193,8 @@ def optimal_vf_and_policy(
         this_a: Dict[S, FiniteDistribution[A]] = {}
         for s, actions_map in step.items():
             action_values = ((res.expectation(
-                lambda x: (v_p[-1][0][x[0]] if len(v_p) > 0 else 0.) + x[1]
+                lambda s_r: s_r[1] + gamma * (v_p[-1][0][s_r[0]]
+                                              if len(v_p) > 0 else 0.)
             ), a) for a, res in actions_map.items())
             v_star, a_star = max(action_values, key=itemgetter(0))
             this_v[s] = v_star

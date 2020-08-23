@@ -46,14 +46,15 @@ class ClearancePricingMDP:
     ) -> Iterator[V[int]]:
         mrp: FiniteMarkovRewardProcess[WithTime[int]] \
             = self.mdp.apply_finite_policy(policy)
-        return evaluate(unwrap_finite_horizon_MRP(mrp))
+        return evaluate(unwrap_finite_horizon_MRP(mrp), 1.)
 
     def get_optimal_vf_and_policy(self)\
             -> Iterator[Tuple[V[int], FinitePolicy[int, int]]]:
-        return optimal_vf_and_policy(unwrap_finite_horizon_MDP(self.mdp))
+        return optimal_vf_and_policy(unwrap_finite_horizon_MDP(self.mdp), 1.)
 
 
 if __name__ == '__main__':
+    from pprint import pprint
     ii = 12
     steps = 8
     pairs = [(1.0, 0.5), (0.7, 1.0), (0.5, 1.5), (0.3, 2.5)]
@@ -76,21 +77,22 @@ if __name__ == '__main__':
     single_step_mrp: FiniteMarkovRewardProcess[int] = \
         cp.single_step_mdp.apply_finite_policy(stationary_policy)
 
-    vf_for_policy: Iterator[V[int]] = evaluate(unwrap_finite_horizon_MRP(
-        finite_horizon_MRP(single_step_mrp, steps)
-    ))
+    vf_for_policy: Iterator[V[int]] = evaluate(
+        unwrap_finite_horizon_MRP(finite_horizon_MRP(single_step_mrp, steps)),
+        1.
+    )
 
     print("Value Function for Stationary Policy")
     print("------------------------------------")
     for t, vf in enumerate(vf_for_policy):
         print(f"Time Step {t:d}")
         print("---------------")
-        print(vf)
+        pprint(vf)
 
     print("Optimal Value Function and Optimal Policy")
     print("------------------------------------")
     for t, (vf, policy) in enumerate(cp.get_optimal_vf_and_policy()):
         print(f"Time Step {t:d}")
         print("---------------")
-        print(vf)
+        pprint(vf)
         print(policy)
