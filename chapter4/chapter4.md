@@ -233,7 +233,7 @@ def almost_equal_vfs(
     v2: V[S],
     tolerance: float = DEFAULT_TOLERANCE
 ) -> bool:
-    return max([abs(v1[s] - v2[s]) for s in v1.keys()]) < tolerance
+    return max(abs(v1[s] - v2[s]) for s in v1) < tolerance
 
 def evaluate_mrp(
     mrp: FiniteMarkovRewardProcess[S],
@@ -286,7 +286,7 @@ $$\bm{W}(s') =
 \end{cases}
 $$
 
-Note that in Equation \eqref{eq:greedy_policy_function2}, because we have to work with $\mathcal{P}_R$, we need to consider transitions to all states $s' \in \mathcal{S}$ (versus transition to all states $s' \in \mathcal{N}$ in Equation \eqref{eq:greedy_policy_function1}), and so, we need to handle the transitions to states $s' in \mathcal{T}$ carefully (essentially by using the $\bm{W}$ function as described above).
+Note that in Equation \eqref{eq:greedy_policy_function2}, because we have to work with $\mathcal{P}_R$, we need to consider transitions to all states $s' \in \mathcal{S}$ (versus transition to all states $s' \in \mathcal{N}$ in Equation \eqref{eq:greedy_policy_function1}), and so, we need to handle the transitions to states $s' \in \mathcal{T}$ carefully (essentially by using the $\bm{W}$ function as described above).
 
 Now let's write some code to create this "greedy policy" from a given value function, guided by Equation \eqref{eq:greedy_policy_function2}.
 ```python
@@ -299,14 +299,10 @@ def greedy_policy_from_vf(
 
     for s in mdp.non_terminal_states:
 
-        q_values: List[Tuple[A, float]] = []
-        action_map: ActionMapping[A, S] = mdp.mapping[s]
-
-        for a in mdp.actions(s):
-            q_val: float = 0.
-            for (next_s, r), p in action_map[a]:
-                q_val += p * (r + gamma * vf.get(next_s, 0.))
-            q_values.append((a, q_val))
+        q_values: Iterator[Tuple[A, float]] = \
+            ((a, mdp.mapping[s][a].expectation(
+                lambda s_r: s_r[1] + gamma * vf.get(s_r[0], 0.)
+            )) for a in mdp.actions(s))
 
         greedy_policy_dict[s] =\
             Constant(max(q_values, key=operator.itemgetter(1))[0])
@@ -314,7 +310,7 @@ def greedy_policy_from_vf(
     return FinitePolicy(greedy_policy_dict)
 ```
 
-As you can see above, we loop through all the non-terminal states that serve as keys in `greedy_policy_dict: Dict[S, FiniteDistribution[A]]`. The inner loop goes through all the actions in $\mathcal{A}(s)$ and computes Q-Value $Q(s,a)$ as the sum (over all $(r,s')$ pairs) of $\mathcal{P}_R(s,a,r,s') \cdot (r  + \gamma \cdot \bm{W}(s'))$. Finally, we calculate $\argmax_a Q(s,a)$ for all non-terminal states $s$, and return it as a `FinitePolicy` (which is our greedy policy).
+As you can see above, we loop through all the non-terminal states that serve as keys in `greedy_policy_dict: Dict[S, FiniteDistribution[A]]`. Within this loop, we go through all the actions in $\mathcal{A}(s)$ and compute Q-Value $Q(s,a)$ as the sum (over all $(s',r)$ pairs) of $\mathcal{P}_R(s,a,r,s') \cdot (r  + \gamma \cdot \bm{W}(s'))$, written as $\mathbb{E}_{(s',r) \sim \mathcal{P}_R}[r + \gamma \cdot \bm{W}(s')]$. Finally, we calculate $\argmax_a Q(s,a)$ for all non-terminal states $s$, and return it as a `FinitePolicy` (which is our greedy policy).
 
 The word "Greedy" is a reference to the term "Greedy Algorithm", which means an algorithm that takes heuristic steps guided by locally-optimal choices in the hope of moving towards a global optimum. Here, the reference to *Greedy Policy* means if we have a policy $\pi$ and its corresponding Value Function $\bvpi$ (obtained say using Policy Evaluation algorithm), then applying the Greedy Policy function $G$ on $\bvpi$ gives us a deterministic policy $\pi_D': \mathcal{N} \rightarrow \mathcal{A}$ that is hopefully "better" than $\pi$ in the sense that $\bm{V}^{\pi_D'}$ is "greater" than $\bvpi$. We shall now make this statement precise and show how to use the *Greedy Policy Function* to perform *Policy Improvement*.
 
@@ -455,7 +451,7 @@ def almost_equal_vf_pis(
     x2: Tuple[V[S], FinitePolicy[S, A]]
 ) -> bool:
     return max(
-        abs(x1[0][s] - x2[0][s]) for s in x1[0].keys()
+        abs(x1[0][s] - x2[0][s]) for s in x1[0]
     ) < DEFAULT_TOLERANCE
 
 def policy_iteration_result(
@@ -495,7 +491,7 @@ $$\bm{W}(s') =
 \end{cases}
 $$
 
-Note that in Equation \eqref{eq:bellman_optimality_operator2}, because we have to work with $\mathcal{P}_R$, we need to consider transitions to all states $s' \in \mathcal{S}$ (versus transition to all states $s' \in \mathcal{N}$ in Equation \eqref{eq:bellman_optimality_operator1}), and so, we need to handle the transitions to states $s' in \mathcal{T}$ carefully (essentially by using the $\bm{W}$ function as described above).
+Note that in Equation \eqref{eq:bellman_optimality_operator2}, because we have to work with $\mathcal{P}_R$, we need to consider transitions to all states $s' \in \mathcal{S}$ (versus transition to all states $s' \in \mathcal{N}$ in Equation \eqref{eq:bellman_optimality_operator1}), and so, we need to handle the transitions to states $s' \in \mathcal{T}$ carefully (essentially by using the $\bm{W}$ function as described above).
 
 For each $s\in \mathcal{N}$, the action $a\in \mathcal{A}$ that produces the maximization in \eqref{eq:bellman_optimality_operator1} is the action prescribed by the deterministic policy $\pi_D$ in \eqref{eq:greedy_policy_function1}. Therefore, if we apply the Bellman Policy Operator on any Value Function $\bv \in \mathbb{R}^m$ using the Greedy Policy $G(\bv)$, it should be identical to applying the Bellman Optimality Operator. Therefore,
 
@@ -594,7 +590,7 @@ The above equation says $\bvs$ is the Fixed-Point of the Bellman Policy Operator
 $$\bm{V}^{G(\bvs)} = \bvs$$
 This says that evaluating the MDP with the deterministic greedy policy $G(\bvs)$ (policy created from the Optimal Value Function $\bvs$ using the Greedy Policy Function $G$) in fact achieves the Optimal Value Function $\bvs$. In other words, $G(\bvs)$ is the (Deterministic) Optimal Policy $\pi^*$ we've been seeking.
 
-Now let's write the code for Value Iteration. The function `value_iteration` returns an `Iterator` on Value Functions (of type `V[S]`) produced by the Value Iteration algorithm. It uses the function `bellman_opt_update` for application of the Bellman Optimality Operator. `bellman_opt_update` prepares the Q-Values for a state by looping through all the allowable actions for the state, and then calculates the maximum of those Q-Values (over the actions). The Q-Value calculation is straightforward, using the $\mathcal{P}_R$ probabilities represented in the `mapping` attribute of the `mdp` object (essentially Equation \eqref{eq:bellman_optimality_operator2}). The function `value_iteration_result` returns the final (optimal) Value Function, together with it's associated Optimal Policy. It simply returns the last Value Function of the `Iterable[V[S]]` returned by `value_iteration`, using the termination condition specified in `almost_equal_vfs`.
+Now let's write the code for Value Iteration. The function `value_iteration` returns an `Iterator` on Value Functions (of type `V[S]`) produced by the Value Iteration algorithm. It uses the function `bellman_opt_update` for application of the Bellman Optimality Operator. `bellman_opt_update` prepares the Q-Values for a state by looping through all the allowable actions for the state, and then calculates the maximum of those Q-Values (over the actions). The Q-Value calculation is same as what we saw in `greedy_policy_from_vf`: $\mathbb{E}_{(s',r) \sim \mathcal{P}_R}[r + \gamma \cdot \bm{W}(s')]$, using the $\mathcal{P}_R$ probabilities represented in the `mapping` attribute of the `mdp` object (essentially Equation \eqref{eq:bellman_optimality_operator2}). The function `value_iteration_result` returns the final (optimal) Value Function, together with it's associated Optimal Policy. It simply returns the last Value Function of the `Iterable[V[S]]` returned by `value_iteration`, using the termination condition specified in `almost_equal_vfs`.
 
 ```python
 DEFAULT_TOLERANCE = 1e-5
@@ -604,12 +600,9 @@ def bellman_opt_update(
     mdp: FiniteMarkovDecisionProcess[S, A],
     gamma: float
 ) -> V[S]:
-    def update_s(s: S) -> float:
-        return max(sum(p * (r + gamma * v.get(next_s, 0.))
-                       for (next_s, r), p in mdp.mapping[s][a])
-                   for a in mdp.actions(s))
-
-    return {s: update_s(s) for s in v.keys()}
+    return {s: max(mdp.mapping[s][a].expectation(
+        lambda s_r: s_r[1] + gamma * v.get(s_r[0], 0.)
+    ) for a in mdp.actions(s)) for s in v}
 
 def value_iteration(
     mdp: FiniteMarkovDecisionProcess[S, A],
@@ -626,7 +619,7 @@ def almost_equal_vfs(
     v2: V[S],
     tolerance: float = DEFAULT_TOLERANCE
 ) -> bool:
-    return max([abs(v1[s] - v2[s]) for s in v1.keys()]) < tolerance
+    return max(abs(v1[s] - v2[s]) for s in v1) < tolerance
 
 def value_iteration_result(
     mdp: FiniteMarkovDecisionProcess[S, A],
