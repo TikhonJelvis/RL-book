@@ -228,34 +228,46 @@ It pays to emphasize that Banach Fixed-Point Theorem not only assures convergenc
 DEFAULT_TOLERANCE = 1e-5
 V = Mapping[S, float]
 
-def almost_equal_vfs(
-    v1: V[S],
-    v2: V[S],
-    tolerance: float = DEFAULT_TOLERANCE
-) -> bool:
-    return max(abs(v1[s] - v2[s]) for s in v1) < tolerance
-
 def evaluate_mrp(
     mrp: FiniteMarkovRewardProcess[S],
     gamma: float
-) -> Iterator[V[S]]:
-    def update(v: V[S]) -> V[S]:
-        return {s: mrp.reward_function_vec[i] + gamma *
-                sum(p * v.get(s1, 0.) for s1, p in mrp.transition_map[s])
-                for i, s in enumerate(mrp.non_terminal_states)}
+) -> Iterator[np.ndarray]:
+    '''Iteratively calculate the value function for the give Markov reward
+    process.
 
-    v_0: V[S] = {s: 0. for s in mrp.non_terminal_states}
+    '''
+    def update(v: np.ndarray) -> np.ndarray:
+        return mrp.reward_function_vec + gamma * \
+            mrp.get_transition_matrix().dot(v)
+
+    v_0: np.ndarray = np.zeros(len(mrp.non_terminal_states))
 
     return iterate(update, v_0)
+
+def almost_equal_np_arrays(
+    v1: np.ndarray,
+    v2: np.ndarray,
+    tolerance: float = DEFAULT_TOLERANCE
+) -> bool:
+    '''Return whether the two value functions as np.ndarray are within the given
+    tolerance of each other.
+
+    '''
+    return max(abs(v1 - v2)) < tolerance
+
 
 def evaluate_mrp_result(
     mrp: FiniteMarkovRewardProcess[S],
     gamma: float
 ) -> V[S]:
-    return converged(evaluate_mrp(mrp, gamma=gamma), done=almost_equal_vfs)
+    v_star: np.ndarray = converged(
+        evaluate_mrp(mrp, gamma=gamma),
+        done=almost_equal_np_arrays
+    )
+    return {s: v_star[i] for i, s in enumerate(mrp.non_terminal_states)}
 ```
 
-The code should be fairly self-explanatory. Since the Policy Evaluation problem applies to Finite MRPs, the function `evaluate_mrp` above takes as input `mrp: FiniteMarkovDecisionProcess[S]` and a `gamma: float` to produce an `Iterator` on the Value Function of type `V[S]` (alias for `Mapping[S, float]`) that represents $\mathcal{N} \rightarrow \mathbb{R}$. The function `update` in `evaluate_mrp` represents the application of the Bellman Policy Operator $\bbpi$. The function `evaluate_mrp_result` produces the Value Function for the given `mrp` and the given `gamma`, returning the last value function on the `Iterator` (which terminates based on the `almost_equal_vfs` function, considering the maximum of the absolute value differences between the value functions for each of the states). Note that `evaluate_mrp` is useful for debugging (by looking at the trace of value functions in the execution of the Policy Evaluation algorithm) while `evaluate_mrp_result` produces the desired output Value Function.
+The code should be fairly self-explanatory. Since the Policy Evaluation problem applies to Finite MRPs, the function `evaluate_mrp` above takes as input `mrp: FiniteMarkovDecisionProcess[S]` and a `gamma: float` to produce an `Iterator` on Value Functions represented as `np.ndarray` (for fast vector/matrix calculations). The function `update` in `evaluate_mrp` represents the application of the Bellman Policy Operator $\bbpi$. The function `evaluate_mrp_result` produces the Value Function for the given `mrp` and the given `gamma`, returning the last value function on the `Iterator` (which terminates based on the `almost_equal_np_arrays` function, considering the maximum of the absolute value differences across all states). Note that the return type of `evaluate_mrp_result` is `V[S]` which is an alias for `Mapping[S, float]`, capturing the semantic of $\mathcal{N} \rightarrow \mathbb{R}$. Note that `evaluate_mrp` is useful for debugging (by looking at the trace of value functions in the execution of the Policy Evaluation algorithm) while `evaluate_mrp_result` produces the desired output Value Function.
 
 If the number of non-terminal states of a given MRP is $m$, then the running time of each iteration is $O(m^2)$. Note though that to construct an MRP from a given MDP and a given policy, we have to perform $O(m^2\cdot k)$ operations, where $k = |\mathcal{A}|$.
 
@@ -413,7 +425,7 @@ For a Finite MDP with $|\mathcal{N}| = m$, Policy Iteration algorithm converges 
 
 ![Policy Iteration Convergence \label{fig:policy_iteration_convergence}](./chapter4/policy_iteration_convergence.png "At Convergence of Policy Iteration")
 
-Now let's write some code for Policy Iteration Algorithm. Unlike Policy Evaluation which repeatedly operates on Value Functions (and returns a Value Function), Policy Iteration repeatedly operates on a pair of Value Function and Policy (and returns a pair of Value Function and Policy). In the code below, notice the type `Tuple[V[S], FinitePolicy[S, A]]` that represents a pair of Value Function and Policy. The function `policy_iteration` repeatedly applies the function `update` on a pair of Value Function and Policy. The `update` function, after splitting its input `vf_policy` into `vf: V[S]` and `pi: FinitePolicy[S, A]`, creates a MRP (`mrp: FiniteMarkovRewardProcess[S]`) from the combination of the input `mdp` and `pi`. Then it performs a policy evaluation on `mrp` (using the `evaluate_mrp` function) to produce a Value Function `policy_vf: V[S]`, and finally creates a greedy (improved) policy named `improved_pi` from `policy_vf` (using the previously-written function `greedy_policy_from_vf`). Thus the function `update` performs a Policy Evaluation followed by a Policy Improvement. Notice also that `policy_iteration` offers the option to perform the matrix-inversion-based computation of Value Function for a given policy (`get_value_function_vec` method of the `mrp` object), in case the state space is not too large. `policy_iteration` returns an `Iterator` on pairs of Value Function and Policy produced by this process of repeated Policy Evaluation and Policy Improvement.  `almost_equal_vf_pis` is the function to decide termination based on the distance between two successive Value Functions produced by Policy Iteration. `policy_iteration_result` returns the final (optimal) pair of Value Function and Policy (from the `Iterator` produced by `policy_iteration`), based on the termination criterion of `almost_equal_vf_pis`.
+Now let's write some code for Policy Iteration Algorithm. Unlike Policy Evaluation which repeatedly operates on Value Functions (and returns a Value Function), Policy Iteration repeatedly operates on a pair of Value Function and Policy (and returns a pair of Value Function and Policy). In the code below, notice the type `Tuple[V[S], FinitePolicy[S, A]]` that represents a pair of Value Function and Policy. The function `policy_iteration` repeatedly applies the function `update` on a pair of Value Function and Policy. The `update` function, after splitting its input `vf_policy` into `vf: V[S]` and `pi: FinitePolicy[S, A]`, creates a MRP (`mrp: FiniteMarkovRewardProcess[S]`) from the combination of the input `mdp` and `pi`. Then it performs a policy evaluation on `mrp` (using the `evaluate_mrp_result` function) to produce a Value Function `policy_vf: V[S]`, and finally creates a greedy (improved) policy named `improved_pi` from `policy_vf` (using the previously-written function `greedy_policy_from_vf`). Thus the function `update` performs a Policy Evaluation followed by a Policy Improvement. Notice also that `policy_iteration` offers the option to perform the matrix-inversion-based computation of Value Function for a given policy (`get_value_function_vec` method of the `mrp` object), in case the state space is not too large. `policy_iteration` returns an `Iterator` on pairs of Value Function and Policy produced by this process of repeated Policy Evaluation and Policy Improvement.  `almost_equal_vf_pis` is the function to decide termination based on the distance between two successive Value Functions produced by Policy Iteration. `policy_iteration_result` returns the final (optimal) pair of Value Function and Policy (from the `Iterator` produced by `policy_iteration`), based on the termination criterion of `almost_equal_vf_pis`.
 
 ```python
 DEFAULT_TOLERANCE = 1e-5
