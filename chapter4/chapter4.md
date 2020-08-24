@@ -1164,8 +1164,53 @@ vf_for_policy: Iterator[V[int]] = evaluate(
 
 Now let us determine what is the Optimal Policy and Optimal Value Function for this instance of `ClearancePricingMDP`. Running `cp.get_optimal_vf_and_policy` and printing the Optimal Value Function and Optimal Policy for time step 0 gives us the following output:
 
-```python
 ```
+{0: 0.0,
+ 1: 0.9831644873965348,
+ 2: 1.900754969571447,
+ 3: 2.693094379679039,
+ 4: 3.3302143692895356,
+ 5: 3.828510997346929,
+ 6: 4.238007649295796,
+ 7: 4.606736558460575,
+ 8: 4.9276818714710915,
+ 9: 5.183596752280889,
+ 10: 5.379133144661041,
+ 11: 5.526111469828149,
+ 12: 5.63944737768176}
+
+For State 0:
+  Do Action 0 with Probability 1.000
+For State 1:
+  Do Action 0 with Probability 1.000
+For State 2:
+  Do Action 0 with Probability 1.000
+For State 3:
+  Do Action 0 with Probability 1.000
+For State 4:
+  Do Action 0 with Probability 1.000
+For State 5:
+  Do Action 0 with Probability 1.000
+For State 6:
+  Do Action 0 with Probability 1.000
+For State 7:
+  Do Action 1 with Probability 1.000
+For State 8:
+  Do Action 1 with Probability 1.000
+For State 9:
+  Do Action 1 with Probability 1.000
+For State 10:
+  Do Action 1 with Probability 1.000
+For State 11:
+  Do Action 1 with Probability 1.000
+For State 12:
+  Do Action 1 with Probability 1.000
+```
+
+This tells us that on day 0, the Optimal Price is "30% Off" (corresponding to State 12, i.e., for starting inventory $M = I_0 = 12$). However, if the starting inventory $I_0$ were less than 7, then the Optimal Price is "Full Price". This makes intuitive sense because the greater the inventory, the more inclination we'd have to cut prices. Note also from the above output that executing the Optimal Policy would yield us an Expected Revenue ($V^*_0i(12)$) of about $5.64$.
+
+We are naturally curious to see what the Optimal Policy looks like as time progresses. What are the inventory thresholds for the 3 levels of price cuts? Let us examine the optimal policy for Day 5 (printed below).
+
 
 
 ## Extensions to Non-Tabular Algorithms
