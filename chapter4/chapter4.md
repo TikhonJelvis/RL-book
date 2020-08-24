@@ -1071,6 +1071,98 @@ $$I_0 = M, I_{t+1} = \max(0, I_t - d_t) \mbox{ for } 0 \leq t < T$$
 
 Using the definition of $(\mathcal{P}_R)_t$ and using the boundary condition $V_T^*(I_T) = 0$ for all $I_T \in \{0, 1, \ldots, M\}$, we can perform the backward induction algorithm to calculate $V_t^*$ and associated optimal (deterministic) policy $(\pi^*_D)_t$ for all $0 \leq t < T$.
 
+Now let's write some code to represent this Dynamic Programming problem as a `FiniteMarkovDecisionProcess` and determine it's optimal policy, i.e., the Optimal (Dynamic) Price at time step $t$ and at any level of inventory $I_t$. The type $\mathcal{S}_t$ is `int` and the type $\mathcal{A}_t$ is also`int`. So we shall be creating a MDP of type `FiniteMarkovDecisionProcess[WithTime[int], int]` (since the augmented state space is `WithTime[int]`). Our first task is to construct $\mathcal{P}_R$ of type:
+
+`Mapping[WithTime[int], Optional[Mapping[int, FiniteDistribution[Tuple[WithTime[int], float]]]]]`
+
+In the class `ClearancePricingMDP` below, $\mathcal{P}_R$ is manufactured in `__init__` and is used to create the attribute `mdp: FiniteMarkovDecisionProces[WithTime[int], int]`. Since $\mathcal{P}_R$ is independent of time, we first create a single-step (time-invariant) MDP `single_step_mdp: FiniteMarkovDecisionProcess[int, int]` (think of this as the building-block MDP), and then use the method `finite_horizon_mdp` (from file [rl/finite_horizon.pt](https://github.com/TikhonJelvis/RL-book/blob/master/rl/finite_horizon.py)) to turn `single_step_mdp` to `mdp`. The constructor argument`initial_inventory: int` represents the initial inventory $I_0 = M$. The constructor argument `time_steps` represents the number of time steps $T$. The constructor argument `price_lambda_pairs` represents $[(P_i, \lambda_i) | 1 \leq i \leq N]$.
+
+```python
+from scipy.stats import poisson
+
+class ClearancePricingMDP:
+
+    initial_inventory: int
+    time_steps: int
+    price_lambda_pairs: Sequence[Tuple[float, float]]
+    single_step_mdp: FiniteMarkovDecisionProcess[int, int]
+    mdp: FiniteMarkovDecisionProcess[WithTime[int], int]
+
+    def __init__(
+        self,
+        initial_inventory: int,
+        time_steps: int,
+        price_lambda_pairs: Sequence[Tuple[float, float]]
+    ):
+        self.initial_inventory = initial_inventory
+        self.time_steps = time_steps
+        self.price_lambda_pairs = price_lambda_pairs
+        distrs = [poisson(l) for _, l in price_lambda_pairs]
+        prices = [p for p, _ in price_lambda_pairs]
+        self.single_step_mdp: FiniteMarkovDecisionProcess[int, int] =\
+            FiniteMarkovDecisionProcess({
+                s: {i: Categorical(
+                    {(s - k, prices[i] * k):
+                     (distrs[i].pmf(k) if k < s else 1 - distrs[i].cdf(s - 1))
+                     for k in range(s + 1)})
+                    for i in range(len(prices))}
+                for s in range(initial_inventory + 1)
+            })
+        self.mdp = finite_horizon_MDP(self.single_step_mdp, time_steps)
+```
+
+Now let's write two methods for this class:
+
+* `get_vf_for_policy` that produces the Value Function for a given policy $\pi$, by first creating the $\pi$-implied MRP from `mdp`, unwrapping the MRP into a sequence of state-reward transition probability functions $(\mathcal{P}_R^{\pi_t})_t$, and then performing backward induction using the previously-written function `evaluate` to calculate the Value Function.
+* `get_optimal_vf_and_policy` that produces the Optimal Value Function and Optimal Policy, by first unwrapping `mdp` into a sequence of state-reward transition probability functions $(\mathcal{P}_R)_t$, and then performing backward induction using the previously-written function `optimal_vf_and_policy` to calculate the Optimal Value Function and Optimal Policy.
+
+```python
+    def get_vf_for_policy(
+        self,
+        policy: FinitePolicy[WithTime[int], int]
+    ) -> Iterator[V[int]]:
+        mrp: FiniteMarkovRewardProcess[WithTime[int]] \
+            = self.mdp.apply_finite_policy(policy)
+        return evaluate(unwrap_finite_horizon_MRP(mrp), 1.)
+
+    def get_optimal_vf_and_policy(self)\
+            -> Iterator[Tuple[V[int], FinitePolicy[int, int]]]:
+        return optimal_vf_and_policy(unwrap_finite_horizon_MDP(self.mdp), 1.)
+```
+
+Noe let's create a simple instance of `ClearancePricingMDP` for $M = 12, T = 8$ and 4 price choices: "Full Price", "30% Off", "50% Off", "70% Off" with respective mean daily demand of $0.5, 1.0, 1.5, 2.5$.
+
+```python
+ii = 12
+steps = 8
+pairs = [(1.0, 0.5), (0.7, 1.0), (0.5, 1.5), (0.3, 2.5)]
+cp: ClearancePricingMDP = ClearancePricingMDP(
+    initial_inventory=ii,
+    time_steps=steps,
+    price_lambda_pairs=pairs
+)
+```
+
+Now let us calculate it's Value Function for a stationary policy that chooses "Full Price" if inventory is less than 2, otherwise "30% Off" if inventory is less than 5, otherwise "50% Off" if inventory is less than 8, otherwise "70% Off". Since we have a stationary policy, we can represent it as a single-step policy and combine it with the single-step MDP we had created above (attribute `single_step_mdp`) to create a `single_step_mrp: FiniteMarkovRewardProcess[int]`. Then we use the function `finite_horizon_mrp` (from file [rl/finite_horizon.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/finite_horizon.py)) to create the entire (augmented state) MRP of type `FiniteMarkovRewardProcess[WithTime[int]]`. Finally, we unwrap this MRP into a sequence of state-reward transition probability functions and perform backward induction to calculate the Value Function for this stationary policy. Running the following code tells us that $V^{\pi_0}_0(12) = $, which is the Expected Revenue one would obtain over the 8 days, starting with an inventory of 12, and executing this stationary policy (under the assumed demand distributions as a function of the price choices).
+
+``python
+def policy_func(x: int) -> int:
+    return 0 if x < 2 else (1 if x < 5 else (2 if x < 8 else 3))
+
+stationary_policy: FinitePolicy[int, int] = FinitePolicy(
+    {s: Constant(policy_func(s)) for s in range(ii + 1)}
+)
+
+single_step_mrp: FiniteMarkovRewardProcess[int] = \
+    cp.single_step_mdp.apply_finite_policy(stationary_policy)
+
+vf_for_policy: Iterator[V[int]] = evaluate(
+    unwrap_finite_horizon_MRP(finite_horizon_MRP(single_step_mrp, steps)),
+    1.
+)
+```
+
+
 ## Extensions to Non-Tabular Algorithms
 
 Finite MDP algorithms covered in this chapter are called "tabular" algorithms. The word "tabular" (for "table") refers to the fact that the MDP is specified in the form of a finite data structure and the Value Function is also represented as a finite "table" of states and values. These tabular algorithms typically make a sweep through all states in each iteration to update the value function. This is in contrast to algorithms for large state spaces or infinite state spaces where we need some function approximation for the value function. The good news is that we can modify each of these tabular algorithms such that instead of sweeping through all the states at each step, we simply sample an appropriate subset of states, update the Value Function for those states (with the same Bellman Operator calculations as for the case of tabular), and then create a function approximation for the Value Function using just the updated values for the sample of states. The important point is that the fundamental structure of the algorithms and the fundamental principles (Fixed-Point and Bellman Operators) are still the same when we extend from these tabular algorithms to function approximation-based algorithms. In the next chapter, we cover extensions of these Dynamic Programming algorithms from tabular methods to function approximation methods. We call these algorithms *Approximate Dynamic Programming*.
