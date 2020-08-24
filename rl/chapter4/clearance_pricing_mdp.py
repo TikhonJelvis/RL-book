@@ -91,8 +91,20 @@ if __name__ == '__main__':
 
     print("Optimal Value Function and Optimal Policy")
     print("------------------------------------")
+    prices = []
     for t, (vf, policy) in enumerate(cp.get_optimal_vf_and_policy()):
         print(f"Time Step {t:d}")
         print("---------------")
         pprint(vf)
         print(policy)
+        prices_at_time = [pairs[policy.act(s).value][0] for s in range(ii + 1)]
+        prices.append(prices_at_time)
+
+    import matplotlib.pyplot as plt
+    from matplotlib import cm
+    import numpy as np
+    heatmap = plt.imshow(np.array(prices).T, origin='lower')
+    plt.colorbar(heatmap, shrink=0.5, aspect=5)
+    plt.xlabel("Time Steps")
+    plt.ylabel("Inventory")
+    plt.show()
