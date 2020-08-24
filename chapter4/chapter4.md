@@ -1075,7 +1075,7 @@ Now let's write some code to represent this Dynamic Programming problem as a `Fi
 
 `Mapping[WithTime[int], Optional[Mapping[int, FiniteDistribution[Tuple[WithTime[int], float]]]]]`
 
-In the class `ClearancePricingMDP` below, $\mathcal{P}_R$ is manufactured in `__init__` and is used to create the attribute `mdp: FiniteMarkovDecisionProces[WithTime[int], int]`. Since $\mathcal{P}_R$ is independent of time, we first create a single-step (time-invariant) MDP `single_step_mdp: FiniteMarkovDecisionProcess[int, int]` (think of this as the building-block MDP), and then use the method `finite_horizon_mdp` (from file [rl/finite_horizon.pt](https://github.com/TikhonJelvis/RL-book/blob/master/rl/finite_horizon.py)) to turn `single_step_mdp` to `mdp`. The constructor argument`initial_inventory: int` represents the initial inventory $I_0 = M$. The constructor argument `time_steps` represents the number of time steps $T$. The constructor argument `price_lambda_pairs` represents $[(P_i, \lambda_i) | 1 \leq i \leq N]$.
+In the class `ClearancePricingMDP` below, $\mathcal{P}_R$ is manufactured in `__init__` and is used to create the attribute `mdp: FiniteMarkovDecisionProces[WithTime[int], int]`. Since $\mathcal{P}_R$ is independent of time, we first create a single-step (time-invariant) MDP `single_step_mdp: FiniteMarkovDecisionProcess[int, int]` (think of this as the building-block MDP), and then use the method `finite_horizon_mdp` (from file [rl/finite_horizon.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/finite_horizon.py)) to turn `single_step_mdp` to `mdp`. The constructor argument `initial_inventory: int` represents the initial inventory $M$. The constructor argument `time_steps` represents the number of time steps $T$. The constructor argument `price_lambda_pairs` represents $[(P_i, \lambda_i) | 1 \leq i \leq N]$.
 
 ```python
 from scipy.stats import poisson
@@ -1113,7 +1113,7 @@ class ClearancePricingMDP:
 
 Now let's write two methods for this class:
 
-* `get_vf_for_policy` that produces the Value Function for a given policy $\pi$, by first creating the $\pi$-implied MRP from `mdp`, unwrapping the MRP into a sequence of state-reward transition probability functions $(\mathcal{P}_R^{\pi_t})_t$, and then performing backward induction using the previously-written function `evaluate` to calculate the Value Function.
+* `get_vf_for_policy` that produces the Value Function for a given policy $\pi$, by first creating the $\pi$-implied MRP from `mdp`, then unwrapping the MRP into a sequence of state-reward transition probability functions $(\mathcal{P}_R^{\pi_t})_t$, and then performing backward induction using the previously-written function `evaluate` to calculate the Value Function.
 * `get_optimal_vf_and_policy` that produces the Optimal Value Function and Optimal Policy, by first unwrapping `mdp` into a sequence of state-reward transition probability functions $(\mathcal{P}_R)_t$, and then performing backward induction using the previously-written function `optimal_vf_and_policy` to calculate the Optimal Value Function and Optimal Policy.
 
 ```python
@@ -1162,20 +1162,19 @@ vf_for_policy: Iterator[V[int]] = evaluate(
 )
 ```
 
-Now let us determine what is the Optimal Policy and Optimal Value Function for this instance of `ClearancePricingMDP`. Running `cp.get_optimal_vf_and_policy` and evaluating the Optimal Value Function for time step 0 and inventory of 12 ($V^*_0(12)$) gives us a value of $5.64$, which is the Expected Revenue we'd obtain over the 8 days if we executed the Optimal Policy. 
+Now let us determine what is the Optimal Policy and Optimal Value Function for this instance of `ClearancePricingMDP`. Running `cp.get_optimal_vf_and_policy()` and evaluating the Optimal Value Function for time step 0 and inventory of 12, i.e.  $V^*_0(12)$, gives us a value of $5.64$, which is the Expected Revenue we'd obtain over the 8 days if we executed the Optimal Policy. 
 
 ![Optimal Policy Heatmap \label{fig:optimal_policy_heatmap}](./chapter4/dynamic_pricing.png "Optimal Price as a function of Inventory and Time Step")
 
 Now let us plot the Optimal Price as a function of time steps and inventory levels.
 
 ```python
-prices = []
-for t, (vf, policy) in enumerate(cp.get_optimal_vf_and_policy()):
-    prices.append([pairs[policy.act(s).value][0] for s in range(ii + 1)])
-
 import matplotlib.pyplot as plt
 from matplotlib import cm
 import numpy as np
+
+prices = [[pairs[policy.act(s).value][0] for s in range(ii + 1)]
+          for _, policy in cp.get_optimal_vf_and_policy()]
 
 heatmap = plt.imshow(np.array(prices).T, origin='lower')
 plt.colorbar(heatmap, shrink=0.5, aspect=5)
@@ -1183,7 +1182,7 @@ plt.xlabel("Time Steps")
 plt.ylabel("Inventory")
 plt.show()
 ```
-Figure \ref{fig:optimal_policy_heamap} shows us the image produced by the above code. T he color *Yellow* is "Full Price", the color *Blue* is "30% Off" and the color *Purple" is "50% Off".  This tells us that on day 0, the Optimal Price is "30% Off" (corresponding to State 12, i.e., for starting inventory $M = I_0 = 12$). However, if the starting inventory $I_0$ were less than 7, then the Optimal Price is "Full Price". This makes intuitive sense because the greater the inventory, the more inclination we'd have to cut prices.  We see that the thresholds for price cuts shift as time progresses (as we move horizontally in the figure). For instance, on Day 5, we set "Full Price" only if inventory has dropped below 3 (this would happen if we had a good degree of sales on the first 5 days), we set "30% Off" if inventory is 3 or 4 or 5, and we set "50% Off" if inventory is greater than 5. So even if we sold 6 units in the first 5 days, we'd offer "50% Off" because we have only 3 days remaining now and 6 units of inventory left. This makes intuitive sense. We see that the thresholds shift even further as we move to Days 6 and 7. We encourage you to play with this simple application of Dynamic Pricing by changing $M, T, N, [(P_i, \lambda_i) | 1 \leq i \leq N]$ and studying how the Optimal Value Function changes and more importantly, studying the thresholds of inventory for various choices of prices and how these thresholds vary as time progresses. 
+Figure \ref{fig:optimal_policy_heatmap} shows us the image produced by the above code. The color *Yellow* is "Full Price", the color *Blue* is "30% Off" and the color *Purple* is "50% Off".  This tells us that on day 0, the Optimal Price is "30% Off" (corresponding to State 12, i.e., for starting inventory $M = I_0 = 12$). However, if the starting inventory $I_0$ were less than 7, then the Optimal Price is "Full Price". This makes intuitive sense because the lower the inventory, the less inclination we'd have to cut prices.  We see that the thresholds for price cuts shift as time progresses (as we move horizontally in the figure). For instance, on Day 5, we set "Full Price" only if inventory has dropped below 3 (this would happen if we had a good degree of sales on the first 5 days), we set "30% Off" if inventory is 3 or 4 or 5, and we set "50% Off" if inventory is greater than 5. So even if we sold 6 units in the first 5 days, we'd offer "50% Off" because we have only 3 days remaining now and 6 units of inventory left. This makes intuitive sense. We see that the thresholds shift even further as we move to Days 6 and 7. We encourage you to play with this simple application of Dynamic Pricing by changing $M, T, N, [(P_i, \lambda_i) | 1 \leq i \leq N]$ and studying how the Optimal Value Function changes and more importantly, studying the thresholds of inventory (under optimality) for various choices of prices and how these thresholds vary as time progresses. 
 
 
 ## Extensions to Non-Tabular Algorithms
