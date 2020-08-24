@@ -1162,85 +1162,28 @@ vf_for_policy: Iterator[V[int]] = evaluate(
 )
 ```
 
-Now let us determine what is the Optimal Policy and Optimal Value Function for this instance of `ClearancePricingMDP`. Running `cp.get_optimal_vf_and_policy` and printing the Optimal Value Function and Optimal Policy for time step 0 gives us the following output:
+Now let us determine what is the Optimal Policy and Optimal Value Function for this instance of `ClearancePricingMDP`. Running `cp.get_optimal_vf_and_policy` and evaluating the Optimal Value Function for time step 0 and inventory of 12 ($V^*_0(12)$) gives us a value of $5.64$, which is the Expected Revenue we'd obtain over the 8 days if we executed the Optimal Policy. 
 
+![Optimal Policy Heatmap \label{fig:optimal_policy_heatmap}](./chapter4/dynamic_pricing.png "Optimal Price as a function of Inventory and Time Step")
+
+Now let us plot the Optimal Price as a function of time steps and inventory levels.
+
+```python
+prices = []
+for t, (vf, policy) in enumerate(cp.get_optimal_vf_and_policy()):
+    prices.append([pairs[policy.act(s).value][0] for s in range(ii + 1)])
+
+import matplotlib.pyplot as plt
+from matplotlib import cm
+import numpy as np
+
+heatmap = plt.imshow(np.array(prices).T, origin='lower')
+plt.colorbar(heatmap, shrink=0.5, aspect=5)
+plt.xlabel("Time Steps")
+plt.ylabel("Inventory")
+plt.show()
 ```
-{0: 0.0,
- 1: 0.9831644873965348,
- 2: 1.900754969571447,
- 3: 2.693094379679039,
- 4: 3.3302143692895356,
- 5: 3.828510997346929,
- 6: 4.238007649295796,
- 7: 4.606736558460575,
- 8: 4.9276818714710915,
- 9: 5.183596752280889,
- 10: 5.379133144661041,
- 11: 5.526111469828149,
- 12: 5.63944737768176}
-
-For State 0:
-  Do Action 0 with Probability 1.000
-For State 1:
-  Do Action 0 with Probability 1.000
-For State 2:
-  Do Action 0 with Probability 1.000
-For State 3:
-  Do Action 0 with Probability 1.000
-For State 4:
-  Do Action 0 with Probability 1.000
-For State 5:
-  Do Action 0 with Probability 1.000
-For State 6:
-  Do Action 0 with Probability 1.000
-For State 7:
-  Do Action 1 with Probability 1.000
-For State 8:
-  Do Action 1 with Probability 1.000
-For State 9:
-  Do Action 1 with Probability 1.000
-For State 10:
-  Do Action 1 with Probability 1.000
-For State 11:
-  Do Action 1 with Probability 1.000
-For State 12:
-  Do Action 1 with Probability 1.000
-```
-
-This tells us that on day 0, the Optimal Price is "30% Off" (corresponding to State 12, i.e., for starting inventory $M = I_0 = 12$). However, if the starting inventory $I_0$ were less than 7, then the Optimal Price is "Full Price". This makes intuitive sense because the greater the inventory, the more inclination we'd have to cut prices. Note also from the above output that executing the Optimal Policy would yield us an Expected Revenue ($V^*_0i(12)$) of about $5.64$.
-
-We are naturally curious to see what the Optimal Policy looks like as time progresses. What are the inventory thresholds for the 3 levels of price cuts? Let us examine the optimal policy for Day 5 (printed below).
-
-```
-For State 0:
-  Do Action 0 with Probability 1.000
-For State 1:
-  Do Action 0 with Probability 1.000
-For State 2:
-  Do Action 0 with Probability 1.000
-For State 3:
-  Do Action 1 with Probability 1.000
-For State 4:
-  Do Action 1 with Probability 1.000
-For State 5:
-  Do Action 1 with Probability 1.000
-For State 6:
-  Do Action 2 with Probability 1.000
-For State 7:
-  Do Action 2 with Probability 1.000
-For State 8:
-  Do Action 2 with Probability 1.000
-For State 9:
-  Do Action 2 with Probability 1.000
-For State 10:
-  Do Action 2 with Probability 1.000
-For State 11:
-  Do Action 2 with Probability 1.000
-For State 12:
-  Do Action 2 with Probability 1.000
-```
-
-We see that the thresholds are quite different than the thresholds on Day 0. On Day 5, we set "Full Price" only if inventory has dropped below 3 (this would happen if we had a good degree of sales on the first 5 days), we set "30% Off" if inventory is 3 or 4 or 5, and we set "50% Off" if inventory is greater than 5. So even if we sold 6 units in the first 5 days, we'd offer "50% Off" because we have only 3 days remaining now and 6 units of inventory left. This makes intuitive sense. We expect the thresholds to shift even further as we move to Days 6 and 7. We encourage you to play with this simple application of Dynamic Pricing by changing $M, T, N, [(P_i, \lambda_i) | 1 \leq i \leq N]$ and studying how the Optimal Value Function changes and more importantly, studying the thresholds of inventory for various choices of prices and how these thresholds vary as time progresses. 
+Figure \ref{fig:optimal_policy_heamap} shows us the image produced by the above code. T he color *Yellow* is "Full Price", the color *Blue* is "30% Off" and the color *Purple" is "50% Off".  This tells us that on day 0, the Optimal Price is "30% Off" (corresponding to State 12, i.e., for starting inventory $M = I_0 = 12$). However, if the starting inventory $I_0$ were less than 7, then the Optimal Price is "Full Price". This makes intuitive sense because the greater the inventory, the more inclination we'd have to cut prices.  We see that the thresholds for price cuts shift as time progresses (as we move horizontally in the figure). For instance, on Day 5, we set "Full Price" only if inventory has dropped below 3 (this would happen if we had a good degree of sales on the first 5 days), we set "30% Off" if inventory is 3 or 4 or 5, and we set "50% Off" if inventory is greater than 5. So even if we sold 6 units in the first 5 days, we'd offer "50% Off" because we have only 3 days remaining now and 6 units of inventory left. This makes intuitive sense. We see that the thresholds shift even further as we move to Days 6 and 7. We encourage you to play with this simple application of Dynamic Pricing by changing $M, T, N, [(P_i, \lambda_i) | 1 \leq i \leq N]$ and studying how the Optimal Value Function changes and more importantly, studying the thresholds of inventory for various choices of prices and how these thresholds vary as time progresses. 
 
 
 ## Extensions to Non-Tabular Algorithms
