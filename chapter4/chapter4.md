@@ -1145,7 +1145,7 @@ cp: ClearancePricingMDP = ClearancePricingMDP(
 
 Now let us calculate it's Value Function for a stationary policy that chooses "Full Price" if inventory is less than 2, otherwise "30% Off" if inventory is less than 5, otherwise "50% Off" if inventory is less than 8, otherwise "70% Off". Since we have a stationary policy, we can represent it as a single-step policy and combine it with the single-step MDP we had created above (attribute `single_step_mdp`) to create a `single_step_mrp: FiniteMarkovRewardProcess[int]`. Then we use the function `finite_horizon_mrp` (from file [rl/finite_horizon.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/finite_horizon.py)) to create the entire (augmented state) MRP of type `FiniteMarkovRewardProcess[WithTime[int]]`. Finally, we unwrap this MRP into a sequence of state-reward transition probability functions and perform backward induction to calculate the Value Function for this stationary policy. Running the following code tells us that $V^{\pi_0}_0(12)$ is about $4.91$ (assuming full price is $1$), which is the Expected Revenue one would obtain over 8 days, starting with an inventory of 12, and executing this stationary policy (under the assumed demand distributions as a function of the price choices).
 
-``python
+```python
 def policy_func(x: int) -> int:
     return 0 if x < 2 else (1 if x < 5 else (2 if x < 8 else 3))
 
@@ -1211,6 +1211,36 @@ This tells us that on day 0, the Optimal Price is "30% Off" (corresponding to St
 
 We are naturally curious to see what the Optimal Policy looks like as time progresses. What are the inventory thresholds for the 3 levels of price cuts? Let us examine the optimal policy for Day 5 (printed below).
 
+```
+For State 0:
+  Do Action 0 with Probability 1.000
+For State 1:
+  Do Action 0 with Probability 1.000
+For State 2:
+  Do Action 0 with Probability 1.000
+For State 3:
+  Do Action 1 with Probability 1.000
+For State 4:
+  Do Action 1 with Probability 1.000
+For State 5:
+  Do Action 1 with Probability 1.000
+For State 6:
+  Do Action 2 with Probability 1.000
+For State 7:
+  Do Action 2 with Probability 1.000
+For State 8:
+  Do Action 2 with Probability 1.000
+For State 9:
+  Do Action 2 with Probability 1.000
+For State 10:
+  Do Action 2 with Probability 1.000
+For State 11:
+  Do Action 2 with Probability 1.000
+For State 12:
+  Do Action 2 with Probability 1.000
+```
+
+We see that the thresholds are quite different than the thresholds on Day 0. On Day 5, we set "Full Price" only if inventory has dropped below 3 (this would happen if we had a good degree of sales on the first 5 days), we set "30% Off" if inventory is 3 or 4 or 5, and we set "50% Off" if inventory is greater than 5. So even if we sold 6 units in the first 5 days, we'd offer "50% Off" because we have only 3 days remaining now and 6 units of inventory left. This makes intuitive sense. We expect the thresholds to shift even further as we move to Days 6 and 7. We encourage you to play with this simple application of Dynamic Pricing by changing $M, T, N, [(P_i, \lambda_i) | 1 \leq i \leq N]$ and studying how the Optimal Value Function changes and more importantly, studying the thresholds of inventory for various choices of prices and how these thresholds vary as time progresses. 
 
 
 ## Extensions to Non-Tabular Algorithms
