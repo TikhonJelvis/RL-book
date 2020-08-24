@@ -97,8 +97,7 @@ if __name__ == '__main__':
         print("---------------")
         pprint(vf)
         print(policy)
-        prices_at_time = [pairs[policy.act(s).value][0] for s in range(ii + 1)]
-        prices.append(prices_at_time)
+        prices.append([pairs[policy.act(s).value][0] for s in range(ii + 1)])
 
     import matplotlib.pyplot as plt
     from matplotlib import cm
