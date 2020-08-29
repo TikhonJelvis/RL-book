@@ -228,34 +228,46 @@ It pays to emphasize that Banach Fixed-Point Theorem not only assures convergenc
 DEFAULT_TOLERANCE = 1e-5
 V = Mapping[S, float]
 
-def almost_equal_vfs(
-    v1: V[S],
-    v2: V[S],
-    tolerance: float = DEFAULT_TOLERANCE
-) -> bool:
-    return max(abs(v1[s] - v2[s]) for s in v1) < tolerance
-
 def evaluate_mrp(
     mrp: FiniteMarkovRewardProcess[S],
     gamma: float
-) -> Iterator[V[S]]:
-    def update(v: V[S]) -> V[S]:
-        return {s: mrp.reward_function_vec[i] + gamma *
-                sum(p * v.get(s1, 0.) for s1, p in mrp.transition_map[s])
-                for i, s in enumerate(mrp.non_terminal_states)}
+) -> Iterator[np.ndarray]:
+    '''Iteratively calculate the value function for the give Markov reward
+    process.
 
-    v_0: V[S] = {s: 0. for s in mrp.non_terminal_states}
+    '''
+    def update(v: np.ndarray) -> np.ndarray:
+        return mrp.reward_function_vec + gamma * \
+            mrp.get_transition_matrix().dot(v)
+
+    v_0: np.ndarray = np.zeros(len(mrp.non_terminal_states))
 
     return iterate(update, v_0)
+
+def almost_equal_np_arrays(
+    v1: np.ndarray,
+    v2: np.ndarray,
+    tolerance: float = DEFAULT_TOLERANCE
+) -> bool:
+    '''Return whether the two value functions as np.ndarray are within the given
+    tolerance of each other.
+
+    '''
+    return max(abs(v1 - v2)) < tolerance
+
 
 def evaluate_mrp_result(
     mrp: FiniteMarkovRewardProcess[S],
     gamma: float
 ) -> V[S]:
-    return converged(evaluate_mrp(mrp, gamma=gamma), done=almost_equal_vfs)
+    v_star: np.ndarray = converged(
+        evaluate_mrp(mrp, gamma=gamma),
+        done=almost_equal_np_arrays
+    )
+    return {s: v_star[i] for i, s in enumerate(mrp.non_terminal_states)}
 ```
 
-The code should be fairly self-explanatory. Since the Policy Evaluation problem applies to Finite MRPs, the function `evaluate_mrp` above takes as input `mrp: FiniteMarkovDecisionProcess[S]` and a `gamma: float` to produce an `Iterator` on the Value Function of type `V[S]` (alias for `Mapping[S, float]`) that represents $\mathcal{N} \rightarrow \mathbb{R}$. The function `update` in `evaluate_mrp` represents the application of the Bellman Policy Operator $\bbpi$. The function `evaluate_mrp_result` produces the Value Function for the given `mrp` and the given `gamma`, returning the last value function on the `Iterator` (which terminates based on the `almost_equal_vfs` function, considering the maximum of the absolute value differences between the value functions for each of the states). Note that `evaluate_mrp` is useful for debugging (by looking at the trace of value functions in the execution of the Policy Evaluation algorithm) while `evaluate_mrp_result` produces the desired output Value Function.
+The code should be fairly self-explanatory. Since the Policy Evaluation problem applies to Finite MRPs, the function `evaluate_mrp` above takes as input `mrp: FiniteMarkovDecisionProcess[S]` and a `gamma: float` to produce an `Iterator` on Value Functions represented as `np.ndarray` (for fast vector/matrix calculations). The function `update` in `evaluate_mrp` represents the application of the Bellman Policy Operator $\bbpi$. The function `evaluate_mrp_result` produces the Value Function for the given `mrp` and the given `gamma`, returning the last value function on the `Iterator` (which terminates based on the `almost_equal_np_arrays` function, considering the maximum of the absolute value differences across all states). Note that the return type of `evaluate_mrp_result` is `V[S]` which is an alias for `Mapping[S, float]`, capturing the semantic of $\mathcal{N} \rightarrow \mathbb{R}$. Note that `evaluate_mrp` is useful for debugging (by looking at the trace of value functions in the execution of the Policy Evaluation algorithm) while `evaluate_mrp_result` produces the desired output Value Function.
 
 If the number of non-terminal states of a given MRP is $m$, then the running time of each iteration is $O(m^2)$. Note though that to construct an MRP from a given MDP and a given policy, we have to perform $O(m^2\cdot k)$ operations, where $k = |\mathcal{A}|$.
 
@@ -413,7 +425,7 @@ For a Finite MDP with $|\mathcal{N}| = m$, Policy Iteration algorithm converges 
 
 ![Policy Iteration Convergence \label{fig:policy_iteration_convergence}](./chapter4/policy_iteration_convergence.png "At Convergence of Policy Iteration")
 
-Now let's write some code for Policy Iteration Algorithm. Unlike Policy Evaluation which repeatedly operates on Value Functions (and returns a Value Function), Policy Iteration repeatedly operates on a pair of Value Function and Policy (and returns a pair of Value Function and Policy). In the code below, notice the type `Tuple[V[S], FinitePolicy[S, A]]` that represents a pair of Value Function and Policy. The function `policy_iteration` repeatedly applies the function `update` on a pair of Value Function and Policy. The `update` function, after splitting its input `vf_policy` into `vf: V[S]` and `pi: FinitePolicy[S, A]`, creates a MRP (`mrp: FiniteMarkovRewardProcess[S]`) from the combination of the input `mdp` and `pi`. Then it performs a policy evaluation on `mrp` (using the `evaluate_mrp` function) to produce a Value Function `policy_vf: V[S]`, and finally creates a greedy (improved) policy named `improved_pi` from `policy_vf` (using the previously-written function `greedy_policy_from_vf`). Thus the function `update` performs a Policy Evaluation followed by a Policy Improvement. Notice also that `policy_iteration` offers the option to perform the matrix-inversion-based computation of Value Function for a given policy (`get_value_function_vec` method of the `mrp` object), in case the state space is not too large. `policy_iteration` returns an `Iterator` on pairs of Value Function and Policy produced by this process of repeated Policy Evaluation and Policy Improvement.  `almost_equal_vf_pis` is the function to decide termination based on the distance between two successive Value Functions produced by Policy Iteration. `policy_iteration_result` returns the final (optimal) pair of Value Function and Policy (from the `Iterator` produced by `policy_iteration`), based on the termination criterion of `almost_equal_vf_pis`.
+Now let's write some code for Policy Iteration Algorithm. Unlike Policy Evaluation which repeatedly operates on Value Functions (and returns a Value Function), Policy Iteration repeatedly operates on a pair of Value Function and Policy (and returns a pair of Value Function and Policy). In the code below, notice the type `Tuple[V[S], FinitePolicy[S, A]]` that represents a pair of Value Function and Policy. The function `policy_iteration` repeatedly applies the function `update` on a pair of Value Function and Policy. The `update` function, after splitting its input `vf_policy` into `vf: V[S]` and `pi: FinitePolicy[S, A]`, creates a MRP (`mrp: FiniteMarkovRewardProcess[S]`) from the combination of the input `mdp` and `pi`. Then it performs a policy evaluation on `mrp` (using the `evaluate_mrp_result` function) to produce a Value Function `policy_vf: V[S]`, and finally creates a greedy (improved) policy named `improved_pi` from `policy_vf` (using the previously-written function `greedy_policy_from_vf`). Thus the function `update` performs a Policy Evaluation followed by a Policy Improvement. Notice also that `policy_iteration` offers the option to perform the matrix-inversion-based computation of Value Function for a given policy (`get_value_function_vec` method of the `mrp` object), in case the state space is not too large. `policy_iteration` returns an `Iterator` on pairs of Value Function and Policy produced by this process of repeated Policy Evaluation and Policy Improvement.  `almost_equal_vf_pis` is the function to decide termination based on the distance between two successive Value Functions produced by Policy Iteration. `policy_iteration_result` returns the final (optimal) pair of Value Function and Policy (from the `Iterator` produced by `policy_iteration`), based on the termination criterion of `almost_equal_vf_pis`.
 
 ```python
 DEFAULT_TOLERANCE = 1e-5
@@ -801,7 +813,16 @@ The set of terminal states $\mathcal{T}$ is:
 
 $$\{(T, s_T) | s_T \in \mathcal{S}_T\}$$
 
-As usual, the set of non-terminal states $\mathcal{N} = \mathcal{S} - \mathcal{T}$.
+We need a Python class to represent this augmented state space.
+
+```python
+@dataclass(frozen=True)
+class WithTime(Generic[S]):
+    state: S
+    time: int = 0
+```
+
+As usual, the set of non-terminal states is denoted as $\mathcal{N} = \mathcal{S} - \mathcal{T}$.
 
 Let us denote the allowable actions for states in $\mathcal{S}_t$ as $\mathcal{A}_t$. In a more generic setting, as we shall represent in our code, each state $(t, s_t)$  has it's own set of allowable actions, denoted $\mathcal{A}(s_t)$, However, for ease of exposition, here we shall treat all states at a particular time step to have the same set of allowable actions $\mathcal{A}_t$. Let us denote the entire action space $\mathcal{A}$ of the MDP as the union of all the $\mathcal{A}_t$ over all $t = 0, 1, \ldots, T-1$.
 
@@ -812,13 +833,13 @@ $$\mathcal{P}_R: \mathcal{N} \times \mathcal{A} \times \mathbb{R} \times \mathca
 is given by:
 
 $$\mathcal{P}_R((t, s_t), a_t, r_{t+1}, (t+1, s_{t+1})) = (\mathcal{P}_R)_t(s_t, a_t, r_{t+1}, s_{t+1})$$
-for all $t < T , s_t \in \mathcal{S}_t, a_t \in \mathcal{A}_t, s_{t+1} \in \mathcal{S}_{t+1}$, and $= 0$ otherwise, where
+for all $t = 0, 1, \ldots T-1 , s_t \in \mathcal{S}_t, a_t \in \mathcal{A}_t, s_{t+1} \in \mathcal{S}_{t+1}$, and $= 0$ otherwise, where
 
 $$(\mathcal{P}_R)_t: \mathcal{S}_t \times \mathcal{A}_t \times \mathbb{R} \times \mathcal{S}_{t+1} \rightarrow [0, 1]$$
 
 are the separate state-reward transition probability functions for each of the time steps $t = 0, 1, \ldots, T-1$ such that
 
-$$\sum_{r_{t+1} \in \mathbb{R}} \sum_{s_{t+1} \in \mathcal{S}_{t+1}} (\mathcal{P}_R)_t(s_t, a_t, r_{t+1}, s_{t+1}) = 1$$
+$$\sum_{s_{t+1} \in \mathcal{S}_{t+1}} \sum_{r_{t+1} \in \mathbb{R}} (\mathcal{P}_R)_t(s_t, a_t, r_{t+1}, s_{t+1}) = 1$$
 
 So it is convenient to represent a finite-horizon MDP with separate state-reward transition probability functions $(\mathcal{P}_R)_t$ for each time step. Likewise, it is convenient to represent any policy of the MDP
 
@@ -834,22 +855,6 @@ $$\pi_t: \mathcal{S}_t \times \mathcal{A}_t \rightarrow [0, 1]$$
 
 are the separate policies for each of the time steps $t = 0, 1, \ldots, T-1$
 
-Likewise, it is convenient to represent the state transition probability function as a sequence of state transition probability functions
-
-$$\mathcal{P}_t: \mathcal{S}_t \times \mathcal{A}_t \times \mathcal{S}_{t+1} \rightarrow [0,1]$$
-
-for each of the time steps $t = 0, 1, \ldots, T-1$, defined as:
-
-$$\mathcal{P}_t(s_t, a_t, s_{t+1}) = \sum_{r_{t+1}\in \mathbb{R}} (\mathcal{P}_R)_t(s_t,a_t, r_{t+1},s_{t+1})$$
-
-Likewise, it is convenient to represent the reward function as a sequence of reward functions
-
-$$\mathcal{R}_t: \mathcal{S}_t \times \mathcal{A}_t \rightarrow \mathbb{R}$$
-
-for each of the time steps $t = 0, 1, \ldots, T-1$, defined as:
-
-$$\mathcal{R}_t(s_t,a_t) = \sum_{s_{t+1}\in \mathcal{S}_{t+1}} \sum_{r_{t+1}\in\mathbb{R}} (\mathcal{P}_R)_t(s_t,a_t,r_{t+1},s_{t+1}) \cdot r_{t+1}$$
-
 Consequently, the Value Function for a given policy $\pi$ (equivalently, the Value Function for the $\pi$-implied MRP)
 
 $$V^{\pi}: \mathcal{N} \rightarrow \mathbb{R}$$
@@ -862,33 +867,80 @@ for each of time steps $t = 0, 1, \ldots, T-1$, defined as:
 
 $$V^{\pi}((t, s_t)) = V^{\pi_t}_t(s_t) \text{ for all } t = 0, 1, \ldots, T-1, s_t \in \mathcal{S}_t$$
 
-For the case of a finite MDP, assume the number of states in $\mathcal{S}_t$ is $m_t$ for all $t = 0, 1, \ldots, T$.
-
-Then, for each $t = 0, 1, \ldots, T-1$, we can express $V^{\pi_t}_t$ as a vector $\bm{V}^{\pi_t}_t \in \mathbb{R}^{m_t}$.
-
 Then, the Bellman Policy Equation can be written as:
 
 \begin{equation}
-\bm{V}^{\pi_t}_t = \bm{\mathcal{R}}^{\pi_t}_t + \gamma \bm{\mathcal{P}}^{\pi_t}_t \cdot \bm{V}^{\pi_{t+1}}_{t+1} \text{ for all } t = 0, 1, \ldots T-2 \text{ and } \bm{V}^{\pi_{T-1}}_{T-1} = \bm{\mathcal{R}}^{\pi_{T-1}}_{T-1}
+\begin{split}
+V^{\pi_t}_t(s_t) = \sum_{s_{t+1} \in \mathcal{S}_{t+1}} \sum_{r_{t+1} \in \mathbb{R}} & (\mathcal{P}_R^{\pi_t})_t(s_t, a_t, r_{t+1}, s_{t+1}) \cdot (r_{t+1} + \gamma \cdot V^{\pi_{t+1}}_{t+1}(s_{t+1})) \\
+& \text{ for all } t = 0, 1, \ldots, T-2, s_t \in \mathcal{S}_t
+\end{split}
 \label{eq:bellman_policy_equation_finite_horizon}
 \end{equation}
 
-where column vector $\bm{\mathcal{R}}^{\pi_t}_t \in \mathbb{R}^{m_t}$ represents the $\pi$-implied MRP's reward function $\mathcal{R}^{\pi_t}_t: \mathcal{S}_t \rightarrow \mathbb{R}$ defined as:
+\begin{equation}
+V^{\pi_{T-1}}_{T-1}(s_{T-1}) = \sum_{s_T \in \mathcal{S}_T} \sum_{r_T \in \mathbb{R}} (\mathcal{P}_R^{\pi_{T-1}})_{T-1}(s_{T-1}, a_{T-1}, r_T, s_T) \cdot r_T \text{ for all } s_{T-1} \in \mathcal{S}_{T-1}
+\label{eq:bellman_policy_equation_finite_horizon_base}
+\end{equation}
 
-$$\mathcal{R}^{\pi_t}_t(s_t) = \sum_{a_t \in \mathcal{A}_t} \pi_t(s_t, a_t) \cdot \mathcal{R}_t(s_t, a_t) \text{ for all } t = 0, 1, \ldots, T-1, s_t \in \mathcal{S}_t$$
+where $(\mathcal{P}_R^{\pi_t})_t: \mathcal{S}_t \times \mathbb{R} \times \mathcal{S}_{t+1}$ for all $t = 0, 1, \ldots, T-1$ represent the $\pi$-implied MRP's state-reward transition probability functions for the time steps, defined as:
 
-and $\bm{\mathcal{P}}^{\pi_t}_t$ is an $m_t \times m_t$ matrix representing the $\pi$-implied MRP's implicit Markov Process' transition probability function $\mathcal{P}^{\pi_t}_t: \mathcal{S}_t \times \mathcal{S}_{t+1} \rightarrow [0, 1]$ defined as:
+$$(\mathcal{P}_R^{\pi_t})_t(s_t, r_{t+1}, s_{t+1}) = \sum_{a_t \in \mathcal{A}_t} \pi_t(s_t, a_t) \cdot (\mathcal{P}_R)_t(s_t, a_t, r_{t+1}, s_{t+1}) \text{ for all } t = 0, 1, \ldots, T-1$$
 
-$$\mathcal{P}^{\pi_t}_t(s_t, s_{t+1}) = \sum_{a_t \in \mathcal{A}_t} \pi_t(s_t, a_t) \cdot \mathcal{P}_t(s_t, a_t, s_{t+1}) \text{ for all } t = 0, 1, \ldots, T-1, s_t \in \mathcal{S}_t, s_{t+1} \in \mathcal{S}_{t+1}$$
+So for a Finite MDP, this yields a simple algorithm to calculate $V^{\pi_t}_t$ for all $t$:
 
-So for a Finite MDP, this yields a simple algorithm to calculate $\bm{V^}{\pi_t}_t$ for all $t$:
+* Set $V^{\pi_{T-1}}_{T-1}$ according to Equation \eqref{eq:bellman_policy_equation_finite_horizon_base}  
+* For t = $T-2$ decrementing down to $t=0$, use Equation \eqref{eq:bellman_policy_equation_finite_horizon} to calculate $V^{\pi_t}_t$ for all $t = 0, 1, \ldots, T-2$ from the known values of $V^{\pi_{t+1}}_{t+1}$ (since we are decrementing in time index $t$).
 
-* Set $\bm{V}^{\pi_{T-1}}_{T-1} = \bm{\mathcal{R}}^{\pi_{T-1}}_{T-1}$
-* For t = $T-2$ decrementing down to $t=0$, use Equation \eqref{eq:bellman_policy_equation_finite_horizon} to calculate $\bm{V}^{\pi_t}_t$ for all $t = 0, 1, \ldots, T-2$ from the known values of $\bm{V}^{\pi_{t+1}}_{t+1}$ (since we are decrementing in time index $t$).
+This algorithm is the adaptation of Policy Evaluation to the finite horizon case with this simple technique of "stepping back in time" (known as *Backward Induction*). Let's write some code to implement this algorithm. We are given a MDP over the augmented (finite) state space `WithTime[S]`, and a policy $\pi$ (also over the augmented state space `WithTime[S]`). So, we can use the method `apply_finite_policy` in `FiniteMarkovDecisionProcess[WithTime[S], A]` to obtain the $\pi$-implied MRP of type `FiniteMarkovRewardProcess[WithTime[S]]`. Our first task to to "unwrap" the state-reward probability transition function $\mathcal{P}_R^{\pi}$ of this $\pi$-implied MRP into a time-indexed sequenced of state-reward probability transition functions $(\mathcal{P}_R^{\pi_t}R)_t, t = 0, 1, \ldots, T-1$. This is accomplished by the following function `unwrap_finite_horizon_MRP` (`itertools.groupby` groups the augmented states by their time step, and the function `without_time` strips the time step from the augmented states when placing the states in $(\mathcal{P}_R^{\pi_t})_t$, i.e., `Sequence[RewardTransition[S]]`).
 
-If $|\mathcal{S}_t|$ is $O(m)$ for all $t$ and $|\mathcal{A}_t|$ is $O(k)$, then the running time of this algorithm is $O(m^2\cdot k \cdot T)$
+```python
+from itertools import groupby
 
-Likewise, the Optimal Value Function
+StateReward = FiniteDistribution[Tuple[S, float]]
+RewardTransition = Mapping[S, Optional[StateReward[S]]]
+
+def unwrap_finite_horizon_MRP(
+    process: FiniteMarkovRewardProcess[WithTime[S]]
+) -> Sequence[RewardTransition[S]]:
+
+    def time(x: WithTime[S]) -> int:
+        return x.time
+
+    def without_time(
+        arg: Optional[StateReward[WithTime[S]]]
+    ) -> Optional[StateReward[S]]:
+        return None if arg is None else arg.map(
+            lambda s_r: (s_r[0].state, s_r[1])
+        )
+
+    return [{s.state: without_time(
+        process.transition_reward(s)) for s in states}
+            for _, states in groupby(
+                sorted(process.states(), key=time), key=time
+            )]
+```
+
+Now that we have the state-reward transition functions $(\mathcal{P}_R^{\pi_t})_t$ arranged in the form of a `Sequence[RewardTransition[S]]`, we are ready to perform backward induction to calculate $V^{\pi_t}_t$. The following function `evaluate` accomplishes it with a straightforward use of Equations \eqref{eq:bellman_policy_equation_finite_horizon_base} and \eqref{eq:bellman_policy_equation_finite_horizon}, as described above.
+
+```python
+def evaluate(
+    steps: Sequence[RewardTransition[S]],
+    gamma: float
+) -> Iterator[V[S]]:
+    v: List[Dict[S, float]] = []
+
+    for step in reversed(steps[:-1]):
+        v.append({s: res.expectation(
+            lambda s_r: s_r[1] + gamma * (v[-1][s_r[0]] if len(v) > 0 else 0.)
+            ) for s, res in step.items()})
+
+    return reversed(v)
+```
+
+
+If $|\mathcal{S}_t|$ is $O(m)$, then the running time of this algorithm is $O(m^2 \cdot T)$. However, note that it takes $O(m^2\cdot k \cdot T)$ to convert the MDP to the $\pi$-implied MRP (where $\mathcal{A}_t|$ is $O(k)$).
+
+Now we move on to the Control problem - to calculate the Optimal Value Function and the Optimal Policy. Similar to the pattern seen so far, the Optimal Value Function
 
 $$V^*: \mathcal{N} \rightarrow \mathbb{R}$$
 
@@ -903,39 +955,96 @@ $$V^*((t, s_t)) = V^*_t(s_t) \text{ for all } t = 0, 1, \ldots, T-1, s_t \in \ma
 Thus, the Bellman Optimality Equation can be written as:
 
 \begin{equation}
-V^*_t(s_t) = \max_{a_t \in \mathcal{A}_t} \{\mathcal{R}_t(s_t, a_t) + \gamma \cdot \sum_{s_{t+1} \in \mathcal{S}_{t+1}} \mathcal{P}_t(s_t, a_t, s_{t+1}) \cdot V^*_{t+1}(s_{t+1})\}
-\label{eq:bellman_optimality_equation_finite_horizon1}
+\begin{split}
+V^*_t(s_t) = \max_{a_t \in \mathcal{A}_t} \{\sum_{s_{t+1} \in \mathcal{S}_{t+1}} \sum_{r_{t+1} \in \mathbb{R}} & (\mathcal{P}_R)_t(s_t, a_t, r_{t+1}, s_{t+1}) \cdot (r_{t+1} + \gamma \cdot V^*_{t+1}(s_{t+1}))\} \\
+& \text{ for all } t = 0, 1, \ldots, T-2, s_t \in \mathcal{S}_t
+\end{split}
+\label{eq:bellman_optimality_equation_finite_horizon}
 \end{equation}
 \begin{equation}
-= \max_{a_t \in \mathcal{A}_t} \{\sum_{r_{t+1} \in \mathbb{R}} \sum_{s_{t+1} \in \mathcal{S}_{t+1}} (\mathcal{P}_R)_t(s_t, a_t, r_{t+1}, s_{t+1}) \cdot (r_t + \gamma \cdot V^*_{t+1}(s_{t+1}))\}
-\label{eq:bellman_optimality_equation_finite_horizon2}
+V^*_{T-1}(s_{T-1}) = \max_{a_{T-1} \in \mathcal{A}_{T-1}} \{ \sum_{s_T \in \mathcal{S}_T} \sum_{r_T \in \mathbb{R}} (\mathcal{P}_R)_{T-1}(s_{T-1}, a_{T-1}, r_T, s_T) \cdot r_T \} \text{ for all } s_{T-1} \in \mathcal{S}_{T-1}
+\label{eq:bellman_optimality_equation_finite_horizon_base}
 \end{equation}
-for all $t = 0, 1, \ldots, T-1, s_t \in \mathcal{S}_t$
 
 The associated Optimal (Deterministic) Policy
 $$(\pi^*_D)_t: \mathcal{S}_t \rightarrow \mathcal{A}_t$$
 is defined as:
 
 \begin{equation}
-(\pi^*_D)_t(s_t) = \argmax_{a_t \in \mathcal{A}_t} \{\mathcal{R}_t(s_t, a_t) + \gamma \cdot \sum_{s_{t+1} \in \mathcal{S}_{t+1}} \mathcal{P}_t(s_t, a_t, s_{t+1}) \cdot V^*_{t+1}(s_{t+1})\}
-\label{eq:optimal_policy_finite_horizon1}
+\begin{split}
+(\pi^*_D)_t = \argmax_{a_t \in \mathcal{A}_t} \{\sum_{s_{t+1} \in \mathcal{S}_{t+1}} \sum_{r_{t+1} \in \mathbb{R}} & (\mathcal{P}_R)_t(s_t, a_t, r_{t+1}, s_{t+1}) \cdot (r_{t+1} + \gamma \cdot V^*_{t+1}(s_{t+1}))\} \\
+& \text{ for all } t = 0, 1, \ldots, T-2, s_t \in \mathcal{S}_t
+\end{split}
+\label{eq:optimal_policy_finite_horizon}
 \end{equation}
+
 \begin{equation}
-= \argmax_{a_t \in \mathcal{A}_t} \{\sum_{r_{t+1} \in \mathbb{R}} \sum_{s_{t+1} \in \mathcal{S}_{t+1}} (\mathcal{P}_R)_t(s_t, a_t, r_{t+1}, s_{t+1}) \cdot (r_t + \gamma \cdot V^*_{t+1}(s_{t+1}))\}
-\label{eq:optimal_policy_finite_horizon2}
+(\pi^*_D)_{T-1} = \argmax_{a_{T-1} \in \mathcal{A}_{T-1}} \{\sum_{s_T \in \mathcal{S}_T} \sum_{r_T \in \mathbb{R}} (\mathcal{P}_R)_{T-1}(s_{T-1}, a_{T-1}, r_T, s_T) \cdot r_T \} \text{ for all } s_{T-1} \in \mathcal{S}_{T-1}
+\label{eq:optimal_policy_finite_horizon_base}
 \end{equation}
-for all $t = 0, 1, \ldots, T-1, s_t \in \mathcal{S}_t$
 
 For the case of a Finite MDP, this yields a simple algorithm to calculate $V^*_t$ for all $t$:
 
-* Set
-$$V^*_{T-1}(s_{T-1}) = \max_{a_{T-1} \in \mathcal{A}_{T-1}} \mathcal{R}_{T-1}(s_{T-1}, a_{T-1})$$
-for all $s_{T-1} \in \mathcal{S}_{T-1}$
-* For t = $T-2$ decrementing down to $t=0$, use Equation \eqref{eq:bellman_optimality_equation_finite_horizon2} to calculate $V^*_t$ and Equation \eqref{eq:optimal_policy_finite_horizon2} to calculate $(\pi^*_D)_t$ for all $t = 0, 1, \ldots, T-2$ from the known values of $V^*_{t+1}$ (since we are decrementing in time index $t$).
+* Set $V^*_{T-1}$ according to Equation \eqref{eq:bellman_optimality_equation_finite_horizon_base} and $(\pi^*_D)_{T-1}$ according to Equation \eqref{eq:optimal_policy_finite_horizon_base}
+* For t = $T-2$ decrementing down to $t=0$, use Equation \eqref{eq:bellman_optimality_equation_finite_horizon} to calculate $V^*_t$ and Equation \eqref{eq:optimal_policy_finite_horizon} to calculate $(\pi^*_D)_t$ for all $t = 0, 1, \ldots, T-2$ from the known values of $V^*_{t+1}$ (since we are decrementing in time index $t$).
 
-If $|\mathcal{S}_t|$ is $O(m)$ for all $t$ and $|\mathcal{A}_t|$ is $O(k)$, then the running time of this algorithm is $O(m^2\cdot k \cdot T)$
+This algorithm is the adaptation of Value Iteration to the finite horizon case with this simple technique of "stepping back in time" (known as *Backward Induction*). Let's write some code to implement this algorithm. We are given a MDP over the augmented (finite) state space `WithTime[S]`. So this MDP is of type `FiniteMarkovDecisionProcess[WithTime[S], A]`. Our first task to to "unwrap" the state-reward probability transition function $\mathcal{P}_R$ of this MDP into a time-indexed sequenced of state-reward probability transition functions $(\mathcal{P}_R)_t, t = 0, 1, \ldots, T-1$. This is accomplished by the following function `unwrap_finite_horizon_MDP` (`itertools.groupby` groups the augmented states by their time step, and the function `without_time` strips the time step from the augmented states when placing the states in $(\mathcal{P}_R)_t$, i.e., `Sequence[StateActionMapping[S, A]]`).
 
-Note that these algorithms for finite-horizon finite MDPs do not require any "iterations to convergence" like we had for Policy Evaluation and Value Iteration. Rather, in these algorithms we simply walk back in time and immediately know the Value Function for each time step from the next time step's Value Function (which is already known since we walk back in time). This technique of "backpropagation of Value Function" goes by the name of *Backward Induction* algorithms, and is quite commonplace in many Financial applications (as we shall see later in this book).
+```python
+from itertools import groupby
+
+ActionMapping = Mapping[A, StateReward[S]]
+StateActionMapping = Mapping[S, Optional[ActionMapping[A, S]]]
+
+def unwrap_finite_horizon_MDP(
+    process: FiniteMarkovDecisionProcess[WithTime[S], A]
+) -> Sequence[StateActionMapping[S, A]]:
+    def time(x: WithTime[S]) -> int:
+        return x.time
+
+    def without_time(
+        arg: Optional[ActionMapping[A, WithTime[S]]]
+    ) -> Optional[ActionMapping[A, S]]:
+        return None if arg is None else {
+            a: sr_distr.map(lambda s_r: (s_r[0].state, s_r[1]))
+            for a, sr_distr in arg.items()
+        }
+
+    return [{s.state: without_time(process.action_mapping(s))
+             for s in states}
+            for _, states in groupby(
+                sorted(process.states(), key=time), key=time
+            )]
+```
+
+Now that we have the state-reward transition functions $(\mathcal{P}_R)_t$ arranged in the form of a `Sequence[StateActionMapping[S, A]]`, we are ready to perform backward induction to calculate $V^*_t$. The following function `optimal_vf_and_policy` accomplishes it with a straightforward use of Equations \eqref{eq:bellman_policy_equation_finite_horizon_base} and \eqref{eq:bellman_policy_equation_finite_horizon}, as described above.
+
+```python
+def optimal_vf_and_policy(
+    steps: Sequence[StateActionMapping[S, A]],
+    gamma: float
+) -> Iterator[Tuple[V[S], FinitePolicy[S, A]]]:
+    v_p: List[Tuple[Dict[S, float], FinitePolicy[S, A]]] = []
+
+    for step in reversed(steps[:-1]):
+        this_v: Dict[S, float] = {}
+        this_a: Dict[S, FiniteDistribution[A]] = {}
+        for s, actions_map in step.items():
+            action_values = ((res.expectation(
+                lambda s_r: s_r[1] + gamma * (v_p[-1][0][s_r[0]]
+                                              if len(v_p) > 0 else 0.)
+            ), a) for a, res in actions_map.items())
+            v_star, a_star = max(action_values, key=itemgetter(0))
+            this_v[s] = v_star
+            this_a[s] = Constant(a_star)
+        v_p.append((this_v, FinitePolicy(this_a)))
+
+    return reversed(v_p)
+```
+
+If $|\mathcal{S}_t|$ is $O(m)$ for all $t$ and $|\mathcal{A}_t|$ is $O(k)$, then the running time of this algorithm is $O(m^2\cdot k \cdot T)$.
+
+Note that these algorithms for finite-horizon finite MDPs do not require any "iterations to convergence" like we had for regular Policy Evaluation and Value Iteration. Rather, in these algorithms we simply walk back in time and immediately obtain the Value Function for each time step from the next time step's Value Function (which is already known since we walk back in time). This technique of "backpropagation of Value Function" goes by the name of *Backward Induction* algorithms, and is quite commonplace in many Financial applications (as we shall see later in this book). The above Backward Induction code is in the file [rl/finite_horizon.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/finite_horizon.py).
 
 ## Dynamic Pricing for End-of-Life/End-of-Season of a Product
 
@@ -961,6 +1070,120 @@ $$I_0 = M, I_{t+1} = \max(0, I_t - d_t) \mbox{ for } 0 \leq t < T$$
  for all $0 \leq t < T$
 
 Using the definition of $(\mathcal{P}_R)_t$ and using the boundary condition $V_T^*(I_T) = 0$ for all $I_T \in \{0, 1, \ldots, M\}$, we can perform the backward induction algorithm to calculate $V_t^*$ and associated optimal (deterministic) policy $(\pi^*_D)_t$ for all $0 \leq t < T$.
+
+Now let's write some code to represent this Dynamic Programming problem as a `FiniteMarkovDecisionProcess` and determine it's optimal policy, i.e., the Optimal (Dynamic) Price at time step $t$ and at any level of inventory $I_t$. The type $\mathcal{S}_t$ is `int` and the type $\mathcal{A}_t$ is also`int`. So we shall be creating a MDP of type `FiniteMarkovDecisionProcess[WithTime[int], int]` (since the augmented state space is `WithTime[int]`). Our first task is to construct $\mathcal{P}_R$ of type:
+
+`Mapping[WithTime[int], Optional[Mapping[int, FiniteDistribution[Tuple[WithTime[int], float]]]]]`
+
+In the class `ClearancePricingMDP` below, $\mathcal{P}_R$ is manufactured in `__init__` and is used to create the attribute `mdp: FiniteMarkovDecisionProces[WithTime[int], int]`. Since $\mathcal{P}_R$ is independent of time, we first create a single-step (time-invariant) MDP `single_step_mdp: FiniteMarkovDecisionProcess[int, int]` (think of this as the building-block MDP), and then use the method `finite_horizon_mdp` (from file [rl/finite_horizon.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/finite_horizon.py)) to turn `single_step_mdp` to `mdp`. The constructor argument `initial_inventory: int` represents the initial inventory $M$. The constructor argument `time_steps` represents the number of time steps $T$. The constructor argument `price_lambda_pairs` represents $[(P_i, \lambda_i) | 1 \leq i \leq N]$.
+
+```python
+from scipy.stats import poisson
+
+class ClearancePricingMDP:
+
+    initial_inventory: int
+    time_steps: int
+    price_lambda_pairs: Sequence[Tuple[float, float]]
+    single_step_mdp: FiniteMarkovDecisionProcess[int, int]
+    mdp: FiniteMarkovDecisionProcess[WithTime[int], int]
+
+    def __init__(
+        self,
+        initial_inventory: int,
+        time_steps: int,
+        price_lambda_pairs: Sequence[Tuple[float, float]]
+    ):
+        self.initial_inventory = initial_inventory
+        self.time_steps = time_steps
+        self.price_lambda_pairs = price_lambda_pairs
+        distrs = [poisson(l) for _, l in price_lambda_pairs]
+        prices = [p for p, _ in price_lambda_pairs]
+        self.single_step_mdp: FiniteMarkovDecisionProcess[int, int] =\
+            FiniteMarkovDecisionProcess({
+                s: {i: Categorical(
+                    {(s - k, prices[i] * k):
+                     (distrs[i].pmf(k) if k < s else 1 - distrs[i].cdf(s - 1))
+                     for k in range(s + 1)})
+                    for i in range(len(prices))}
+                for s in range(initial_inventory + 1)
+            })
+        self.mdp = finite_horizon_MDP(self.single_step_mdp, time_steps)
+```
+
+Now let's write two methods for this class:
+
+* `get_vf_for_policy` that produces the Value Function for a given policy $\pi$, by first creating the $\pi$-implied MRP from `mdp`, then unwrapping the MRP into a sequence of state-reward transition probability functions $(\mathcal{P}_R^{\pi_t})_t$, and then performing backward induction using the previously-written function `evaluate` to calculate the Value Function.
+* `get_optimal_vf_and_policy` that produces the Optimal Value Function and Optimal Policy, by first unwrapping `mdp` into a sequence of state-reward transition probability functions $(\mathcal{P}_R)_t$, and then performing backward induction using the previously-written function `optimal_vf_and_policy` to calculate the Optimal Value Function and Optimal Policy.
+
+```python
+    def get_vf_for_policy(
+        self,
+        policy: FinitePolicy[WithTime[int], int]
+    ) -> Iterator[V[int]]:
+        mrp: FiniteMarkovRewardProcess[WithTime[int]] \
+            = self.mdp.apply_finite_policy(policy)
+        return evaluate(unwrap_finite_horizon_MRP(mrp), 1.)
+
+    def get_optimal_vf_and_policy(self)\
+            -> Iterator[Tuple[V[int], FinitePolicy[int, int]]]:
+        return optimal_vf_and_policy(unwrap_finite_horizon_MDP(self.mdp), 1.)
+```
+
+Noe let's create a simple instance of `ClearancePricingMDP` for $M = 12, T = 8$ and 4 price choices: "Full Price", "30% Off", "50% Off", "70% Off" with respective mean daily demand of $0.5, 1.0, 1.5, 2.5$.
+
+```python
+ii = 12
+steps = 8
+pairs = [(1.0, 0.5), (0.7, 1.0), (0.5, 1.5), (0.3, 2.5)]
+cp: ClearancePricingMDP = ClearancePricingMDP(
+    initial_inventory=ii,
+    time_steps=steps,
+    price_lambda_pairs=pairs
+)
+```
+
+Now let us calculate it's Value Function for a stationary policy that chooses "Full Price" if inventory is less than 2, otherwise "30% Off" if inventory is less than 5, otherwise "50% Off" if inventory is less than 8, otherwise "70% Off". Since we have a stationary policy, we can represent it as a single-step policy and combine it with the single-step MDP we had created above (attribute `single_step_mdp`) to create a `single_step_mrp: FiniteMarkovRewardProcess[int]`. Then we use the function `finite_horizon_mrp` (from file [rl/finite_horizon.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/finite_horizon.py)) to create the entire (augmented state) MRP of type `FiniteMarkovRewardProcess[WithTime[int]]`. Finally, we unwrap this MRP into a sequence of state-reward transition probability functions and perform backward induction to calculate the Value Function for this stationary policy. Running the following code tells us that $V^{\pi_0}_0(12)$ is about $4.91$ (assuming full price is $1$), which is the Expected Revenue one would obtain over 8 days, starting with an inventory of 12, and executing this stationary policy (under the assumed demand distributions as a function of the price choices).
+
+```python
+def policy_func(x: int) -> int:
+    return 0 if x < 2 else (1 if x < 5 else (2 if x < 8 else 3))
+
+stationary_policy: FinitePolicy[int, int] = FinitePolicy(
+    {s: Constant(policy_func(s)) for s in range(ii + 1)}
+)
+
+single_step_mrp: FiniteMarkovRewardProcess[int] = \
+    cp.single_step_mdp.apply_finite_policy(stationary_policy)
+
+vf_for_policy: Iterator[V[int]] = evaluate(
+    unwrap_finite_horizon_MRP(finite_horizon_MRP(single_step_mrp, steps)),
+    1.
+)
+```
+
+Now let us determine what is the Optimal Policy and Optimal Value Function for this instance of `ClearancePricingMDP`. Running `cp.get_optimal_vf_and_policy()` and evaluating the Optimal Value Function for time step 0 and inventory of 12, i.e.  $V^*_0(12)$, gives us a value of $5.64$, which is the Expected Revenue we'd obtain over the 8 days if we executed the Optimal Policy. 
+
+![Optimal Policy Heatmap \label{fig:optimal_policy_heatmap}](./chapter4/dynamic_pricing.png "Optimal Price as a function of Inventory and Time Step")
+
+Now let us plot the Optimal Price as a function of time steps and inventory levels.
+
+```python
+import matplotlib.pyplot as plt
+from matplotlib import cm
+import numpy as np
+
+prices = [[pairs[policy.act(s).value][0] for s in range(ii + 1)]
+          for _, policy in cp.get_optimal_vf_and_policy()]
+
+heatmap = plt.imshow(np.array(prices).T, origin='lower')
+plt.colorbar(heatmap, shrink=0.5, aspect=5)
+plt.xlabel("Time Steps")
+plt.ylabel("Inventory")
+plt.show()
+```
+Figure \ref{fig:optimal_policy_heatmap} shows us the image produced by the above code. The color *Yellow* is "Full Price", the color *Blue* is "30% Off" and the color *Purple* is "50% Off".  This tells us that on day 0, the Optimal Price is "30% Off" (corresponding to State 12, i.e., for starting inventory $M = I_0 = 12$). However, if the starting inventory $I_0$ were less than 7, then the Optimal Price is "Full Price". This makes intuitive sense because the lower the inventory, the less inclination we'd have to cut prices.  We see that the thresholds for price cuts shift as time progresses (as we move horizontally in the figure). For instance, on Day 5, we set "Full Price" only if inventory has dropped below 3 (this would happen if we had a good degree of sales on the first 5 days), we set "30% Off" if inventory is 3 or 4 or 5, and we set "50% Off" if inventory is greater than 5. So even if we sold 6 units in the first 5 days, we'd offer "50% Off" because we have only 3 days remaining now and 6 units of inventory left. This makes intuitive sense. We see that the thresholds shift even further as we move to Days 6 and 7. We encourage you to play with this simple application of Dynamic Pricing by changing $M, T, N, [(P_i, \lambda_i) | 1 \leq i \leq N]$ and studying how the Optimal Value Function changes and more importantly, studying the thresholds of inventory (under optimality) for various choices of prices and how these thresholds vary as time progresses. 
+
 
 ## Extensions to Non-Tabular Algorithms
 
