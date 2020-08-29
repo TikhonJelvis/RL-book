@@ -13,8 +13,6 @@ S = TypeVar('S')
 
 Transition = Mapping[S, Optional[FiniteDistribution[S]]]
 
-RewardTransition = Mapping[S, Optional[FiniteDistribution[Tuple[S, float]]]]
-
 
 class MarkovProcess(ABC, Generic[S]):
     '''A Markov process with states of type S.
@@ -77,7 +75,7 @@ class FiniteMarkovProcess(MarkovProcess[S]):
                 display += f"{s} is a Terminal State\n"
             else:
                 display += f"From State {s}:\n"
-                for s1, p in d.table():
+                for s1, p in d:
                     display += f"  To State {s1} with Probability {p:.3f}\n"
 
         return display
@@ -88,11 +86,7 @@ class FiniteMarkovProcess(MarkovProcess[S]):
 
         for i, s1 in enumerate(self.non_terminal_states):
             for j, s2 in enumerate(self.non_terminal_states):
-                next_states = self.transition(s1)
-                if next_states is None:
-                    mat[i, j] = 0.0
-                else:
-                    mat[i, j] = next_states.probability(s2)
+                mat[i, j] = self.transition(s1).probability(s2)
 
         return mat
 
@@ -108,16 +102,16 @@ class FiniteMarkovProcess(MarkovProcess[S]):
             np.abs(eig_vals - 1) < 1e-8)[0][0]
         eig_vec_of_unit_eig_val = np.real(
             eig_vecs[:, index_of_first_unit_eig_val])
-        return Categorical([
-            (self.non_terminal_states[i], ev)
+        return Categorical({
+            self.non_terminal_states[i]: ev
             for i, ev in enumerate(eig_vec_of_unit_eig_val /
                                    sum(eig_vec_of_unit_eig_val))
-        ])
+        })
 
     def display_stationary_distribution(self):
         pprint({
             s: round(p, 3)
-            for s, p in self.get_stationary_distribution().table()
+            for s, p in self.get_stationary_distribution()
         })
 
     def generate_image(self) -> graphviz.Digraph:
@@ -128,11 +122,13 @@ class FiniteMarkovProcess(MarkovProcess[S]):
 
         for s, v in self.transition_map.items():
             if v is not None:
-                for s1, p in v.table():
+                for s1, p in v:
                     d.edge(str(s), str(s1), label=str(p))
 
         return d
 
+
+# Reward processes
 
 class MarkovRewardProcess(MarkovProcess[S]):
     def transition(self, state: S) -> Optional[Distribution[S]]:
@@ -178,6 +174,10 @@ class MarkovRewardProcess(MarkovProcess[S]):
                 state, reward = next_distribution.sample()
 
 
+StateReward = FiniteDistribution[Tuple[S, float]]
+RewardTransition = Mapping[S, Optional[StateReward[S]]]
+
+
 class FiniteMarkovRewardProcess(FiniteMarkovProcess[S],
                                 MarkovRewardProcess[S]):
 
@@ -193,12 +193,10 @@ class FiniteMarkovRewardProcess(FiniteMarkovProcess[S],
                 transition_map[state] = None
             else:
                 probabilities: Dict[S, float] = defaultdict(float)
-                for (next_state, _), probability in trans.table():
+                for (next_state, _), probability in trans:
                     probabilities[next_state] += probability
 
-                transition_map[state] = Categorical(
-                    list(probabilities.items())
-                )
+                transition_map[state] = Categorical(probabilities)
 
         super().__init__(transition_map)
 
@@ -206,7 +204,7 @@ class FiniteMarkovRewardProcess(FiniteMarkovProcess[S],
 
         self.reward_function_vec = np.array([
             sum(probability * reward for (_, reward), probability in
-                transition_reward_map[state].table())
+                transition_reward_map[state])
             for state in self.non_terminal_states
         ])
 
@@ -217,14 +215,13 @@ class FiniteMarkovRewardProcess(FiniteMarkovProcess[S],
                 display += f"{s} is a Terminal State\n"
             else:
                 display += f"From State {s}:\n"
-                for (s1, r), p in d.table():
+                for (s1, r), p in d:
                     display +=\
                         f"  To [State {s1} and Reward {r:.3f}]"\
                         + f" with Probability {p:.3f}\n"
         return display
 
-    def transition_reward(self, state: S) ->\
-            Optional[FiniteDistribution[Tuple[S, float]]]:
+    def transition_reward(self, state: S) -> Optional[StateReward[S]]:
         return self.transition_reward_map[state]
 
     def get_value_function_vec(self, gamma: float) -> np.ndarray:
