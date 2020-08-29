@@ -57,8 +57,8 @@ class FinitePolicy(Policy[S, A]):
     def act(self, state: S) -> Optional[FiniteDistribution[A]]:
         return self.policy_map[state]
 
-    def states(self) -> Iterator[S]:
-        return iter(self.policy_map.keys())
+    def states(self) -> Iterable[S]:
+        return self.policy_map.keys()
 
 
 class MarkovDecisionProcess(ABC, Generic[S, A]):
@@ -98,7 +98,7 @@ class FiniteMarkovDecisionProcess(MarkovDecisionProcess[S, A]):
                 for a, d1 in d.items():
                     display += f"  With Action {a}:\n"
                     for (s1, r), p in d1:
-                        display += f"    To [State {s} and "\
+                        display += f"    To [State {s1} and "\
                             + f"Reward {r:.3f}] with Probability {p:.3f}\n"
         return display
 

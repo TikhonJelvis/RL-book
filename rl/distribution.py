@@ -118,7 +118,7 @@ class Constant(FiniteDistribution[A]):
         return {self.value: 1}
 
     def probability(self, outcome: A) -> float:
-        return 1 if outcome == self.value else 0.0
+        return 1. if outcome == self.value else 0.
 
 
 class Bernoulli(FiniteDistribution[bool]):

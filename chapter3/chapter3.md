@@ -306,8 +306,8 @@ class FiniteMarkovDecisionProcess(MarkovDecisionProcess[S, A]):
                 display += f"From State {s}:\n"
                 for a, d1 in d.items():
                     display += f"  With Action {a}:\n"
-                    for (s1, r), p in d1:
-                        display += f"    To [State {s} and "\
+                    for (s1, r), p in d1.table():
+                        display += f"    To [State {s1} and "\
                             + f"Reward {r:.3f}] with Probability {p:.3f}\n"
         return display
 
