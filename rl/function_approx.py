@@ -50,7 +50,11 @@ class Dynamic(FunctionApprox[X]):
         return np.array([self.values_map[x] for x in x_values_seq])
 
     def update(self, xy_vals_seq: Sequence[Tuple[X, float]]) -> Dynamic[X]:
-        return replace(self, values_map=dict(xy_vals_seq))
+        new_map = self.values_map.copy()
+        for x, y in xy_vals_seq:
+            new_map[x] = y
+
+        return replace(self, values_map=new_map)
 
     def within(self, other: FunctionApprox[X], tolerance: float) -> bool:
         if isinstance(other, Dynamic):

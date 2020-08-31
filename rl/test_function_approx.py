@@ -16,6 +16,10 @@ class TestDynamic(unittest.TestCase):
         updated = self.dynamic_0.update([(0, 1.0), (1, 2.0), (2, 3.0)])
         self.assertEqual(self.dynamic_1, updated)
 
+        partially_updated = self.dynamic_0.update([(1, 3.0)])
+        expected = {0: 0.0, 1: 3.0, 2: 0.0}
+        self.assertEqual(partially_updated, Dynamic(values_map=expected))
+
     def test_evaluate(self):
         np.testing.assert_array_almost_equal(
             self.dynamic_0.evaluate([0, 1, 2]),
