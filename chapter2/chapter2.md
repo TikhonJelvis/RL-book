@@ -221,7 +221,7 @@ def process3_price_traces(
 
 As suggested for Process 1, you can plot graphs of simulation traces of the stock price, or plot graphs of the terminal distributions of the stock price at various time points for Processes 2 and 3, by playing with this [code][stock_price_simulations.py].
 
-[stock_price_simulations.py]: https://github.com/TikhonJelvis/RL-book/blob/master/src/chapter2/stock_price_simulations.py
+[stock_price_simulations.py]: https://github.com/TikhonJelvis/RL-book/blob/master/rl/chapter2/stock_price_simulations.py
 
  Figure \ref{fig:single_trace_mp} shows a single simulation trace of stock prices for each of the 3 processes. Figure \ref{fig:terminal_distribution_mp} shows the distribution of the stock price at time $T=100$ over 1000 traces.
 
