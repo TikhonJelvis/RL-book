@@ -5,7 +5,7 @@ from collections import defaultdict
 import numpy as np
 import random
 from typing import (Callable, Dict, Generic, Iterator,
-                    Mapping, Set, Tuple, TypeVar)
+                    Mapping, Set, Sequence, Tuple, TypeVar)
 
 A = TypeVar('A')
 
@@ -22,6 +22,10 @@ class Distribution(ABC, Generic[A]):
 
         '''
         pass
+
+    def sample_n(self, n: int) -> Sequence[A]:
+        '''Return n samples from this distribution.'''
+        return [self.sample() for _ in range(n)]
 
     def expectation(self, f: Callable[[A], float]) -> float:
         '''Return an approximation of the expected value of f(X) for some f.

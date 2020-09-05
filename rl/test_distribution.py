@@ -29,6 +29,11 @@ class TestDistribution(unittest.TestCase):
         expected_sampled = self.sampled.expectation(lambda x: x)
         self.assertLess(abs(expected_finite - expected_sampled), 0.02)
 
+    def test_sample_n(self):
+        samples = self.sampled.sample_n(10)
+        self.assertEqual(len(samples), 10)
+        self.assertTrue(all(0 <= s < 6 for s in samples))
+
 
 class TestUniform(unittest.TestCase):
     def setUp(self):
