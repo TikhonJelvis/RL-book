@@ -1,10 +1,10 @@
 import unittest
 
-from rl.approximate_dynamic_programming import evaluate_mrp_result
+from rl.approximate_dynamic_programming import evaluate_finite_mrp
 from rl.distribution import Categorical
 from rl.finite_horizon import (finite_horizon_MRP, evaluate,
                                unwrap_finite_horizon_MRP, WithTime)
-from rl.function_approx import Dynamic
+from rl.function_approx import Dynamic, FunctionApprox
 from rl.markov_process import FiniteMarkovRewardProcess
 
 
@@ -26,11 +26,12 @@ class TestEvaluate(unittest.TestCase):
     def setUp(self):
         self.finite_flip_flop = FlipFlop(0.7)
 
-    def test_evaluate_mrp(self):
+    def test_evaluate_finite_mrp(self):
         start = Dynamic({s: 0.0 for s in self.finite_flip_flop.states()})
-        v = evaluate_mrp_result(self.finite_flip_flop,
-                                gamma=0.99,
-                                approx_0=start)
+        v = FunctionApprox.converged(evaluate_finite_mrp(
+            self.finite_flip_flop,
+            gamma=0.99,
+            approx_0=start))
 
         self.assertEqual(len(v.values_map), 2)
 
@@ -41,7 +42,10 @@ class TestEvaluate(unittest.TestCase):
         finite_horizon = finite_horizon_MRP(self.finite_flip_flop, 10)
 
         start = Dynamic({s: 0.0 for s in finite_horizon.states()})
-        v = evaluate_mrp_result(finite_horizon, gamma=1, approx_0=start)
+        v = FunctionApprox.converged(evaluate_finite_mrp(
+            finite_horizon,
+            gamma=1,
+            approx_0=start))
         self.assertEqual(len(v.values_map), 22)
 
         finite_v =\

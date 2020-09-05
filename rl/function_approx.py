@@ -6,7 +6,9 @@ from dataclasses import dataclass, replace, field
 from more_itertools import pairwise
 import numpy as np
 from typing import Sequence, Mapping, Tuple, TypeVar, Callable, List, Dict, \
-    Generic, Optional
+    Generic, Optional, Iterator
+
+import rl.iterate as iterate
 
 X = TypeVar('X')
 SMALL_NUM = 1e-6
@@ -35,6 +37,14 @@ class FunctionApprox(ABC, Generic[X]):
 
         '''
         pass
+
+    @staticmethod
+    def converged(iterator: Iterator[FunctionApprox[X]],
+                  tolerance: float = 0.0001) -> FunctionApprox[X]:
+        def done(a, b):
+            return a.within(b, tolerance)
+
+        return iterate.converged(iterator, done=done)
 
 
 @dataclass(frozen=True)
