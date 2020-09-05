@@ -22,6 +22,18 @@ class Distribution(ABC, Generic[A]):
         '''
         pass
 
+    def expectation(self, f: Callable[[A], float]) -> float:
+        '''Return an approximation of the expected value of f(X) for some f.
+
+        The default implementation of this method samples the
+        underlying distribution some number of times to calcuate the
+        expectation.
+
+        '''
+        # TODO: Revisit # of samples
+        samples = 100000
+        return sum(f(self.sample()) for _ in range(0, samples)) / samples
+
 
 class SampledDistribution(Distribution[A]):
     '''A distribution defined by a function to sample it.
@@ -87,18 +99,6 @@ class FiniteDistribution(Distribution[A], ABC):
 
     def __repr__(self) -> str:
         return repr(self.table())
-
-    def map(self, f: Callable[[A], B]) -> FiniteDistribution[B]:
-        '''Return a new distribution that is the result of applying a function
-        to each element of this distribution.
-
-        '''
-        result: Dict[B, float] = defaultdict(float)
-
-        for x, p in self:
-            result[f(x)] += p
-
-        return Categorical(result)
 
 
 # TODO: Rename?

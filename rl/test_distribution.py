@@ -1,6 +1,7 @@
 import unittest
 
-from rl.distribution import Bernoulli, Categorical, Choose, Constant
+from rl.distribution import (Bernoulli, Categorical, Choose,
+                             Constant, SampledDistribution)
 
 
 def assert_almost_equal(test_case, dist_a, dist_b):
@@ -15,6 +16,17 @@ def assert_almost_equal(test_case, dist_a, dist_b):
 
     for outcome in a_table:
         test_case.assertAlmostEqual(a_table[outcome], b_table[outcome])
+
+
+class TestDistribution(unittest.TestCase):
+    def setUp(self):
+        self.finite = Choose(set(range(0, 6)))
+        self.sampled = SampledDistribution(lambda: self.finite.sample())
+
+    def test_expectation(self):
+        expected_finite = self.finite.expectation(lambda x: x)
+        expected_sampled = self.sampled.expectation(lambda x: x)
+        self.assertLess(abs(expected_finite - expected_sampled), 0.01)
 
 
 class TestFiniteDistribution(unittest.TestCase):
