@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from collections import defaultdict
+import numpy as np
 import random
 from typing import (Callable, Dict, Generic, Iterator,
                     Mapping, Set, Tuple, TypeVar)
@@ -45,6 +46,19 @@ class SampledDistribution(Distribution[A]):
 
     def sample(self) -> A:
         return self.sampler()
+
+
+class Poisson(Distribution[int]):
+    '''A poisson distribution with the given parameter.
+    '''
+
+    λ: float
+
+    def __init__(self, λ: float):
+        self.λ = λ
+
+    def sample(self):
+        return np.random.poisson(lam=self.λ)
 
 
 class FiniteDistribution(Distribution[A], ABC):
