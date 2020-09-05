@@ -1,8 +1,8 @@
 from abc import ABC, abstractmethod
 from collections import defaultdict
-from typing import (DefaultDict, Dict, Iterable, Iterator, Generic, Mapping,
+from typing import (DefaultDict, Dict, Iterable, Generic, Mapping,
                     Tuple, Sequence, TypeVar, Optional)
-from rl.distribution import (Constant, Categorical, Distribution,
+from rl.distribution import (Constant, Categorical, Choose, Distribution,
                              FiniteDistribution, SampledDistribution)
 from rl.markov_process import (
     FiniteMarkovRewardProcess, MarkovRewardProcess, StateReward)
@@ -123,6 +123,9 @@ class FiniteMarkovDecisionProcess(MarkovDecisionProcess[S, A]):
                         return action_map[action].sample()
 
                     return SampledDistribution(next_pair)
+
+            def sample_states(self) -> Distribution[S]:
+                return Choose(set(self.mapping.keys()))
 
         return Process()
 
