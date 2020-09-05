@@ -1,11 +1,10 @@
 from __future__ import annotations
 from abc import ABC
 from typing import Sequence, Mapping, Tuple, TypeVar, Callable, List, Dict, \
-    Generic, Optional
+    Generic, Optional, Iterator
 import numpy as np
 from dataclasses import dataclass, replace, field
 from more_itertools import pairwise
-from collections import defaultdict
 
 X = TypeVar('X')
 SMALL_NUM = 1e-6
@@ -13,28 +12,69 @@ SMALL_NUM = 1e-6
 
 class FunctionApprox(ABC, Generic[X]):
 
+    @abstractmethod
     def evaluate(self, x_values_seq: Sequence[X]) -> np.ndarray:
         pass
 
     def __call__(self, x_value: X) -> float:
         return self.evaluate([x_value]).item()
 
+    @abstractmethod
     def update(
         self,
         xy_vals_seq: Sequence[Tuple[X, float]]
     ) -> FunctionApprox[X]:
         pass
 
+    @abstractmethod
+    def within(self, other: FunctionApprox[X], tolerance: float) -> bool:
+        '''Is this function approximation is within a given tolerance of
+        another approximation of the same type?
+
+        '''
+        pass
+
+
+@dataclass(frozen=True)
+class Dynamic(FunctionApprox[X]):
+    '''A FunctionApprox that works exactly the same as exact dynamic
+    programming.
+
+    '''
+
+    values_map: Mapping[X, float]
+
+    def evaluate(self, x_values_seq: Sequence[X]) -> np.ndarray:
+        return np.array([self.values_map[x] for x in x_values_seq])
+
+    def update(self, xy_vals_seq: Sequence[Tuple[X, float]]) -> Dynamic[X]:
+        new_map = self.values_map.copy()
+        for x, y in xy_vals_seq:
+            new_map[x] = y
+
+        return replace(self, values_map=new_map)
+
+    def within(self, other: FunctionApprox[X], tolerance: float) -> bool:
+        if isinstance(other, Dynamic):
+            return\
+                all(abs(self.values_map[s] - other.values_map[s]) <= tolerance
+                    for s in self.values_map)
+        else:
+            return False
+
 
 @dataclass(frozen=True)
 class Tabular(FunctionApprox[X]):
 
-    values_map: Mapping[X, float]
+    values_map: Mapping[X, float] =\
+        field(default_factory=lambda: {})
     counts_map: Mapping[X, int] =\
-        field(default_factory=lambda: defaultdict(int))
+        field(default_factory=lambda: {})
+    count_to_weight_func: Callable[int, float] =\
+        field(default_factory=lambda: lambda n: 1. / n)
 
     def evaluate(self, x_values_seq: Sequence[X]) -> np.ndarray:
-        return np.array([self.values_map[x] for x in x_values_seq])
+        return np.array(self.values_map[x] for x in x_values_seq)
 
     def update(
         self,
@@ -43,14 +83,22 @@ class Tabular(FunctionApprox[X]):
         values_map: Dict[X, float] = self.values_map.copy()
         counts_map: Dict[X, int] = self.counts_map.copy()
         for x, y in xy_vals_seq:
-            count: int = counts_map[x]
-            values_map[x] = (values_map[x] * count + y) / (count + 1)
-            counts_map[x] = count + 1
+            counts_map[x] = counts_map.get(x, 0) + 1
+            weight: float = self.count_to_weight_func(counts_map[x])
+            values_map[x] = weight * y + (1 - weight) * values_map.get(x, 0.)
         return replace(
             self,
             values_map=values_map,
             counts_map=counts_map
         )
+
+    def within(self, other: FunctionApprox[X], tolerance: float) -> bool:
+        if isinstance(other, Tabular):
+            return\
+                all(abs(self.values_map[s] - other.values_map[s]) <= tolerance
+                    for s in self.values_map)
+        else:
+            return False
 
 
 @dataclass(frozen=True)
@@ -102,6 +150,9 @@ class Weights:
             adam_cache2=new_adam_cache2,
         )
 
+    def within(self, other: Weights[X], tolerance: float) -> bool:
+        return np.all(np.abs(self.weights - other.weights) <= tolerance).item()
+
 
 @dataclass(frozen=True)
 class LinearFunctionApprox(FunctionApprox[X]):
@@ -135,6 +186,12 @@ class LinearFunctionApprox(FunctionApprox[X]):
             self.get_feature_values(x_values_seq),
             self.weights.weights
         )
+
+    def within(self, other: FunctionApprox[X], tolerance: float) -> bool:
+        if isinstance(other, LinearFunctionApprox):
+            return self.weights.within(other.weights)
+        else:
+            return False
 
     def regularized_loss_gradient(
         self,
@@ -250,6 +307,13 @@ class DNNApprox(FunctionApprox[X]):
     def evaluate(self, x_values_seq: Sequence[X]) -> np.ndarray:
         return self.forward_propagation(x_values_seq)[-1][:, 0]
 
+    def within(self, other: FunctionApprox[X], tolerance: float) -> bool:
+        if isinstance(other, DNNApprox):
+            return all(w1.within(w2)
+                       for w1, w2 in zip(self.weights, other.weights))
+        else:
+            return False
+
     def backward_propagation(
         self,
         fwd_prop: Sequence[np.ndarray],
@@ -294,7 +358,7 @@ class DNNApprox(FunctionApprox[X]):
 
     def regularized_loss_gradient(
         self,
-        xy_values_seq: Sequence[X]
+        xy_vals_seq: Sequence[Tuple[X, float]]
     ) -> Sequence[np.ndarray]:
         """
         :param x_vals_seq: list of n data points (x points)
@@ -313,7 +377,7 @@ class DNNApprox(FunctionApprox[X]):
 
     def update(
         self,
-        xy_values_seq: Sequence[Tuple[X, float]]
+        xy_vals_seq: Sequence[Tuple[X, float]]
     ) -> DNNApprox[X]:
         return replace(
             self,
@@ -322,6 +386,24 @@ class DNNApprox(FunctionApprox[X]):
                 self.regularized_loss_gradient(xy_vals_seq)
             )]
         )
+
+
+def rmse(
+    func_approx: FunctionApprox[X],
+    xy_seq: Sequence[Tuple[X, float]]
+) -> float:
+    x_seq, y_seq = zip(*xy_seq)
+    errors: np.ndarray = func_approx.evaluate(x_seq) - np.array(y_seq)
+    return np.sqrt(np.mean(errors * errors))
+
+
+def sgd(
+    func_approx: FunctionApprox[X],
+    xy_seq_stream: Iterator[Sequence[Tuple[X, float]]]
+) -> Iterator[FunctionApprox[X]]:
+    for xy_seq in xy_seq_stream:
+        yield func_approx
+        func_approx = func_approx.update(xy_seq)
 
 
 if __name__ == '__main__':
@@ -335,9 +417,9 @@ if __name__ == '__main__':
     beta_3 = -6.0
     beta = (beta_1, beta_2, beta_3)
 
-    x_pts = np.arange(-10.0, 10.0, 0.5)
-    y_pts = np.arange(-10.0, 10.0, 0.5)
-    z_pts = np.arange(-10.0, 10.0, 0.5)
+    x_pts = np.arange(-10.0, 10.5, 0.5)
+    y_pts = np.arange(-10.0, 10.5, 0.5)
+    z_pts = np.arange(-10.0, 10.5, 0.5)
     pts: Sequence[Tuple[float, float, float]] = \
         [(x, y, z) for x in x_pts for y in y_pts for z in z_pts]
 
