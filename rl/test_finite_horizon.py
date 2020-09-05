@@ -11,7 +11,7 @@ from rl.markov_decision_process import (
 from rl.finite_horizon import (finite_horizon_MDP, finite_horizon_MRP,
                                WithTime, unwrap_finite_horizon_MDP,
                                unwrap_finite_horizon_MRP, evaluate,
-                               optimal_policy)
+                               optimal_vf_and_policy)
 
 
 class FlipFlop(FiniteMarkovRewardProcess[bool]):
@@ -64,44 +64,44 @@ class TestFiniteMRP(unittest.TestCase):
 
         def transition_for(time):
             return {
-                WithTime(True, time): Categorical({
-                    (WithTime(True, time + 1), 1.0): 0.3,
-                    (WithTime(False, time + 1), 2.0): 0.7,
+                True: Categorical({
+                    (True, 1.0): 0.3,
+                    (False, 2.0): 0.7,
                 }),
-                WithTime(False, time): Categorical({
-                    (WithTime(True, time + 1), 2.0): 0.7,
-                    (WithTime(False, time + 1), 1.0): 0.3,
+                False: Categorical({
+                    (True, 2.0): 0.7,
+                    (False, 1.0): 0.3,
                 })
             }
 
-        unwrapped = unwrap_finite_horizon_MRP(finite, 10)
-        self.assertEqual(len(unwrapped), 10)
+        unwrapped = unwrap_finite_horizon_MRP(finite)
+        self.assertEqual(len(unwrapped), 11)
 
         expected_transitions = [transition_for(n) for n in range(0, 10)]
         for time in range(0, 10):
             got = unwrapped[time]
             expected = expected_transitions[time]
             distribution.assert_almost_equal(
-                self, got[WithTime(True, time)],
-                expected[WithTime(True, time)])
+                self, got[True],
+                expected[True])
             distribution.assert_almost_equal(
-                self, got[WithTime(False, time)],
-                expected[WithTime(False, time)])
+                self, got[False],
+                expected[False])
 
     def test_evaluate(self):
         process = finite_horizon_MRP(self.finite_flip_flop, 10)
-        v = evaluate(unwrap_finite_horizon_MRP(process, 10))
+        vs = list(evaluate(unwrap_finite_horizon_MRP(process), gamma=1))
 
-        self.assertEqual(len(v), 22)
+        self.assertEqual(len(vs), 10)
 
-        self.assertAlmostEqual(v[WithTime(True, 0)], 17)
-        self.assertAlmostEqual(v[WithTime(False, 0)], 17)
+        self.assertAlmostEqual(vs[0][True], 17)
+        self.assertAlmostEqual(vs[0][False], 17)
 
-        self.assertAlmostEqual(v[WithTime(True, 5)], 17 / 2)
-        self.assertAlmostEqual(v[WithTime(False, 5)], 17 / 2)
+        self.assertAlmostEqual(vs[5][True], 17 / 2)
+        self.assertAlmostEqual(vs[5][False], 17 / 2)
 
-        self.assertAlmostEqual(v[WithTime(True, 10)], 0)
-        self.assertAlmostEqual(v[WithTime(False, 10)], 0)
+        self.assertAlmostEqual(vs[9][True], 17 / 10)
+        self.assertAlmostEqual(vs[9][False], 17 / 10)
 
 
 class TestFiniteMDP(unittest.TestCase):
@@ -138,9 +138,9 @@ class TestFiniteMDP(unittest.TestCase):
 
     def test_unwrap_finite_horizon_MDP(self):
         finite = finite_horizon_MDP(self.finite_flip_flop, 10)
-        unwrapped = unwrap_finite_horizon_MDP(finite, limit=10)
+        unwrapped = unwrap_finite_horizon_MDP(finite)
 
-        self.assertEqual(len(unwrapped), 10)
+        self.assertEqual(len(unwrapped), 11)
 
         def action_mapping_for(
                 s: WithTime[bool]
@@ -175,14 +175,11 @@ class TestFiniteMDP(unittest.TestCase):
 
     def test_optimal_policy(self):
         finite = finite_horizon_MDP(self.finite_flip_flop, limit=10)
-        steps = unwrap_finite_horizon_MDP(finite, limit=10)
-        p = optimal_policy(steps)
+        steps = unwrap_finite_horizon_MDP(finite)
+        *v_ps, (v, p) = optimal_vf_and_policy(steps, gamma=1)
 
         for s in p.states():
             self.assertEqual(p.act(s), Constant(False))
 
-        mrp = finite.apply_finite_policy(p)
-        v = evaluate(unwrap_finite_horizon_MRP(mrp, limit=10))
-
-        self.assertAlmostEqual(v[WithTime(True, 0)], 17)
-        self.assertAlmostEqual(v[WithTime(False, 5)], 17 / 2)
+        self.assertAlmostEqual(v_ps[0][0][True], 17)
+        self.assertAlmostEqual(v_ps[5][0][False], 17 / 2)
