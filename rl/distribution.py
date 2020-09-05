@@ -48,8 +48,18 @@ class SampledDistribution(Distribution[A]):
         return self.sampler()
 
 
+class Uniform(Distribution[float]):
+    '''Sample a uniform float between 0 and 1.
+
+    '''
+
+    def sample(self):
+        return random.uniform(0, 1)
+
+
 class Poisson(Distribution[int]):
     '''A poisson distribution with the given parameter.
+
     '''
 
     λ: float
