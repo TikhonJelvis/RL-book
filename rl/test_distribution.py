@@ -1,7 +1,8 @@
 import unittest
 
 from rl.distribution import (Bernoulli, Categorical, Choose,
-                             Constant, Poisson, SampledDistribution)
+                             Constant, Gaussian, Poisson,
+                             SampledDistribution)
 
 
 def assert_almost_equal(test_case, dist_a, dist_b):
@@ -29,17 +30,17 @@ class TestDistribution(unittest.TestCase):
         self.assertLess(abs(expected_finite - expected_sampled), 0.01)
 
 
-class TestPoisson(unittest.TestCase):
+class TestGaussian(unittest.TestCase):
     def setUp(self):
-        self.poisson_small = Poisson(0.5)
-        self.poisson_large = Poisson(10)
+        self.unit = Gaussian(1.0, 1.0)
+        self.large = Gaussian(10.0, 30.0)
 
     def test_expectation(self):
-        small_expectation = self.poisson_small.expectation(lambda x: x)
-        self.assertLess(abs(small_expectation - 0.5), 0.1)
+        unit_expectation = self.unit.expectation(lambda x: x)
+        self.assertLess(abs(unit_expectation - 1.0), 0.1)
 
-        large_expectation = self.poisson_large.expectation(lambda x: x)
-        self.assertLess(abs(large_expectation - 10), 0.1)
+        large_expectation = self.large.expectation(lambda x: x)
+        self.assertLess(abs(large_expectation - 10), 0.3)
 
 
 class TestFiniteDistribution(unittest.TestCase):

@@ -61,6 +61,20 @@ class Poisson(Distribution[int]):
         return np.random.poisson(lam=self.λ)
 
 
+class Gaussian(Distribution[float]):
+    '''A Gaussian distribution with the given μ and σ.'''
+
+    μ: float
+    σ: float
+
+    def __init__(self, μ: float, σ: float):
+        self.μ = μ
+        self.σ = σ
+
+    def sample(self):
+        return np.random.normal(loc=self.μ, scale=self.σ)
+
+
 class FiniteDistribution(Distribution[A], ABC):
     '''A probability distribution with a finite number of outcomes, which
     means we can render it as a PDF or CDF table.
