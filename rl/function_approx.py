@@ -1,12 +1,10 @@
 from __future__ import annotations
-
-from abc import ABC, abstractmethod
-from collections import defaultdict
-from dataclasses import dataclass, replace, field
-from more_itertools import pairwise
-import numpy as np
+from abc import ABC
 from typing import Sequence, Mapping, Tuple, TypeVar, Callable, List, Dict, \
     Generic, Optional, Iterator
+import numpy as np
+from dataclasses import dataclass, replace, field
+from more_itertools import pairwise
 
 import rl.iterate as iterate
 
@@ -78,9 +76,12 @@ class Dynamic(FunctionApprox[X]):
 @dataclass(frozen=True)
 class Tabular(FunctionApprox[X]):
 
-    values_map: Mapping[X, float]
+    values_map: Mapping[X, float] =\
+        field(default_factory=lambda: {})
     counts_map: Mapping[X, int] =\
-        field(default_factory=lambda: defaultdict(int))
+        field(default_factory=lambda: {})
+    count_to_weight_func: Callable[int, float] =\
+        field(default_factory=lambda: lambda n: 1. / n)
 
     def evaluate(self, x_values_seq: Sequence[X]) -> np.ndarray:
         return np.array(self.values_map[x] for x in x_values_seq)
@@ -92,9 +93,9 @@ class Tabular(FunctionApprox[X]):
         values_map: Dict[X, float] = self.values_map.copy()
         counts_map: Dict[X, int] = self.counts_map.copy()
         for x, y in xy_vals_seq:
-            count: int = counts_map[x]
-            values_map[x] = (values_map[x] * count + y) / (count + 1)
-            counts_map[x] = count + 1
+            counts_map[x] = counts_map.get(x, 0) + 1
+            weight: float = self.count_to_weight_func(counts_map[x])
+            values_map[x] = weight * y + (1 - weight) * values_map.get(x, 0.)
         return replace(
             self,
             values_map=values_map,
@@ -367,7 +368,7 @@ class DNNApprox(FunctionApprox[X]):
 
     def regularized_loss_gradient(
         self,
-        xy_values_seq: Sequence[X]
+        xy_vals_seq: Sequence[Tuple[X, float]]
     ) -> Sequence[np.ndarray]:
         """
         :param x_vals_seq: list of n data points (x points)
@@ -386,7 +387,7 @@ class DNNApprox(FunctionApprox[X]):
 
     def update(
         self,
-        xy_values_seq: Sequence[Tuple[X, float]]
+        xy_vals_seq: Sequence[Tuple[X, float]]
     ) -> DNNApprox[X]:
         return replace(
             self,
@@ -395,6 +396,24 @@ class DNNApprox(FunctionApprox[X]):
                 self.regularized_loss_gradient(xy_vals_seq)
             )]
         )
+
+
+def rmse(
+    func_approx: FunctionApprox[X],
+    xy_seq: Sequence[Tuple[X, float]]
+) -> float:
+    x_seq, y_seq = zip(*xy_seq)
+    errors: np.ndarray = func_approx.evaluate(x_seq) - np.array(y_seq)
+    return np.sqrt(np.mean(errors * errors))
+
+
+def sgd(
+    func_approx: FunctionApprox[X],
+    xy_seq_stream: Iterator[Sequence[Tuple[X, float]]]
+) -> Iterator[FunctionApprox[X]]:
+    for xy_seq in xy_seq_stream:
+        yield func_approx
+        func_approx = func_approx.update(xy_seq)
 
 
 if __name__ == '__main__':
@@ -408,9 +427,9 @@ if __name__ == '__main__':
     beta_3 = -6.0
     beta = (beta_1, beta_2, beta_3)
 
-    x_pts = np.arange(-10.0, 10.0, 0.5)
-    y_pts = np.arange(-10.0, 10.0, 0.5)
-    z_pts = np.arange(-10.0, 10.0, 0.5)
+    x_pts = np.arange(-10.0, 10.5, 0.5)
+    y_pts = np.arange(-10.0, 10.5, 0.5)
+    z_pts = np.arange(-10.0, 10.5, 0.5)
     pts: Sequence[Tuple[float, float, float]] = \
         [(x, y, z) for x in x_pts for y in y_pts for z in z_pts]
 
