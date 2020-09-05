@@ -1,13 +1,12 @@
-from typing import Mapping, Iterator, TypeVar, Tuple, Dict, Sequence
+import numpy as np
 import operator
+from typing import Mapping, Iterator, TypeVar, Tuple, Dict, Sequence
 
 from rl.iterate import converged, iterate
 from rl.markov_decision_process import (FiniteMarkovDecisionProcess,
                                         FiniteMarkovRewardProcess,
                                         FinitePolicy)
 from rl.distribution import FiniteDistribution, Categorical, Constant, Choose
-import numpy as np
-
 
 A = TypeVar('A')
 S = TypeVar('S')
