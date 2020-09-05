@@ -1,5 +1,5 @@
 from __future__ import annotations
-from abc import ABC
+from abc import ABC, abstractmethod
 from typing import Sequence, Mapping, Tuple, TypeVar, Callable, List, Dict, \
     Generic, Optional, Iterator
 import numpy as np
