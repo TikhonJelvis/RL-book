@@ -27,7 +27,7 @@ class TestDistribution(unittest.TestCase):
     def test_expectation(self):
         expected_finite = self.finite.expectation(lambda x: x)
         expected_sampled = self.sampled.expectation(lambda x: x)
-        self.assertLess(abs(expected_finite - expected_sampled), 0.01)
+        self.assertLess(abs(expected_finite - expected_sampled), 0.02)
 
 
 class TestUniform(unittest.TestCase):
