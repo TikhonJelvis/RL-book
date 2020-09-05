@@ -1,8 +1,8 @@
-from typing import Iterator, Mapping, TypeVar
+from typing import Iterator, Mapping, Tuple, TypeVar
 
 from rl.function_approx import FunctionApprox
 from rl.iterate import converged, iterate
-from rl.markov_process import FiniteMarkovRewardProcess
+from rl.markov_process import (FiniteMarkovRewardProcess, MarkovRewardProcess)
 
 S = TypeVar('S')
 
@@ -13,7 +13,7 @@ V = Mapping[S, float]
 
 def evaluate_finite_mrp(
         mrp: FiniteMarkovRewardProcess[S],
-        gamma: float,
+        γ: float,
         approx_0: FunctionApprox[S]) -> Iterator[FunctionApprox[S]]:
     '''Iteratively calculate the value function for the give Markov reward
     process, using the given FunctionApprox to approximate the value
@@ -22,7 +22,7 @@ def evaluate_finite_mrp(
     '''
     def update(v: FunctionApprox[S]) -> FunctionApprox[S]:
         vs = v.evaluate(mrp.non_terminal_states)
-        updated = mrp.reward_function_vec + gamma *\
+        updated = mrp.reward_function_vec + γ *\
             mrp.get_transition_matrix().dot(vs)
         return v.update(zip(mrp.states(), updated))
 
@@ -32,7 +32,8 @@ def evaluate_finite_mrp(
 def evaluate_mrp(
         mrp: MarkovRewardProcess[S],
         γ: float,
-        approx_0: FunctionApprox[S]) -> Iterator[FunctionApprox[S]]:
+        approx_0: FunctionApprox[S],
+        n: int) -> Iterator[FunctionApprox[S]]:
 
     '''Iteratively calculate the value function for the give Markov reward
     process, using the given FunctionApprox to approximate the value
@@ -40,9 +41,13 @@ def evaluate_mrp(
 
     '''
     def update(v: FunctionApprox[S]) -> FunctionApprox[S]:
-        vs = v.evaluate(mrp.sample_states())
-        updated = mrp.reward_function_vec + gamma *\
-            mrp.get_transition_matrix().dot(vs)
-        return v.update(zip(mrp.states(), updated))
+        states = mrp.sample_states().sample_n(n)
+
+        def return_(s_r: Tuple[S, float]) -> float:
+            s, r = s_r
+            return r + γ * v.evaluate([s]).item()
+
+        return v.update([(s, mrp.transition_reward(s).expectation(return_))
+                         for s in states])
 
     return iterate(update, approx_0)

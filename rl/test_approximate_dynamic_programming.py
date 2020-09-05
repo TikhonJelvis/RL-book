@@ -1,6 +1,8 @@
+from numpy.testing import assert_allclose
 import unittest
 
-from rl.approximate_dynamic_programming import evaluate_finite_mrp
+from rl.approximate_dynamic_programming import (evaluate_mrp,
+                                                evaluate_finite_mrp)
 from rl.distribution import Categorical
 from rl.finite_horizon import (finite_horizon_MRP, evaluate,
                                unwrap_finite_horizon_MRP, WithTime)
@@ -30,7 +32,7 @@ class TestEvaluate(unittest.TestCase):
         start = Dynamic({s: 0.0 for s in self.finite_flip_flop.states()})
         v = FunctionApprox.converged(evaluate_finite_mrp(
             self.finite_flip_flop,
-            gamma=0.99,
+            γ=0.99,
             approx_0=start))
 
         self.assertEqual(len(v.values_map), 2)
@@ -38,13 +40,35 @@ class TestEvaluate(unittest.TestCase):
         for s in v.values_map:
             self.assertLess(abs(v(s) - 170), 0.1)
 
+    def test_evaluate_mrp(self):
+        start = Dynamic({s: 0.0 for s in self.finite_flip_flop.states()})
+
+        v = FunctionApprox.converged(evaluate_mrp(
+            self.finite_flip_flop,
+            γ=0.99,
+            approx_0=start,
+            n=4))
+
+        self.assertEqual(len(v.values_map), 2)
+
+        for s in v.values_map:
+            self.assertLess(abs(v(s) - 170), 0.1)
+
+        v_finite = FunctionApprox.converged(evaluate_finite_mrp(
+            self.finite_flip_flop,
+            γ=0.99,
+            approx_0=start))
+        assert_allclose(v.evaluate([True, False]),
+                        v_finite.evaluate([True, False]),
+                        rtol=0.01)
+
     def test_compare_to_backward_induction(self):
         finite_horizon = finite_horizon_MRP(self.finite_flip_flop, 10)
 
         start = Dynamic({s: 0.0 for s in finite_horizon.states()})
         v = FunctionApprox.converged(evaluate_finite_mrp(
             finite_horizon,
-            gamma=1,
+            γ=1,
             approx_0=start))
         self.assertEqual(len(v.values_map), 22)
 
