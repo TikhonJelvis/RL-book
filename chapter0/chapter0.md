@@ -113,7 +113,7 @@ This chapter lays the foundational theory underpinning RL – the framework for 
 
 This chapter covers the Planning technique of Dynamic Programming (DP), which is an important class of foundational algorithms that can be an alternative to RL if the business problem is not too large or too complex. Also, learning these algorithms will provide important foundations to the reader to be able to understand subsequent RL algorithms more deeply. The reader will learn about several important DP algorithms and at the end of the chapter, the reader will learn about why DP gets difficult in practice which draws the reader to the motivation behind RL. Again, we will do plenty of DP algorithms, which are quick to implement and will aid considerably in internalizing the concepts. Finally, we emphasize a special algorithm - Backward Induction - for solving finite-horizon Markov Decision Processes, which is the setting for the financial applications we cover in this book.
 
-#### Chapter 5: Function Approximation
+#### Chapter 5: Function Approximation and Approximate Dynamic Programming
 
 * Curse of Dimensionality & Function Approximation as a Cure
 * Linear Function Approximation
