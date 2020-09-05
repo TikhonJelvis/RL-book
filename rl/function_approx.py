@@ -5,7 +5,6 @@ from typing import Sequence, Mapping, Tuple, TypeVar, Callable, List, Dict, \
 import numpy as np
 from dataclasses import dataclass, replace, field
 from more_itertools import pairwise
-from collections import defaultdict
 
 X = TypeVar('X')
 SMALL_NUM = 1e-6
@@ -13,17 +12,55 @@ SMALL_NUM = 1e-6
 
 class FunctionApprox(ABC, Generic[X]):
 
+    @abstractmethod
     def evaluate(self, x_values_seq: Sequence[X]) -> np.ndarray:
         pass
 
     def __call__(self, x_value: X) -> float:
         return self.evaluate([x_value]).item()
 
+    @abstractmethod
     def update(
         self,
         xy_vals_seq: Sequence[Tuple[X, float]]
     ) -> FunctionApprox[X]:
         pass
+
+    @abstractmethod
+    def within(self, other: FunctionApprox[X], tolerance: float) -> bool:
+        '''Is this function approximation is within a given tolerance of
+        another approximation of the same type?
+
+        '''
+        pass
+
+
+@dataclass(frozen=True)
+class Dynamic(FunctionApprox[X]):
+    '''A FunctionApprox that works exactly the same as exact dynamic
+    programming.
+
+    '''
+
+    values_map: Mapping[X, float]
+
+    def evaluate(self, x_values_seq: Sequence[X]) -> np.ndarray:
+        return np.array([self.values_map[x] for x in x_values_seq])
+
+    def update(self, xy_vals_seq: Sequence[Tuple[X, float]]) -> Dynamic[X]:
+        new_map = self.values_map.copy()
+        for x, y in xy_vals_seq:
+            new_map[x] = y
+
+        return replace(self, values_map=new_map)
+
+    def within(self, other: FunctionApprox[X], tolerance: float) -> bool:
+        if isinstance(other, Dynamic):
+            return\
+                all(abs(self.values_map[s] - other.values_map[s]) <= tolerance
+                    for s in self.values_map)
+        else:
+            return False
 
 
 @dataclass(frozen=True)
@@ -37,7 +74,7 @@ class Tabular(FunctionApprox[X]):
         field(default_factory=lambda: lambda n: 1. / n)
 
     def evaluate(self, x_values_seq: Sequence[X]) -> np.ndarray:
-        return np.array([self.values_map[x] for x in x_values_seq])
+        return np.array(self.values_map[x] for x in x_values_seq)
 
     def update(
         self,
@@ -54,6 +91,14 @@ class Tabular(FunctionApprox[X]):
             values_map=values_map,
             counts_map=counts_map
         )
+
+    def within(self, other: FunctionApprox[X], tolerance: float) -> bool:
+        if isinstance(other, Tabular):
+            return\
+                all(abs(self.values_map[s] - other.values_map[s]) <= tolerance
+                    for s in self.values_map)
+        else:
+            return False
 
 
 @dataclass(frozen=True)
@@ -105,6 +150,9 @@ class Weights:
             adam_cache2=new_adam_cache2,
         )
 
+    def within(self, other: Weights[X], tolerance: float) -> bool:
+        return np.all(np.abs(self.weights - other.weights) <= tolerance).item()
+
 
 @dataclass(frozen=True)
 class LinearFunctionApprox(FunctionApprox[X]):
@@ -138,6 +186,12 @@ class LinearFunctionApprox(FunctionApprox[X]):
             self.get_feature_values(x_values_seq),
             self.weights.weights
         )
+
+    def within(self, other: FunctionApprox[X], tolerance: float) -> bool:
+        if isinstance(other, LinearFunctionApprox):
+            return self.weights.within(other.weights)
+        else:
+            return False
 
     def regularized_loss_gradient(
         self,
@@ -252,6 +306,13 @@ class DNNApprox(FunctionApprox[X]):
 
     def evaluate(self, x_values_seq: Sequence[X]) -> np.ndarray:
         return self.forward_propagation(x_values_seq)[-1][:, 0]
+
+    def within(self, other: FunctionApprox[X], tolerance: float) -> bool:
+        if isinstance(other, DNNApprox):
+            return all(w1.within(w2)
+                       for w1, w2 in zip(self.weights, other.weights))
+        else:
+            return False
 
     def backward_propagation(
         self,
