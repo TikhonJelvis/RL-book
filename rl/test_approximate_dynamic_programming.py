@@ -42,7 +42,7 @@ class TestEvaluate(unittest.TestCase):
 
         start = Dynamic({s: 0.0 for s in finite_horizon.states()})
         v = evaluate_mrp_result(finite_horizon, gamma=1, approx_0=start)
-        self.assertEqual(len(v.values_map), 20)
+        self.assertEqual(len(v.values_map), 22)
 
         finite_v =\
             list(evaluate(unwrap_finite_horizon_MRP(finite_horizon), gamma=1))
