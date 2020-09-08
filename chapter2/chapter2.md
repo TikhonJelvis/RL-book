@@ -750,13 +750,13 @@ class SimpleInventoryMRP(MarkovRewardProcess[InventoryState]):
 
         def sample_next_state_reward(state=state) ->\
                 Tuple[InventoryState, float]:
-            demand_sample = np.random.poisson(self.poisson_lambda)
-            ip = state.inventory_position()
-            next_state = (
+            demand_sample: int = np.random.poisson(self.poisson_lambda)
+            ip: int = state.inventory_position()
+            next_state: InventoryState = InventoryState(
                 max(ip - demand_sample, 0),
                 max(self.capacity - ip, 0)
             )
-            reward = - self.holding_cost * state.on_hand\
+            reward: float = - self.holding_cost * state.on_hand\
                 - self.stockout_cost * max(demand_sample - ip, 0)
             return next_state, reward
 
