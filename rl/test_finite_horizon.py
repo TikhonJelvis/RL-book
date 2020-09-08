@@ -123,7 +123,7 @@ class TestFiniteMDP(unittest.TestCase):
         self.assertEqual(len(finite.states()), 22)
 
         for s in finite.states():
-            if finite.actions(s) is not None:
+            if len(set(finite.actions(s))) > 0:
                 self.assertEqual(set(finite.actions(s)), {False, True})
 
         start = WithTime(state=True, time=0)
