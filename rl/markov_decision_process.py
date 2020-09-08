@@ -169,7 +169,7 @@ class FiniteMarkovDecisionProcess(MarkovDecisionProcess[S, A]):
 
         '''
         actions = self.mapping[state]
-        return None if actions is None else actions.keys()
+        return iter([]) if actions is None else actions.keys()
 
     def states(self) -> Iterable[S]:
         '''Iterate over all the states in this process—terminal *and*
