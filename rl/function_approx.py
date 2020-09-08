@@ -3,6 +3,7 @@ from abc import ABC, abstractmethod
 from typing import Sequence, Mapping, Tuple, TypeVar, Callable, List, Dict, \
     Generic, Optional, Iterator
 import numpy as np
+from collections import defaultdict
 from dataclasses import dataclass, replace, field
 from more_itertools import pairwise
 
@@ -77,14 +78,14 @@ class Dynamic(FunctionApprox[X]):
 class Tabular(FunctionApprox[X]):
 
     values_map: Mapping[X, float] =\
-        field(default_factory=lambda: {})
+        field(default_factory=lambda: defaultdict(float))
     counts_map: Mapping[X, int] =\
-        field(default_factory=lambda: {})
+        field(default_factory=lambda: defaultdict(int))
     count_to_weight_func: Callable[int, float] =\
         field(default_factory=lambda: lambda n: 1. / n)
 
     def evaluate(self, x_values_seq: Sequence[X]) -> np.ndarray:
-        return np.array(self.values_map[x] for x in x_values_seq)
+        return np.array([self.values_map[x] for x in x_values_seq])
 
     def update(
         self,
@@ -93,9 +94,9 @@ class Tabular(FunctionApprox[X]):
         values_map: Dict[X, float] = self.values_map.copy()
         counts_map: Dict[X, int] = self.counts_map.copy()
         for x, y in xy_vals_seq:
-            counts_map[x] = counts_map.get(x, 0) + 1
+            counts_map[x] += 1
             weight: float = self.count_to_weight_func(counts_map[x])
-            values_map[x] = weight * y + (1 - weight) * values_map.get(x, 0.)
+            values_map[x] += weight * (y - values_map[x])
         return replace(
             self,
             values_map=values_map,
