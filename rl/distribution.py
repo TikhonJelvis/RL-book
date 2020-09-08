@@ -27,17 +27,15 @@ class Distribution(ABC, Generic[A]):
         '''Return n samples from this distribution.'''
         return [self.sample() for _ in range(n)]
 
-    def expectation(self, f: Callable[[A], float]) -> float:
-        '''Return an approximation of the expected value of f(X) for some f.
-
-        The default implementation of this method samples the
-        underlying distribution some number of times to calcuate the
-        expectation.
+    def sampled_expectation(
+        self,
+        f: Callable[[A], float],
+        samples: int
+    ) -> float:
+        '''Return a sampled approximation of the expectation of f(X) for some f.
 
         '''
-        # TODO: Revisit # of samples
-        samples = 100000
-        return sum(f(self.sample()) for _ in range(0, samples)) / samples
+        return sum(f(self.sample()) for _ in range(samples)) / samples
 
 
 class SampledDistribution(Distribution[A]):
