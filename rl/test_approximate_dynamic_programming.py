@@ -3,7 +3,7 @@ import unittest
 
 from rl.approximate_dynamic_programming import (evaluate_mrp,
                                                 evaluate_finite_mrp)
-from rl.distribution import Categorical
+from rl.distribution import Categorical, Choose
 from rl.finite_horizon import (finite_horizon_MRP, evaluate,
                                unwrap_finite_horizon_MRP, WithTime)
 from rl.function_approx import Dynamic, FunctionApprox
@@ -33,7 +33,8 @@ class TestEvaluate(unittest.TestCase):
         v = FunctionApprox.converged(evaluate_finite_mrp(
             self.finite_flip_flop,
             γ=0.99,
-            approx_0=start))
+            approx_0=start
+        ))
 
         self.assertEqual(len(v.values_map), 2)
 
@@ -47,12 +48,17 @@ class TestEvaluate(unittest.TestCase):
             self.finite_flip_flop,
             γ=0.99,
             approx_0=start,
-            n=4))
+            non_terminal_states_distribution=Choose(
+                set(self.finite_flip_flop.states())
+            ),
+            num_state_samples=5,
+            num_transition_samples=1000
+        ))
 
         self.assertEqual(len(v.values_map), 2)
 
         for s in v.values_map:
-            self.assertLess(abs(v(s) - 170), 0.1)
+            self.assertLess(abs(v(s) - 170), 1.0)
 
         v_finite = FunctionApprox.converged(evaluate_finite_mrp(
             self.finite_flip_flop,
