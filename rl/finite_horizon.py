@@ -87,11 +87,11 @@ def unwrap_finite_horizon_MRP(
             lambda s_r: (s_r[0].state, s_r[1])
         )
 
-    return [{s.state: without_time(
-        process.transition_reward(s)) for s in states}
-            for _, states in groupby(
-                sorted(process.states(), key=time), key=time
-            )]
+    return [{s.state: without_time(process.transition_reward(s))
+             for s in states} for _, states in groupby(
+                 sorted(process.states(), key=time),
+                 key=time
+             )][:-1]
 
 
 def evaluate(
@@ -105,7 +105,7 @@ def evaluate(
 
     v: List[Dict[S, float]] = []
 
-    for step in reversed(steps[:-1]):
+    for step in reversed(steps):
         v.append({s: res.expectation(
             lambda s_r: s_r[1] + gamma * (v[-1][s_r[0]] if len(v) > 0 else 0.)
             ) for s, res in step.items()})
@@ -172,23 +172,23 @@ def unwrap_finite_horizon_MDP(
         }
 
     return [{s.state: without_time(process.action_mapping(s))
-             for s in states}
-            for _, states in groupby(
-                sorted(process.states(), key=time), key=time
-            )]
+             for s in states} for _, states in groupby(
+                sorted(process.states(), key=time),
+                key=time
+             )][:-1]
 
 
 def optimal_vf_and_policy(
     steps: Sequence[StateActionMapping[S, A]],
     gamma: float
 ) -> Iterator[Tuple[V[S], FinitePolicy[S, A]]]:
-    '''Use backwards induction to find the optimal policy for the given
-    finite Markov decision process.
+    '''Use backwards induction to find the optimal value function and optimal
+    policy at each time step
 
     '''
     v_p: List[Tuple[Dict[S, float], FinitePolicy[S, A]]] = []
 
-    for step in reversed(steps[:-1]):
+    for step in reversed(steps):
         this_v: Dict[S, float] = {}
         this_a: Dict[S, FiniteDistribution[A]] = {}
         for s, actions_map in step.items():
