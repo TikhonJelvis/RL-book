@@ -302,6 +302,8 @@ Note that in Equation \eqref{eq:greedy_policy_function2}, because we have to wor
 
 Now let's write some code to create this "greedy policy" from a given value function, guided by Equation \eqref{eq:greedy_policy_function2}.
 ```python
+import operator
+
 def greedy_policy_from_vf(
     mdp: FiniteMarkovDecisionProcess[S, A],
     vf: V[S],
@@ -906,11 +908,11 @@ def unwrap_finite_horizon_MRP(
             lambda s_r: (s_r[0].state, s_r[1])
         )
 
-    return [{s.state: without_time(
-        process.transition_reward(s)) for s in states}
-            for _, states in groupby(
-                sorted(process.states(), key=time), key=time
-            )]
+    return [{s.state: without_time(process.transition_reward(s))
+             for s in states} for _, states in groupby(
+                 sorted(process.states(), key=time),
+                 key=time
+             )][:-1]
 ```
 
 Now that we have the state-reward transition functions $(\mathcal{P}_R^{\pi_t})_t$ arranged in the form of a `Sequence[RewardTransition[S]]`, we are ready to perform backward induction to calculate $V^{\pi_t}_t$. The following function `evaluate` accomplishes it with a straightforward use of Equations \eqref{eq:bellman_policy_equation_finite_horizon_base} and \eqref{eq:bellman_policy_equation_finite_horizon}, as described above.
@@ -922,7 +924,7 @@ def evaluate(
 ) -> Iterator[V[S]]:
     v: List[Dict[S, float]] = []
 
-    for step in reversed(steps[:-1]):
+    for step in reversed(steps):
         v.append({s: res.expectation(
             lambda s_r: s_r[1] + gamma * (v[-1][s_r[0]] if len(v) > 0 else 0.)
             ) for s, res in step.items()})
@@ -1004,22 +1006,24 @@ def unwrap_finite_horizon_MDP(
         }
 
     return [{s.state: without_time(process.action_mapping(s))
-             for s in states}
-            for _, states in groupby(
-                sorted(process.states(), key=time), key=time
-            )]
+             for s in states} for _, states in groupby(
+                sorted(process.states(), key=time),
+                key=time
+             )][:-1]
 ```
 
 Now that we have the state-reward transition functions $(\mathcal{P}_R)_t$ arranged in the form of a `Sequence[StateActionMapping[S, A]]`, we are ready to perform backward induction to calculate $V^*_t$. The following function `optimal_vf_and_policy` accomplishes it with a straightforward use of Equations \eqref{eq:bellman_policy_equation_finite_horizon_base} and \eqref{eq:bellman_policy_equation_finite_horizon}, as described above.
 
 ```python
+from operator import itemgetter
+
 def optimal_vf_and_policy(
     steps: Sequence[StateActionMapping[S, A]],
     gamma: float
 ) -> Iterator[Tuple[V[S], FinitePolicy[S, A]]]:
     v_p: List[Tuple[Dict[S, float], FinitePolicy[S, A]]] = []
 
-    for step in reversed(steps[:-1]):
+    for step in reversed(steps):
         this_v: Dict[S, float] = {}
         this_a: Dict[S, FiniteDistribution[A]] = {}
         for s, actions_map in step.items():
