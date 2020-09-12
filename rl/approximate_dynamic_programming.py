@@ -42,8 +42,7 @@ def evaluate_mrp(
     γ: float,
     approx_0: FunctionApprox[S],
     non_terminal_states_distribution: Distribution[S],
-    num_state_samples: int,
-    num_transition_samples: int
+    num_state_samples: int
 ) -> Iterator[FunctionApprox[S]]:
 
     '''Iteratively calculate the value function for the given Markov Reward
@@ -61,13 +60,8 @@ def evaluate_mrp(
             return r + γ * v.evaluate([s]).item()
 
         return v.update(
-            [(
-                s,
-                mrp.transition_reward(s).sampled_expectation(
-                    return_,
-                    num_transition_samples
-                )
-            ) for s in nt_states]
+            [(s, mrp.transition_reward(s).expectation(return_))
+             for s in nt_states]
         )
 
     return iterate(update, approx_0)
@@ -105,8 +99,7 @@ def value_iteration(
     γ: float,
     approx_0: FunctionApprox[S],
     non_terminal_states_distribution: Distribution[S],
-    num_state_samples: int,
-    num_transition_samples: int
+    num_state_samples: int
 ) -> Iterator[FunctionApprox[S]]:
     '''Iteratively calculate the Optimal Value function for the given
     Markov Decision Process, using the given FunctionApprox to approximate the
@@ -124,13 +117,9 @@ def value_iteration(
             return r + γ * v.evaluate([s]).item()
 
         return v.update(
-            [(
-                s,
-                max(mdp.step(s, a).sampled_expectation(
-                    return_,
-                    num_transition_samples
-                ) for a in mdp.actions(s))
-            ) for s in nt_states]
+            [(s, max(mdp.step(s, a).expectation(return_,)
+                     for a in mdp.actions(s)))
+             for s in nt_states]
         )
 
     return iterate(update, approx_0)
@@ -171,7 +160,6 @@ def backward_evaluate(
     mrp_f0_mu_triples: Sequence[MRP_FuncApprox_Distribution[S]],
     γ: float,
     num_state_samples: int,
-    num_transition_samples: int,
     error_tolerance: float
 ) -> Iterator[FunctionApprox[S]]:
     '''Evaluate the given finite Markov Reward Process using backwards
@@ -191,13 +179,8 @@ def backward_evaluate(
             FunctionApprox.converged(
                 sgd(
                     approx0,
-                    repeat([(
-                        s,
-                        mrp.transition_reward(s).sampled_expectation(
-                            return_,
-                            num_transition_samples
-                        )
-                    ) for s in mu.sample_n(num_state_samples)])
+                    repeat([(s, mrp.transition_reward(s).expectation(return_))
+                            for s in mu.sample_n(num_state_samples)])
                 ),
                 error_tolerance
             )
@@ -251,7 +234,6 @@ def back_opt_vf_and_policy(
     mdp_f0_mu_triples: Sequence[MDP_FuncApprox_Distribution[S, A]],
     γ: float,
     num_state_samples: int,
-    num_transition_samples: int,
     error_tolerance: float
 ) -> Iterator[Tuple[FunctionApprox[S], Policy[S, A]]]:
     '''Use backwards induction to find the optimal value function and optimal
@@ -272,10 +254,8 @@ def back_opt_vf_and_policy(
                 approx0,
                 repeat([(
                     s,
-                    max(mdp.step(s, a).sampled_expectation(
-                        return_,
-                        num_transition_samples
-                    ) for a in mdp.actions(s))
+                    max(mdp.step(s, a).expectation(return_)
+                        for a in mdp.actions(s))
                 ) for s in mu.sample_n(num_state_samples)])
             ),
             error_tolerance
