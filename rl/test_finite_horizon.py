@@ -75,7 +75,7 @@ class TestFiniteMRP(unittest.TestCase):
             }
 
         unwrapped = unwrap_finite_horizon_MRP(finite)
-        self.assertEqual(len(unwrapped), 11)
+        self.assertEqual(len(unwrapped), 10)
 
         expected_transitions = [transition_for(n) for n in range(0, 10)]
         for time in range(0, 10):
@@ -140,7 +140,7 @@ class TestFiniteMDP(unittest.TestCase):
         finite = finite_horizon_MDP(self.finite_flip_flop, 10)
         unwrapped = unwrap_finite_horizon_MDP(finite)
 
-        self.assertEqual(len(unwrapped), 11)
+        self.assertEqual(len(unwrapped), 10)
 
         def action_mapping_for(
                 s: WithTime[bool]
