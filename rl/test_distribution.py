@@ -21,14 +21,14 @@ def assert_almost_equal(test_case, dist_a, dist_b):
 class TestDistribution(unittest.TestCase):
     def setUp(self):
         self.finite = Choose(set(range(0, 6)))
-        self.sampled = SampledDistribution(lambda: self.finite.sample())
+        self.sampled = SampledDistribution(
+            lambda: self.finite.sample(),
+            100000
+        )
 
     def test_expectation(self):
         expected_finite = self.finite.expectation(lambda x: x)
-        expected_sampled = self.sampled.sampled_expectation(
-            lambda x: x,
-            100000
-        )
+        expected_sampled = self.sampled.expectation(lambda x: x)
         self.assertLess(abs(expected_finite - expected_sampled), 0.02)
 
     def test_sample_n(self):
@@ -39,23 +39,23 @@ class TestDistribution(unittest.TestCase):
 
 class TestUniform(unittest.TestCase):
     def setUp(self):
-        self.uniform = Uniform()
+        self.uniform = Uniform(100000)
 
     def test_expectation(self):
-        expectation = self.uniform.sampled_expectation(lambda x: x, 100000)
+        expectation = self.uniform.expectation(lambda x: x)
         self.assertLess(abs(expectation - 0.5), 0.01)
 
 
 class TestGaussian(unittest.TestCase):
     def setUp(self):
-        self.unit = Gaussian(1.0, 1.0)
-        self.large = Gaussian(10.0, 30.0)
+        self.unit = Gaussian(1.0, 1.0, 100000)
+        self.large = Gaussian(10.0, 30.0, 100000)
 
     def test_expectation(self):
-        unit_expectation = self.unit.sampled_expectation(lambda x: x, 100000)
+        unit_expectation = self.unit.expectation(lambda x: x)
         self.assertLess(abs(unit_expectation - 1.0), 0.1)
 
-        large_expectation = self.large.sampled_expectation(lambda x: x, 100000)
+        large_expectation = self.large.expectation(lambda x: x)
         self.assertLess(abs(large_expectation - 10), 0.3)
 
 
