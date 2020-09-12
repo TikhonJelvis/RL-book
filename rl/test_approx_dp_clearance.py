@@ -61,7 +61,6 @@ class TestEvaluate(unittest.TestCase):
              for _ in range(self.steps)],
             1.,
             num_state_samples=120,
-            num_transition_samples=3000,
             error_tolerance=0.01
         )
 
@@ -92,7 +91,6 @@ class TestEvaluate(unittest.TestCase):
              for _ in range(self.steps)],
             1.,
             num_state_samples=120,
-            num_transition_samples=3000,
             error_tolerance=0.01
         )
 

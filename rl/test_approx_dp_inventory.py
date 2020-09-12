@@ -68,8 +68,7 @@ class TestEvaluate(unittest.TestCase):
                 self.gamma,
                 fa,
                 Choose(self.states),
-                num_state_samples=30,
-                num_transition_samples=3000
+                num_state_samples=30
             ),
             0.1
         )
@@ -104,8 +103,7 @@ class TestEvaluate(unittest.TestCase):
                 self.gamma,
                 fa,
                 Choose(self.states),
-                num_state_samples=30,
-                num_transition_samples=3000
+                num_state_samples=30
             ),
             0.1
         )

@@ -51,8 +51,7 @@ class TestEvaluate(unittest.TestCase):
             non_terminal_states_distribution=Choose(
                 set(self.finite_flip_flop.states())
             ),
-            num_state_samples=5,
-            num_transition_samples=1000
+            num_state_samples=5
         ))
 
         self.assertEqual(len(v.values_map), 2)
