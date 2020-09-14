@@ -39,7 +39,7 @@ def feature_functions():
 
 def adam_gradient():
     return AdamGradient(
-        learning_rate=0.15,
+        learning_rate=0.1,
         decay1=0.9,
         decay2=0.999
     )
@@ -83,7 +83,7 @@ def get_dnn_model() -> DNNApprox[Triple]:
         feature_functions=ffs,
         dnn_spec=ds,
         adam_gradient=ag,
-        regularization_coeff=0.
+        regularization_coeff=0.05
     )
 
 
