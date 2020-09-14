@@ -122,6 +122,7 @@ class AdamGradient:
 @dataclass(frozen=True)
 class Weights:
     adam_gradient: AdamGradient
+    time: int
     weights: np.ndarray
     adam_cache1: np.ndarray
     adam_cache2: np.ndarray
@@ -135,6 +136,7 @@ class Weights:
     ) -> Weights:
         return Weights(
             adam_gradient=adam_gradient,
+            time=0,
             weights=weights,
             adam_cache1=np.zeros_like(
                 weights
@@ -145,6 +147,7 @@ class Weights:
         )
 
     def update(self, gradient: np.ndarray) -> Weights:
+        time: int = self.time + 1
         new_adam_cache1: np.ndarray = self.adam_gradient.decay1 * \
             self.adam_cache1 + (1 - self.adam_gradient.decay1) * gradient
         new_adam_cache2: np.ndarray = self.adam_gradient.decay2 * \
@@ -152,10 +155,11 @@ class Weights:
         new_weights: np.ndarray = self.weights - \
             self.adam_gradient.learning_rate * self.adam_cache1 / \
             (np.sqrt(self.adam_cache2) + SMALL_NUM) * \
-            np.sqrt(1 - self.adam_gradient.decay2) / \
-            (1 - self.adam_gradient.decay1)
+            np.sqrt(1 - self.adam_gradient.decay2 ** time) / \
+            (1 - self.adam_gradient.decay1 ** time)
         return replace(
             self,
+            time=time,
             weights=new_weights,
             adam_cache1=new_adam_cache1,
             adam_cache2=new_adam_cache2,
