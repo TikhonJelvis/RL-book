@@ -51,7 +51,7 @@ X = TypeVar('X')
         pass
 ```
 
-We also need a couple of helper methods in `FunctionApprox`. One is a `@staticmethod` named `within` that runs through an `Iterator` of `FunctionApprox' objects (obtained from the sequence of updates to the weights $w$) and terminates the updates when the weights $w$ in two successive `FunctionApprox` objects in the `Iterator` are "close enough". The judgement of "close enough" is made by an `@abstractmethod within` that is meant to examine the weights $w$ within two `FunctionApprox` objects. Specific classes that implement `FunctionApprox` will need to implement the method `within` along with the methods `update` and `evaluate`. The complete code for `FunctionApprox` is in the file [rl/function_approx.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/function_approx.py)
+We also need a couple of helper methods in `FunctionApprox`. One is a `@staticmethod` method `within` that runs through an `Iterator` of `FunctionApprox` objects (obtained from the sequence of updates to the weights $w$) and terminates the updates when the weights $w$ in two successive `FunctionApprox` objects in the `Iterator` are "close enough". The judgement of "close enough" is made by an `@abstractmethod within` that is meant to examine the "closeness" of weights $w$ within two `FunctionApprox` objects. Specific classes that implement `FunctionApprox` will need to implement the method `within` along with the methods `update` and `evaluate`. The complete code for `FunctionApprox` is in the file [rl/function_approx.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/function_approx.py).
 
 ```python
     @abstractmethod
@@ -106,19 +106,171 @@ Then, the update to the weights is given by:
 
 $$\bm{w}_{t+1} = \bm{w}_t - \alpha_t \cdot \mathcal{G}_{(x_t, y_t)}(\bm{w}_t)$$
 
-where $\alpha_t$ is the learning rate for the gradient descent at time $t$. To facilitate numerical convergence, we require $alpha_t$ to be an appropriate function of time $t$. There are a number of numerical techniques to achieve the appropriate time-trajectory of $\alpha_t$. We shall go with one such numerical technique - [ADAM](https://en.wikipedia.org/wiki/Stochastic_gradient_descent#Adam),
+where $\alpha_t$ is the learning rate for the gradient descent at time $t$. To facilitate numerical convergence, we require $\alpha_t$ to be an appropriate function of time $t$. There are a number of numerical algorithms to achieve the appropriate time-trajectory of $\alpha_t$. We shall go with one such numerical algorithm - [ADAM](https://en.wikipedia.org/wiki/Stochastic_gradient_descent#Adam), which we shall use not just for linear function approximation but also for the deep neural network function approximation. Before we write code for linear function approximation, we need to write some helper code to implement the ADAM gradient descent algorithm.
 
-Note that for linear function approximation, we can directly solve for $w^*$ if the number of feature function $m$ is not too large. If the entire provided data is $[(x_i, y_i)|1\leq i \leq n]$, then the gradient estimate based on this data can be set to 0 to solve for $\bm{w^*}$, i.e.,
+We create an `@dataclass Weights` to represent and update the weights of a function approximation. The `Weights` dataclass has 5 attributes: `adam_gradient` that captures the ADAM parameters, including the base learning rate and the decay parameter, `time` that represents how many times the weights have been updated, `weights` that represents the weight parameters of the function approximation as a numpy array (1-D array for linear function approximation and 2-D array for each layer of deep neural network function approximation), and the two ADAM cache parameters. The `update` method of this `Weights` dataclass produces a new instance of the `Weights` dataclass that represents the updated weight parameters together with the incremented `time` and the updated ADAM cache parameters. We will follow a programming design pattern wherein we don't update anything in-place - rather, we create a new object with updated values. This ensures we don't get unexpected/undesirable updates in-place, which are typically the cause of bugs in numerical code. Finally, we write the `within` method which will be required to implement the `within` method in the linear function approximation class as well as in the deep neural network function approximation class.
+
+```python
+@dataclass(frozen=True)
+class AdamGradient:
+    learning_rate: float
+    decay1: float
+    decay2: float
+
+
+@dataclass(frozen=True)
+class Weights:
+    adam_gradient: AdamGradient
+    time: int
+    weights: np.ndarray
+    adam_cache1: np.ndarray
+    adam_cache2: np.ndarray
+
+    @staticmethod
+    def create(
+        adam_gradient: AdamGradient,
+        weights: np.ndarray,
+        adam_cache1: Optional[np.ndarray] = None,
+        adam_cache2: Optional[np.ndarray] = None
+    ) -> Weights:
+        return Weights(
+            adam_gradient=adam_gradient,
+            time=0,
+            weights=weights,
+            adam_cache1=np.zeros_like(
+                weights
+            ) if adam_cache1 is None else adam_cache1,
+            adam_cache2=np.zeros_like(
+                weights
+            ) if adam_cache2 is None else adam_cache2
+        )
+
+    def update(self, gradient: np.ndarray) -> Weights:
+        time: int = self.time + 1
+        new_adam_cache1: np.ndarray = self.adam_gradient.decay1 * \
+            self.adam_cache1 + (1 - self.adam_gradient.decay1) * gradient
+        new_adam_cache2: np.ndarray = self.adam_gradient.decay2 * \
+            self.adam_cache2 + (1 - self.adam_gradient.decay2) * gradient ** 2
+        new_weights: np.ndarray = self.weights - \
+            self.adam_gradient.learning_rate * self.adam_cache1 / \
+            (np.sqrt(self.adam_cache2) + SMALL_NUM) * \
+            np.sqrt(1 - self.adam_gradient.decay2 ** time) / \
+            (1 - self.adam_gradient.decay1 ** time)
+        return replace(
+            self,
+            time=time,
+            weights=new_weights,
+            adam_cache1=new_adam_cache1,
+            adam_cache2=new_adam_cache2,
+        )
+
+    def within(self, other: Weights[X], tolerance: float) -> bool:
+        return np.all(np.abs(self.weights - other.weights) <= tolerance).item()
+```
+
+Given this `Weights` dataclass, we are now ready to write the `@dataclass LinearFunctionApprox` for linear function approximation that implements the abstract base class `FunctionApprox`. It has attributes `feature_functions` that represents $\phi_j: \mathcal{X} \rightarrow \mathbb{R}$ for all $j = 1, 2, \ldots, m$, `regularization_coeff` that represents the regularization coefficient $\lambda$, and `weights` which is an instance of the `Weights` class we wrote above. Note that the `get_feature_values` method adds a feature function $\phi(x) = 1$ for all $x \in \mathcal{X}$, so as to include the bias term. The method `regularized_loss_gradient` performs the calculation $\mathcal{G}_{(x_t, y_t)}(\bm{w}_t)$ shown above. Finally, the method `update` (`update` is an `@abstractmethod` in `FunctionApprox`) returns a new instance of `LinearFunctionApprox` that contains the updated weights, along with the ADAM cache updates (invoking the `update` method of the `Weights` class to ensure there are no in-place updates).
+
+```python
+@dataclass(frozen=True)
+class LinearFunctionApprox(FunctionApprox[X]):
+
+    feature_functions: Sequence[Callable[[X], float]]
+    regularization_coeff: float
+    weights: Weights
+
+    @staticmethod
+    def create(
+        feature_functions: Sequence[Callable[[X], float]],
+        adam_gradient: AdamGradient,
+        regularization_coeff: float = 0.,
+        weights: Optional[Weights] = None
+    ) -> LinearFunctionApprox[X]:
+        return LinearFunctionApprox(
+            feature_functions=feature_functions,
+            regularization_coeff=regularization_coeff,
+            weights=Weights.create(
+                adam_gradient=adam_gradient,
+                weights=np.zeros(len(feature_functions) + 1)
+            ) if weights is None else weights
+        )
+
+    def get_feature_values(self, x_values_seq: Sequence[X]) -> np.ndarray:
+        return np.array([[1.] + [f(x) for f in self.feature_functions]
+                         for x in x_values_seq])
+
+    def regularized_loss_gradient(
+        self,
+        xy_vals_seq: Sequence[Tuple[X, float]]
+    ) -> np.ndarray:
+        x_vals, y_vals = zip(*xy_vals_seq)
+        feature_vals: np.ndarray = self.get_feature_values(x_vals)
+        diff: np.ndarray = np.dot(feature_vals, self.weights.weights) \
+            - np.array(y_vals)
+        return np.dot(feature_vals.T, diff) / len(diff) \
+            + self.regularization_coeff * self.weights.weights
+
+    def update(
+        self,
+        xy_vals_seq: Sequence[Tuple[X, float]]
+    ) -> LinearFunctionApprox[X]:
+        gradient: np.ndarray = self.regularized_loss_gradient(xy_vals_seq)
+        new_weights: np.ndarray = self.weights.update(gradient)
+        return replace(self, weights=new_weights)
+```
+The prediction $\mathbb{E}_M[y|x]$ of this linear function approximation is:
+$$\bm{\phi}(x) \cdot \bm{w} = \sum_{j=1}^m \phi_j(x) \cdot w_i$$
+We represent this in the `evaluate` method as shown below:
+
+```python
+    def evaluate(self, x_values_seq: Sequence[X]) -> np.ndarray:
+        return np.dot(
+            self.get_feature_values(x_values_seq),
+            self.weights.weights
+        )
+```
+
+We also require the `within` method, that simply delegates to the `within` method of the `Weights` class.
+
+```python
+    def within(self, other: FunctionApprox[X], tolerance: float) -> bool:
+        if isinstance(other, LinearFunctionApprox):
+            return self.weights.within(other.weights)
+        else:
+            return False
+```
+
+Note that for linear function approximation, we can directly solve for $w^*$ if the number of feature functions $m$ is not too large. If the entire provided data is $[(x_i, y_i)|1\leq i \leq n]$, then the gradient estimate based on this data can be set to 0 to solve for $\bm{w^*}$, i.e.,
 $$(\sum_{i=1}^n \bm{\phi}(x_i) \cdot (\bm{\phi}(x_i) \cdot \bm{w^*} - y_i)) + \lambda \cdot \bm{w^*} = 0$$
-We denote $\bm{\Phi}$ as the $n$ rows $\times$ $m$ columns matrix defined as $\bm{\Phi}_{i,j} = \phi_j(x_i)$ and the column vector $\bm{Y} \in \mathbb{R}^n$ as $\bm{Y}_i = y_i$. Then we can write the above equation as:
-$$(\bm{\Phi}^T \cdot \bm{\Phi} + \lambda \cdot \bm{I_m}) \cdot \bm{w^*} = \bm{\Phi}^T \cdot \bm{Y}$$
+We denote $\bm{\Phi}$ as the $n$ rows $\times$ $m$ columns matrix defined as $\bm{\Phi}_{i,j} = \phi_j(x_i)$ and the column vector $\bm{Y} \in \mathbb{R}^n$ defined as $\bm{Y}_i = y_i$. Then we can write the above equation as:
+$$\bm{\Phi}^T \cdot (\bm{\Phi} \cdot \bm{w^*} - \bm{Y}) + \lambda \cdot \bm{w^*} = 0$$
+$$\Rightarrow (\bm{\Phi}^T \cdot \bm{\Phi} + \lambda \cdot \bm{I_m}) \cdot \bm{w^*} = \bm{\Phi}^T \cdot \bm{Y}$$
 $$\Rightarrow \bm{w^*} = (\bm{\Phi}^T \cdot \bm{\Phi} + \lambda \cdot \bm{I_m})^{-1} \cdot \bm{\Phi}^T \cdot \bm{Y}$$
 where $\bm{I_m}$ is the $m \times m$ identity matrix. Note that this requires inversion of the $m \times m$ matrix $\bm{\Phi}^T \cdot \bm{\Phi} + \lambda \cdot \bm{I_m}$ and so, this direct solution for $\bm{w^*}$ requires that $m$ not be too large.
 
-Once we arrive at $\bm{w^*}$ (either through gradient descent or through the direct solve shown above), the prediction $\mathbb{E}_M[y|x]$ of this linear function approximation is:
-$\bm{\phi}(x) \cdot \bm{w^*} = \sum_{j=1}^m \phi_j(x) \cdot w_i^*$
+So let's also implement this direct-solve for $\bm{w^*}$ as a method in `LinearFunctionApprox`.
+
+```python
+    def direct_solve(
+        self,
+        xy_vals_seq: Sequence[Tuple[X, float]]
+    ) -> LinearFunctionApprox[X]:
+        x_vals, y_vals = zip(*xy_vals_seq)
+        feature_vals: np.ndarray = self.get_feature_values(x_vals)
+        feature_vals_T: np.ndarray = feature_vals.T
+        left: np.ndarray = np.dot(feature_vals_T, feature_vals) \
+            + self.regularization_coeff * np.eye(len(self.weights.weights))
+        right: np.ndarray = np.dot(feature_vals_T, y_vals)
+        return replace(
+            self,
+            weights=Weights.create(
+                adam_gradient=self.weights.adam_gradient,
+                weights=np.dot(np.linalg.inv(left), right)
+            )
+        )
+```
 
 ## Neural Network Function Approximation
+
 The only other implementation of function approximation we shall cover in this book is that of a simple deep neural network, specifically a feed-forward fully-connected neural network. We work with the same notation of feature functions that we covered for the case of linear function approximation. Assume we have $L$ layers in the neural network. Layers $l = 0, 1, \ldots, L - 1$ carry the hidden layer neurons and layer $l = L$ carries the output layer neurons.
 
 We shall treat the inputs and outputs of each of the layers as real-valued column vectors and we use the notation $dim(\bm{V})$ to refer to the dimension of the vector $\bm{V}$.  We denote the input to layer $l$ as column vector $\bm{I_l}$ and the output to layer $l$ as column vector $\bm{O_l}$, for all $l = 0, 1, \ldots, L$. Therefore, $\bm{I_{l+1}} = \bm{O_l}$ for all $l = 0, 1, \ldots, L - 1$. Note that the number of neurons in layer $l$ is equal to $dim(\bm{O_l})$. So, $I_0 = \bm{\phi}(x) \in \mathbb{R}^m$ (where $x$ is the predictor variable) and $\bm{O_L}$ is the neural network's prediction for input $x$ (associated with the response variable $y$). Since we are restricting ourselves to scalar $y$, $dim(\bm{O_L}) = 1$ and so, the number of neurons in the output layer is 1. 
