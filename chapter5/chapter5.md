@@ -11,7 +11,7 @@ So, in this chapter, we do a quick review of function approximation, write some 
 
 ## Function Approximation
 
-In this section, we describe function approximation in a fairly generic setting (not specific to approximation of Value Functions or Policies). We denote the predictor variable as $x$, belonging to an arbitrary domain denoted $\mathcal{X}$ and the response variable as $y \in \mathbb{R}$. We treat $x$ and $y$ as unknown random variables and our goal is to estimate the probability distribution function $f$ of the conditional random variable $y|x$ from data provided in the form of a sequence of $(x,y)$ pairs. We shall consider parameterized function $f$ with the parameters denoted as $w$, The exact data type of $w$ will depend on the specific form of function approximation. We denote the estimated probability of $y$ conditional on $x$ as $f(x; w)(y)$. Assume we are given the following data in the form of a sequence of $n$ $(x,y)$ pairs:
+In this section, we describe function approximation in a fairly generic setting (not specific to approximation of Value Functions or Policies). We denote the predictor variable as $x$, belonging to an arbitrary domain denoted $\mathcal{X}$ and the response variable as $y \in \mathbb{R}$. We treat $x$ and $y$ as unknown random variables and our goal is to estimate the probability distribution function $f$ of the conditional random variable $y|x$ from data provided in the form of a sequence of $(x,y)$ pairs. We shall consider parameterized functions $f$ with the parameters denoted as $w$. The exact data type of $w$ will depend on the specific form of function approximation. We denote the estimated probability of $y$ conditional on $x$ as $f(x; w)(y)$. Assume we are given the following data in the form of a sequence of $n$ $(x,y)$ pairs:
 $$[(x_i, y_i)|1 \leq i \leq n]$$
 The notion of estimating the conditional probability $\mathbb{P}[y|x]$ is formalized by solving for $w=w^*$ such that:
 $$w^* = \argmax\{ \prod_{i=1}^n f(x_i; w)(y_i)\} = \argmax\{ \sum_{i=1}^n \log f(x_i; w)(y_i)\}$$
@@ -29,8 +29,45 @@ $$\mathbb{E}_M[y|x] = \int_{-\infty}^{+\infty} y \cdot f(x;w^*)(y) \cdot dy$$
 
 For the purposes of Approximate Dynamic Programming and Reinforcement Learning, the above expectation will provide an estimate of the Value Function for any state ($x$ takes the role of the state, and $y$ takes the role of the Value Function for that state). In the case of function approximation for policies, $x$ takes the role of the state, and $y$ takes the role of the action for that policy, and $f(x;w)$ will provide the probability distribution of the actions for state $x$ (for a stochastic policy). It's also worthwhile pointing out that the broader theory of function approximations covers the case of multi-dimensional $y$ (where $y$ is a real-valued vector, rather than scalar) - this allows us to solve classification problems, along with regression problems. However, for ease of exposition and for sufficient coverage of function approximation applications in this book, we will only cover the case of scalar $y$.
 
-Now let us write code for this framework - for incremental estimation of $f$ with updates to $w$ at each iteration $t$ and for evaluation of $\mathbb{E}_M[y|x]$ using the function $f(x;w)$.
+Now let us write code for this framework - for incremental estimation of $f$ with updates to $w$ at each iteration $t$ and for evaluation of $\mathbb{E}_M[y|x]$ using the function $f(x;w)$. We write an abstract base class `FunctionApprox` parameterized by `X` (to permit arbitrary data types $\mathcal{X}$). The first `@abstractmethod` is `update` that takes as input a sequence of $(x,y)$ pairs and is meant to update the weights $w$ that define $f(x;w)$. The second `@abstractmethod` is `evaluate` that takes as input a sequence of $x$ values and is meant to calculate $f(x;w)$ for each of those $x$ values and produce the output sequence of $f(x;w)$ values in the form of an `np.ndarray`. The concrete classes that implement this abstract class `FunctionApprox` will implement these two `abstractmethod`s according to the functional form assumptions for $f$.
 
+```python
+class FunctionApprox(ABC, Generic[X]):
+
+from abc import ABC, abstractmethod
+import numpy as np
+
+X = TypeVar('X')
+
+    @abstractmethod
+    def update(
+        self,
+        xy_vals_seq: Sequence[Tuple[X, float]]
+    ) -> FunctionApprox[X]:
+        pass
+
+    @abstractmethod
+    def evaluate(self, x_values_seq: Sequence[X]) -> np.ndarray:
+        pass
+```
+
+We also need a couple of helper methods in `FunctionApprox`. One is a `@staticmethod` named `within` that runs through an `Iterator` of `FunctionApprox' objects (obtained from the sequence of updates to the weights $w$) and terminates the updates when the weights $w$ in two successive `FunctionApprox` objects in the `Iterator` are "close enough". The judgement of "close enough" is made by an `@abstractmethod within` that is meant to examine the weights $w$ within two `FunctionApprox` objects. Specific classes that implement `FunctionApprox` will need to implement the method `within` along with the methods `update` and `evaluate`. The complete code for `FunctionApprox` is in the file [rl/function_approx.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/function_approx.py)
+
+```python
+    @abstractmethod
+    def within(self, other: FunctionApprox[X], tolerance: float) -> bool:
+        pass
+
+    @staticmethod
+    def converged(iterator: Iterator[FunctionApprox[X]],
+                  tolerance: float = 0.0001) -> FunctionApprox[X]:
+        def done(a, b):
+            return a.within(b, tolerance)
+
+        return iterate.converged(iterator, done=done)
+```
+
+Now we are ready to cover a concrete but simple function approximation - the case of linear function approximation. 
 
 ## Linear Function Approximation
 
@@ -56,9 +93,20 @@ $$\nabla_{\bm{w}} \mathcal{L}(\bm{w}) = (\sum_{i=1}^n \bm{\phi}(x_i) \cdot (\bm{
 where $$\bm{\phi}: \mathcal{X} \rightarrow \mathbb{R}^m$$ is defined as:
 $$\bm{\phi}(x) = (\phi_1(x), \phi_2(x), \ldots, \phi_m(x)) \text{ for all } x \in \mathcal{X}$$
 
-We can solve for $\bm{w^*}$ by incremental estimation using gradient descent (change in $\bm{w}$ proportional to the gradient estimate of $\mathcal{L}(\bm{w})$ with respect to $\bm{w}$), where the gradient estimate at iteration $t$ is:
-$$(\sum_{i=1}^{n_t} \bm{\phi}(x_{t,i}) \cdot (\bm{\phi}(x_{t,i}) \cdot \bm{w} - y_{t,i})) + \lambda \cdot \bm{w}$$
+We can solve for $\bm{w^*}$ by incremental estimation using gradient descent (change in $\bm{w}$ proportional to the gradient estimate of $\mathcal{L}(\bm{w})$ with respect to $\bm{w}$). If the $(x_t, y_t)$ data at time $t$ is:
+
+$$[(x_{t,i}, y_{t,i})|1 \leq i \leq n_t]$$,
+
+then the gradient estimate $\mathcal{G}_{(x_t,y_t)}(\bm{w}_t)$ at time $t$ is given by:
+
+$$\mathcal{G}_{(x_t, y_t)}(\bm{w}_t) = (\sum_{i=1}^{n_t} \bm{\phi}(x_{t,i}) \cdot (\bm{\phi}(x_{t,i}) \cdot \bm{w} - y_{t,i})) + \lambda \cdot \bm{w}$$
 which can be interpreted as the sum (over the data in iteration $t$) of the feature vectors $\bm{\phi}(x_{t,i})$ scaled by the (scalar) linear prediction errors $\bm{\phi}(x_{t,i}) \cdot \bm{w} - y_{t,i}$ (plus regularization term $\lambda \cdot \bm{w}$).
+
+Then, the update to the weights is given by:
+
+$$\bm{w}_{t+1} = \bm{w}_t - \alpha_t \cdot \mathcal{G}_{(x_t, y_t)}(\bm{w}_t)$$
+
+where $\alpha_t$ is the learning rate for the gradient descent at time $t$. To facilitate numerical convergence, we require $alpha_t$ to be an appropriate function of time $t$. There are a number of numerical techniques to achieve the appropriate time-trajectory of $\alpha_t$. We shall go with one such numerical technique - [ADAM](https://en.wikipedia.org/wiki/Stochastic_gradient_descent#Adam),
 
 Note that for linear function approximation, we can directly solve for $w^*$ if the number of feature function $m$ is not too large. If the entire provided data is $[(x_i, y_i)|1\leq i \leq n]$, then the gradient estimate based on this data can be set to 0 to solve for $\bm{w^*}$, i.e.,
 $$(\sum_{i=1}^n \bm{\phi}(x_i) \cdot (\bm{\phi}(x_i) \cdot \bm{w^*} - y_i)) + \lambda \cdot \bm{w^*} = 0$$
