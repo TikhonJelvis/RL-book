@@ -252,7 +252,6 @@ class DNNSpec:
     hidden_activation: Callable[[np.ndarray], np.ndarray]
     hidden_activation_deriv: Callable[[np.ndarray], np.ndarray]
     output_activation: Callable[[np.ndarray], np.ndarray]
-    output_activation_deriv: Callable[[np.ndarray], np.ndarray]
 
 
 @dataclass(frozen=True)
@@ -331,24 +330,24 @@ class DNNApprox(FunctionApprox[X]):
 
     def backward_propagation(
         self,
-        fwd_prop: Sequence[np.ndarray],
-        dObj_dOL: np.ndarray
+        xy_vals_seq: Sequence[Tuple[X, float]]
     ) -> Sequence[np.ndarray]:
         """
-        :param fwd_prop: list (of length L+2), the first (L+1) elements of
-        which are n x (|I_l| + 1) 2-D arrays representing the inputs to the
-        (L+1) layers, and the last element is a n x 1 2-D array
-        :param dObj_dOL: 1-D array of length n representing the derivative of
-        objective with respect to the output of the DNN.
-        L is the number of hidden layers, n is the number of points
+        :param xy_vals_seq: list of pairs of n (x, y) points
         :return: list (of length L+1) of |O_l| x (|I_l| + 1) 2-D array,
-                 i.e., same as the type of self.weights
+                 i.e., same as the type of self.weights.weights
+        This function computes the gradient (with respect to weights) of
+        cross-entropy loss where the output layer activation function
+        is the canonical link function of the conditional distribution of y|x
         """
-        outputs: np.ndarray = fwd_prop[-1]
+        x_vals, y_vals = zip(*xy_vals_seq)
+        fwd_prop: Sequence[np.ndarray] = self.forward_propagation(x_vals)
         layer_inputs: Sequence[np.ndarray] = fwd_prop[:-1]
-        deriv: np.ndarray = (dObj_dOL.reshape(-1, 1) *
-                             self.dnn_spec.output_activation_deriv(outputs)).T
+        deriv: np.ndarray = (
+            fwd_prop[-1][:, 0] - np.array(y_vals)
+        ).reshape(1, -1)
         back_prop: List[np.ndarray] = []
+        # L is the number of hidden layers, n is the number of points
         # layer l deriv represents dObj/dS_l where S_l = I_l . weights_l
         # (S_l is the result of applying layer l without the activation func)
         # deriv_l is a 2-D array of dimension |I_{l+1}| x n = |O_l| x n
@@ -363,7 +362,7 @@ class DNNApprox(FunctionApprox[X]):
         for i in reversed(range(len(self.weights))):
             # layer l gradient is deriv_l inner layer_inputs_l, which is
             # |O_l| x n inner n x (|I_l| + 1) = |O_l| x (|I_l| + 1)
-            back_prop.append(np.dot(deriv, layer_inputs[i]))
+            back_prop.append(np.dot(deriv, layer_inputs[i]) / deriv.shape[1])
             # the next line implements the recursive formulation of deriv
             deriv = (np.dot(self.weights[i].weights.T, deriv) *
                      self.dnn_spec.hidden_activation_deriv(
@@ -376,19 +375,16 @@ class DNNApprox(FunctionApprox[X]):
         xy_vals_seq: Sequence[Tuple[X, float]]
     ) -> Sequence[np.ndarray]:
         """
-        :param x_vals_seq: list of n data points (x points)
-        :param supervisory_seq: list of n supervisory points
+        :param xy_vals_seq: list of pairs of n (x, y) points
         :return: list (of length L+1) of |O_l| x (|I_l| + 1) 2-D array,
                  i.e., same as the type of self.weights
-        This function computes the gradient (with respect to w) of
-        Loss(w) = \sum_i (f(x_i; w) - y_i)^2 where f is the DNN func
+        This function computes the regularized gradient (with respect to
+        weights) of cross-entropy loss where the output layer activation
+        function is the canonical link function of the conditional
+        distribution of y|x
         """
-        x_vals, y_vals = zip(*xy_vals_seq)
-        fwd_prop: Sequence[np.ndarray] = self.forward_propagation(x_vals)
-        errors: np.ndarray = fwd_prop[-1][:, 0] - np.array(y_vals)
-        return [x / len(errors) + self.regularization_coeff *
-                self.weights[i].weights for i, x in
-                enumerate(self.backward_propagation(fwd_prop, errors))]
+        return [x + self.regularization_coeff * self.weights[i].weights
+                for i, x in enumerate(self.backward_propagation(xy_vals_seq))]
 
     def update(
         self,
@@ -486,8 +482,7 @@ if __name__ == '__main__':
         neurons=[2],
         hidden_activation=lambda x: x,
         hidden_activation_deriv=lambda x: np.ones_like(x),
-        output_activation=lambda x: x,
-        output_activation_deriv=lambda x: np.ones_like(x)
+        output_activation=lambda x: x
     )
 
     dnna = DNNApprox.create(
