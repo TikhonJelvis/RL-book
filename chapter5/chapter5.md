@@ -230,7 +230,7 @@ We also require the `within` method, that simply delegates to the `within` metho
 ```python
     def within(self, other: FunctionApprox[X], tolerance: float) -> bool:
         if isinstance(other, LinearFunctionApprox):
-            return self.weights.within(other.weights)
+            return self.weights.within(other.weights, tolerance)
         else:
             return False
 ```
@@ -440,19 +440,13 @@ class DNNSpec:
     hidden_activation: Callable[[np.ndarray], np.ndarray]
     hidden_activation_deriv: Callable[[np.ndarray], np.ndarray]
     output_activation: Callable[[np.ndarray], np.ndarray]
-    output_activation_deriv: Callable[[np.ndarray], np.ndarray]
 ```
 
-Note that along with specifying the activation functions $g_l(\cdot)$ defined as $g_l(\bm{S_l}) = \bm{O_l}$, we also specify the activation function derivatives in the form of functions $h_l(\cdot)$ defined as $h_l(g(\bm{S_l})) = h_l(\bm{O_l}) = g_l'(\bm{S_l})$. We shall soon see that in the code, $h_l(\cdot)$ is a more convenient specification than the direct specification of $g_l'(\cdot)$. Now we write the `@dataclass DNNApprox` that implements the abstract base class `FunctionApprox`. It has attributes `feature_functions` that represents $\phi_j: \mathcal{X} \rightarrow \mathbb{R}$ for all $j = 1, 2, \ldots, m$, `dnn_spec` that specifies the neural network configuration (instance of `DNNSpec`), `regularization_coeff` that represents the common regularization coefficient $\lambda$ for the weights across all layers, and `weights` which is a sequence of `Weights` objects (to represent and update the weights of all layers). Note that the `get_feature_values` method adds a feature function $\phi(x) = 1$ for all $x \in \mathcal{X}$, so as to include the bias term. The method `forward_propagation` implements the forward-propagation calculation that was covered earlier (combining Equations \eqref{eq:layers_input_output_connect}, \eqref{eq:layer_linearity} and \eqref{eq:layer_non_linearity}). The method `evaluate` (an `@abstractmethod` in `FunctionApprox`) calculates the prediction $\mathbb{E}_M[y|x]$ for each $x$ (using `forward_propagation`). The method `back_propagation` is the most important method of `DNNApprox` and deserves a detailed explanation.
+Note that along with specifying the hidden and output layers activation functions $g_l(\cdot)$ defined as $g_l(\bm{S_l}) = \bm{O_l}$, we also specify the hidden layers activation function derivatives in the form of function $h_l(\cdot)$ defined as $h_l(g(\bm{S_l})) = h_l(\bm{O_l}) = g_l'(\bm{S_l})$ (as we know, this derivative is required in the back-propagation calculation). We shall soon see that in the code, $h_l(\cdot)$ is a more convenient specification than the direct specification of $g_l'(\cdot)$. Now we write the `@dataclass DNNApprox` that implements the abstract base class `FunctionApprox`. It has attributes `feature_functions` that represents $\phi_j: \mathcal{X} \rightarrow \mathbb{R}$ for all $j = 1, 2, \ldots, m$, `dnn_spec` that specifies the neural network configuration (instance of `DNNSpec`), `regularization_coeff` that represents the common regularization coefficient $\lambda$ for the weights across all layers, and `weights` which is a sequence of `Weights` objects (to represent and update the weights of all layers). Note that the `get_feature_values` method adds a feature function $\phi(x) = 1$ for all $x \in \mathcal{X}$, so as to include the bias term. The method `forward_propagation` implements the forward-propagation calculation that was covered earlier (combining Equations \eqref{eq:layers_input_output_connect}, \eqref{eq:layer_linearity} and \eqref{eq:layer_non_linearity}). `forward_propagation` returns a list whose last element represents the final output of the neural network $\bm{O_L} = \mathbb{E}_M[y|x]$ and the remaining elements represent $\bm{I_l}$ for all $l = 0, 1, \ldots L$. The method `evaluate` (an `@abstractmethod` in `FunctionApprox`) returns the last element ($\bm{O_L} = \mathbb{E}_M[y|x]$) from the output of `forward_propagation`. The method `backward_propagation` is the most important method of `DNNApprox` and deserves a detailed explanation.
 
-`back_propagation` has two arguments:
+`backward_propagation` takes as input `xy_vals_seq` which is a sequence of $(x,y)$ pairs, and the output of `backward_propagation` is an estimate of $\nabla_{\bm{w_l}} \mathcal{L} = \bm{P_l} \otimes \bm{I_l}$ (i.e., without the regularization term) for all $l = 0, 1, \ldots L$, using the input data of $(x,y)$ pairs. The first step in this method is to invoke `forward_propagation` and store the results in the variable `fwd_prop`, whose last element represents $\bm{O_L}$ and whose remaining elements represent $\bm{I_l}$ for all $l = 0, 1, \ldots L$. This sequence of $\bm{I_l}$ is stored in the variable `layer_inputs`. The variable `deriv` represents $\bm{P_l} = \nabla_{\bm{S_l}} \mathcal{L}$ (note `deriv` is updated in each iteration of the loop). `deriv` is initialized to the value of $\bm{P_L} = \bm{O_L} - y$. Within the loop, we perform the calculations of Theorem \eq{th:recursive_gradient_formulation} ($\bm{P_l} = (\bm{P_{l+1}} \cdot \bm{w_{l+1}}) \circ g_l'(\bm{S_l})$ (updating the `deriv` variable) and Equation \eqref{eq:loss_gradient_formula} ($\nabla_{\bm{w_l}} \mathcal{L} = \bm{P_l} \otimes \bm{I_l}$) (storing the results in the variable `back_prop`).
 
-* `fwd_prop: Sequence[np.ndarray]` which is meant to be the output of `forward_propagation` containing the sequence of $\bm{I_l}$ for all $l = 0, 1, \ldots, L$, along with the final output $O_L$.
-* `dObj_dOL: np.ndarray` which is meant to represent $\frac {\partial \mathcal{L}} {\partial O_L}$, although in this interface for `back_propagation`, we could replace $\mathcal{L}$ with any objective function of our choice.
-
-In the code, `layer_inputs` represents the sequence of $\bm{I_l}$ for all $l = 0, 1, \ldots, L$, `deriv` represents $\bm{P_l} = \nabla_{\bm{S_l}} \mathcal{L}$ for each $l = L, L-1, \ldots, 0$ (updated in each iteration), and `back_prop` represents the sequence of $\nabla_{\bm{w_l}} \mathcal{L}$ for all $l = 0, 1, \ldots, L$. The code in `back_propagation` essentially combines the recursive formula for $\bm{P_l$} (Theorem \ref{th:recursive_gradient_formulation}) and Equation \eqref{eq:loss_gradient_formula}.
-
-The method `regularized_loss_gradient` computes $\nabla_{\bm{w_l}} \mathcal{L}$ for all $l = 0, 1, \ldots, L$ by first calling `forward_propagation` for each $x$ in the data sequence provided to it as input, then constructing $\nabla_{O_L} \mathcal{L}$ as prediction errors $O_L - y$ for each $(x,y)$ in the data sequence provided to it as input, and finally calling `back_propagation` with input arguments the sequence of $I_l$ (from `forward_propagation`) and the prediction errors $O_L - y$ (for each $(x,y)$). Finally, the method `update` (`@abstractmethod` in `FunctionApprox`) invokes `regularized_loss_gradient` and returns a new instance of `DNNApprox` that contains the updated weights, along with the ADAM cache updates (invoking the `update` method of the `Weights` class to ensure there are no in-place updates).
+The method `regularized_loss_gradient` simply adds on the regularization term $\lambda \cdot \bm{w_l}$ to the output of `backward_propagation`. Finally, the method `update` (`@abstractmethod` in `FunctionApprox`) invokes `regularized_loss_gradient` and returns a new instance of `DNNApprox` that contains the updated weights, along with the ADAM cache updates (invoking the `update` method of the `Weights` class to ensure there are no in-place updates).
 
 ```python
 @dataclass(frozen=True)
@@ -516,17 +510,17 @@ class DNNApprox(FunctionApprox[X]):
 
     def backward_propagation(
         self,
-        fwd_prop: Sequence[np.ndarray],
-        dObj_dOL: np.ndarray
+        xy_vals_seq: Sequence[Tuple[X, float]]
     ) -> Sequence[np.ndarray]:
-        outputs: np.ndarray = fwd_prop[-1]
+        x_vals, y_vals = zip(*xy_vals_seq)
+        fwd_prop: Sequence[np.ndarray] = self.forward_propagation(x_vals)
         layer_inputs: Sequence[np.ndarray] = fwd_prop[:-1]
-        deriv: np.ndarray = (dObj_dOL.reshape(-1, 1) *
-                             self.dnn_spec.output_activation_deriv(outputs)).T
+        deriv: np.ndarray = (
+            fwd_prop[-1][:, 0] - np.array(y_vals)
+        ).reshape(1, -1)
         back_prop: List[np.ndarray] = []
-
         for i in reversed(range(len(self.weights))):
-            back_prop.append(np.dot(deriv, layer_inputs[i]))
+            back_prop.append(np.dot(deriv, layer_inputs[i]) / deriv.shape[1])
             deriv = (np.dot(self.weights[i].weights.T, deriv) *
                      self.dnn_spec.hidden_activation_deriv(
                          layer_inputs[i].T
@@ -537,12 +531,8 @@ class DNNApprox(FunctionApprox[X]):
         self,
         xy_vals_seq: Sequence[Tuple[X, float]]
     ) -> Sequence[np.ndarray]:
-        x_vals, y_vals = zip(*xy_vals_seq)
-        fwd_prop: Sequence[np.ndarray] = self.forward_propagation(x_vals)
-        errors: np.ndarray = fwd_prop[-1][:, 0] - np.array(y_vals)
-        return [x / len(errors) + self.regularization_coeff *
-                self.weights[i].weights for i, x in
-                enumerate(self.backward_propagation(fwd_prop, errors))]
+        return [x + self.regularization_coeff * self.weights[i].weights
+                for i, x in enumerate(self.backward_propagation(xy_vals_seq))]
 
     def update(
         self,
@@ -555,6 +545,16 @@ class DNNApprox(FunctionApprox[X]):
                 self.regularized_loss_gradient(xy_vals_seq)
             )]
         )
+```
+We also require the `within` method, that simply delegates to the `within` method of the `Weights` class.
+
+```python
+    def within(self, other: FunctionApprox[X], tolerance: float) -> bool:
+        if isinstance(other, DNNApprox):
+            return all(w1.within(w2, tolerance)
+                       for w1, w2 in zip(self.weights, other.weights))
+        else:
+            return False
 ```
 
 ## Tabular as an Exact Approximation
