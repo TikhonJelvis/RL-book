@@ -204,7 +204,7 @@ class LinearFunctionApprox(FunctionApprox[X]):
 
     def within(self, other: FunctionApprox[X], tolerance: float) -> bool:
         if isinstance(other, LinearFunctionApprox):
-            return self.weights.within(other.weights)
+            return self.weights.within(other.weights, tolerance)
         else:
             return False
 
@@ -323,7 +323,7 @@ class DNNApprox(FunctionApprox[X]):
 
     def within(self, other: FunctionApprox[X], tolerance: float) -> bool:
         if isinstance(other, DNNApprox):
-            return all(w1.within(w2)
+            return all(w1.within(w2, tolerance)
                        for w1, w2 in zip(self.weights, other.weights))
         else:
             return False
