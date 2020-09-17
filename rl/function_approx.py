@@ -235,7 +235,8 @@ class LinearFunctionApprox(FunctionApprox[X]):
         feature_vals: np.ndarray = self.get_feature_values(x_vals)
         feature_vals_T: np.ndarray = feature_vals.T
         left: np.ndarray = np.dot(feature_vals_T, feature_vals) \
-            + self.regularization_coeff * np.eye(len(self.weights.weights))
+            + feature_vals.shape[0] * self.regularization_coeff * \
+            np.eye(len(self.weights.weights))
         right: np.ndarray = np.dot(feature_vals_T, y_vals)
         return replace(
             self,
@@ -455,7 +456,7 @@ if __name__ == '__main__':
     lfa = LinearFunctionApprox.create(
          feature_functions=ffs,
          adam_gradient=ag,
-         regularization_coeff=0.
+         regularization_coeff=0.001
     )
 
     lfa_ds = lfa.direct_solve(xy_vals_seq)
@@ -489,7 +490,7 @@ if __name__ == '__main__':
         feature_functions=ffs,
         dnn_spec=ds,
         adam_gradient=ag,
-        regularization_coeff=0.
+        regularization_coeff=0.01
     )
     print("DNN Gradient Solve")
     for _ in range(100):
