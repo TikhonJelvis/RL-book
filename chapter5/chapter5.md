@@ -255,7 +255,7 @@ So let's also implement this direct-solve for $\bm{w^*}$ as a method in `LinearF
         feature_vals_T: np.ndarray = feature_vals.T
         left: np.ndarray = np.dot(feature_vals_T, feature_vals) \
             + feature_vals.shape[0] * self.regularization_coeff * \
-            + np.eye(len(self.weights.weights))
+            np.eye(len(self.weights.weights))
         right: np.ndarray = np.dot(feature_vals_T, y_vals)
         return replace(
             self,
@@ -270,9 +270,11 @@ The above code is in the file [rl/function_approx.py](https://github.com/TikhonJ
 
 ## Neural Network Function Approximation
 
-The only other implementation of function approximation we shall cover in this book is that of a simple deep neural network, specifically a feed-forward fully-connected neural network. We work with the same notation of feature functions that we covered for the case of linear function approximation. Assume we have $L$ hidden layers in the neural network. Layers $l = 0, 1, \ldots, L - 1$ carry the hidden layer neurons and layer $l = L$ carries the output layer neurons.
+Now we generalize the linear function approximation to accommodate non-linear functions with a simple deep neural network, specifically a feed-forward fully-connected neural network. We work with the same notation $\bm{\phi}(\cdot) = (\phi_1(\cdot), \phi_2(\cdot), \ldots, \phi_m(\cdot))$ for feature functions that we covered for the case of linear function approximation. Assume we have $L$ hidden layers in the neural network. Layers numbered $l = 0, 1, \ldots, L - 1$ carry the hidden layer neurons and layer $l = L$ carries the output layer neurons.
 
-We shall treat the inputs and outputs of each of the layers as real-valued column vectors and we use the notation $dim(\bm{V})$ to refer to the dimension of the vector $\bm{V}$.  We denote the input to layer $l$ as column vector $\bm{I_l}$ and the output to layer $l$ as column vector $\bm{O_l}$, for all $l = 0, 1, \ldots, L$. Denoting $x$ as the predictor variable, we have:
+A couple of things to note about our notation for vectors and matrices when performing linear algebra operations: Vectors will be treated as column vectors (including gradient of a scalar with respect to a vector). When our notation expresses gradient of a vector of dimension $m$ with respect to a vector of dimension $n$, we treat it as a Jacobian matrix with $m$ rows and $n$ columns. We use the notation $dim(\bm{V})$ to refer to the dimension of a vector $\bm{V}$.
+
+We denote the input to layer $l$ as vector $\bm{I_l}$ and the output to layer $l$ as vector $\bm{O_l}$, for all $l = 0, 1, \ldots, L$. Denoting the predictor variable as $x \in \mathcal{X}$, we have:
 
 \begin{equation}
 \bm{I_0} = \bm{\phi}(x) \in \mathbb{R}^m \text{ and } \bm{I_{l+1}} = \bm{O_l} \text{ for all } l = 0, 1, \ldots, L - 1
@@ -294,14 +296,13 @@ We denote the activation function of layer $l$ as $g_l: \mathbb{R} \rightarrow \
 \label{eq:layer_non_linearity}
 \end{equation}
 
-Equations \eqref{eq:layers_input_output_connect}, \eqref{eq:layer_linearity} and \eqref{eq:layer_non_linearity} together define the calculation of the neural network prediction $O_L$ (associated with the response variable $y$), given the predictor variable $x$. This calculation is known as *forward-propagation* and will define the `evaluate` method of the deep neural network function approximation class we shall soon write.
+Equations \eqref{eq:layers_input_output_connect}, \eqref{eq:layer_linearity} and \eqref{eq:layer_non_linearity} together define the calculation of the neural network prediction $\bm{O_L}$ (associated with the response variable $y$), given the predictor variable $x$. This calculation is known as *forward-propagation* and will define the `evaluate` method of the deep neural network function approximation class we shall soon write.
 
-Our goal is to derive an expression for the loss gradient $\nabla_{\bm{w_l}} \mathcal{L}$ for all $l = 0, 1, \ldots, L$. We can reduce this problem of calculating the loss gradient to the problem of calculating $\bm{P_l} = \nabla_{\bm{S_l}} \mathcal{L}$ for all $l = 0, 1, \ldots, L$, as revealed by the following chain-rule calculation (the symbol $\otimes$ refers to [outer-product](https://en.wikipedia.org/wiki/Outer_product) of two vectors resulting in a matrix):
-$$\nabla_{\bm{w_l}} \mathcal{L} = \nabla_{\bm{S_l}} \mathcal{L} \cdot \nabla_{\bm{w_l}} \bm{S_l} = \bm{P_l} \otimes \bm{I_l} \text{ for all } l = 0, 1, \ldots L$$
+Our goal is to derive an expression for the loss gradient $\nabla_{\bm{w_l}} \mathcal{L}$ for all $l = 0, 1, \ldots, L$. We can reduce this problem of calculating the loss gradient to the problem of calculating $\bm{P_l} = \nabla_{\bm{S_l}} \mathcal{L}$ for all $l = 0, 1, \ldots, L$, as revealed by the following chain-rule calculation:
+$$\nabla_{\bm{w_l}} \mathcal{L} = (\nabla_{\bm{S_l}} \mathcal{L})^T \cdot \nabla_{\bm{w_l}} \bm{S_l} = \bm{P_l}^T \cdot \nabla_{\bm{w_l}} \bm{S_l} = \bm{P_l} \cdot \bm{I_l}^T = \bm{P_l} \otimes \bm{I_l} \text{ for all } l = 0, 1, \ldots L$$
+where the symbol $\otimes$ refers to the [outer-product](https://en.wikipedia.org/wiki/Outer_product) of two vectors resulting in a matrix. Note that the outer-product of the $dim(\bm{O_l})$ size vector $\bm{P_l}$ and the $dim(\bm{I_l})$ size vector $\bm{I_l}$ gives a matrix of size $dim(\bm{O_l}) \times dim(\bm{I_l})$.
 
-The outer-product of the $dim(\bm{O_l})$ size vector $\bm{P_l}$ and the $dim(\bm{I_l})$ size vector $\bm{I_l}$ gives a matrix of size $dim(\bm{O_l}) \times dim(\bm{I_l})$.
-
-If we include $L^2$ regularization (with $\lambda_l$ as the regularization coefficient in layer $l$), then:
+If we include $L^2$ regularization (with $\lambda_l$ as the regularization coefficient for layer $l$), then:
 
 \begin{equation}
 \nabla_{\bm{w_l}} \mathcal{L} = \bm{P_l} \otimes \bm{I_l} + \lambda_l \cdot \bm{w_l} \text{ for all } l = 0, 1, \ldots, L
@@ -319,7 +320,7 @@ $\bm{I_l}$ & Vector Input to layer $l$ for all $l = 0, 1, \ldots, L$  \\
 \hline
 $\bm{O_l}$ & Vector Output of layer $l$ for all $l = 0, 1, \ldots, L$ \\
 \hline
-$\bm{\phi}(x)$ & Input Feature Vector for predictor variable $x$ \\
+$\bm{\phi}(x)$ & Feature Vector for predictor variable $x$ \\
 \hline
  $y$ & Response variable associated with predictor variable $x$ \\
 \hline
@@ -340,19 +341,25 @@ Now that we have reduced the loss gradient calculation to calculation of $\bm{P_
 
 \begin{theorem}
 For all $l = 0, 1, \ldots, L-1$,
-$$\bm{P_l} = (\bm{P_{l+1}} \cdot \bm{w_{l+1}}) \circ g_l'(\bm{S_l})$$
-where the symbol $\cdot$ represents vector-matrix multiplication and the symbol $\circ$ represents \href{https://en.wikipedia.org/wiki/Hadamard_product_(matrices)}{Hadamard Product}, i.e., point-wise multiplication of two vectors of the same dimension.
+$$\bm{P_l} = (\bm{w_{l+1}}^T \cdot \bm{P_{l+1}}) \circ g_l'(\bm{S_l})$$
+where the symbol $\cdot$ represents vector-matrix multiplication and the symbol $\circ$ represents the \href{https://en.wikipedia.org/wiki/Hadamard_product_(matrices)}{Hadamard Product}, i.e., point-wise multiplication of two vectors of the same dimension.
 \label{th:recursive_gradient_formulation}
 \end{theorem}
 
 \begin{proof}
-We know that
-$$\bm{S_{l+1}} = g_l(\bm{S_l}) \cdot \bm{w_{l+1}}$$
-Applying the chain-rule on the loss function and using the above equation yields
-$$\bm{P_l} = \nabla_{\bm{S_l}} \mathcal{L} = \nabla_{\bm{S_{l+1}}} \mathcal{L} \cdot \nabla_{\bm{S_l}} \bm{S_{l+1}} = (\bm{P_{l+1}} \cdot \bm{w_{l+1}}) \circ g_l'(\bm{S_l})$$
+We start by applying the chain rule on $\bm{P_l}$.
+\begin{equation}
+\bm{P_l} = \nabla_{\bm{S_l}} \mathcal{L} = (\nabla_{\bm{S_l}} \bm{S_{l+1}})^T \cdot \nabla_{\bm{S_{l+1}}} \mathcal{L} = (\nabla_{\bm{S_l}} \bm{S_{l+1}})^T \cdot \bm{P_{l+1}}
+\label{eq:recursive_chain_rule}
+\end{equation}
+Next, note that:
+$$\bm{S_{l+1}} = \bm{w_{l+1}} \cdot g_l(\bm{S_l})$$
+Therefore,
+$$\nabla_{\bm{S_l}} \bm{S_{l+1}} = \bm{w_{l+1}} \cdot \bm{Diagonal}(g_l'(\bm{S_l}))$$
+Substituting this in Equation \eqref{eq:recursive_chain_rule} yields:
+$$\bm{P_l} = (\bm{w_{l+1}} \cdot \bm{Diagonal}(g_l'(\bm{S_l})))^T \cdot \bm{P_{l+1}} = \bm{Diagonal}(g_l'(\bm{S_l})) \cdot \bm{w_{l+1}}^T \cdot \bm{P_{l+1}}$$
+$$= g_l'(\bm{S_l}) \circ (\bm{w_{l+1}}^T \cdot \bm{P_{l+1}}) = (\bm{w_{l+1}}^T \cdot \bm{P_{l+1}}) \circ g_l'(\bm{S_l})$$
 \end{proof}
-
-Note that $\bm{P_{l+1}} \cdot \bm{w_{l+1}}$ is the inner-product of the $dim(\bm{O_{l+1}})$ size vector $\bm{P_{l+1}}$ and the $dim(\bm{O_{l+1}}) \times dim(\bm{I_{l+1}})$ size matrix $\bm{w_{l+1}}$, and the resultant $dim(\bm{I_{l+1}}) = dim(\bm{O_l})$ size vector $\bm{P_{l+1}} \cdot \bm{w_{l+1}}$ is multiplied point-wise (Hadamard product) with the $dim(\bm{O_l})$ size vector $g_l'(\bm{S_l})$ to yield the $dim(\bm{O_l})$ size vector $\bm{P_l}$.
 
 Now all we need to do is to calculate $\bm{P_L} = \nabla_{\bm{S_L}} \mathcal{L}$ so that we can run this recursive formulation for $\bm{P_l}$, estimate the loss gradient $\nabla_{\bm{w_l}} \mathcal{L}$ for any given data (using Equation \eqref{eq:loss_gradient_formula}), and perform gradient descent to arrive at $\bm{w_l^*}$ for all $l = 0, 1, \ldots L$.
 
@@ -363,14 +370,13 @@ To calculate $\frac {\partial \mathcal{L}} {\partial S_L}$, we need to assume a 
 
 $$p(y|\theta, \tau) = h(y, \tau) \cdot e^{\frac {\theta \cdot y - A(\theta)} {d(\tau)}}$$
 
-where $\theta$ should be thought of as the "center" parameter (related to the mean) of the probability distribution and $\tau$ should be thought of as the "dispersion"" parameter (related to the variance) of the distribution. $h(\cdot, \cdot), A(\cdot), d(\cdot)$ are general functions whose specializations define the family of distributions that can be modeled with this fairly generic exponential functional form (note that this structure is adopted from the framework of [Generalized Linear Models](https://en.wikipedia.org/wiki/Generalized_linear_model)). 
-
+where $\theta$ should be thought of as the "center" parameter (related to the mean) of the probability distribution and $\tau$ should be thought of as the "dispersion" parameter (related to the variance) of the distribution. $h(\cdot, \cdot), A(\cdot), d(\cdot)$ are general functions whose specializations define the family of distributions that can be modeled with this fairly generic exponential functional form (note that this structure is adopted from the framework of [Generalized Linear Models](https://en.wikipedia.org/wiki/Generalized_linear_model)). 
 
 For our neural network function approximation, we assume that $\tau$ is a constant, and we set $\theta$ to be $S_L$. So,
 
 $$\mathbb{P}[y|S_L] = p(y|S_L, \tau) = h(y, \tau) \cdot e^{\frac {S_L \cdot y - A(S_L)} {d(\tau)}}$$
 
-We require the scalar prediction of the neural network $O_L = g_L(S_L)$ to be equal to $\mathbb{E}_p[y|S_L]$. So the question is - what function $g_L: \mathbb{R} \rightarrow \mathbb{R}$ (in terms of the functional form of $p(y|S_L, \tau)$) would satisfy the requirement that $O_L = g_L(S_L) = \mathbb{E}_p[y|S_L]$? To answer this question, we first establish the following Lemma:
+We require the scalar prediction of the neural network $O_L = g_L(S_L)$ to be equal to $\mathbb{E}_p[y|S_L]$. So the question is: What function $g_L: \mathbb{R} \rightarrow \mathbb{R}$ (in terms of the functional form of $p(y|S_L, \tau)$) would satisfy the requirement of $O_L = g_L(S_L) = \mathbb{E}_p[y|S_L]$? To answer this question, we first establish the following Lemma:
 
 \begin{lemma}
 $$\mathbb{E}_p[y|S_L] = A'(S_L)$$
@@ -428,11 +434,11 @@ At each iteration of gradient descent, we require an estimate of the loss gradie
 
 Here are some common specializations of the functional form for the conditional probability distribution $\mathbb{P}[y|S_L]$, along with the corresponding activation function $g_L$ of the output layer:
 
-* Normal distribution $y \sim \mathcal{N}(\mu, \sigma^2)$: $S_L = \mu, \tau = \sigma, h(y, \tau) = \frac {e^{\frac {-y^2} {2 \tau^2}}} {\sqrt{2 \pi} \tau}, A(S_L) = \frac {S_L^2} {2}, d(\tau) = \tau^2$. $g_L(S_L) = \mathbb{E}[y|S_L] = S_L$, hence output layer activation function $g_L$ is the identity function. This means that the linear function approximation of the previous section is exactly the same as a neural network with 0 hidden layers (just the output layer) and with the output layer activation function equal to the identity function.
-* Bernoulli distribution for binary-valued $y$, parameterized by $p$: $S_L = \log{(\frac p {1-p})}, \tau = 1, h(y, \tau) = 1, d(\tau) = 1, A(S_L) = \log{(1+e^{S_L})}$. $g_L(S_L) = \mathbb{E}[y|S_L] = \frac 1 {1+e^{-S_L}}$, hence the output layer activation function $g_L$ is the logistic function. This generalizes to [softmax](https://en.wikipedia.org/wiki/Softmax_function) $g_L$ when we generalize this framework to multivariate $y$, which in turn enables us to do classify inputs $x$ into a finite set of categories represented by $y$ as [one-hot-encodings](https://en.wikipedia.org/wiki/One-hot).
+* Normal distribution $y \sim \mathcal{N}(\mu, \sigma^2)$: $S_L = \mu, \tau = \sigma, h(y, \tau) = \frac {e^{\frac {-y^2} {2 \tau^2}}} {\sqrt{2 \pi} \tau}, A(S_L) = \frac {S_L^2} {2}, d(\tau) = \tau^2$. $g_L(S_L) = \mathbb{E}[y|S_L] = S_L$, hence the output layer activation function $g_L$ is the identity function. This means that the linear function approximation of the previous section is exactly the same as a neural network with 0 hidden layers (just the output layer) and with the output layer activation function equal to the identity function.
+* Bernoulli distribution for binary-valued $y$, parameterized by $p$: $S_L = \log{(\frac p {1-p})}, \tau = 1, h(y, \tau) = 1, d(\tau) = 1, A(S_L) = \log{(1+e^{S_L})}$. $g_L(S_L) = \mathbb{E}[y|S_L] = \frac 1 {1+e^{-S_L}}$, hence the output layer activation function $g_L$ is the logistic function. This generalizes to [softmax](https://en.wikipedia.org/wiki/Softmax_function) $g_L$ when we generalize this framework to multivariate $y$, which in turn enables us to classify inputs $x$ into a finite set of categories represented by $y$ as [one-hot-encodings](https://en.wikipedia.org/wiki/One-hot).
 * Poisson distribution for $y$ parameterized by $\lambda$: $S_L = \log{\lambda}, \tau = 1, d(\tau) = 1, h(y, \tau) = \frac 1 {y!}, A(S_L) = e^{S_L}$. $g_L(S_L) = \mathbb{E}[y|S_L] = e^{S_L}$, hence the output layer activation function $g_L$ is the exponential function.
 
-Now we are ready to write a class for function approximation with the deep neural network framework described above. We shall assume that the activation functions $g_l(\cdot)$ are identical for all $l = 0, 1, \ldots, L-1$ (known as the hidden layers activation function) and the activation function $g_L(\cdot)$ will be known as the output layer activation function. So first of all, we write a `@dataclass` to hold the configuration (number of neurons in the layers, hidden layers activation function, output layers activation function) for a deep neural network.
+Now we are ready to write a class for function approximation with the deep neural network framework described above. We shall assume that the activation functions $g_l(\cdot)$ are identical for all $l = 0, 1, \ldots, L-1$ (known as the hidden layers activation function) and the activation function $g_L(\cdot)$ will be known as the output layer activation function. First, we write a `@dataclass` to hold the configuration of a deep neural network (number of neurons in the layers, hidden layers activation function and output layer activation function).
 
 ```python
 @dataclass(frozen=True)
@@ -443,9 +449,16 @@ class DNNSpec:
     output_activation: Callable[[np.ndarray], np.ndarray]
 ```
 
-Note that along with specifying the hidden and output layers activation functions $g_l(\cdot)$ defined as $g_l(\bm{S_l}) = \bm{O_l}$, we also specify the hidden layers activation function derivatives in the form of function $h_l(\cdot)$ defined as $h_l(g(\bm{S_l})) = h_l(\bm{O_l}) = g_l'(\bm{S_l})$ (as we know, this derivative is required in the back-propagation calculation). We shall soon see that in the code, $h_l(\cdot)$ is a more convenient specification than the direct specification of $g_l'(\cdot)$. Now we write the `@dataclass DNNApprox` that implements the abstract base class `FunctionApprox`. It has attributes `feature_functions` that represents $\phi_j: \mathcal{X} \rightarrow \mathbb{R}$ for all $j = 1, 2, \ldots, m$, `dnn_spec` that specifies the neural network configuration (instance of `DNNSpec`), `regularization_coeff` that represents the common regularization coefficient $\lambda$ for the weights across all layers, and `weights` which is a sequence of `Weights` objects (to represent and update the weights of all layers). Note that the `get_feature_values` method adds a feature function $\phi(x) = 1$ for all $x \in \mathcal{X}$, so as to include the bias term. The method `forward_propagation` implements the forward-propagation calculation that was covered earlier (combining Equations \eqref{eq:layers_input_output_connect}, \eqref{eq:layer_linearity} and \eqref{eq:layer_non_linearity}). `forward_propagation` returns a list whose last element represents the final output of the neural network $\bm{O_L} = \mathbb{E}_M[y|x]$ and the remaining elements represent $\bm{I_l}$ for all $l = 0, 1, \ldots L$. The method `evaluate` (an `@abstractmethod` in `FunctionApprox`) returns the last element ($\bm{O_L} = \mathbb{E}_M[y|x]$) from the output of `forward_propagation`. The method `backward_propagation` is the most important method of `DNNApprox` and deserves a detailed explanation.
+Note that along with specifying the hidden and output layers activation functions $g_l(\cdot)$ defined as $g_l(\bm{S_l}) = \bm{O_l}$, we also specify the hidden layers activation function derivative (`hidden_activation_deriv`) in the form of a function $h_l(\cdot)$ defined as $h_l(g(\bm{S_l})) = h_l(\bm{O_l}) = g_l'(\bm{S_l})$ (as we know, this derivative is required in the back-propagation calculation). We shall soon see that in the code, $h_l(\cdot)$ is a more convenient specification than the direct specification of $g_l'(\cdot)$. Now we write the `@dataclass DNNApprox` that implements the abstract base class `FunctionApprox`. It has attributes:
 
-`backward_propagation` takes as input `xy_vals_seq` which is a sequence of $(x,y)$ pairs, and the output of `backward_propagation` is an estimate of $\nabla_{\bm{w_l}} \mathcal{L} = \bm{P_l} \otimes \bm{I_l}$ (i.e., without the regularization term) for all $l = 0, 1, \ldots L$, using the input data of $(x,y)$ pairs. The first step in this method is to invoke `forward_propagation` and store the results in the variable `fwd_prop`, whose last element represents $\bm{O_L}$ and whose remaining elements represent $\bm{I_l}$ for all $l = 0, 1, \ldots L$. This sequence of $\bm{I_l}$ is stored in the variable `layer_inputs`. The variable `deriv` represents $\bm{P_l} = \nabla_{\bm{S_l}} \mathcal{L}$ (note `deriv` is updated in each iteration of the loop). `deriv` is initialized to the value of $\bm{P_L} = \bm{O_L} - y$. Within the loop, we perform the calculations of Theorem \ref{th:recursive_gradient_formulation} ($\bm{P_l} = (\bm{P_{l+1}} \cdot \bm{w_{l+1}}) \circ g_l'(\bm{S_l}$) (updating the `deriv` variable) and Equation \eqref{eq:loss_gradient_formula} ($\nabla_{\bm{w_l}} \mathcal{L} = \bm{P_l} \otimes \bm{I_l}$) (storing the results in the variable `back_prop`).
+* `feature_functions` that represents $\phi_j: \mathcal{X} \rightarrow \mathbb{R}$ for all $j = 1, 2, \ldots, m$
+* `dnn_spec` that specifies the neural network configuration (instance of `DNNSpec`)
+* `regularization_coeff` that represents the common regularization coefficient $\lambda$ for the weights across all layers
+* `weights` which is a sequence of `Weights` objects (to represent and update the weights of all layers).
+
+Note that the `get_feature_values` method adds a feature function $\phi(x) = 1$ for all $x \in \mathcal{X}$, so as to include the bias term. The method `forward_propagation` implements the forward-propagation calculation that was covered earlier (combining Equations \eqref{eq:layers_input_output_connect}, \eqref{eq:layer_linearity} and \eqref{eq:layer_non_linearity}), computing a sequence of $y$ values as an `np.ndarray` corresponding to each of the sequence of $x$ values provided as input in `x_values_seq`. `forward_propagation` returns a list whose last element represents the final output of the neural network $\bm{O_L} = \mathbb{E}_M[y|x]$ and the remaining elements represent $\bm{I_l}$ for all $l = 0, 1, \ldots L$ (for each of the $x$ values provided as input in `x_values_seq`). The method `evaluate` (an `@abstractmethod` in `FunctionApprox`) returns the last element ($\bm{O_L} = \mathbb{E}_M[y|x]$) from the output of `forward_propagation`. The method `backward_propagation` is the most important method of `DNNApprox` and deserves a detailed explanation.
+
+`backward_propagation` takes as input `xy_vals_seq` which is a sequence of $(x,y)$ pairs, and the output of `backward_propagation` is an estimate of $\nabla_{\bm{w_l}} \mathcal{L} = \bm{P_l} \otimes \bm{I_l}$ (i.e., without the regularization term) for all $l = 0, 1, \ldots L$, using the input data of $(x,y)$ pairs. The first step in this method is to invoke `forward_propagation` and store the results in the variable `fwd_prop`, whose last element represents $\bm{O_L}$ and whose remaining elements represent $\bm{I_l}$ for all $l = 0, 1, \ldots L$ (for each of the $x$ values provided as input in `xy_vals_seq`). This sequence of $\bm{I_l}$ is stored in the variable `layer_inputs`. The variable `deriv` represents $\bm{P_l} = \nabla_{\bm{S_l}} \mathcal{L}$, computed for each of the $x$ values provided as input in `xy_vals_seq` (note that `deriv` is updated in each iteration of the loop). `deriv` is initialized to the value of $P_L = O_L - y$. Within the loop, we perform the calculations of Theorem \ref{th:recursive_gradient_formulation}: $\bm{P_l} = (\bm{w_{l+1}}^T \cdot \bm{P_{l+1}}) \circ g_l'(\bm{S_l})$ (updating the `deriv` variable) and Equation \eqref{eq:loss_gradient_formula}: $\nabla_{\bm{w_l}} \mathcal{L} = \bm{P_l} \otimes \bm{I_l}$ (storing the results in the variable `back_prop`).
 
 The method `regularized_loss_gradient` simply adds on the regularization term $\lambda \cdot \bm{w_l}$ to the output of `backward_propagation`. Finally, the method `update` (`@abstractmethod` in `FunctionApprox`) invokes `regularized_loss_gradient` and returns a new instance of `DNNApprox` that contains the updated weights, along with the ADAM cache updates (invoking the `update` method of the `Weights` class to ensure there are no in-place updates).
 
@@ -557,6 +570,157 @@ We also require the `within` method, that simply delegates to the `within` metho
         else:
             return False
 ```
+
+We also need a couple of utilities to be able to use `LinearFunctionApprox` and `DNNApprox` objects:
+
+* `sgd` which performs a stochastic gradient descent for an instance of `FunctionApprox` using an Iterator on a sequence of $(x,y)$ pairs (note how `sgd` calls `update` repeatedly).
+* `rmse` which calculates the Root-Mean-Squared-Error of the predictions from an instance of `FunctionApprox`, based on a sequence of $(x,y)$ pairs of test data.
+
+```python
+def sgd(
+    func_approx: FunctionApprox[X],
+    xy_seq_stream: Iterator[Sequence[Tuple[X, float]]]
+) -> Iterator[FunctionApprox[X]]:
+    for xy_seq in xy_seq_stream:
+        yield func_approx
+        func_approx = func_approx.update(xy_seq)
+
+def rmse(
+    func_approx: FunctionApprox[X],
+    xy_seq: Sequence[Tuple[X, float]]
+) -> float:
+    x_seq, y_seq = zip(*xy_seq)
+    errors: np.ndarray = func_approx.evaluate(x_seq) - np.array(y_seq)
+    return np.sqrt(np.mean(errors * errors))
+```
+
+All of the above code is in the file [rl/function_approx.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/function_approx.py).   
+
+Let us now write some code to create function approximations with `LinearFunctionApprox` and `DNNApprox`, given a stream of data from a simple data model - one that has some noise around a linear function. Here's some code to create an Iterator of $(x, y)$ pairs (where $x = (x_1, x_2, x_3)$) for the data model:
+
+$$y = 2 + 10x_1 +4x_2 - 6x_3 + \mathcal{N}(0, 0.3)$$
+
+```python
+def example_model_data_generator() -> Iterator[Tuple[Triple, float]]:
+
+    coeffs: Aug_Triple = (2., 10., 4., -6.)
+    d = norm(loc=0., scale=0.3)
+
+    while True:
+        pt: np.ndarray = np.random.randn(3)
+        x_val: Triple = (pt[0], pt[1], pt[2])
+        y_val: float = coeffs[0] + np.dot(coeffs[1:], pt) + \
+            d.rvs(size=1)[0]
+        yield (x_val, y_val)
+```
+
+Next we wrap this in an Iterator that returns a certain number of $(x,y)$ pairs upon each request for data points.
+
+```python
+def data_seq_generator(
+    data_generator: Iterator[Tuple[Triple, float]],
+    num_pts: int
+) -> Iterator[DataSeq]:
+    while True:
+        pts: DataSeq = islice(data_generator, num_pts)
+        yield pts
+```
+
+Now let's write a function to create a `LinearFunctionApprox`.
+
+```python
+def feature_functions():
+    return [lambda x: x[0], lambda x: x[1], lambda x: x[2]]
+
+def adam_gradient():
+    return AdamGradient(
+        learning_rate=0.1,
+        decay1=0.9,
+        decay2=0.999
+    )
+
+def get_linear_model() -> LinearFunctionApprox[Triple]:
+    ffs = feature_functions()
+    ag = adam_gradient()
+    return LinearFunctionApprox.create(
+         feature_functions=ffs,
+         adam_gradient=ag,
+         regularization_coeff=0.
+    )
+```   
+
+Likewise, let's write a function to create a `DNNApprox` with 1 hidden layer with 2 neurons and a little bit of regularization since this deep neural network is somewhat over-parameterized to fit the data generated from the linear data model with noise.
+
+```python
+def get_dnn_model() -> DNNApprox[Triple]:
+    ffs = feature_functions()
+    ag = adam_gradient()
+
+    def relu(arg: np.ndarray) -> np.ndarray:
+        return np.vectorize(lambda x: x if x > 0. else 0.)(arg)
+
+    def relu_deriv(res: np.ndarray) -> np.ndarray:
+        return np.vectorize(lambda x: 1. if x > 0. else 0.)(res)
+
+    def identity(arg: np.ndarray) -> np.ndarray:
+        return arg
+
+    ds = DNNSpec(
+        neurons=[2],
+        hidden_activation=relu,
+        hidden_activation_deriv=relu_deriv,
+        output_activation=identity
+    )
+
+    return DNNApprox.create(
+        feature_functions=ffs,
+        dnn_spec=ds,
+        adam_gradient=ag,
+        regularization_coeff=0.05
+    )
+```
+
+Now let's write some code to do a `direct_solve` with the `LinearFunctionApprox` based on the data from the data model we have set up. 
+
+```python
+training_num_pts: int = 1000
+test_num_pts: int = 10000
+training_iterations: int = 300
+data_gen: Iterator[Tuple[Triple, float]] = example_model_data_generator()
+training_data_gen: Iterator[DataSeq] = data_seq_generator(
+    data_gen,
+    training_num_pts
+)
+test_data: DataSeq = list(islice(data_gen, test_num_pts))
+
+direct_solve: LinearFunctionApprox[Triple] = \
+    get_linear_model().direct_solve(next(training_data_gen))
+direct_solve_rmse: float = rmse(direct_solve, test_data)
+```
+
+Running the above code, we see that the Root-Mean-Squared-Error (`direct_solve_rmse`) is indeed 0.3, matching the standard deviation of the noise in the linear data model (which is used above to generate the training data as well as the test data).
+
+Now let us perform stochastic gradient descent with instances of `LinearFunctionApprox` and `DNNApprox` and examine the Root-Mean-Squared-Errors on the two function approximations as a function of number of iterations in the gradient descent.
+
+```python
+linear_model_rmse_seq: Sequence[float] = \
+    [rmse(lfa, test_data) for lfa in islice(
+        sgd(get_linear_model(), training_data_gen),
+        training_iterations
+    )]
+
+dnn_model_rmse_seq: Sequence[float] = \
+    [rmse(dfa, test_data) for dfa in islice(
+        sgd(get_dnn_model(), training_data_gen),
+        training_iterations
+    )]
+```
+
+The plot of `linear_model_rmse_seq` and `dnn_model_rmse_seq` is shown in Figure \ref{fig:sgd_convergence}.
+
+<div style="text-align:center" markdown="1">
+![SGD Convergence \label{fig:sgd_convergence}](./chapter5/rmse.png "SGD Convergence")
+</div>
 
 ## Tabular as an Exact Approximation
 
