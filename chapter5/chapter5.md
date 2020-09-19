@@ -777,9 +777,183 @@ Note that in the tabular Dynamic Programming algorithms, the set of finite state
 
 Again, we want to emphasize that tabular algorithms are just a special case of algorithms with function approximation. However, we give special coverage in this book to tabular algorithms because they help us conceptualize the core concepts in a simple (tabular) setting without the distraction of some of the details and complications in the apparatus of function approximation.
 
+Now we are ready to write algorithms for Approximate Dynamic Programming (ADP).
+
+## Approximate Policy Evaluation
+
+The first ADP algorithm we cover is Approximate Policy Evaluation, i.e., evaluating the Value Function for a Markov Reward Process (MRP). Approximate Policy Evaluation is fundamentally the same as Tabular Policy Evaluation in terms of repeatedly applying the Bellman Policy Operator $\bm{B^}\pi$ on the Value Function $V: \mathcal{N} \rightarrow \mathbb{R}$. However, unlike Tabular Policy Evaluation algorithm, the Value Function $V(\cdot)$ is set up and updated as an instance of `FunctionApprox` rather than as a table of values for the states. This is because unlike Tabular Policy Evaluation which operates on an instance of a `FiniteMarkovRewardProcess`, Approximate Policy Evaluation algorithm operates on an instance of `MarkovRewardProcess`. So we do not have an enumeration of states of the MRP and we do not have the transition probabilities of the MRP. This is typical in many real-world problems where the state space is either very large or is continuous-valued, and the transitions could be too many or could be continuous-valued transitions. So, here's what we do to overcome these challenges:
+
+* We specify a sampling probability distribution of non-terminal states (argument `non_terminal_states_distribution` in the code below) from which we shall sample a specified number (`num_state_samples` in the code below) of state samples and construct a list of non-terminal states (`nt_states` in the code below) in each iteration.
+* We sample pairs of (next state $s'$, reward $r$) from a given state $s$, and calculate the expectation $\mathbb{E}[r + \gamma \cdot V(s')]$ by averaging $r+\gamma \cdot V(s')$ across the sampled pairs. Note that the method `expectation` of a `Distribution` object performs a sampled expectation. $V(s')$ is obtained from the function approximation instance of `FunctionApprox` that is being updated in each iteration.
+* The sampled list of non-terminal states $s$ comprise our $x$-values and the associated sampled expectations described above comprise our $y$-values. This list of $(x,y)$ pairs are used to update the approximation of the Value Function in each iteration (producing a new instance of `FunctionApprox` using it's `update` method).
+
+The entire code is shown below. `evaluate_mrp` produces an `Iterator` on `FunctionApprox` instances, and the code that calls `evaluate_mrp` can decide when/how to terminate the iterations of Approximate Policy Evaluation.
+
+```python
+from rl.iterate import iterate
+
+def evaluate_mrp(
+    mrp: MarkovRewardProcess[S],
+    gamma: float,
+    approx_0: FunctionApprox[S],
+    non_terminal_states_distribution: Distribution[S],
+    num_state_samples: int
+) -> Iterator[FunctionApprox[S]]:
+
+    def update(v: FunctionApprox[S]) -> FunctionApprox[S]:
+        nt_states: Sequence[S] = non_terminal_states_distribution.sample_n(
+            num_state_samples
+        )
+
+        def return_(s_r: Tuple[S, float]) -> float:
+            s, r = s_r
+            return r + gamma * v.evaluate([s]).item()
+
+        return v.update(
+            [(s, mrp.transition_reward(s).expectation(return_))
+             for s in nt_states]
+        )
+
+    return iterate(update, approx_0)
+```
 
 ## Approximate Value Iteration
 
-## Approximate Backward Induction
+Now that we've understood and coded Approximate Policy Evaluation (to solve the Prediction problem), we can extend the same concepts to Approximate Value Iteration (to solve the Control problem). The code below in `value_iteration` is almost the same as the code above in `evaluate_mrp`, except that instead of a `MarkovRewardProcess` at each time step, here we have a `MarkovDecisionProcess` at each time step, and instead of the Bellman Policy Operator update, here we have the Bellman Optimality Operator update. Therefore, in the Value Function update, we maximize the $Q$-value function (over all actions $a$) for each state $s$. Also, similar to `evaluate_mrp`, `value_iteration` produces an `Iterator` on `FunctionApprox` instances, and the code that calls `value_iteration` can decide when/how to terminate the iterations of Approximate Value Iteration.
+
+```python
+from rl.iterate import iterate
+
+def value_iteration(
+    mdp: MarkovDecisionProcess[S, A],
+    gamma: float,
+    approx_0: FunctionApprox[S],
+    non_terminal_states_distribution: Distribution[S],
+    num_state_samples: int
+) -> Iterator[FunctionApprox[S]]:
+
+    def update(v: FunctionApprox[S]) -> FunctionApprox[S]:
+        nt_states: Sequence[S] = non_terminal_states_distribution.sample_n(
+            num_state_samples
+        )
+
+        def return_(s_r: Tuple[S, float]) -> float:
+            s, r = s_r
+            return r + gamma * v.evaluate([s]).item()
+
+        return v.update(
+            [(s, max(mdp.step(s, a).expectation(return_,)
+                     for a in mdp.actions(s)))
+             for s in nt_states]
+        )
+
+    return iterate(update, approx_0)
+
+```
+
+## Finite-Horizon Approximate Policy Evaluation
+
+Next, we move on to Approximate Policy Evaluation in a finite-horizon setting, meaning we will perform Approximate Policy Evaluation with a backward induction algorithm, much like how we did backward induction for finite-horizon Tabular Policy Evaluation. We will of course make the same types of adaptations from Tabular to Approximate as we did in the functions `evaluate_mrp` and `value_iteration` above.
+
+In the `backward_evaluate` code below, the input argument `mrp_f0_mu_triples` is a list of triples, with each triple corresponding to each non-terminal time step in the finite horizon. Each triple consists of:
+
+* An instance of `MarkovRewardProceess` (note that each time step has it's own instance of `MarkovRewardProcess` representation of transitions from the states $s$ in one time step $t$ to the (state $s'$, reward $r$) pairs in the next time step $t+1$ (variable `mrp` in the code below).
+* An instance of `FunctionApprox` to capture the approximate Value Function for the time step (variable `approx0` in the code below, representing the initial `FunctionApprox` instance).
+* A sampling probability distribution of states in the time step (variable `mu` in the code below).
+
+The backward induction code below should be pretty self-explanatory. Note that in backward induction, we don't invoke the `update` method of `FunctionApprox` like we did in the non-finite-horizon cases - here we invoke the `sgd` method (that we wrote earlier in this chapter) which internally performs a sequence of `update`s on the `FunctionApprox` for a given time step (until we converge to within a specified level of `error_tolerance`). In the non-finite-horizon cases, it was okay to simply do a single `update` in each iteration because we revisit the same set of states in further iterations. Here, once we converge to an acceptable `FunctionApprox` (using `sgd`) for a specific time step, we won't be performing any more updates to the Value Function for that time step (since we move on to the next time step, in reverse). `backward_evaluate` returns an Iterator over `FunctionApprox` objects, from time step 0 to the horizon time step.
+
+```python
+from itertools import repeat
+from rl.function_approx import sgd
+
+MRP_FuncApprox_Distribution = \
+    Tuple[MarkovRewardProcess[S], FunctionApprox[S], Distribution[S]]
+
+def backward_evaluate(
+    mrp_f0_mu_triples: Sequence[MRP_FuncApprox_Distribution[S]],
+    gamma: float,
+    num_state_samples: int,
+    error_tolerance: float
+) -> Iterator[FunctionApprox[S]]:
+    v: List[FunctionApprox[S]] = []
+
+    for i, (mrp, approx0, mu) in enumerate(reversed(mrp_f0_mu_triples)):
+
+        def return_(s_r: Tuple[S, float], i=i) -> float:
+            s, r = s_r
+            return r + gamma * (v[i-1].evaluate([s]).item() if i > 0 else 0.)
+
+        v.append(
+            FunctionApprox.converged(
+                sgd(
+                    approx0,
+                    repeat([(s, mrp.transition_reward(s).expectation(return_))
+                            for s in mu.sample_n(num_state_samples)])
+                ),
+                error_tolerance
+            )
+        )
+
+    return reversed(v)
+```
+
+## Finite-Horizon Approximate Value Iteration
+
+Now that we've understood and coded finite-horizon Approximate Policy Evaluation (to solve the finite-horizon Prediction problem), we can extend the same concepts to finite-horizon Approximate Value Iteration (to solve the finite-horizon Control problem). The code below in `back_opt_vf_and_policy` is almost the same as the code above in `backward_evaluate`, except that instead of a `MarkovRewardProcess`, here we have a `MarkovDecisionProcess`. For each non-terminal time step, we maximize the $Q$-value function (over all actions $a$) for each state $s$. `back_opt_vf_and_policy` returns an Iterator over pairs of `FunctionApprox` and `Policy` objects (representing the Optimal Value Function and the Optimal Policy respectively), from time step 0 to the horizon time step.
+
+```python
+from itertools import repeat
+from rl.function_approx import sgd
+from rl.distribution import Constant
+from operator import itemgetter
+
+MDP_FuncApprox_Distribution = \
+    Tuple[MarkovDecisionProcess[S, A], FunctionApprox[S], Distribution[S]]
+
+def back_opt_vf_and_policy(
+    mdp_f0_mu_triples: Sequence[MDP_FuncApprox_Distribution[S, A]],
+    gamma: float,
+    num_state_samples: int,
+    error_tolerance: float
+) -> Iterator[Tuple[FunctionApprox[S], Policy[S, A]]]:
+    vp: List[Tuple[FunctionApprox[S], Policy[S, A]]] = []
+
+    for i, (mdp, approx0, mu) in enumerate(reversed(mdp_f0_mu_triples)):
+
+        def return_(s_r: Tuple[S, float], i=i) -> float:
+            s, r = s_r
+            return r + gamma * (vp[i-1][0].evaluate([s]).item() if i > 0 else 0.)
+
+        this_v = FunctionApprox.converged(
+            sgd(
+                approx0,
+                repeat([(
+                    s,
+                    max(mdp.step(s, a).expectation(return_)
+                        for a in mdp.actions(s))
+                ) for s in mu.sample_n(num_state_samples)])
+            ),
+            error_tolerance
+        )
+
+        class ThisPolicy(Policy[S, A]):
+            def act(self, state: S) -> Constant[A]:
+                return Constant(max(
+                    ((mdp.step(state, a).expectation(return_), a)
+                     for a in mdp.actions(state)),
+                    key=itemgetter(0)
+                )[1])
+
+        vp.append((this_v, ThisPolicy()))
+
+    return reversed(vp)
+```
+
+All of the above code for Approximate Dynamic Programming algorithms is in the file [rl/approximate_dynamic_programming.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/approximate_dynamic_programming.py). We encourage you to create instances of `MarkovRewardProcess` and `MarkovDecisionProcess` (including finite-horizon instances) and play with the above ADP code with different choices of function approximations, state sampling distributions, and number of samples. A simple but valuable exercise is to reproduce the tabular versions of these algorithms by using the `Tabular` implementation of `FunctionApprox` (note: the `count_to_weights_func` would need to be lambda _: 1.) in the above ADP functions.
 
 ## Key Takeaways from this Chapter
+
+* The Function Approximation interface involves two key methods - A) updating the parameters of the Function Approximation based on training data available from each iteration of a data stream, and B) evaluating the expectation of the response variable whose conditional probability distribution is modeled by the Function Approximation. Linear Function Approximation and Deep Neural Network Function Approximation are the two main Function Approximations we've implemented and will be using in the rest of the book.
+* Tabular is a special type of Function Approximation, and Tabular RL is a special case of linear function approximation with feature functions as indicator functions for each of the states.
+* All the Tabular DP algorithms can be generalized to ADP algorithms replacing tabular Value Function updates with updates to Function Approximation parameters (where the Function Approximation represents the Value Function). Sweep over all states in the tabular case is replaced by sampling states in the ADP case. Expectation calculations in Bellman Operators are handled in ADP as averages of the corresponding calculations over transition samples (versus calculations using explicit transition probabilities in the tabular algorithms).
