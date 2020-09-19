@@ -722,7 +722,61 @@ The plot of `linear_model_rmse_seq` and `dnn_model_rmse_seq` is shown in Figure 
 ![SGD Convergence \label{fig:sgd_convergence}](./chapter5/rmse.png "SGD Convergence")
 </div>
 
-## Tabular as an Exact Approximation
+## Tabular as a form of `FunctionApprox`
+
+Now we consider the simple case where we have a fixed set of $x$-values $\mathcal{X} = \{x_1, x_2, \ldots, x_n\}$, i.e., the $n$ $x$-values are stored in a table, and the corresponding prediction for each $x \in \mathcal{X}$ (to be stored in the table next to $x$) needs to be calculated only from the $y$-values associated with $x$ within the data set of $(x,y)$ pairs. In other words, the $y$-values in the data associated with other $x$ should not influence the prediction for $x$. Since we'd like the prediction for $x$ to be $\mathbb{E}[y|x]$, it would make sense for the prediction for a given $x$ to be the average of all the $y$ associated with $x$ within the data set of $(x,y)$ pairs seen so far. So the calculations for Tabular prediction are particularly straightforward. What is interesting though is the fact that Tabular prediction actually fits the interface of `FunctionApprox` in terms of implementing an `update` function (updating the average of $y$-values from each new $y$ in the data, associated with a given $x$) and an `evaluate` function (simply reporting the currently calculated average of $y$-values, associated with a given $x$). This view of Tabular prediction as a special case of `FunctionApprox` also permits us to cast the tabular algorithms of Dynamic Programming and Reinforcement Learning as special cases of the function approximation versions of the algorithms (using the `Tabular` class we develop below).
+
+So now let us write the code for `@dataclass Tabular` as an implementation of the abstract base class `FunctionApprox`. The attributes of `@dataclass Tabular` are:
+
+* `values_map` which is a dictionary mapping each $x$ value to the average of the $y$-values seen so far in the data, associated with $x$.
+* `counts_map` which is a dictionary mapping each $x$ value to the count of $y$-values seen so far in the data, associated with $x$. We need to track the count of $y$-values associated with each $x$ because this enables us to update `values_map` appropriately upon seeing a new $y$-value associated a given $x$.
+* `count_to_weight_func` which defines a function from number of $y$-values seen so far (associated with a given $x$) to the weight assigned to the most recent $y$. This enables us to do a weighted average of the $y$-values seen so far, controlling the emphasis to be placed on more recent $y$-values relative to previously seen $y$-values (associated with a given $x$).
+
+The `evaluate`, `update` and `within` methods are now self-explanatory.
+
+```python
+@dataclass(frozen=True)
+class Tabular(FunctionApprox[X]):
+
+    values_map: Mapping[X, float] =\
+        field(default_factory=lambda: defaultdict(float))
+    counts_map: Mapping[X, int] =\
+        field(default_factory=lambda: defaultdict(int))
+    count_to_weight_func: Callable[int, float] =\
+        field(default_factory=lambda: lambda n: 1. / n)
+
+    def evaluate(self, x_values_seq: Sequence[X]) -> np.ndarray:
+        return np.array([self.values_map[x] for x in x_values_seq])
+
+    def update(
+        self,
+        xy_vals_seq: Sequence[Tuple[X, float]]
+    ) -> Tabular[X]:
+        values_map: Dict[X, float] = self.values_map.copy()
+        counts_map: Dict[X, int] = self.counts_map.copy()
+        for x, y in xy_vals_seq:
+            counts_map[x] += 1
+            weight: float = self.count_to_weight_func(counts_map[x])
+            values_map[x] += weight * (y - values_map[x])
+        return replace(
+            self,
+            values_map=values_map,
+            counts_map=counts_map
+        )
+
+    def within(self, other: FunctionApprox[X], tolerance: float) -> bool:
+        if isinstance(other, Tabular):
+            return\
+                all(abs(self.values_map[s] - other.values_map[s]) <= tolerance
+                    for s in self.values_map)
+        else:
+            return False
+```
+   
+Note that in the tabular Dynamic Programming algorithms, the set of finite states take the role of $\mathcal{X}$ and the Value Function for a given state $x=s$ takes the role of the "predicted" $y$-value associated with $x$. We also note that in the Dynamic Programming algorithms, in each iteration of sweeping through all the states, the Value Function for a state $x=s$ is set to the current $y$ value (not the average of all $y$-values seen so far). The current $y$-value is simply the right-hand-side of the Bellmen Equation corresponding to the Dynamic Programmming algorithm. Consequently, for tabular Dynamic Programming, we'd need to set `count_to_weight_func` to be the function `lambda _: 1` (this is because a weight of 1 for the current $y$-value sets `values_map[x]` equal to the current $y$-value). Later, when we get to Reinforcement Learning algorithms, we will be averaging all the Returns observed for a given state. If we choose to do a plain average (equal importance for all $y$-values see so far, associated with a given $x$), then we'd need to set `count_to_weights_func` to be the function `lambda n: 1. / n`. Note that this also means tabular RL is a special case of RL with linear function approximation by setting a feature function $\phi_i(\cdot)$ for each $x_i$ as: $\phi_i(x) = 1$ for $x=x_i$ and $\phi_(x) = 0$ for each $x \neq x_i$ (i.e., $\phi_i(x)$ is the indicator function for $x_i$, and the $\bm{\Phi}$ matrix is the identity matrix). This also means that the `count_to_weights_func` plays the role of the learning rate function (as a function of the number of iterations in stochastic gradient descent). Please do bear this in mind when we get to tabular RL.
+
+Again, we want to emphasize that tabular algorithms are just a special case of algorithms with function approximation. However, we give special coverage in this book to tabular algorithms because they help us conceptualize the core concepts in a simple (tabular) setting without the distraction of some of the details and complications in the apparatus of function approximation.
+
 
 ## Approximate Value Iteration
 
