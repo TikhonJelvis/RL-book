@@ -53,6 +53,14 @@ class MarkovProcess(ABC, Generic[S]):
             else:
                 state = next_states.sample()
 
+    @abstractmethod
+    def sample_states(self) -> Distribution[S]:
+        '''Return a distribution over all the states that the process can
+        take.
+
+        '''
+        pass
+
 
 class FiniteMarkovProcess(MarkovProcess[S]):
     '''A Markov Process with a finite state space.
@@ -98,6 +106,9 @@ class FiniteMarkovProcess(MarkovProcess[S]):
 
     def states(self) -> Iterable[S]:
         return self.transition_map.keys()
+
+    def sample_states(self) -> FiniteDistribution[S]:
+        return Choose(set(self.transition_map.keys()))
 
     def get_stationary_distribution(self) -> FiniteDistribution[S]:
         eig_vals, eig_vecs = np.linalg.eig(self.get_transition_matrix().T)

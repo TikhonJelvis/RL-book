@@ -131,6 +131,9 @@ class FiniteMarkovDecisionProcess(MarkovDecisionProcess[S, A]):
 
                     return SampledDistribution(next_pair)
 
+            def sample_states(self) -> Distribution[S]:
+                return Choose(set(self.mapping.keys()))
+
         return Process()
 
     def apply_finite_policy(self, policy: FinitePolicy[S, A])\
