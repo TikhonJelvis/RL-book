@@ -39,7 +39,7 @@ def feature_functions():
 
 def adam_gradient():
     return AdamGradient(
-        learning_rate=0.15,
+        learning_rate=0.1,
         decay1=0.9,
         decay2=0.999
     )
@@ -68,22 +68,18 @@ def get_dnn_model() -> DNNApprox[Triple]:
     def identity(arg: np.ndarray) -> np.ndarray:
         return arg
 
-    def identity_deriv(res: np.ndarray) -> np.ndarray:
-        return np.ones_like(res)
-
     ds = DNNSpec(
         neurons=[2],
         hidden_activation=relu,
         hidden_activation_deriv=relu_deriv,
-        output_activation=identity,
-        output_activation_deriv=identity_deriv
+        output_activation=identity
     )
 
     return DNNApprox.create(
         feature_functions=ffs,
         dnn_spec=ds,
         adam_gradient=ag,
-        regularization_coeff=0.
+        regularization_coeff=0.05
     )
 
 

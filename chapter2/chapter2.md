@@ -63,6 +63,8 @@ def simulation(process, start_state):
 Now we can use this simulator function to generate simulation traces. In the following code, we generate `num_traces` number of simulation traces over `time_steps` number of time steps starting from a price $X_0$ of `start_price`. The use of Python's generator feature lets us do this "lazily" (on-demand) using the ``itertools.islice`` function.
 
 ```python
+import itertools
+
 def process1_price_traces(
     start_price: int,
     level_param: int,
@@ -284,7 +286,7 @@ When we cover some of the financial applications later in this book, we will fin
 
 Now we are ready to write some code for Markov Processes, where we will illustrate how to specify that certain states are terminal states.
 
-We create an abstract class `MarkovProcess` parameterized by a generic type (`TypeVar('S')`) representing a generic state space `Generic[S]`. The abstract class has an `@abstractmethod` called `transition` that is meant to specify the transition probability distribution of next states, given a current state. Note the return type of `transition`. It's `Optional[Distribution[S]]`. This means it's meant to return `None` if there is no next state (i.e., when you want to specify that `state` is a terminal state) or return `Distribution[S]` to specify the probability distribution of next states when `state` is a non-terminal state. We also have a convenience method `is_terminal` to query if a given state is terminal or not. We also have a method `simulate` that enables us to generate a sequence of sampled states starting from a specified `start_state`. The sampling of next states relies on the implementation of the `sample()` method in the `Distribution[S]` object produced by the `transition` method (note that the [`Distribution` class hierarachy](https://github.com/TikhonJelvis/RL-book/blob/master/rl/distribution.py) was covered in the previous chapter). This is the full body of the abstract class `MarkovProcess`:
+We create an abstract class `MarkovProcess` parameterized by a generic type (`TypeVar('S')`) representing a generic state space `Generic[S]`. The abstract class has an `@abstractmethod` called `transition` that is meant to specify the transition probability distribution of next states, given a current state. Note the return type of `transition`. It's `Optional[Distribution[S]]`. This means it's meant to return `None` if there is no next state (i.e., when you want to specify that `state` is a terminal state) or return `Distribution[S]` to specify the probability distribution of next states when `state` is a non-terminal state. We also have a convenience method `is_terminal` to query if a given state is terminal or not. We also have a method `simulate` that enables us to generate a sequence of sampled states starting from a specified `start_state_distribution: Distribution[S]` (from which we sample the starting state). The sampling of next states relies on the implementation of the `sample()` method in the `Distribution[S]` object produced by the `transition` method (note that the [`Distribution` class hierarachy](https://github.com/TikhonJelvis/RL-book/blob/master/rl/distribution.py) was covered in the previous chapter). This is the full body of the abstract class `MarkovProcess`:
 
 ```python
 S = TypeVar('S')
@@ -298,9 +300,11 @@ class MarkovProcess(ABC, Generic[S]):
     def is_terminal(self, state: S) -> bool:
         return self.transition(state) is None
 
-    def simulate(self, start_state: S) -> Iterable[S]:
-
-        state: S = start_state
+    def simulate(
+        self,
+        start_state_distribution: Distribution[S]
+    ) -> Iterable[S]:
+        state: S = start_state_distribution.sample()
         while True:
             yield state
             next_states = self.transition(state)
@@ -315,6 +319,9 @@ class MarkovProcess(ABC, Generic[S]):
 So if you have a mathematical specification of the transition probabilities of a Markov Process, all you need to do is to create a concrete class that implements the interface of the abstract class `MarkovProcess` (specifically by implementing the  `@abstractmethod transition`) in a manner that captures your mathematical specification of the transition probabilities. Let us write this for the case of Process 3 (the 3rd example of stock price transitions we covered in the previous section). We will name the concrete class as `StockPriceMP3` (note that it's a `@dataclass` for convenience and simplicity). Note that the generic state space `S` is now replaced with a specific state space represented by the type `@dataclass StateMP3`. The code should be self-explanatory since we implemented this process as a standalone in the previous section. Note the use of the `Categorical` distribution in the `transition` method to capture the 2-outcomes distribution of next states (for movements up or down).
 
 ```python
+from rl.distribution import Categorical
+from rl.gen_utils.common_funcs import get_unit_sigmoid_func
+
 @dataclass
 class StateMP3:
     num_up_moves: int
@@ -344,6 +351,9 @@ class StockPriceMP3(MarkovProcess[StateMP3]):
 To generate simulation traces, we write the following function:
 
 ```python
+from rl.distribution import Constant
+import numpy as np
+
 def process3_price_traces(
     start_price: int,
     alpha3: float,
@@ -351,12 +361,17 @@ def process3_price_traces(
     num_traces: int
 ) -> np.ndarray:
     mp = StockPriceMP3(alpha3=alpha3)
-    start_state = StateMP3(num_up_moves=0, num_down_moves=0)
-    return np.vstack([
-        np.fromiter((start_price + s.num_up_moves - s.num_down_moves
-                    for s in itertools.islice(mp.simulate(start_state),
-                                              time_steps + 1)), float)
-        for _ in range(num_traces)])
+    start_state_distribution = Constant(
+        StateMP3(num_up_moves=0, num_down_moves=0)
+    )
+    return np.vstack([np.fromiter(
+        (start_price + s.num_up_moves - s.num_down_moves for s in
+         itertools.islice(
+             mp.simulate(start_state_distribution),
+             time_steps + 1
+         )),
+        float
+    ) for _ in range(num_traces)])
 ```
 
 We leave it to you as an exercise to similarly implement Stock Price Processes 1 and 2 that we had covered in the previous section. The complete code along with the driver to set input parameters, run all 3 processes and create plots is in the file [rl/chapter2/stock_price_mp.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/chapter2/stock_price_mp.py). We encourage you to change the input parameters in `__main__` and get an intuitive feel for how the simulation results vary with the changes in parameters.
@@ -450,6 +465,9 @@ Note that the next state's ($S_{t+1}$) On-Hand can be zero resulting from any of
 So we are now ready to write code for this simple inventory example as a Markov Process. All we have to do is to create a derived class inherited from `FiniteMarkovProcess` and write a method to construct the `transition_map: Transition`. Note that the generic state `S` is replaced here with the `@dataclass InventoryState` consisting of the pair of On-Hand and On-Order inventory quantities comprising the state of this Finite Markov Process.
 
 ```python
+from rl.distribution import Categorical
+from scipy.stats import poisson
+
 @dataclass(frozen=True)
 class InventoryState:
     on_hand: int
@@ -558,6 +576,9 @@ But this is simply saying that $\bm{pi}$ is an eigenvector of $\bm{\mathcal{P}}^
 Let us write code to compute the stationary distribution. We shall add two methods in the `FiniteMarkovProcess` class, one for setting up the transition probability matrix $\bm{\mathcal{P}}$ (`get_transition_matrix` method) and another to calculate the stationary distribution $\bm{pi}$ (`get_stationary_distribution`) from the transition probability matrix. Note that $\bm{\mathcal{P}}$ is restricted to $\mathcal{N} \times \mathcal{N} \rightarrow [0, 1]$ (rather than $\mathcal{N} \times \mathcal{S} \rightarrow [0, 1]$) because these probability transitions suffice for all the calculations we will be performing for Finite Markov Processes. Here's the code for the two methods (the full code for `FiniteMarkovProcess` is in the file [`rl/markov_process.py`](https://github.com/TikhonJelvis/RL-book/blob/master/rl/markov_process.py)):
 
 ```python
+import numpy as np
+from rl.distribution import Categorical
+
     def get_transition_matrix(self) -> np.ndarray:
         sz = len(self.non_terminal_states)
         mat = np.zeros((sz, sz))
@@ -642,8 +663,11 @@ class MarkovRewardProcess(MarkovProcess[S]):
             -> Optional[Distribution[Tuple[S, float]]]:
         pass
 
-    def simulate_reward(self, start_state: S) -> Iterable[Tuple[S, float]]:
-        state: S = start_state
+    def simulate_reward(
+        self,
+        start_state_distribution: Distribution[S]
+    ) -> Iterable[Tuple[S, float]]:
+        state: S = start_state_distribution.sample()
         reward: float = 0.
 
         while True:
@@ -658,6 +682,8 @@ class MarkovRewardProcess(MarkovProcess[S]):
 So the idea is that if someone wants to model a Markov Reward Process, they'd simply have to create a concrete class that implements the interface of the abstract class `MarkovRewardProcess` (specifically implement the `@abstractmethod transition_reward`). But note that the `@abstractmethod transition` of `MarkovProcess` also needs to be implemented to make the whole thing concrete. However, we don't have to implement it in the concrete class implementing the interface of `MarkovRewardProcess` - in fact, we can implement it in the `MarkovRewardProcess` class itself by tapping the method `transition_reward`. Here's the code for the `transition` method in `MarkovRewardProcess`:
 
 ```python
+from rl.distribution import SampledDistribution
+
     def transition(self, state: S) -> Optional[Distribution[S]]:
         distribution = self.transition_reward(state)
         if distribution is None:
@@ -720,6 +746,9 @@ $$= \frac {e^{-\lambda} \lambda^i} {i!} \text{ for all } i = 0, 1, 2, \ldots $$
 Now let's write some code to implement this simple inventory example as a Markov Reward Process as described above. All we have to do is to create a concrete class implementing the interface of the abstract class `MarkovRewardProcess` (specifically implement the `@abstractmethod transition_reward`). The code below in `transition_reward` method in `class SimpleInventoryMRP` samples the customer demand from a Poisson distribution, uses the above formulas for the pair of next state and reward as a function of the customer demand sample, and returns an instance of `SampledDistribution`. Note that the generic state `S` is replaced here with the `@dataclass InventoryState` to represent a state of this Markov Reward Process, comprising of the On-Hand and On-Order inventory quantities.
 
 ```python
+from rl.distribution import SampledDistribution
+import numpy as np
+
 @dataclass(frozen=True)
 class InventoryState:
     on_hand: int
@@ -750,13 +779,13 @@ class SimpleInventoryMRP(MarkovRewardProcess[InventoryState]):
 
         def sample_next_state_reward(state=state) ->\
                 Tuple[InventoryState, float]:
-            demand_sample = np.random.poisson(self.poisson_lambda)
-            ip = state.inventory_position()
-            next_state = (
+            demand_sample: int = np.random.poisson(self.poisson_lambda)
+            ip: int = state.inventory_position()
+            next_state: InventoryState = InventoryState(
                 max(ip - demand_sample, 0),
                 max(self.capacity - ip, 0)
             )
-            reward = - self.holding_cost * state.on_hand\
+            reward: float = - self.holding_cost * state.on_hand\
                 - self.stockout_cost * max(demand_sample - ip, 0)
             return next_state, reward
 
@@ -777,7 +806,8 @@ $$\mathcal{N} \rightarrow (\mathcal{S} \times \mathbb{R} \rightarrow [0, 1])$$
 Since $\mathcal{S}$ is finite and since the set of pairs of next state and reward transitions are also finite, this leads to the analog of the `Transition` data type for the case of Finite Markov Reward Processes (named `RewardTransition`) as follows:
 
 ```python
-RewardTransition = Mapping[S, Optional[FiniteDistribution[Tuple[S, float]]]]
+StateReward = FiniteDistribution[Tuple[S, float]]
+RewardTransition = Mapping[S, Optional[StateReward[S]]]
 ```
 
 With this as input to ``__init__`` (input named `transition_reward_map: RewardTransition[S]`), the `FiniteMarkovRewardProcess` class has three responsibilities:
@@ -789,6 +819,10 @@ With this as input to ``__init__`` (input named `transition_reward_map: RewardTr
 Here's the code that fulfils the above three responsibilities:
 
 ```python
+import numpy as np
+from rl.distribution import Categorical
+from collections import defaultdict
+
 class FiniteMarkovRewardProcess(FiniteMarkovProcess[S],
                                 MarkovRewardProcess[S]):
 
@@ -813,16 +847,13 @@ class FiniteMarkovRewardProcess(FiniteMarkovProcess[S],
 
         self.transition_reward_map = transition_reward_map
 
-        next_states = transition_reward_map[state]
-        if next_states is not None:
-            self.reward_function_vec = np.array([
-                sum(probability * reward for (_, reward), probability in
-                    next_states)
-                for state in self.non_terminal_states
-            ])
+        self.reward_function_vec = np.array([
+            sum(probability * reward for (_, reward), probability in
+                transition_reward_map[state])
+            for state in self.non_terminal_states
+        ])
 
-    def transition_reward(self, state: S) ->\
-            Optional[FiniteDistribution[Tuple[S, float]]]:
+    def transition_reward(self, state: S) -> Optional[StateReward[S]]:
         return self.transition_reward_map[state]
 ```
 

@@ -1,5 +1,6 @@
 from dataclasses import dataclass
-from typing import Tuple, Sequence
+from typing import Tuple, Sequence, Iterator
+import itertools
 import numpy as np
 from scipy.stats import poisson
 import random
@@ -56,6 +57,9 @@ class SimpleInventoryMDPNoCap(MarkovDecisionProcess[InventoryState, int]):
 
         return ImpliedMRP()
 
+    def actions(self, state: InventoryState) -> Iterator[int]:
+        return itertools.count(start=0, step=1)
+
     def fraction_of_days_oos(self, policy: Policy[InventoryState, int],
                              time_steps: int, num_traces: int) -> float:
         impl_mrp: MarkovRewardProcess[InventoryState] =\
@@ -67,7 +71,7 @@ class SimpleInventoryMDPNoCap(MarkovDecisionProcess[InventoryState, int]):
         for _ in range(num_traces):
             sr_pairs: Sequence[Tuple[InventoryState, float]] =\
                 list(itertools.islice(
-                    impl_mrp.simulate_reward(start),
+                    impl_mrp.simulate_reward(Constant(start)),
                     time_steps + 1
                 ))
             for i, (_, reward) in enumerate(sr_pairs[1:]):
@@ -99,7 +103,6 @@ class SimpleInventoryStochasticPolicy(Policy[InventoryState, int]):
 
 
 if __name__ == '__main__':
-    import itertools
     user_poisson_lambda = 2.0
     user_holding_cost = 1.0
     user_stockout_cost = 10.0
