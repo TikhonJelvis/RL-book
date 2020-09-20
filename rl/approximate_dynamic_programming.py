@@ -136,11 +136,12 @@ def backward_evaluate_finite(
 
     v: List[FunctionApprox[S]] = []
 
-    def return_(s_r: Tuple[S, float]) -> float:
-        s, r = s_r
-        return r + γ * (v[-1].evaluate([s]).item() if len(v) > 0 else 0.)
+    for i, (step, approx0) in enumerate(reversed(step_f0_pairs)):
 
-    for step, approx0 in reversed(step_f0_pairs):
+        def return_(s_r: Tuple[S, float], i=i) -> float:
+            s, r = s_r
+            return r + γ * (v[i-1].evaluate([s]).item() if i > 0 else 0.)
+
         v.append(
             FunctionApprox.converged(sgd(
                 approx0,
@@ -170,11 +171,12 @@ def backward_evaluate(
     '''
     v: List[FunctionApprox[S]] = []
 
-    def return_(s_r: Tuple[S, float]) -> float:
-        s, r = s_r
-        return r + γ * (v[-1].evaluate([s]).item() if len(v) > 0 else 0.)
+    for i, (mrp, approx0, mu) in enumerate(reversed(mrp_f0_mu_triples)):
 
-    for mrp, approx0, mu in reversed(mrp_f0_mu_triples):
+        def return_(s_r: Tuple[S, float], i=i) -> float:
+            s, r = s_r
+            return r + γ * (v[i-1].evaluate([s]).item() if i > 0 else 0.)
+
         v.append(
             FunctionApprox.converged(
                 sgd(
