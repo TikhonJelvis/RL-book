@@ -66,8 +66,15 @@ class MarkovDecisionProcess(ABC, Generic[S, A]):
     def apply_policy(self, policy: Policy[S, A]) -> MarkovRewardProcess[S]:
         pass
 
-    def step(self, state: S,
-             action: A) -> Optional[Distribution[Tuple[S, float]]]:
+    @abstractmethod
+    def actions(self, state: S) -> Iterable[A]:
+        pass
+
+    def step(
+        self,
+        state: S,
+        action: A
+    ) -> Optional[Distribution[Tuple[S, float]]]:
         return self.apply_policy(Always(action)).transition_reward(state)
 
 
@@ -111,7 +118,7 @@ class FiniteMarkovDecisionProcess(MarkovDecisionProcess[S, A]):
         class Process(MarkovRewardProcess[S]):
 
             def transition_reward(self, state: S)\
-                    -> Optional[Distribution[Tuple[S, float]]]:
+                    -> Optional[SampledDistribution[Tuple[S, float]]]:
 
                 action_map: Optional[ActionMapping[A, S]] = mapping[state]
 
@@ -165,7 +172,7 @@ class FiniteMarkovDecisionProcess(MarkovDecisionProcess[S, A]):
 
         '''
         actions = self.mapping[state]
-        return None if actions is None else actions.keys()
+        return iter([]) if actions is None else actions.keys()
 
     def states(self) -> Iterable[S]:
         '''Iterate over all the states in this process—terminal *and*

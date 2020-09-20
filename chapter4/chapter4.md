@@ -302,6 +302,8 @@ Note that in Equation \eqref{eq:greedy_policy_function2}, because we have to wor
 
 Now let's write some code to create this "greedy policy" from a given value function, guided by Equation \eqref{eq:greedy_policy_function2}.
 ```python
+import operator
+
 def greedy_policy_from_vf(
     mdp: FiniteMarkovDecisionProcess[S, A],
     vf: V[S],
@@ -602,26 +604,19 @@ The above equation says $\bvs$ is the Fixed-Point of the Bellman Policy Operator
 $$\bm{V}^{G(\bvs)} = \bvs$$
 This says that evaluating the MDP with the deterministic greedy policy $G(\bvs)$ (policy created from the Optimal Value Function $\bvs$ using the Greedy Policy Function $G$) in fact achieves the Optimal Value Function $\bvs$. In other words, $G(\bvs)$ is the (Deterministic) Optimal Policy $\pi^*$ we've been seeking.
 
-Now let's write the code for Value Iteration. The function `value_iteration` returns an `Iterator` on Value Functions (of type `V[S]`) produced by the Value Iteration algorithm. It uses the function `bellman_opt_update` for application of the Bellman Optimality Operator. `bellman_opt_update` prepares the Q-Values for a state by looping through all the allowable actions for the state, and then calculates the maximum of those Q-Values (over the actions). The Q-Value calculation is same as what we saw in `greedy_policy_from_vf`: $\mathbb{E}_{(s',r) \sim \mathcal{P}_R}[r + \gamma \cdot \bm{W}(s')]$, using the $\mathcal{P}_R$ probabilities represented in the `mapping` attribute of the `mdp` object (essentially Equation \eqref{eq:bellman_optimality_operator2}). The function `value_iteration_result` returns the final (optimal) Value Function, together with it's associated Optimal Policy. It simply returns the last Value Function of the `Iterable[V[S]]` returned by `value_iteration`, using the termination condition specified in `almost_equal_vfs`.
+Now let's write the code for Value Iteration. The function `value_iteration` returns an `Iterator` on Value Functions (of type `V[S]`) produced by the Value Iteration algorithm. It uses the function `update` for application of the Bellman Optimality Operator. `update` prepares the Q-Values for a state by looping through all the allowable actions for the state, and then calculates the maximum of those Q-Values (over the actions). The Q-Value calculation is same as what we saw in `greedy_policy_from_vf`: $\mathbb{E}_{(s',r) \sim \mathcal{P}_R}[r + \gamma \cdot \bm{W}(s')]$, using the $\mathcal{P}_R$ probabilities represented in the `mapping` attribute of the `mdp` object (essentially Equation \eqref{eq:bellman_optimality_operator2}). The function `value_iteration_result` returns the final (optimal) Value Function, together with it's associated Optimal Policy. It simply returns the last Value Function of the `Iterable[V[S]]` returned by `value_iteration`, using the termination condition specified in `almost_equal_vfs`.
 
 ```python
 DEFAULT_TOLERANCE = 1e-5
-
-def bellman_opt_update(
-    v: V[S],
-    mdp: FiniteMarkovDecisionProcess[S, A],
-    gamma: float
-) -> V[S]:
-    return {s: max(mdp.mapping[s][a].expectation(
-        lambda s_r: s_r[1] + gamma * v.get(s_r[0], 0.)
-    ) for a in mdp.actions(s)) for s in v}
 
 def value_iteration(
     mdp: FiniteMarkovDecisionProcess[S, A],
     gamma: float
 ) -> Iterator[V[S]]:
     def update(v: V[S]) -> V[S]:
-        return bellman_opt_update(v, mdp, gamma)
+        return {s: max(mdp.mapping[s][a].expectation(
+            lambda s_r: s_r[1] + gamma * v.get(s_r[0], 0.)
+        ) for a in mdp.actions(s)) for s in v}
 
     v_0: V[S] = {s: 0.0 for s in mdp.non_terminal_states}
     return iterate(update, v_0)
@@ -913,11 +908,11 @@ def unwrap_finite_horizon_MRP(
             lambda s_r: (s_r[0].state, s_r[1])
         )
 
-    return [{s.state: without_time(
-        process.transition_reward(s)) for s in states}
-            for _, states in groupby(
-                sorted(process.states(), key=time), key=time
-            )]
+    return [{s.state: without_time(process.transition_reward(s))
+             for s in states} for _, states in groupby(
+                 sorted(process.states(), key=time),
+                 key=time
+             )][:-1]
 ```
 
 Now that we have the state-reward transition functions $(\mathcal{P}_R^{\pi_t})_t$ arranged in the form of a `Sequence[RewardTransition[S]]`, we are ready to perform backward induction to calculate $V^{\pi_t}_t$. The following function `evaluate` accomplishes it with a straightforward use of Equations \eqref{eq:bellman_policy_equation_finite_horizon_base} and \eqref{eq:bellman_policy_equation_finite_horizon}, as described above.
@@ -929,7 +924,7 @@ def evaluate(
 ) -> Iterator[V[S]]:
     v: List[Dict[S, float]] = []
 
-    for step in reversed(steps[:-1]):
+    for step in reversed(steps):
         v.append({s: res.expectation(
             lambda s_r: s_r[1] + gamma * (v[-1][s_r[0]] if len(v) > 0 else 0.)
             ) for s, res in step.items()})
@@ -1011,22 +1006,24 @@ def unwrap_finite_horizon_MDP(
         }
 
     return [{s.state: without_time(process.action_mapping(s))
-             for s in states}
-            for _, states in groupby(
-                sorted(process.states(), key=time), key=time
-            )]
+             for s in states} for _, states in groupby(
+                sorted(process.states(), key=time),
+                key=time
+             )][:-1]
 ```
 
 Now that we have the state-reward transition functions $(\mathcal{P}_R)_t$ arranged in the form of a `Sequence[StateActionMapping[S, A]]`, we are ready to perform backward induction to calculate $V^*_t$. The following function `optimal_vf_and_policy` accomplishes it with a straightforward use of Equations \eqref{eq:bellman_policy_equation_finite_horizon_base} and \eqref{eq:bellman_policy_equation_finite_horizon}, as described above.
 
 ```python
+from operator import itemgetter
+
 def optimal_vf_and_policy(
     steps: Sequence[StateActionMapping[S, A]],
     gamma: float
 ) -> Iterator[Tuple[V[S], FinitePolicy[S, A]]]:
     v_p: List[Tuple[Dict[S, float], FinitePolicy[S, A]]] = []
 
-    for step in reversed(steps[:-1]):
+    for step in reversed(steps):
         this_v: Dict[S, float] = {}
         this_a: Dict[S, FiniteDistribution[A]] = {}
         for s, actions_map in step.items():

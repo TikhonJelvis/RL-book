@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from typing import Optional, Mapping
 import numpy as np
 import itertools
-from rl.distribution import Categorical
+from rl.distribution import Categorical, Constant
 from rl.markov_process import MarkovProcess
 from rl.gen_utils.common_funcs import get_logistic_func, get_unit_sigmoid_func
 from rl.chapter2.stock_price_simulations import\
@@ -94,10 +94,10 @@ def process1_price_traces(
     num_traces: int
 ) -> np.ndarray:
     mp = StockPriceMP1(level_param=level_param, alpha1=alpha1)
-    start_state = StateMP1(price=start_price)
+    start_state_distribution = Constant(StateMP1(price=start_price))
     return np.vstack([
         np.fromiter((s.price for s in itertools.islice(
-            mp.simulate(start_state),
+            mp.simulate(start_state_distribution),
             time_steps + 1
         )), float) for _ in range(num_traces)])
 
@@ -109,10 +109,12 @@ def process2_price_traces(
     num_traces: int
 ) -> np.ndarray:
     mp = StockPriceMP2(alpha2=alpha2)
-    start_state = StateMP2(price=start_price, is_prev_move_up=None)
+    start_state_distribution = Constant(
+        StateMP2(price=start_price, is_prev_move_up=None)
+    )
     return np.vstack([
         np.fromiter((s.price for s in itertools.islice(
-            mp.simulate(start_state),
+            mp.simulate(start_state_distribution),
             time_steps + 1
         )), float) for _ in range(num_traces)])
 
@@ -124,12 +126,17 @@ def process3_price_traces(
     num_traces: int
 ) -> np.ndarray:
     mp = StockPriceMP3(alpha3=alpha3)
-    start_state = StateMP3(num_up_moves=0, num_down_moves=0)
-    return np.vstack([
-        np.fromiter((start_price + s.num_up_moves - s.num_down_moves
-                    for s in itertools.islice(mp.simulate(start_state),
-                                              time_steps + 1)), float)
-        for _ in range(num_traces)])
+    start_state_distribution = Constant(
+        StateMP3(num_up_moves=0, num_down_moves=0)
+    )
+    return np.vstack([np.fromiter(
+        (start_price + s.num_up_moves - s.num_down_moves for s in
+         itertools.islice(
+             mp.simulate(start_state_distribution),
+             time_steps + 1
+         )),
+        float
+    ) for _ in range(num_traces)])
 
 
 if __name__ == '__main__':

@@ -33,7 +33,10 @@ class MarkovProcess(ABC, Generic[S]):
         '''
         return self.transition(state) is None
 
-    def simulate(self, start_state: S) -> Iterable[S]:
+    def simulate(
+        self,
+        start_state_distribution: Distribution[S]
+    ) -> Iterable[S]:
         '''Run a simulation trace of this Markov process, generating the
         states visited during the trace.
 
@@ -41,7 +44,7 @@ class MarkovProcess(ABC, Generic[S]):
         subsequent states forever or until we hit a terminal state.
         '''
 
-        state: S = start_state
+        state: S = start_state_distribution.sample()
         while True:
             yield state
             next_states = self.transition(state)
@@ -165,7 +168,10 @@ class MarkovRewardProcess(MarkovProcess[S]):
 
         '''
 
-    def simulate_reward(self, start_state: S) -> Iterable[Tuple[S, float]]:
+    def simulate_reward(
+        self,
+        start_state_distribution: Distribution[S]
+    ) -> Iterable[Tuple[S, float]]:
         '''Simulate the MRP, yielding the new state and reward for each
         transition.
 
@@ -173,7 +179,7 @@ class MarkovRewardProcess(MarkovProcess[S]):
 
         '''
 
-        state: S = start_state
+        state: S = start_state_distribution.sample()
         reward: float = 0.
 
         while True:

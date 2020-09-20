@@ -1,8 +1,7 @@
 import unittest
 
-from rl.distribution import (Bernoulli, Categorical, Choose,
-                             Constant, Gaussian, Poisson,
-                             SampledDistribution, Uniform)
+from rl.distribution import (Bernoulli, Categorical, Choose, Constant,
+                             Gaussian, SampledDistribution, Uniform)
 
 
 def assert_almost_equal(test_case, dist_a, dist_b):
@@ -22,17 +21,25 @@ def assert_almost_equal(test_case, dist_a, dist_b):
 class TestDistribution(unittest.TestCase):
     def setUp(self):
         self.finite = Choose(set(range(0, 6)))
-        self.sampled = SampledDistribution(lambda: self.finite.sample())
+        self.sampled = SampledDistribution(
+            lambda: self.finite.sample(),
+            100000
+        )
 
     def test_expectation(self):
         expected_finite = self.finite.expectation(lambda x: x)
         expected_sampled = self.sampled.expectation(lambda x: x)
         self.assertLess(abs(expected_finite - expected_sampled), 0.02)
 
+    def test_sample_n(self):
+        samples = self.sampled.sample_n(10)
+        self.assertEqual(len(samples), 10)
+        self.assertTrue(all(0 <= s < 6 for s in samples))
+
 
 class TestUniform(unittest.TestCase):
     def setUp(self):
-        self.uniform = Uniform()
+        self.uniform = Uniform(100000)
 
     def test_expectation(self):
         expectation = self.uniform.expectation(lambda x: x)
@@ -41,8 +48,8 @@ class TestUniform(unittest.TestCase):
 
 class TestGaussian(unittest.TestCase):
     def setUp(self):
-        self.unit = Gaussian(1.0, 1.0)
-        self.large = Gaussian(10.0, 30.0)
+        self.unit = Gaussian(1.0, 1.0, 100000)
+        self.large = Gaussian(10.0, 30.0, 100000)
 
     def test_expectation(self):
         unit_expectation = self.unit.expectation(lambda x: x)

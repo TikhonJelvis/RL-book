@@ -5,7 +5,7 @@ from collections import defaultdict
 import numpy as np
 import random
 from typing import (Callable, Dict, Generic, Iterator,
-                    Mapping, Set, Tuple, TypeVar)
+                    Mapping, Set, Sequence, Tuple, TypeVar)
 
 A = TypeVar('A')
 
@@ -23,66 +23,91 @@ class Distribution(ABC, Generic[A]):
         '''
         pass
 
-    def expectation(self, f: Callable[[A], float]) -> float:
-        '''Return an approximation of the expected value of f(X) for some f.
+    def sample_n(self, n: int) -> Sequence[A]:
+        '''Return n samples from this distribution.'''
+        return [self.sample() for _ in range(n)]
 
-        The default implementation of this method samples the
-        underlying distribution some number of times to calcuate the
-        expectation.
+    @abstractmethod
+    def expectation(
+        self,
+        f: Callable[[A], float]
+    ) -> float:
+        '''Return the expecation of f(X) where X is the
+        random variable for the distribution and f is an
+        arbitrary function from X to float
 
         '''
-        # TODO: Revisit # of samples
-        samples = 100000
-        return sum(f(self.sample()) for _ in range(0, samples)) / samples
+        pass
 
 
 class SampledDistribution(Distribution[A]):
     '''A distribution defined by a function to sample it.
 
     '''
+    sampler: Callable[[], A]
+    expectation_samples: int
 
-    def __init__(self, sampler: Callable[[], A]):
+    def __init__(
+        self,
+        sampler: Callable[[], A],
+        expectation_samples: int = 10000
+    ):
         self.sampler = sampler
+        self.expectation_samples = expectation_samples
 
     def sample(self) -> A:
         return self.sampler()
 
+    def expectation(
+        self,
+        f: Callable[[A], float]
+    ) -> float:
+        '''Return a sampled approximation of the expectation of f(X) for some f.
 
-class Uniform(Distribution[float]):
+        '''
+        return sum(f(self.sample()) for _ in
+                   range(self.expectation_samples)) / self.expectation_samples
+
+
+class Uniform(SampledDistribution[float]):
     '''Sample a uniform float between 0 and 1.
 
     '''
+    def __init__(self, expectation_samples: int = 10000):
+        super().__init__(
+            sampler=lambda: random.uniform(0, 1),
+            expectation_samples=expectation_samples
+        )
 
-    def sample(self):
-        return random.uniform(0, 1)
 
-
-class Poisson(Distribution[int]):
+class Poisson(SampledDistribution[int]):
     '''A poisson distribution with the given parameter.
 
     '''
 
     λ: float
 
-    def __init__(self, λ: float):
+    def __init__(self, λ: float, expectation_samples: int = 10000):
         self.λ = λ
+        super().__init__(
+            sampler=lambda: np.random.poisson(lam=self.λ),
+            expectation_samples=expectation_samples
+        )
 
-    def sample(self):
-        return np.random.poisson(lam=self.λ)
 
-
-class Gaussian(Distribution[float]):
+class Gaussian(SampledDistribution[float]):
     '''A Gaussian distribution with the given μ and σ.'''
 
     μ: float
     σ: float
 
-    def __init__(self, μ: float, σ: float):
+    def __init__(self, μ: float, σ: float, expectation_samples: int = 10000):
         self.μ = μ
         self.σ = σ
-
-    def sample(self):
-        return np.random.normal(loc=self.μ, scale=self.σ)
+        super().__init__(
+            sampler=lambda: np.random.normal(loc=self.μ, scale=self.σ),
+            expectation_samples=expectation_samples
+        )
 
 
 class FiniteDistribution(Distribution[A], ABC):
@@ -116,6 +141,11 @@ class FiniteDistribution(Distribution[A], ABC):
             result[f(x)] += p
 
         return Categorical(result)
+
+    def sample(self) -> A:
+        outcomes = list(self.table().keys())
+        weights = list(self.table().values())
+        return random.choices(outcomes, weights=weights)[0]
 
     # TODO: Can we get rid of f or make it optional? Right now, I
     # don't think that's possible with mypy.
@@ -213,11 +243,6 @@ class Categorical(FiniteDistribution[A]):
         # Normalize probabilities to sum to 1
         self.probabilities = {outcome: probability / total
                               for outcome, probability in distribution.items()}
-
-    def sample(self) -> A:
-        outcomes = list(self.probabilities.keys())
-        weights = list(self.probabilities.values())
-        return random.choices(outcomes, weights=weights)[0]
 
     def table(self) -> Mapping[A, float]:
         return self.probabilities

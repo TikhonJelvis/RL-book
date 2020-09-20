@@ -126,27 +126,18 @@ def policy_iteration_result(
     return converged(policy_iteration(mdp, gamma), done=almost_equal_vf_pis)
 
 
-def bellman_opt_update(
-    v: V[S],
-    mdp: FiniteMarkovDecisionProcess[S, A],
-    gamma: float
-) -> V[S]:
-    '''Do one update of the value function for a given MDP.'''
-    return {s: max(mdp.mapping[s][a].expectation(
-        lambda s_r: s_r[1] + gamma * v.get(s_r[0], 0.)
-    ) for a in mdp.actions(s)) for s in v}
-
-
 def value_iteration(
     mdp: FiniteMarkovDecisionProcess[S, A],
     gamma: float
 ) -> Iterator[V[S]]:
     '''Calculate the value function (V*) of the given MDP by applying the
-    value_update function repeatedly until the values start
-    converging.
+    update function repeatedly until the values converge.
+
     '''
     def update(v: V[S]) -> V[S]:
-        return bellman_opt_update(v, mdp, gamma)
+        return {s: max(mdp.mapping[s][a].expectation(
+            lambda s_r: s_r[1] + gamma * v.get(s_r[0], 0.)
+        ) for a in mdp.actions(s)) for s in v}
 
     v_0: V[S] = {s: 0.0 for s in mdp.non_terminal_states}
     return iterate(update, v_0)
