@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Tuple, Dict, List
+from typing import Mapping, Dict
 from rl.distribution import Categorical
 from rl.markov_process import Transition, FiniteMarkovProcess
 from scipy.stats import poisson
@@ -34,17 +34,13 @@ class SimpleInventoryMPFinite(FiniteMarkovProcess[InventoryState]):
                 state = InventoryState(alpha, beta)
                 ip = state.inventory_position()
                 beta1 = self.capacity - ip
-                state_probs_list: List[Tuple[InventoryState, float]] = [
-                    (InventoryState(ip - i, beta1), self.poisson_distr.pmf(i))
-                    for i in range(ip)
-                ]
-                state_probs_list.append(
-                    (
-                        InventoryState(0, beta1),
-                        1 - self.poisson_distr.cdf(ip - 1)
-                    )
-                )
-                d[InventoryState(alpha, beta)] = Categorical(state_probs_list)
+                state_probs_map: Mapping[InventoryState, float] = {
+                    InventoryState(ip - i, beta1):
+                    (self.poisson_distr.pmf(i) if i < ip else
+                     1 - self.poisson_distr.cdf(ip - 1))
+                    for i in range(ip + 1)
+                }
+                d[InventoryState(alpha, beta)] = Categorical(state_probs_map)
         return d
 
 

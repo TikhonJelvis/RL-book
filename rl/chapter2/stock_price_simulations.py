@@ -7,8 +7,6 @@ import itertools
 from operator import itemgetter
 from rl.gen_utils.common_funcs import get_logistic_func, get_unit_sigmoid_func
 
-handy_map: Mapping[Optional[bool], int] = {True: -1, False: 1, None: 0}
-
 
 @dataclass
 class Process1:
@@ -27,6 +25,9 @@ class Process1:
         return Process1.State(price=state.price + up_move * 2 - 1)
 
 
+handy_map: Mapping[Optional[bool], int] = {True: -1, False: 1, None: 0}
+
+
 @dataclass
 class Process2:
     @dataclass
@@ -34,7 +35,7 @@ class Process2:
         price: int
         is_prev_move_up: Optional[bool]
 
-    alpha2: float = 0.75  # strength of reverse-pull (value in  [0,1])
+    alpha2: float = 0.75  # strength of reverse-pull (value in [0,1])
 
     def up_prob(self, state: State) -> float:
         return 0.5 * (1 + self.alpha2 * handy_map[state.is_prev_move_up])
@@ -149,7 +150,7 @@ def plot_single_trace_all_processes(
 
 
 def get_terminal_histogram(
-        price_traces: np.ndarray
+    price_traces: np.ndarray
 ) -> Tuple[Sequence[int], Sequence[int]]:
     pairs = sorted(
         list(Counter(price_traces[:, -1]).items()),
@@ -214,7 +215,7 @@ if __name__ == '__main__':
         start_price=start_price,
         alpha3=alpha3,
         time_steps=time_steps,
-        num_traces=1
+        num_traces=num_traces
     )
 
     trace1 = process1_traces[0]

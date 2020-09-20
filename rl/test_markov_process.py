@@ -4,7 +4,7 @@ from typing import Tuple
 import unittest
 
 from rl.distribution import (Bernoulli, Categorical, Distribution,
-                             SampledDistribution)
+                             SampledDistribution, Constant)
 from rl.markov_process import (FiniteMarkovProcess, MarkovProcess,
                                MarkovRewardProcess)
 
@@ -29,6 +29,9 @@ class FlipFlop(MarkovProcess[bool]):
 
         return SampledDistribution(next_state)
 
+    def sample_states(self) -> Distribution[bool]:
+        return Bernoulli(self.p)
+
 
 class FiniteFlipFlop(FiniteMarkovProcess[bool]):
     ''' A version of FlipFlop implemented with the FiniteMarkovProcess machinery.
@@ -36,7 +39,7 @@ class FiniteFlipFlop(FiniteMarkovProcess[bool]):
     '''
     def __init__(self, p: float):
         transition_map = {
-            b: Categorical([(not b, p), (b, 1 - p)])
+            b: Categorical({not b: p, b: 1 - p})
             for b in (True, False)
         }
         super().__init__(transition_map)
@@ -62,17 +65,26 @@ class RewardFlipFlop(MarkovRewardProcess[bool]):
 
         return SampledDistribution(next_state)
 
+    def sample_states(self):
+        return Bernoulli(self.p)
+
 
 class TestMarkovProcess(unittest.TestCase):
     def setUp(self):
         self.flip_flop = FlipFlop(0.5)
 
     def test_flip_flop(self):
-        trace = list(itertools.islice(self.flip_flop.simulate(True), 10))
+        trace = list(itertools.islice(
+            self.flip_flop.simulate(Constant(True)),
+            10
+        ))
 
         self.assertTrue(all(isinstance(outcome, bool) for outcome in trace))
 
-        longer_trace = itertools.islice(self.flip_flop.simulate(True), 10000)
+        longer_trace = itertools.islice(
+            self.flip_flop.simulate(Constant(True)),
+            10000
+        )
         count_trues = len(list(outcome for outcome in longer_trace if outcome))
 
         # If the code is correct, this should fail with a vanishingly
@@ -87,11 +99,17 @@ class TestFiniteMarkovProcess(unittest.TestCase):
         self.biased = FiniteFlipFlop(0.3)
 
     def test_flip_flop(self):
-        trace = list(itertools.islice(self.flip_flop.simulate(True), 10))
+        trace = list(itertools.islice(
+            self.flip_flop.simulate(Constant(True)),
+            10
+        ))
 
         self.assertTrue(all(isinstance(outcome, bool) for outcome in trace))
 
-        longer_trace = itertools.islice(self.flip_flop.simulate(True), 10000)
+        longer_trace = itertools.islice(
+            self.flip_flop.simulate(Constant(True)),
+            10000
+        )
         count_trues = len(list(outcome for outcome in longer_trace if outcome))
 
         # If the code is correct, this should fail with a vanishingly
@@ -110,11 +128,11 @@ class TestFiniteMarkovProcess(unittest.TestCase):
     def test_stationary_distribution(self):
         distribution = self.flip_flop.get_stationary_distribution().table()
         expected = [(True, 0.5), (False, 0.5)]
-        np.testing.assert_almost_equal(distribution, expected)
+        np.testing.assert_almost_equal(list(distribution.items()), expected)
 
         distribution = self.biased.get_stationary_distribution().table()
         expected = [(True, 0.5), (False, 0.5)]
-        np.testing.assert_almost_equal(distribution, expected)
+        np.testing.assert_almost_equal(list(distribution.items()), expected)
 
     def test_display(self):
         # Just test that the display functions don't error out.
@@ -131,8 +149,10 @@ class TestRewardMarkovProcess(unittest.TestCase):
         self.flip_flop = RewardFlipFlop(0.5)
 
     def test_flip_flop(self):
-        trace = list(itertools.islice(self.flip_flop.simulate_reward(True),
-                                      10))
+        trace = list(itertools.islice(
+            self.flip_flop.simulate_reward(Constant(True)),
+            10
+        ))
 
         self.assertTrue(all(isinstance(outcome, bool) for outcome, _ in trace))
 
