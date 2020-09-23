@@ -77,13 +77,13 @@ Figure \ref{fig:efficient_frontier} shows a plot of the mean daily returns versu
 
 ## CAPM: Linearity of Covariance Vector w.r.t. Mean Returns
 
-**Important Theorem**: The covariance vector of individual assets with a portfolio (note: covariance vector $= V \cdot X \in \mathbb{R}^n$) can be expressed as an exact linear function of the individual assets' mean returns vector iff the portfolio is efficient. If the efficient portfolio is $p$ (and its orthogonal portfolio $z$), then:
+**Important Theorem**: The covariance vector of individual assets with a portfolio (note: covariance vector $= V \cdot X \in \mathbb{R}^n$) can be expressed as an exact linear function of the individual assets' mean returns vector if and only if the portfolio is efficient. If the efficient portfolio is $p$ (and its orthogonal portfolio $z$), then:
 
 $$R = r_z 1_n + \frac {r_p - r_z} {\sigma_p^2} (V \cdot X_p) = r_z 1_n +  (r_p - r_z) \beta_p$$
 
 where $\beta_p = \frac {V \cdot X_p} {\sigma_p^2} \in \mathbb{R}^n$ is the vector of slope coefficients of regressions where the explanatory variable is the portfolio mean return $r_p \in \mathbb{R}$ and the $n$ dependent variables are the asset mean returns $R \in \mathbb{R}^n$.
 
-The linearity of $\beta_p$ w.r.t. mean returns is famously known as the Capital Asset Pricing Model (CAPM).
+The linearity of $\beta_p$ w.r.t. mean returns $R$ is famously known as the Capital Asset Pricing Model (CAPM).
 
 ## Useful Corollaries of CAPM
 
