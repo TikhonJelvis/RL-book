@@ -136,7 +136,7 @@ Substituting for $dY_t$ and lightening notation, we get:
 
 $$df(t, Y_t) = \pdv{f}{t} \cdot dt + \pdv{f}{Y_t} \cdot (\mu_t \cdot dt + \sigma_t \cdot dz_t) + \frac 1 2 \cdot \pdv[2]{f}{Y_t} \cdot (\mu_t \cdot dt + \sigma_t \cdot dz_t )^2 + \ldots$$
 
-Next, we use the rules: $(dt)^2 = 0, dt \cdot dz_t = 0, (dz_t)^2 = dt$ to get **Ito's Lemma*:
+Next, we use the rules: $(dt)^2 = 0, dt \cdot dz_t = 0, (dz_t)^2 = dt$ to get **Ito's Lemma**:
 
 $$df(t, Y_t) = (\pdv{f}{t} + \mu_t \cdot \pdv{f}{Y_t} + \frac {\sigma_t^2} 2 \cdot \pdv[2]{f}{Y_t}) \cdot dt + \sigma_t \cdot \pdv{f}{Y_t} \cdot dz_t$$
 
