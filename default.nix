@@ -3,7 +3,7 @@
 }:
 
 let
-  texlive = pkgs.texlive.combine {
+  tex-packages = {
     inherit (pkgs.texlive)
       scheme-medium
       footmisc
@@ -12,12 +12,37 @@ let
       noto;
   };
 
-  fonts = pkgs.makeFontsConf {
-    fontDirectories = [ pkgs.eb-garamond pkgs.tex-gyre.pagella ];
-  };
+  python-packages = ps: with ps;
+    [ graphviz
+      ipython
+      jedi
+      jupyter
+      matplotlib
+      mypy
+      numpy
+      pandas
+      pylint
+      scipy
+    ];
 
-  pythonWithPackages = python.withPackages (ps:
-    with ps; [ graphviz ipython jedi jupyter matplotlib mypy numpy pandas pylint scipy ]);
+  # Applications and utilties for buidling the book
+  packages = with pkgs;
+    [ fontconfig
+      graphviz
+      pandoc
+      watchexec
+
+      haskellPackages.pandoc-crossref
+
+      (texlive.combine tex-packages)
+    ];
+
+  fonts = with pkgs;
+    [ eb-garamond
+      tex-gyre.pagella
+    ];
+
+  pythonWithPackages = python.withPackages python-packages;
 
   system-packages =
     if pkgs.stdenv.isDarwin
@@ -28,14 +53,9 @@ pkgs.stdenv.mkDerivation {
   name = "RL-book";
   src = ./.;
 
-  buildInputs = [
-    texlive
+  buildInputs = with pkgs; packages ++ system-packages;
 
-    pkgs.fontconfig
-    pkgs.graphviz
-    pkgs.pandoc
-    pkgs.watchexec
-  ] ++ system-packages;
-
-  FONTCONFIG_FILE = fonts;
+  FONTCONFIG_FILE = pkgs.makeFontsConf {
+    fontDirectories = fonts;
+  };
 }
