@@ -1,4 +1,4 @@
-# Dynamic Programming Algorithms
+# Dynamic Programming Algorithms {#sec:dp}
 
 As a reminder, much of this book is about algorithms to solve the MDP Control problem, i.e., to compute the Optimal Value Function (and an associated Optimal Policy). We will also cover algorithms for the MDP Prediction problem, i.e., to compute the Value Function when the agent executes a fixed policy $\pi$ (which, as we know from the previous chapter, is the same as the $\pi$-implied MRP problem). Our typical approach will be to first cover algorithms to solve the Prediction problem before covering algorithms to solve the Control problem - not just because Prediction is a key component in solving the Control problem, but also because it helps understand the key aspects of the techniques employed in the Control algorithm in the simpler setting of Prediction.
 
