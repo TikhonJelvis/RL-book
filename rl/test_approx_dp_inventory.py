@@ -13,6 +13,7 @@ from rl.chapter3.simple_inventory_mdp_cap import (InventoryState,
                                                   SimpleInventoryMDPCap)
 
 
+@unittest.skip("Explanation (ie test is too slow)")
 class TestEvaluate(unittest.TestCase):
     def setUp(self):
         user_capacity = 2
