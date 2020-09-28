@@ -14,6 +14,7 @@
 \usepackage{amsmath}
 \usepackage{amssymb}
 \usepackage{bm}
+\usepackage{physics}
 % if you use exotic symbols you need to import specific packages, eg. for
 % electrical engineering diagrams, musical notation, exotic currency symbols,
 % the unspeakable rites of freemasonry etc.
@@ -277,7 +278,6 @@ $endif$
 \newcommand{\bbpi}{\bm{B}^{\pi}}
 \newcommand{\bbs}{\bm{B}^*}
 \newcommand{\bv}{\bm{V}}
-
 
 % At last: 
 % The document itself!:

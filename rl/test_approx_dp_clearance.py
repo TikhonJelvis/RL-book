@@ -14,6 +14,7 @@ from rl.finite_horizon import (
     unwrap_finite_horizon_MDP, finite_horizon_MDP, optimal_vf_and_policy)
 
 
+@unittest.skip("Explanation (ie test is too slow)")
 class TestEvaluate(unittest.TestCase):
     def setUp(self):
         ii = 12
