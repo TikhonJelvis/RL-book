@@ -1,5 +1,5 @@
 %!TEX TS-program = xelatex
-\documentclass[11pt]{scrartcl}  
+\documentclass[11pt]{scrbook}
 
 % -- We are in swanky unicode, XeTeX land, and must now import these packages:
 \usepackage{fontspec,xltxtra,xunicode}
