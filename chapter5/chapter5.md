@@ -1,4 +1,4 @@
-# Function Approximation and Approximate Dynamic Programming
+# Function Approximation and Approximate Dynamic Programming {#sec:func-approx}
 
 In the previous chapter, we covered Dynamic Programming algorithms where the MDP is specified in the form of a finite data structure and the Value Function is represented as a finite "table" of states and values. These Dynamic Programming algorithms swept through all states in each iteration to update the value function. But when the state space is large (as is the case in real-world applications), these Dynamic Programming algorithm won't work because:
 

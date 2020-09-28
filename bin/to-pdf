@@ -1,11 +1,41 @@
 #!/usr/bin/env bash
 
-FILE=$1
-
-if [[ ${FILE: -3} == ".md" ]]
+if [[ $# -eq 0 ]]
 then
-    FILE=${FILE%.*}
+    args=(chapter*/chapter*.md)
+else
+    args="$@"
 fi
 
-echo "Converting $FILE.md to $FILE.pdf"
-pandoc -t pdf --pdf-engine=xelatex -o "$1.pdf" --template latex.template "$1.md"
+if [[ $# -eq 1 ]]
+then
+    out="${1%.*}.pdf"
+else
+    out="book.pdf"
+fi
+
+for path in "${args[@]}"
+do
+    names+=("${path%.*}.md")
+done
+
+if [[ $# -eq 1 ]]
+then
+    echo "Converting ${names[@]} to $out"
+else
+    echo "Combining"
+    for path in "${names[@]}"
+    do
+        echo $path
+    done
+    echo "into $out"
+fi
+
+pandoc -t pdf \
+       -o "$out" \
+       -F pandoc-crossref \
+       -M chapters \
+       --pdf-engine=xelatex \
+       --template templates/latex.template \
+       --top-level-division=chapter \
+       "${names[@]}"
