@@ -1,4 +1,6 @@
-from typing import Callable, Iterator, TypeVar
+'''Finding fixed points of functions using iterators.'''
+import itertools
+from typing import Callable, Iterator, Tuple, TypeVar
 
 X = TypeVar('X')
 
@@ -43,15 +45,18 @@ def converge(values: Iterator[X], done: Callable[[X, X], bool]) -> Iterator[X]:
     Will loop forever if the input iterator doesn't end *or* converge.
 
     '''
-    a = next(values)
+    a = next(values, None)
+    if a is None:
+        return
+
     yield a
 
     for b in values:
         if done(a, b):
-            break
-        else:
-            a = b
-            yield b
+            return
+
+        a = b
+        yield b
 
 
 def converged(values: Iterator[X], done: Callable[[X, X], bool]) -> X:
@@ -65,12 +70,18 @@ def converged(values: Iterator[X], done: Callable[[X, X], bool]) -> X:
     return last(converge(values, done))
 
 
-if __name__ == '__main__':
-    import numpy as np
-    x = 0.0
-    values = converge(
-        iterate(lambda y: np.cos(y), x),
-        lambda a, b: np.abs(a - b) < 1e-3
-    )
-    for i, v in enumerate(values):
-        print(f"{i}: {v:.3f}")
+def cumulative_reward(rewards: Iterator[Tuple[X, float]],
+                      γ: float = 1) -> Iterator[Tuple[X, float]]:
+    '''Given an iterator of rewards, calculate the cumulative reward
+    (optionally with exponential discounting).
+
+    Arguments:
+      rewards -- instantaneous rewards
+      γ -- the discount factor (0 < γ ≤ 1), default: 1
+    '''
+    def accum(s_r_acc, s_r):
+        _, r_acc = s_r_acc
+        s, r = s_r
+        return s, r_acc + γ * r
+
+    return itertools.accumulate(rewards, accum)
