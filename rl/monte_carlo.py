@@ -3,8 +3,10 @@ Markov Decision Processes.
 
 '''
 
+from collections import defaultdict
+import math
 import itertools
-from typing import Callable, Iterator, TypeVar
+from typing import Callable, Dict, Iterator, TypeVar
 
 from rl.distribution import Constant, Distribution
 from rl.function_approx import FunctionApprox
@@ -16,11 +18,11 @@ S = TypeVar('S')
 
 def evaluate_mrp(
         mrp: MarkovRewardProcess[S],
-        max_steps: int,
         states: Distribution[S],
         approx_0: FunctionApprox[S],
-        α: Callable[[int], float] = lambda _: 1,
-        γ: float = 1
+        γ: float,
+        max_steps: int = 1,
+        tolerance: float = 1e-6
 ) -> Iterator[FunctionApprox[S]]:
     '''Evaluate an MRP using the monte carlo method, simulating episodes
     of the given number of steps.
@@ -30,25 +32,21 @@ def evaluate_mrp(
 
     Arguments:
       mrp -- the Markov Reward Process to evaluate
-      max_steps -- max steps to take in an episode
       states -- distribution of states to start episodes from
       approx_0 -- initial approximation of value function
-      α -- learning rate, either a constant (0 < α ≤ 1) or a function
-           from # of updates to a learning rate, default: 1
       γ -- discount rate (0 < γ ≤ 1), default: 1
+      tolerance -- a small value—we stop iterating once γᵏ ≤ tolerance
 
     '''
-    n = 0
     v = approx_0
 
-    while True:
-        start = states.sample()
+    for trace in mrp.reward_traces(states):
+        if γ < 1:
+            stop_at = max_steps + round(math.log(tolerance) / math.log(γ))
+            episode =\
+                itertools.islice(mrp.simulate_reward(states), stop_at)
+        else:
+            episode = mrp.simulate_reward(states)
 
-        episode =\
-            itertools.islice(mrp.simulate_reward(Constant(start)), max_steps)
-        _, final_r =\
-            iterate.last(iterate.cumulative_reward(episode, α(n) * γ))
-
-        v = v.update([(start, final_r)])
-        n += 1
+        v = v.update(list(iterate.returns(episode, γ, n_states=max_steps)))
         yield v

@@ -49,9 +49,21 @@ class MarkovProcess(ABC, Generic[S]):
             yield state
             next_states = self.transition(state)
             if next_states is None:
-                break
-            else:
-                state = next_states.sample()
+                return
+
+            state = next_states.sample()
+
+    def traces(
+            self,
+            start_state_distribution: Distribution[S]
+    ) -> Iterable[Iterable[S]]:
+        '''Yield simulation traces (the output of `simulate'), sampling a
+        start state from the given distribution each time.
+
+        '''
+        while True:
+            yield self.simulate(start_state_distribution)
+
 
     @abstractmethod
     def sample_states(self) -> Distribution[S]:
@@ -186,10 +198,20 @@ class MarkovRewardProcess(MarkovProcess[S]):
             yield state, reward
             next_distribution = self.transition_reward(state)
             if next_distribution is None:
-                break
-            else:
-                state, reward = next_distribution.sample()
+                return
 
+            state, reward = next_distribution.sample()
+
+    def reward_traces(
+            self,
+            start_state_distribution: Distribution[S]
+    ) -> Iterable[Iterable[Tuple[S, float]]]:
+        '''Yield simulation traces (the output of `simulate_reward'), sampling
+        a start state from the given distribution each time.
+
+        '''
+        while True:
+            yield self.simulate_reward(start_state_distribution)
 
 StateReward = FiniteDistribution[Tuple[S, float]]
 RewardTransition = Mapping[S, Optional[StateReward[S]]]

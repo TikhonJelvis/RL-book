@@ -1,11 +1,16 @@
+'''An interface for different kinds of function approximations
+(tabular, linear, DNN... etc), with several implementations.'''
+
 from __future__ import annotations
+
 from abc import ABC, abstractmethod
-from typing import Sequence, Mapping, Tuple, TypeVar, Callable, List, Dict, \
-    Generic, Optional, Iterator
-import numpy as np
 from collections import defaultdict
 from dataclasses import dataclass, replace, field
+from typing import (Callable, Dict, Generic, Iterator, Iterable, List,
+                    Mapping, Optional, Sequence, Tuple, TypeVar)
 from more_itertools import pairwise
+
+import numpy as np
 
 import rl.iterate as iterate
 
@@ -14,20 +19,25 @@ SMALL_NUM = 1e-6
 
 
 class FunctionApprox(ABC, Generic[X]):
+    '''Interface for function approximations.
+
+    An object of this class approximates some function X ↦ ℝ in a way
+    that can be evaluated at specific points in X and updated with
+    additional (X, ℝ) points.
+
+    '''
 
     @abstractmethod
-    def evaluate(self, x_values_seq: Sequence[X]) -> np.ndarray:
-        pass
+    def evaluate(self, x_values_seq: Iterable[X]) -> np.ndarray:
+        '''Evaluate the approximation at the given points.'''
 
     def __call__(self, x_value: X) -> float:
         return self.evaluate([x_value]).item()
 
     @abstractmethod
-    def update(
-        self,
-        xy_vals_seq: Sequence[Tuple[X, float]]
-    ) -> FunctionApprox[X]:
-        pass
+    def update(self, pairs: Iterable[Tuple[X, float]]) -> FunctionApprox[X]:
+        '''Use the given x, y pairs to update the function approximation.
+        '''
 
     @abstractmethod
     def within(self, other: FunctionApprox[X], tolerance: float) -> bool:
@@ -35,11 +45,20 @@ class FunctionApprox(ABC, Generic[X]):
         another approximation of the same type?
 
         '''
-        pass
 
     @staticmethod
     def converged(iterator: Iterator[FunctionApprox[X]],
                   tolerance: float = 0.0001) -> FunctionApprox[X]:
+        '''Given an iterator of function approximations, return the last
+        approximation once successive approximations have converged
+        within the given tolerance.
+
+        If the iterator ends before converging, returns the last
+        approximation.
+
+        Raises an error if the iterator is empty.
+
+        '''
         def done(a, b):
             return a.within(b, tolerance)
 
@@ -49,54 +68,104 @@ class FunctionApprox(ABC, Generic[X]):
 @dataclass(frozen=True)
 class Dynamic(FunctionApprox[X]):
     '''A FunctionApprox that works exactly the same as exact dynamic
-    programming.
+    programming. Each update for a value in X replaces the previous
+    value at X altogether.
+
+    Fields:
+    values_map -- mapping from X to its approximated value
 
     '''
 
     values_map: Mapping[X, float]
 
-    def evaluate(self, x_values_seq: Sequence[X]) -> np.ndarray:
+    def evaluate(self, x_values_seq: Iterable[X]) -> np.ndarray:
+        '''Evaluate the function approximation by looking up the value in the
+        mapping for each state.
+
+        Will raise an error if an X value has not been seen before and
+        was not initialized.
+
+        '''
         return np.array([self.values_map[x] for x in x_values_seq])
 
-    def update(self, xy_vals_seq: Sequence[Tuple[X, float]]) -> Dynamic[X]:
-        new_map = self.values_map.copy()
-        for x, y in xy_vals_seq:
+    def update(self, pairs: Iterable[Tuple[X, float]]) -> Dynamic[X]:
+        '''Update each X value by replacing its saved Y with a new one. Pairs
+        later in the list take precedence over pairs earlier in the
+        list.
+
+        '''
+        new_map = dict(self.values_map)
+        for x, y in pairs:
             new_map[x] = y
 
         return replace(self, values_map=new_map)
 
     def within(self, other: FunctionApprox[X], tolerance: float) -> bool:
-        if isinstance(other, Dynamic):
-            return\
-                all(abs(self.values_map[s] - other.values_map[s]) <= tolerance
-                    for s in self.values_map)
-        else:
+        '''This approximation is within a tolerance of another if the value
+        for each X in both approximations is within the given
+        tolerance.
+
+        Raises an error if the other approximation is missing states
+        that this approximation has.
+
+        '''
+        if not isinstance(other, Dynamic):
             return False
+
+        return all(abs(self.values_map[s] - other.values_map[s]) <= tolerance
+                   for s in self.values_map)
 
 
 @dataclass(frozen=True)
 class Tabular(FunctionApprox[X]):
+    '''Approximates a function with a discrete domain (`X'), without any
+    interpolation. The value for each `X' is maintained as a weighted
+    mean of observations by recency (managed by
+    `count_to_weight_func').
+
+    In practice, this means you can use this to approximate a function
+    with a learning rate α(n) specified by count_to_weight_func.
+
+    If `count_to_weight_func' always returns 1, this behaves the same
+    way as `Dynamic'.
+
+    Fields:
+    values_map -- mapping from X to its approximated value
+    counts_map -- how many times a given X has been updated
+    count_to_weight_func -- function for how much to weigh an update
+      to X based on the number of times that X has been updated
+
+    '''
 
     values_map: Mapping[X, float] =\
         field(default_factory=lambda: defaultdict(float))
     counts_map: Mapping[X, int] =\
         field(default_factory=lambda: defaultdict(int))
-    count_to_weight_func: Callable[int, float] =\
-        field(default_factory=lambda: lambda n: 1. / n)
+    count_to_weight_func: Callable[[int], float] = lambda n: 1.0 / n
 
-    def evaluate(self, x_values_seq: Sequence[X]) -> np.ndarray:
+    def evaluate(self, x_values_seq: Iterable[X]) -> np.ndarray:
+        '''Evaluate the approximation at each given X.
+
+        If an X has not been seen before, will return 0.0.
+        '''
         return np.array([self.values_map[x] for x in x_values_seq])
 
-    def update(
-        self,
-        xy_vals_seq: Sequence[Tuple[X, float]]
-    ) -> Tabular[X]:
-        values_map: Dict[X, float] = self.values_map.copy()
-        counts_map: Dict[X, int] = self.counts_map.copy()
-        for x, y in xy_vals_seq:
+    def update(self, pairs: Iterable[Tuple[X, float]]) -> Tabular[X]:
+        '''Update the approximation with the given points.
+
+        Each X keeps a count n of how many times it was updated, and
+        each subsequent update is discounted by
+        count_to_weight_func(n), which defines our learning rate.
+
+        '''
+        values_map: Dict[X, float] = dict(self.values_map)
+        counts_map: Dict[X, int] = dict(counts_map)
+
+        for x, y in pairs:
             counts_map[x] += 1
             weight: float = self.count_to_weight_func(counts_map[x])
             values_map[x] += weight * (y - values_map[x])
+
         return replace(
             self,
             values_map=values_map,
@@ -172,13 +241,13 @@ class Weights:
 @dataclass(frozen=True)
 class LinearFunctionApprox(FunctionApprox[X]):
 
-    feature_functions: Sequence[Callable[[X], float]]
+    feature_functions: Iterable[Callable[[X], float]]
     regularization_coeff: float
     weights: Weights
 
     @staticmethod
     def create(
-        feature_functions: Sequence[Callable[[X], float]],
+        feature_functions: Iterable[Callable[[X], float]],
         adam_gradient: AdamGradient,
         regularization_coeff: float = 0.,
         weights: Optional[Weights] = None
@@ -192,11 +261,11 @@ class LinearFunctionApprox(FunctionApprox[X]):
             ) if weights is None else weights
         )
 
-    def get_feature_values(self, x_values_seq: Sequence[X]) -> np.ndarray:
+    def get_feature_values(self, x_values_seq: Iterable[X]) -> np.ndarray:
         return np.array([[1.] + [f(x) for f in self.feature_functions]
                          for x in x_values_seq])
 
-    def evaluate(self, x_values_seq: Sequence[X]) -> np.ndarray:
+    def evaluate(self, x_values_seq: Iterable[X]) -> np.ndarray:
         return np.dot(
             self.get_feature_values(x_values_seq),
             self.weights.weights
@@ -210,7 +279,7 @@ class LinearFunctionApprox(FunctionApprox[X]):
 
     def regularized_loss_gradient(
         self,
-        xy_vals_seq: Sequence[Tuple[X, float]]
+        xy_vals_seq: Iterable[Tuple[X, float]]
     ) -> np.ndarray:
         x_vals, y_vals = zip(*xy_vals_seq)
         feature_vals: np.ndarray = self.get_feature_values(x_vals)
@@ -221,7 +290,7 @@ class LinearFunctionApprox(FunctionApprox[X]):
 
     def update(
         self,
-        xy_vals_seq: Sequence[Tuple[X, float]]
+        xy_vals_seq: Iterable[Tuple[X, float]]
     ) -> LinearFunctionApprox[X]:
         gradient: np.ndarray = self.regularized_loss_gradient(xy_vals_seq)
         new_weights: np.ndarray = self.weights.update(gradient)
@@ -229,7 +298,7 @@ class LinearFunctionApprox(FunctionApprox[X]):
 
     def direct_solve(
         self,
-        xy_vals_seq: Sequence[Tuple[X, float]]
+        xy_vals_seq: Iterable[Tuple[X, float]]
     ) -> LinearFunctionApprox[X]:
         x_vals, y_vals = zip(*xy_vals_seq)
         feature_vals: np.ndarray = self.get_feature_values(x_vals)
@@ -249,7 +318,7 @@ class LinearFunctionApprox(FunctionApprox[X]):
 
 @dataclass(frozen=True)
 class DNNSpec:
-    neurons: Sequence[int]
+    neurons: Iterable[int]
     hidden_activation: Callable[[np.ndarray], np.ndarray]
     hidden_activation_deriv: Callable[[np.ndarray], np.ndarray]
     output_activation: Callable[[np.ndarray], np.ndarray]
@@ -258,18 +327,18 @@ class DNNSpec:
 @dataclass(frozen=True)
 class DNNApprox(FunctionApprox[X]):
 
-    feature_functions: Sequence[Callable[[X], float]]
+    feature_functions: Iterable[Callable[[X], float]]
     dnn_spec: DNNSpec
     regularization_coeff: float
-    weights: Sequence[Weights]
+    weights: Iterable[Weights]
 
     @staticmethod
     def create(
-        feature_functions: Sequence[Callable[[X], float]],
+        feature_functions: Iterable[Callable[[X], float]],
         dnn_spec: DNNSpec,
         adam_gradient: AdamGradient,
         regularization_coeff: float = 0.,
-        weights: Optional[Sequence[Weights]] = None
+        weights: Optional[Iterable[Weights]] = None
     ) -> DNNApprox[X]:
         if weights is None:
             augmented_layers = [len(feature_functions)] + \
@@ -288,14 +357,14 @@ class DNNApprox(FunctionApprox[X]):
             weights=wts
         )
 
-    def get_feature_values(self, x_values_seq: Sequence[X]) -> np.ndarray:
+    def get_feature_values(self, x_values_seq: Iterable[X]) -> np.ndarray:
         return np.array([[1.] + [f(x) for f in self.feature_functions]
                          for x in x_values_seq])
 
     def forward_propagation(
         self,
-        x_values_seq: Sequence[X]
-    ) -> Sequence[np.ndarray]:
+        x_values_seq: Iterable[X]
+    ) -> Iterable[np.ndarray]:
         """
         :param x_values_seq: a n-length-sequence of input points
         :return: list of length (L+2) where the first (L+1) values
@@ -319,7 +388,7 @@ class DNNApprox(FunctionApprox[X]):
         )
         return outputs
 
-    def evaluate(self, x_values_seq: Sequence[X]) -> np.ndarray:
+    def evaluate(self, x_values_seq: Iterable[X]) -> np.ndarray:
         return self.forward_propagation(x_values_seq)[-1][:, 0]
 
     def within(self, other: FunctionApprox[X], tolerance: float) -> bool:
@@ -331,8 +400,8 @@ class DNNApprox(FunctionApprox[X]):
 
     def backward_propagation(
         self,
-        xy_vals_seq: Sequence[Tuple[X, float]]
-    ) -> Sequence[np.ndarray]:
+        xy_vals_seq: Iterable[Tuple[X, float]]
+    ) -> Iterable[np.ndarray]:
         """
         :param xy_vals_seq: list of pairs of n (x, y) points
         :return: list (of length L+1) of |O_l| x (|I_l| + 1) 2-D array,
@@ -342,8 +411,8 @@ class DNNApprox(FunctionApprox[X]):
         is the canonical link function of the conditional distribution of y|x
         """
         x_vals, y_vals = zip(*xy_vals_seq)
-        fwd_prop: Sequence[np.ndarray] = self.forward_propagation(x_vals)
-        layer_inputs: Sequence[np.ndarray] = fwd_prop[:-1]
+        fwd_prop: Iterable[np.ndarray] = self.forward_propagation(x_vals)
+        layer_inputs: Iterable[np.ndarray] = fwd_prop[:-1]
         deriv: np.ndarray = (
             fwd_prop[-1][:, 0] - np.array(y_vals)
         ).reshape(1, -1)
@@ -373,8 +442,8 @@ class DNNApprox(FunctionApprox[X]):
 
     def regularized_loss_gradient(
         self,
-        xy_vals_seq: Sequence[Tuple[X, float]]
-    ) -> Sequence[np.ndarray]:
+        xy_vals_seq: Iterable[Tuple[X, float]]
+    ) -> Iterable[np.ndarray]:
         """
         :param xy_vals_seq: list of pairs of n (x, y) points
         :return: list (of length L+1) of |O_l| x (|I_l| + 1) 2-D array,
@@ -389,7 +458,7 @@ class DNNApprox(FunctionApprox[X]):
 
     def update(
         self,
-        xy_vals_seq: Sequence[Tuple[X, float]]
+        xy_vals_seq: Iterable[Tuple[X, float]]
     ) -> DNNApprox[X]:
         return replace(
             self,
@@ -402,7 +471,7 @@ class DNNApprox(FunctionApprox[X]):
 
 def rmse(
     func_approx: FunctionApprox[X],
-    xy_seq: Sequence[Tuple[X, float]]
+    xy_seq: Iterable[Tuple[X, float]]
 ) -> float:
     x_seq, y_seq = zip(*xy_seq)
     errors: np.ndarray = func_approx.evaluate(x_seq) - np.array(y_seq)
@@ -411,7 +480,7 @@ def rmse(
 
 def sgd(
     func_approx: FunctionApprox[X],
-    xy_seq_stream: Iterator[Sequence[Tuple[X, float]]]
+    xy_seq_stream: Iterator[Iterable[Tuple[X, float]]]
 ) -> Iterator[FunctionApprox[X]]:
     for xy_seq in xy_seq_stream:
         yield func_approx

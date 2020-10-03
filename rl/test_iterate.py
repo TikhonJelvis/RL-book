@@ -1,7 +1,7 @@
 import itertools
 import unittest
 
-from rl.iterate import (iterate, last, converge, converged)
+from rl.iterate import (iterate, last, converge, converged, returns)
 
 
 class TestIterate(unittest.TestCase):
@@ -15,7 +15,7 @@ class TestLast(unittest.TestCase):
         self.assertEqual(last(range(0, 5)), 4)
         self.assertEqual(last(range(0, 10)), 9)
 
-        self.assertRaises(Exception, lambda: last([]))
+        self.assertEqual(last([]), None)
 
 
 class TestConverge(unittest.TestCase):
@@ -44,3 +44,19 @@ class TestConverge(unittest.TestCase):
 
         for got, expected in zip(converge(iter(ns), close), ns):
             self.assertAlmostEqual(got, expected)
+
+
+class TestReturns(unittest.TestCase):
+    def test_simple(self):
+        simple = [(l, 1.0) for l in "abcdefg"]
+
+        self.assertEqual(set(returns(simple, γ=1.0, n_states=1)), {('a', 7.0)})
+        self.assertEqual(set(returns(simple, γ=1.0, n_states=3)),
+                         {('a', 7.0), ('b', 6.0), ('c', 5.0)})
+        self.assertEqual(set(returns(simple, γ=1.0, n_states=7)),
+                         {(s, 7.0 - n) for s, n
+                          in zip("abcdefg", range(0, 7))})
+
+        # Ensure passing in an iterator (vs a list/set/etc) works
+        self.assertEqual(set(returns(iter(simple), γ=1.0, n_states=3)),
+                         {('a', 7.0), ('b', 6.0), ('c', 5.0)})

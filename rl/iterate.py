@@ -1,6 +1,7 @@
 '''Finding fixed points of functions using iterators.'''
+import functools
 import itertools
-from typing import Callable, Iterator, Tuple, TypeVar
+from typing import (Callable, Iterable, Iterator, Optional, Tuple, TypeVar)
 
 X = TypeVar('X')
 
@@ -25,16 +26,18 @@ def iterate(step: Callable[[X], X], start: X) -> Iterator[X]:
         state = step(state)
 
 
-def last(values: Iterator[X]) -> X:
+def last(values: Iterator[X]) -> Optional[X]:
     '''Return the last value of the given iterator.
 
-    Raises an error if the iterator is empty.
+    Returns None if the iterator is empty.
 
     If the iterator does not end, this function will loop forever.
     '''
-    *_, last_element = values
-    return last_element
-
+    try:
+        *_, last_element = values
+        return last_element
+    except ValueError:
+        return None
 
 def converge(values: Iterator[X], done: Callable[[X, X], bool]) -> Iterator[X]:
     '''Read from an iterator until two consecutive values satisfy the
@@ -59,7 +62,8 @@ def converge(values: Iterator[X], done: Callable[[X, X], bool]) -> Iterator[X]:
         yield b
 
 
-def converged(values: Iterator[X], done: Callable[[X, X], bool]) -> X:
+def converged(values: Iterator[X],
+              done: Callable[[X, X], bool]) -> X:
     '''Return the final value of the given iterator when its values
     converge according to the done function.
 
@@ -67,21 +71,41 @@ def converged(values: Iterator[X], done: Callable[[X, X], bool]) -> X:
 
     Will loop forever if the input iterator doesn't end *or* converge.
     '''
-    return last(converge(values, done))
+    result = last(converge(values, done))
+
+    if result is None:
+        raise ValueError("converged called on an empty iterator")
+
+    return result
 
 
-def cumulative_reward(rewards: Iterator[Tuple[X, float]],
-                      γ: float = 1) -> Iterator[Tuple[X, float]]:
-    '''Given an iterator of rewards, calculate the cumulative reward
-    (optionally with exponential discounting).
+def returns(rewards: Iterable[Tuple[X, float]],
+            γ: float = 1,
+            n_states: int = 1
+            ) -> Iterator[Tuple[X, float]]:
+    '''Given an iterator of states and rewards, calculate the return of
+    the first N states.
 
     Arguments:
-      rewards -- instantaneous rewards
-      γ -- the discount factor (0 < γ ≤ 1), default: 1
-    '''
-    def accum(s_r_acc, s_r):
-        _, r_acc = s_r_acc
-        s, r = s_r
-        return s, r_acc + γ * r
+    rewards -- instantaneous rewards
+    γ -- the discount factor (0 < γ ≤ 1), default: 1
+    n_states -- how many states to calculate the return for, default: 1
 
-    return itertools.accumulate(rewards, accum)
+    '''
+    # Ensure that this logic works correctly whether rewards is an
+    # iterator or an iterable (ie a list).
+    rewards = iter(rewards)
+
+    *initial, (last_s, last_r) = list(itertools.islice(rewards, n_states))
+
+    def accum(r_acc, r):
+        return r_acc + γ * r
+    final_return = functools.reduce(accum, (r for _, r in rewards), 0.0)
+
+    def update(acc, point):
+        _, return_ = acc
+        s, reward = point
+
+        return (s, reward + γ * return_)
+    return itertools.accumulate(reversed(initial), update,
+                                initial=(last_s, last_r + γ * final_return))
