@@ -1,4 +1,4 @@
-# Moment Generating Function and it's Applications
+# Moment Generating Function and it's Applications {#sec:mgf-appendix}
 
 The purpose of this Appendix is to introduce the *Moment Generating Function (MGF)* and demonstrate it's utility in several applications in Applied Mathematics. 
 

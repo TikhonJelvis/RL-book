@@ -1,4 +1,4 @@
-# Introduction to and Overview of Stochastic Calculus Basics
+# Introduction to and Overview of Stochastic Calculus Basics {#sec:stochasticcalculus-appendix}
 
 In this Appendix, we provide a quick introduction to the *Basics of Stochastic Calculus*. To be clear, Stochastic Calculus is a vast topic requiring an entire graduate-level course to develop a good understanding. We shall only be scratching the surface of Stochastic Calculus and even with the very basics of this subject, we will focus more on intuition than rigor, and familiarize you with just the most important results relevant to this book. For an adequate treatment of Stochastic Calculus relevant to Finance, we recommend Steven Shreve's two-volume discourse [Stochastic Calculus for Finance I](https://www.amazon.com/Stochastic-Calculus-Finance-Binomial-Springer/dp/0387249680) and [Stochastic Calculus for Finance II](https://www.amazon.com/Stochastic-Calculus-Finance-II-Continuous-Time/dp/144192311X). For a broader treatment of Stochastic Calculus, we recommend [Bernt Oksendal's book on Stochastic Differential Equations](https://www.amazon.com/Stochastic-Differential-Equations-Introduction-Applications/dp/3540047581). 
 
@@ -100,7 +100,7 @@ We want to define a stochastic process $Y$ from a stochastic process $X$ as foll
 $$Y_t = \int_0^t X_s \cdot dz_s$$
 
 In the interest of focusing on intuition rather than rigor, we skip the technical details of filtrations and adaptive processes that make the above integral sensible. Instead, we simply say that this integral makes sense only if random variable $X_s$ for any time $s$ is disallowed from depending on $z_{s'}$ for any $s' > s$ (i.e., the stochastic process $X$ cannot peek into the future) and that the time-integral
-$\int_0^t X_s^2 \cdot ds$ is finite for all $t \geq 0$. So we shall roll forward with the assumption that the stochastic process $Y$ is defined as the above-specified integral (known as the Ito Integral) of a stochastic process $X$ with respect to Brownian motion. The equivalent notation is:
+$\int_0^t X_s^2 \cdot ds$ is finite for all $t \geq 0$. So we shall roll forward with the assumption that the stochastic process $Y$ is defined as the above-specified integral (known as the *Ito Integral*) of a stochastic process $X$ with respect to Brownian motion. The equivalent notation is:
 
 $$dY_t = X_t \cdot dz_t$$
 
@@ -128,6 +128,8 @@ $$dY_t = \mu_t \cdot dt + \sigma_t \cdot dz_t$$
 
 We require the same conditions for the stochastic process $\sigma$ as we required above for $X$ in the definition of the Ito Integral. Moreover, we require that: $\int_0^t |\mu_s| \cdot ds$ is finite for all $t\geq 0$.
 
+In the context of this Ito process $Y$ described above, we refer to $\mu$ as the *drift* process and we refer to $\sigma$ as the *dispersion* process.
+
 Now, consider a twice-differentiable function $f: [0, T] \times \mathbb{R} \rightarrow \mathbb{R}$. We define a stochastic process whose (random) value at time $t$ is $f(t, Y_t)$. Let's write it's Taylor series with respect to the variables $t$ and $Y_t$.
 
 $$df(t,Y_t) = \pdv{f(t,Y_t)}{t} \cdot dt + \pdv{f(t,Y_t)}{Y_t} \cdot dY_t + \frac 1 2 \cdot \pdv[2]{f(t,Y_t)}{Y_t} \cdot (dY_t)^2 + \ldots$$
@@ -138,8 +140,23 @@ $$df(t, Y_t) = \pdv{f}{t} \cdot dt + \pdv{f}{Y_t} \cdot (\mu_t \cdot dt + \sigma
 
 Next, we use the rules: $(dt)^2 = 0, dt \cdot dz_t = 0, (dz_t)^2 = dt$ to get **Ito's Lemma**:
 
-$$df(t, Y_t) = (\pdv{f}{t} + \mu_t \cdot \pdv{f}{Y_t} + \frac {\sigma_t^2} 2 \cdot \pdv[2]{f}{Y_t}) \cdot dt + \sigma_t \cdot \pdv{f}{Y_t} \cdot dz_t$$
+\begin{equation}
+df(t, Y_t) = (\pdv{f}{t} + \mu_t \cdot \pdv{f}{Y_t} + \frac {\sigma_t^2} 2 \cdot \pdv[2]{f}{Y_t}) \cdot dt + \sigma_t \cdot \pdv{f}{Y_t} \cdot dz_t
+\label{eq:itos-lemma}
+\end{equation}
 
 Ito's Lemma describes the stochastic process of a function ($f$) of an Ito Process ($Y$) in terms of the partial derivatives of $f$, and in terms of the drift ($\mu$) and dispersion ($\sigma$) processes that define $Y$.
 
-As an exercise, generalize Ito's Lemma to the case of a stochastic process that is a function of $n$ generalized Ito Processes (A generalized Ito process is expressed in terms of $m$ correlated brownian motions, rather than in terms of a single brownian motion).
+If we generalize $\bm{Y}$ to be an $n$-dimensional stochastic process (as a column vector) with $\bm{\mu}_t$ as an $n$-dimensional (stochastic) column vector, $\bm{\sigma}_t$ as an $n \times m$ (stochastic) matrix, and $\bm{z}_t$ as an $m$-dimensional vector of $m$ independent standard brownian motions (as follows)
+
+$$d\bm{Y}_t = \bm{\mu}_t \cdot dt + \bm{\sigma}_t \cdot d\bm{z}_t$$
+
+then we get the multi-variate version of Ito's Lemma, as follows:
+
+\begin{equation}
+df(t, \bm{Y}_t) = (\pdv{f}{t} + (\nabla_{\bm{Y}} f)^T \cdot \bm{\mu}_t + \frac 1 2 Tr[\bm{\sigma}_t^T \cdot (\Delta_{\bm{Y}} f) \cdot \bm{\sigma}_t]) \cdot dt + (\nabla_{\bm{Y}} f)^T \cdot \bm{\sigma}_t \cdot d\bm{z}_t
+\label{eq:itos-lemma-multi}
+\end{equation}
+
+where the symbol $\nabla$ represents the gradient of a function, the symbol $\Delta$ represents the [Hessian](https://en.wikipedia.org/wiki/Hessian_matrix) of a function, and the symbol $Tr$ represents the [Trace](https://en.wikipedia.org/wiki/Trace_(linear_algebra)) of a matrix.
+

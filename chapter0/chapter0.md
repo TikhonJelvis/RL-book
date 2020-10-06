@@ -293,9 +293,9 @@ This concluding chapter will enable the reader to put the entire book’s conten
 
 ### Appendices
 
-1. Moment-Generating Functions
-2. Efficient Frontier Mathematics
-3. Stochastic Calculus Overview
-4. Hamilton-Jacobi-Bellman Equation
+1. Moment-Generating Function and it's Applications
+2. Portfolio Theory
+3. Introduction To and Overview Of Stochastic Calculus Basics
+4. The Hamilton-Jacobi-Bellman (HJB) Equation
 5. Fundamental Theorems of Asset-Pricing: No-Arbitrage and Complete Markets
 6. Black-Scholes Theory
