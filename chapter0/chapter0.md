@@ -49,7 +49,10 @@ There is no short-cut to learning Reinforcement Learning or learning the Financi
 
 #### Chapter 0: Overview
 
-* What this book is about and how best to learn this topic
+* Learning Reinforcement Learning
+* What you'll learn from this book
+* Expected Background to read this book
+* Overview of Chapters
 * Decluttering the jargon in Optimal Decisioning under Uncertainty
 * Introduction to the Markov Decision Process (MDP) framework
 * Examples of important real-world problems that fit the MDP framework
@@ -60,7 +63,7 @@ There is no short-cut to learning Reinforcement Learning or learning the Financi
 * Outline of chapters in the book
 * Overview of the 5 Financial Applications
  
-This is an introductory/overview chapter familiarizing the reader with the general space of optimal decisioning under uncertainty, the framework used to tackle such problems, and a high-level overview of the techniques/algorithms (Dynamic Programming and Reinforcement Learning). The reader will also get an overview of the range of business problems that can be targeted and the intuitive difficulty in tackling these problems. Finally, the reader will be familiarized with the flow of chapters (with a study plan for different levels of background and different levels of time investment) and will be introduced to the 5 important Financial applications that will be covered in this book. This chapter starts with an articulation of the approach we take in this book to explain RL: Mathematics/Theory, Intuition, Programming, Financial Applications.
+This is an introductory/overview chapter familiarizing the reader with the general space of optimal decisioning under uncertainty, the framework used to tackle such problems, and a high-level overview of the techniques/algorithms (Dynamic Programming and Reinforcement Learning). The reader will also get an overview of the range of business problems that can be targeted and the intuitive difficulty in tackling these problems. In this chapter, the reader will be familiarized with the flow of chapters and will be introduced to the 5 important Financial applications that will be covered in this book. This chapter starts with an articulation of the approach we take in this book to explain RL, blending Mathematics/Theory, Intuition, Programming, and Applications.
 
 #### Chapter 1: Best Practices in Python for Applied Mathematics
 
@@ -73,52 +76,69 @@ This is an introductory/overview chapter familiarizing the reader with the gener
  
 Given this book’s emphasis on “learning by programming”, this chapter will familiarize the reader with some core techniques in Python that will be very important in implementing models and algorithms. To be clear, this chapter is not a full Python tutorial – the reader is expected to have some background in Python already. It is a tutorial of some key techniques and practices in Python (that many readers might not be accustomed to) that are highly relevant to programming in the broader area of Applied Mathematics. As part of this chapter, the reader will do some exercises with these techniques/practices in Python and will emerge prepared to learn the material of this book with appropriate Python paradigms.
 
-#### Chapter 2: Markov Processes and Markov Reward Processes
+#### Chapter 2: Markov Processes
 
-* The Markov Property (illustrated with a stock price example)
-* Markov Processes (MPs)
+* The concept of State in a Process
+* Understanding Markov Property from Stock Price Examples
+* Formal Definitions for Markov Processes (MP)
+* Stock Price Examples modeled as Markov Processes
 * Finite Markov Processes
-* Markov Reward Processes (MRPs)
+* Simple Inventory Example
+* Stationary Distribution of a Markov Process
+* Formalism of Markov Reward Processes (MRP)
+* Simple Inventory Example as a Markov Reward Process
 * Finite Markov Reward Processes
-* MRP Value Function
-* MRP Bellman Equation
+* Simple Inventory Example as a Finite Markov Reward Process
+* Value Function of a Markov Reward Process
 
 This chapter covers the foundational topics required to understand Markov Decision Processes - The Markov property, Markov Processes (sometimes refered to as Markov Chains), Markov Reward Processes, the concept of Value Function of a Markov Reward Process, and the Bellman Equation for a Markov Reward Process. These concepts are motivated with examples of stock prices and with a simple inventory example that serves first as a Markov Process and then as a Markov Reward Process. There will be a significant amount of programming in this chapter to develop comfort with these concepts.
 
 #### Chapter 3: Markov Decision Processes
 
-* Markov Decision Processes (MDPs)
-* The relationship between MDPs and MRPs
-* MDP Value Function for a Given Policy
-* Bellman Expectation Equations
-* MDP Optimal Value Function and Optimal Policy
-* Bellman Optimality Equations
-* Proof of Existence of Optimal Policy achieving Optimal Value Function
+* Simple Inventory Example: How much to Order?
+* The Difficulty of Sequential Decisioning under Uncertainty
+* Formal Definition of a Markov Decision Process (MDP)
+* Policy
+* [Markov Decision Process, Policy] := Markov Reward Process
+* Simple Inventory Example with Unlimited Capacity
+* Finite Markov Decision Processes
+* Simple Inventory Example as a Finite Markov Decision Process
+* MDP Value Function for a Fixed Policy
+* Optimal Value Function and Optimal Policies
 * Variants and Extensions of MDPs
 
 This chapter lays the foundational theory underpinning RL – the framework for representing problems dealing with optimal decisioning under uncertainty (Markov Decision Process). The reader will learn about the relationship between Markov Decision Processes and Markov Reward Processes, the Value Function (key ingredient in RL algorithms) and the Bellman Equations (a powerful property, which enables solving complex decisioning problems). There will be a considerable amount of programming exercises in this chapter. The heavy investment in this theory together with hands-on programming will put the reader in a highly advantaged position to learn the following chapters in a very clear and speedy manner.
 
-#### Chapter 4: Dynamic Programming (DP)
+#### Chapter 4: Dynamic Programming Algorithms
 
-* DP as a form of Planning
-* Solving the Value Function as a Fixed-Point
-* Policy Evaluation Algorithm
+* Planning versus Learning
+* Usage of the term **Dynamic Programming** (DP)
+* Solving the Value Function as a **Fixed-Point**
+* Bellman Policy Operator and Policy Evaluation Algorithm
+* Greedy Policy
 * Policy Improvement
-* Policy Iteration (PI) Algorithm
-* Value Iteration (VI) Algorithm
-* Optimal Policy From Optimal Value Function
-* Generalized Policy Iteration (GPI)
+* Policy Iteration Algorithm
+* Bellman Optimality Operator and Value Iteration Algorithm
+* Optimal Policy from Optimal Value Function
+* Revisiting the Simple Inventory Example
+* Generalized Policy Iteration
 * Asynchronous Dynamic Programming
-* Backward Induction
+* Finite-Horizon Dynamic Programming: Backward Induction
+* Dynamic Pricing For End-of-Life/End-of-Season of a Product
+* Extensions to Non-Tabular Algorithms
 
 This chapter covers the Planning technique of Dynamic Programming (DP), which is an important class of foundational algorithms that can be an alternative to RL if the business problem is not too large or too complex. Also, learning these algorithms will provide important foundations to the reader to be able to understand subsequent RL algorithms more deeply. The reader will learn about several important DP algorithms and at the end of the chapter, the reader will learn about why DP gets difficult in practice which draws the reader to the motivation behind RL. Again, we will do plenty of DP algorithms, which are quick to implement and will aid considerably in internalizing the concepts. Finally, we emphasize a special algorithm - Backward Induction - for solving finite-horizon Markov Decision Processes, which is the setting for the financial applications we cover in this book.
 
 #### Chapter 5: Function Approximation and Approximate Dynamic Programming
 
-* Curse of Dimensionality & Function Approximation as a Cure
+* Function Approximation
 * Linear Function Approximation
-* Deep Neural Networks
-* Tabular as a special case of Linear Function Approximation
+* Neural Network Function Approximation
+* Tabular as a form of **FunctionApprox**
+* Approximate Policy Evaluation
+* Approximate Value Iteration
+* Finite-Horizon Approximate Policy Evaluation
+* Finite-Horizon Approximate Value Iteration
 * Approximate Dynamic Programming (ADP)
 
 The Dynamic Programming algorithms covered in the previous chapter suffer from the two so-called curses: Curse of Dimensionality and Curse of Modeling. These curses can be cured with a combination of sampling and function approximation. The next section covers the sampling cure (using Reinforcement Learning). This chapter covers the topic of function approximation and shows how an intermediate cure - Approximate Dynamic Programming (function approximation without sampling) - is quite viable and can be suitable for some problems.
@@ -299,3 +319,13 @@ This concluding chapter will enable the reader to put the entire book’s conten
 4. The Hamilton-Jacobi-Bellman (HJB) Equation
 5. Fundamental Theorems of Asset-Pricing: No-Arbitrage and Complete Markets
 6. Black-Scholes Theory
+
+## Decluttering the jargon in Optimal Decisioning under Uncertainty
+## Introduction to the Markov Decision Process (MDP) framework
+## Examples of important real-world problems that fit the MDP framework
+## The inherent difficulty in solving MDPs
+## Overview of Value Function, Bellman Equation, Dynamic Programming and Reinforcement Learning
+## Why is RL useful/interesting to learn about?
+## Many faces of RL and where it lies in the classification of ML
+## Outline of chapters in the book
+## Overview of the 5 Financial Applications
