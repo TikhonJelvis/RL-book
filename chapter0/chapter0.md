@@ -158,14 +158,15 @@ The Dynamic Programming algorithms covered in the previous chapter suffer from t
 
 Having learnt DP algorithms and before learning RL algorithms, the reader will learn about the 5 financial applications. For each of the financial applications, we will go over the core financial background and concepts within these applications, then learn how to solve them with DP, then introduce real-world considerations and finally explain why tackling those considerations requires RL. Later, we will revisit these financial problems when we cover RL algorithms (in the 2nd half of the book). But before we get into each of the 5 financial applications, readers need to get familiar with the key economics concept of risk-aversion that applies to 4 of the 5 financial applications. So this chapter is dedicated to risk-aversion and the related concepts of risk-premium and Utility functions. As ever, we will write plenty of code in this chapter to understand these concepts thoroughly.
 
-#### Chapter 7: Dynamic Asset Allocation (Portfolio Optimization) 
+#### Chapter 7: Dynamic Asset Allocation and Consumption
 
-* Merton’s Portfolio problem and solution
-* Discrete Portfolio Optimization example
-* Real-world considerations
+* Motivating with Optimization of Personal Finance
+* Merton’s Portfolio Problem and Solution
+* Discrete Portfolio Optimization Example
+* Real-world Considerations
 * References
 
-This chapter cover the first financial application – dynamic asset allocation (part of the larger space of Portfolio Optimization). This problem is best understood in the context of Merton’s landmark paper in 1969 where he stated and solved this problem. This chapter is mainly focused on the mathematical derivation of Merton’s solution of this problem with Dynamic Programming. Through this derivation, the reader will learn about the broader result called Hamilton-Jacobi-Bellman (HJB) equation, which will re-appear in the Market-Making problem in Chapter 12. As ever, we will do some programming exercises. In particular, the reader will learn how to solve Dynamic Asset Allocation in a simple setting with Backward Induction (a DP algorithm we learnt in Chapter 4). Finally, the reader will learn about Dynamic Asset Allocation in practice, where Merton’s frictionless setting is replaced by several real-world frictions, which will require us to move to RL. We will revisit this problem after coverage of RL algorithms in the second half of the book.
+This chapter cover the first financial application – dynamic asset allocation and consumption. This problem is best understood in the context of Merton’s landmark paper in 1969 where he stated and solved this problem. This chapter is mainly focused on the mathematical derivation of Merton’s solution of this problem with Dynamic Programming. Through this derivation, the reader will learn about the broader result called Hamilton-Jacobi-Bellman (HJB) equation, which will re-appear in the Market-Making problem in Chapter 12. As ever, we will do some programming exercises. In particular, the reader will learn how to solve Dynamic Asset Allocation in a simple setting with Backward Induction (a DP algorithm we learnt in Chapter 4). Finally, the reader will learn about Dynamic Asset Allocation in practice, where Merton’s frictionless setting is replaced by several real-world frictions, which will require us to move to RL. We will revisit this problem after coverage of RL algorithms in the second half of the book.
 
 #### Chapter 8: Fundamental Theorems of Asset Pricing: No-Arbitrage and Complete Markets
 
