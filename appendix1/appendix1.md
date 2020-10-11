@@ -46,13 +46,13 @@ This means the MGF of $x$ can be calculated as $e^{\alpha_0 t}$ times the produc
 
 Here we assume that the random variables $x$ follows a normal distribution. Let $x \sim \mathcal{N}(\mu, \sigma^2)$.
 
-\begin{align*}
-f_{x\sim \mathcal{N}(\mu, \sigma^2)}(t) & = \mathbb{E}_{x\sim \mathcal{N}(\mu, \sigma^2)}[e^{tx}] \\
-& = \int_{-\infty}^{+\infty} \frac {1} {\sqrt{2\pi} \sigma} \cdot e^{-\frac {(x - \mu)^2} {2\sigma^2}} \cdot e^{tx} \cdot dx \\
-& = \int_{-\infty}^{+\infty} \frac {1} {\sqrt{2\pi} \sigma} \cdot e^{-\frac {(x-(\mu +t\sigma^2))^2} {2\sigma^2}} \cdot e^{\mu t + \frac {\sigma^2 t^2} {2}} \cdot dx \\
-& = e^{\mu t + \frac {\sigma^2 t^2} 2} \cdot \mathbb{E}_{x\sim \mathcal{N}(\mu + t\sigma^2, \sigma^2)}[1] \\
-& = e^{\mu t + \frac {\sigma^2 t^2} 2}
-\end{align*}
+\begin{align}
+f_{x\sim \mathcal{N}(\mu, \sigma^2)}(t) & = \mathbb{E}_{x\sim \mathcal{N}(\mu, \sigma^2)}[e^{tx}] \nonumber \\
+& = \int_{-\infty}^{+\infty} \frac {1} {\sqrt{2\pi} \sigma} \cdot e^{-\frac {(x - \mu)^2} {2\sigma^2}} \cdot e^{tx} \cdot dx \nonumber \\
+& = \int_{-\infty}^{+\infty} \frac {1} {\sqrt{2\pi} \sigma} \cdot e^{-\frac {(x-(\mu +t\sigma^2))^2} {2\sigma^2}} \cdot e^{\mu t + \frac {\sigma^2 t^2} {2}} \cdot dx \nonumber \\
+& = e^{\mu t + \frac {\sigma^2 t^2} 2} \cdot \mathbb{E}_{x\sim \mathcal{N}(\mu + t\sigma^2, \sigma^2)}[1] \nonumber \\
+& = e^{\mu t + \frac {\sigma^2 t^2} 2} \label{eq:normmgf}
+\end{align}
 
 \begin{equation}
 f_{x\sim \mathcal{N}(\mu, \sigma^2)}'(t) = \mathbb{E}_{x\sim \mathcal{N}(\mu, \sigma^2)}[x \cdot e^{tx}] = (\mu + \sigma^2t)\cdot e^{\mu t + \frac {\sigma^2 t^2} 2} \label{eq:normmgfderiv}
