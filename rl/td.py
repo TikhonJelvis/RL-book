@@ -4,7 +4,7 @@ Markov Decision Processes.
 '''
 
 import itertools
-from typing import Callable, Iterator, TypeVar
+from typing import Iterator, TypeVar
 
 from rl.distribution import Constant, Distribution
 from rl.function_approx import FunctionApprox
@@ -15,11 +15,10 @@ S = TypeVar('S')
 
 def td_0(
         mrp: MarkovRewardProcess[S],
-        max_steps: int,
         states: Distribution[S],
         approx_0: FunctionApprox[S],
-        α: Callable[[int], float] = lambda _: 1,
-        γ: float = 1
+        γ: float,
+        max_steps: int
 ) -> Iterator[FunctionApprox[S]]:
     '''Evaluate an MRP using TD(0), simulating episodes of the given
     number of steps.
@@ -37,7 +36,6 @@ def td_0(
       γ -- discount rate (0 < γ ≤ 1), default: 1
 
     '''
-    n = 0
     v = approx_0
 
     while True:
@@ -46,9 +44,11 @@ def td_0(
             itertools.islice(mrp.simulate_reward(Constant(start)), max_steps)
 
         state = start
+        updates = []
         for next_state, reward in episode:
             diff = v.evaluate([next_state]) - v.evaluate([state])
-            v = v.update([(state, α(n) * (reward + γ * diff))])
-            n += 1
+            updates += [(state, reward + γ * diff)]
+            state = next_state
 
+        v = v.update(updates)
         yield v
