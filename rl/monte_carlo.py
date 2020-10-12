@@ -3,12 +3,11 @@ Markov Decision Processes.
 
 '''
 
-from collections import defaultdict
 import math
 import itertools
-from typing import Callable, Dict, Iterator, TypeVar
+from typing import Iterator, TypeVar
 
-from rl.distribution import Constant, Distribution
+from rl.distribution import Distribution
 from rl.function_approx import FunctionApprox
 import rl.iterate as iterate
 from rl.markov_decision_process import MarkovRewardProcess
@@ -43,10 +42,7 @@ def evaluate_mrp(
     for trace in mrp.reward_traces(states):
         if γ < 1:
             stop_at = max_steps + round(math.log(tolerance) / math.log(γ))
-            episode =\
-                itertools.islice(mrp.simulate_reward(states), stop_at)
-        else:
-            episode = mrp.simulate_reward(states)
+            trace = itertools.islice(trace, stop_at)
 
-        v = v.update(list(iterate.returns(episode, γ, n_states=max_steps)))
+        v = v.update(list(iterate.returns(trace, γ, n_states=max_steps)))
         yield v

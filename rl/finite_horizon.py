@@ -34,7 +34,6 @@ RewardOutcome = FiniteDistribution[Tuple[WithTime[S], float]]
 
 
 # Finite-horizon Markov reward processes
-
 def finite_horizon_MRP(
     process: FiniteMarkovRewardProcess[S],
     limit: int
