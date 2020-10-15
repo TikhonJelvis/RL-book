@@ -201,7 +201,7 @@ $$
 
 $$x_{CE} = e^{\mu + \frac {\sigma^2} 2 (1 - \gamma)}$$
 
-$$\mbox{Relative Risk Premium } \pi_R = 1 - \frac {x_{CE}} {\bar{x}} =  1 - e^{-\frac {\sigma^2 \gamma} 2}$$
+$$\text{Relative Risk Premium } \pi_R = 1 - \frac {x_{CE}} {\bar{x}} =  1 - e^{-\frac {\sigma^2 \gamma} 2}$$
 
 For optimization problems where we need to choose across probability distributions where $\sigma^2$ is a function of $\mu$, we seek the distribution that maximizes $\log(x_{CE}) = \mu + \frac {\sigma^2} 2 (1 - \gamma)$. Just like in the case of CARA, this clearly illustrates the concept of "risk-adjusted-return" because $\mu + \frac {\sigma^2} 2$ serves as the "return" and the risk-adjustment $\frac {\gamma \sigma^2} 2$ is proportional to the product of risk-aversion $\gamma$ and risk (i.e., variance in outcomes) $\sigma^2$.
 
@@ -218,8 +218,21 @@ $$dR_t = r \cdot R_t \cdot dt$$
 $$R_0 = 1$$
 where $r \in \mathbb{R}_{\geq 0}$ is a given constant.
 
-We are given \$1 to invest over a period of 1 year. Our task is to determine the constant fraction $\pi \in \mathbb{R}$ of wealth $W_t$ at any time $t$, to maintain in the risky asset so as to maximize the Expected Utility of Consumption of Wealth at the end of 1 year (i.e., of Wealth $W_1$). Note that $W_0 = 1$. The key feature of this problem is that we are required to continuously rebalance the portfolio to maintain the same constant fraction $\pi$ of investment in the risky asset. Since wealth is $W_t$ at time $t$, the investment in the risky asset at time $t$ would need to be $\pi \cdot W_t$ and the investment in the riskless asset at time $t$ would need to be $(1 - \pi)\cdot W_t$. So, the process for wealth $W_t$ is given by:
+We are given \$1 to invest over a period of 1 year. Our task is to determine the constant fraction $\pi \in \mathbb{R}$ of portfolio wealth $W_t$ at any time $t$ to maintain in the risky asset so as to maximize the Expected Utility of Consumption of Wealth at the end of 1 year (i.e., of Portfolio Wealth $W_1$). Without loss of generality, assume $W_0 = 1$. The key feature of this problem is that we are required to continuously rebalance the portfolio to maintain the same constant fraction $\pi$ of investment in the risky asset. Since $W_t$ is the portfolio wealth at time $t$, the value of the investment in the risky asset at time $t$ would need to be $\pi \cdot W_t$ and the value of the investment in the riskless asset at time $t$ would need to be $(1 - \pi)\cdot W_t$. 
+
+Therefore, the change in the value of the risky asset investment from time $t$ to time $t + dt$ is:
+
+$$\mu \cdot \pi \cdot W_t \cdot dt + \sigma \cdot \pi \cdot W_t \cdot dz_t$$
+
+Likewise, the change in the value of the riskless asset investment from time $t$ to time $t + dt$ is:
+
+$$r \cdot (1 - \pi) \cdot W_t \cdot dt$$
+
+Therefore, the infinitesimal change in portfolio wealth $dW_t$ from time $t$ to time $t + dt$ is given by:
+
 $$dW_t = (r + \pi (\mu - r)) \cdot W_t \cdot dt + \pi \cdot \sigma \cdot W_t \cdot dz_t$$
+
+Note that this is an Ito process defining the stochastic evolution of portfolio wealth.
 
 We assume CRRA Utility with $\gamma \neq 1$, so:
 $$U(W) = \frac {W^{1-\gamma} - 1} {1-\gamma}$$
