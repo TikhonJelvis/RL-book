@@ -160,7 +160,7 @@ Having learnt DP algorithms and before learning RL algorithms, the reader will l
 
 #### Chapter 7: Dynamic Asset Allocation and Consumption
 
-* Motivating with Optimization of Personal Finance
+* Optimization of Personal Finance
 * Merton’s Portfolio Problem and Solution
 * Discrete Portfolio Optimization Example
 * Real-world Considerations
