@@ -90,11 +90,8 @@ def returns(
     Returns transitions with returns instead of instantaneous rewards.
 
     '''
-    # Ensure that this logic works correctly whether rewards is an
-    # iterator or an iterable (ie a list).
-    trace = iter(trace)
-
-    *transitions, last = list(itertools.islice(trace, n_states))
+    trace = list(itertools.islice(iter(trace), n_states))
+    *transitions, last = trace
 
     def accum(r_acc, r):
         return r_acc + γ * r
