@@ -2,7 +2,7 @@
 
 if [[ $# -eq 0 ]]
 then
-    args=(chapter*/chapter*.md)
+    args=(chapter*/chapter*.md appendix*/appendix*.md)
 else
     args="$@"
 fi

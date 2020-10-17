@@ -1,5 +1,4 @@
-
-# Markov Processes {#sec:mp}
+# Markov Processes {#sec:mrp-chapter}
 
 This book is about "Sequential Decisioning under Sequential Uncertainty". In this chapter, we will ignore the "sequential decisioning" aspect and focus just on the "sequential uncertainty" aspect.
 
@@ -286,7 +285,7 @@ When we cover some of the financial applications later in this book, we will fin
 
 Now we are ready to write some code for Markov Processes, where we will illustrate how to specify that certain states are terminal states.
 
-We create an abstract class `MarkovProcess` parameterized by a generic type (`TypeVar('S')`) representing a generic state space `Generic[S]`. The abstract class has an `@abstractmethod` called `transition` that is meant to specify the transition probability distribution of next states, given a current state. Note the return type of `transition`. It's `Optional[Distribution[S]]`. This means it's meant to return `None` if there is no next state (i.e., when you want to specify that `state` is a terminal state) or return `Distribution[S]` to specify the probability distribution of next states when `state` is a non-terminal state. We also have a convenience method `is_terminal` to query if a given state is terminal or not. We also have a method `simulate` that enables us to generate a sequence of sampled states starting from a specified `start_state_distribution: Distribution[S]` (from which we sample the starting state). The sampling of next states relies on the implementation of the `sample()` method in the `Distribution[S]` object produced by the `transition` method (note that the [`Distribution` class hierarachy](https://github.com/TikhonJelvis/RL-book/blob/master/rl/distribution.py) was covered in the previous chapter). This is the full body of the abstract class `MarkovProcess`:
+We create an abstract class `MarkovProcess` parameterized by a generic type (`TypeVar('S')`) representing a generic state space `Generic[S]`. The abstract class has an `@abstractmethod` called `transition` that is meant to specify the transition probability distribution of next states, given a current state. Note the return type of `transition`. It's `Optional[Distribution[S]]`. This means it's meant to return `None` if there is no next state (i.e., when you want to specify that `state` is a terminal state) or return `Distribution[S]` to specify the probability distribution of next states when `state` is a non-terminal state. We also have a convenience method `is_terminal` to query if a given state is terminal or not. We also have a method `simulate` that enables us to generate a sequence of sampled states starting from a specified `start_state_distribution: Distribution[S]` (from which we sample the starting state). The sampling of next states relies on the implementation of the `sample()` method in the `Distribution[S]` object produced by the `transition` method (note that the [`Distribution` class hierarachy](https://github.com/TikhonJelvis/RL-book/blob/master/rl/distribution.py) was covered in Chapter [-@sec:python-chapter]). This is the full body of the abstract class `MarkovProcess`:
 
 ```python
 S = TypeVar('S')
@@ -382,7 +381,7 @@ Now let us consider Markov Processes with a finite state space. So we can repres
 $$\mathcal{P} : \mathcal{N} \times \mathcal{S} \rightarrow [0, 1]$$
 However, we often find that this matrix can be sparse since one often transitions from a given state to just a few set of states. So we'd like a sparse representation and we can accomplish this by conceptualizing $\mathcal{P}$ in an [equivalent curried form](https://en.wikipedia.org/wiki/Currying) as follows:
 $$\mathcal{N} \rightarrow (\mathcal{S} \rightarrow [0, 1])$$
-With this curried view, we can represent the outer $\rightarrow$ as a map (in Python, as a dictionary of type `Mapping`) whose keys are the states in $\mathcal{S}$. A terminal-state key will map to `None` (since there are no transitions from a terminal state) and a non-terminal-state key maps to a `FiniteDistribution[S]` type that represents the inner $\rightarrow$, i.e. a finite probability distribution of the next states transitioned to from the non-terminal state (note: `FiniteDistribution` type was covered in the previous chapter). Let us create an alias for this `Mapping` (called `Transition`) since we will use this data structure often:
+With this curried view, we can represent the outer $\rightarrow$ as a map (in Python, as a dictionary of type `Mapping`) whose keys are the states in $\mathcal{S}$. A terminal-state key will map to `None` (since there are no transitions from a terminal state) and a non-terminal-state key maps to a `FiniteDistribution[S]` type that represents the inner $\rightarrow$, i.e. a finite probability distribution of the next states transitioned to from the non-terminal state (note: `FiniteDistribution` type was covered in Chapter [-@sec:python-chapter]). Let us create an alias for this `Mapping` (called `Transition`) since we will use this data structure often:
 
 ```python
 Transition = Mapping[S, Optional[FiniteDistribution[S]]]
@@ -714,7 +713,7 @@ $$\mathcal{R}: \mathcal{N} \rightarrow \mathbb{R}$$
 is defined as:
 $$\mathcal{R}(s) = \mathbb{E}[R_{t+1}|S_t=s] = \sum_{s' \in \mathcal{S}} \mathcal{P}(s,s') \cdot \mathcal{R}_T(s,s') = \sum_{s'\in \mathcal{S}} \sum_{r\in\mathbb{R}} \mathcal{P}_R(s,r,s') \cdot r$$
 
-We've created a bit of notational clutter here. So it would be a good idea for you to take a few minutes to pause, reflect and internalize the differences between $\mathcal{P}_R$, $\mathcal{P}$ (of the implicit Markov Process), $\mathcal{R}_T$ and $\mathcal{R}$. This notation will analogously re-appear when we learn about Markov Decision Processes in the next chapter. Moreover, this notation will be used considerably in the rest of the book, so it pays to get comfortable with their semantics.
+We've created a bit of notational clutter here. So it would be a good idea for you to take a few minutes to pause, reflect and internalize the differences between $\mathcal{P}_R$, $\mathcal{P}$ (of the implicit Markov Process), $\mathcal{R}_T$ and $\mathcal{R}$. This notation will analogously re-appear when we learn about Markov Decision Processes in Chapter [-@sec:mdp-chapter]. Moreover, this notation will be used considerably in the rest of the book, so it pays to get comfortable with their semantics.
 
 ## Simple Inventory Example as a Markov Reward Process
 
@@ -1018,4 +1017,4 @@ This computation for the Value Function works if the state space is not too larg
 Before we end this chapter, we'd like to highlight the two highly important concepts we learnt in this chapter:
 
 * Markov Property: A concept that enables us to reason effectively and compute efficiently in practical systems involving sequential uncertainty
-* Bellman Equation: A mathematical insight that enables us to express the Value Function recursively - this equation (and its Optimality version covered in the next chapter) is in fact the core idea within all Dynamic Programming and Reinforcement Learning algorithms.
+* Bellman Equation: A mathematical insight that enables us to express the Value Function recursively - this equation (and its Optimality version covered in Chapter [-@sec:mdp-chapter]) is in fact the core idea within all Dynamic Programming and Reinforcement Learning algorithms.
