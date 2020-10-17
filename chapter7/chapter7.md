@@ -295,26 +295,26 @@ Figure \ref{fig:merton-solution-wealth-trajectory} shows the time-trajectory of 
 
 ## A Discrete-Time Asset-Allocation Example
 
-In this section, we cover a discrete-time version of the problem that lends itself to analytical tractability, much like Merton's Portfolio Problem in continuous-time. We are given wealth $W_0$ at time 0. At each of discrete time steps labeled $t = 0, 1, \ldots, T$, we are allowed to allocate the current wealth $W_t$ in a risky asset and a riskless asset in an unconstrained manner with no transaction costs. The risky asset yields a random rate of return $\sim N(\mu, \sigma^2)$ over each single time step. The riskless asset yields a rate of return denoted by $r$ over each single time step.  We assume that there is no consumption of wealth at any time $t < T$, and that we liquidate and consume the wealth $W_T$ at time $t$. So our goal is simply to maximize the Utility of Wealth at the final time step $t=T$ by dynamically allocating $x_t$ in the risky asset and the remaining $W_t - x_t$ in the riskless asset for each $t = 0, 1, \ldots, T-1$. Assume the single-time-step discount factor is $\gamma$ and that the Utility of Wealth at the final time step $t=T$ is given by the following CARA function:
+In this section, we cover a discrete-time version of the problem that lends itself to analytical tractability, much like Merton's Portfolio Problem in continuous-time. We are given wealth $W_0$ at time 0. At each of discrete time steps labeled $t = 0, 1, \ldots, T$, we are allowed to allocate the current wealth $W_t$ in a risky asset and a riskless asset in an unconstrained manner with no transaction costs. The risky asset yields a random return $\sim N(\mu, \sigma^2)$ over each single time step. The riskless asset yields a constant return denoted by $r$ over each single time step.  We assume that there is no consumption of wealth at any time $t < T$, and that we liquidate and consume the wealth $W_T$ at time $t$. So our goal is simply to maximize the Utility of Wealth at the final time step $t=T$ by dynamically allocating $x_t$ in the risky asset and the remaining $W_t - x_t$ in the riskless asset for each $t = 0, 1, \ldots, T-1$. Assume the single-time-step discount factor is $\gamma$ and that the Utility of Wealth at the final time step $t=T$ is given by the following CARA function:
 
-$$U(W_T) = - \frac {e^{-a W_T}} {a} \text{ for some fixed } a \neq 0$$
+$$U(W_T) = \frac {1 - e^{-a W_T}} {a} \text{ for some fixed } a \neq 0$$
 
 We formulate this problem as a *Continuous States* and *Continuous Actions* MDP by specifying it's *State Transitions*, *Rewards* and *Discount Factor* precisely. The problem then is to find the Optimal Policy.
 
-*State* will be represented as $(t, W_t)$. Our decision (*Action*) at any time step $0 \leq t < T$ is represented by the quantity of investment in the risky asset ($=x_t$). Hence, the quantity of investment in the riskless asset at time $t$ will be $W_t - x_t$. We denote the policy as $\pi$, and express the policy function as $\pi(t, W_t) = x_t$ (rather than the more precise expression $\pi((t, W_t)) = x_t$). Denote the random variable for the return of the risky asset as $R \sim N(\mu, \sigma^2)$ and the excess return of the risky asset (over riskless return $r$) as $S = R - r$. So,
+*State* will be represented as $(t, W_t)$. Our decision (*Action*) at any time step $0 \leq t < T$ is represented by the quantity of investment in the risky asset ($=x_t$). Hence, the quantity of investment in the riskless asset at time $t$ will be $W_t - x_t$. We denote the policy as $\pi$, and express the policy function as $\pi(t, W_t) = x_t$ (rather than the more precise expression $\pi((t, W_t)) = x_t$). Denote the random variable for the single-time-step return of the risky asset at time $t$ as $S_t \sim N(\mu, \sigma^2)$. So,
 
-$$W_{t+1} = x_t \cdot (1 + R) + (W_t - x_t) \cdot (1 + r) = x_t \cdot S + W_t \cdot (1 + r)$$
+$$W_{t+1} = x_t \cdot (1 + S_t) + (W_t - x_t) \cdot (1 + r) = x_t \cdot (S_t - r) + W_t \cdot (1 + r)$$
 
 The *Reward* is 0 for all $t = 0, 1, \ldots, T-1$ and the *Reward* at the terminal time step $t=T$ is:
 
-$$U(W_T) = - \frac {e^{-a W_T}} {a}$$
+$$U(W_T) = \frac {1 - e^{-a W_T}} {a}$$
 
 The MDP discount factor is $\gamma$.
 
 As always, we strive to find the Optimal Value Function. The first step in determining the Optimal Value Function is to write the Bellman Optimality Equation. We denote the Value Function for a given policy as:
-$$V^{\pi}(t, W_t) = \mathbb{E}_{\pi}[\gamma^{T-t} \cdot U(W_T) | (t, W_t)] = \mathbb{E}_{\pi}[- \gamma^{T-t} \cdot \frac {e^{-a W_T}} a | (t, W_t)]$$
+$$V^{\pi}(t, W_t) = \mathbb{E}_{\pi}[\gamma^{T-t} \cdot U(W_T) | (t, W_t)] = \mathbb{E}_{\pi}[\gamma^{T-t} \cdot \frac {e^{1 - a W_T}} a | (t, W_t)]$$
 We denote the Optimal Value Function as:
-$$V^*(t, W_t) = \max_{\pi} V^{\pi}(t, W_t) = \max_{\pi} \{ \mathbb{E}_{\pi}[-\gamma^{T-t} \cdot \frac {e^{-a W_T}} a | (t, W_t)] \}$$
+$$V^*(t, W_t) = \max_{\pi} V^{\pi}(t, W_t) = \max_{\pi} \{ \mathbb{E}_{\pi}[\gamma^{T-t} \cdot \frac {1 - e^{-a W_T}} a | (t, W_t)] \}$$
 
 The Bellman Optimality Equation is:
 
@@ -322,10 +322,10 @@ $$V^*(t, W_t) = \max_{x_t} \{\mathbb{E}_{R \sim N(\mu, \sigma^2)}[\gamma \cdot V
 
 We make an educated guess for the functional form for the Optimal Value Function as:
 
-$$V^*(t, W_t) = -b(t) \cdot e^{-c(t) \cdot W_t}$$
+$$V^*(t, W_t) = a(t) + b(t) \cdot e^{c(t) \cdot W_t}$$
 where $b(\cdot), c(\cdot)$ are unknowns functions of only $t$. Next, we express the Bellman Optimality Equation using this functional form for the Optimal Value Function:
 
-$$V^*(t, W_t) = \max_{x_t} \{ \mathbb{E}_{R \sim N(\mu, \sigma^2)} [- \gamma \cdot b(t+1) \cdot e^{-c(t+1) \cdot (x_t \cdot S + W_t \cdot (1+r))}] \}$$
+$$V^*(t, W_t) = \max_{x_t} \{ \mathbb{E}_{S_t \sim N(\mu, \sigma^2)} [\gamma \cdot (a(t+1) + b(t+1) \cdot e^{c(t+1) \cdot (x_t \cdot (S_t - r) + W_t \cdot (1+r))}] \}$$
 
 \begin{equation}
 \Rightarrow V^*(t, W_t) = \max_{x_t} \{ - \gamma \cdot b(t+1) \cdot e^{-c(t+1) \cdot W_t \cdot (1+r) - c(t+1) \cdot x_t \cdot (\mu - r) + \frac {\sigma^2} {2} \cdot c^2(t+1) \cdot x_t^2} \} \label{eq:bellman_optimality-asset-alloc-discrete}
