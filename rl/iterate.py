@@ -39,6 +39,7 @@ def last(values: Iterator[X]) -> Optional[X]:
     except ValueError:
         return None
 
+
 def converge(values: Iterator[X], done: Callable[[X, X], bool]) -> Iterator[X]:
     '''Read from an iterator until two consecutive values satisfy the
     given done function or the input iterator ends.
@@ -79,10 +80,12 @@ def converged(values: Iterator[X],
     return result
 
 
-def returns(rewards: Iterable[Tuple[X, float]],
-            γ: float = 1,
-            n_states: int = 1
-            ) -> Iterator[Tuple[X, float]]:
+# TODO: Unify with mdp.returns (using a protocol)?
+def returns(
+        rewards: Iterable[Tuple[X, float]],
+        γ: float = 1,
+        n_states: int = 1
+) -> Iterator[Tuple[X, float]]:
     '''Given an iterator of states and rewards, calculate the return of
     the first N states.
 

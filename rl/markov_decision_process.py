@@ -1,7 +1,12 @@
 from abc import ABC, abstractmethod
 from collections import defaultdict
+import dataclasses
+from dataclasses import dataclass
+import functools
+import itertools
 from typing import (DefaultDict, Dict, Iterable, Generic, Mapping,
                     Tuple, Sequence, TypeVar, Optional)
+
 from rl.distribution import (Constant, Categorical, Choose, Distribution,
                              FiniteDistribution, SampledDistribution)
 from rl.markov_process import (
@@ -61,6 +66,53 @@ class FinitePolicy(Policy[S, A]):
         return self.policy_map.keys()
 
 
+@dataclass
+class Transition(Generic[S, A]):
+    state: S
+    action: A
+    next_state: S
+    reward: float
+
+
+def returns(
+        trace: Iterable[Transition[S, A]],
+        γ: float = 1,
+        n_states: int = 1
+) -> Iterable[Transition[S, A]]:
+    '''Given an iterator of transitions, calculate the return for each
+    subsequent transition.
+
+    Arguments:
+    rewards -- transitions with instantaneous rewards
+    γ -- the discount factor (0 < γ ≤ 1), default: 1
+    n_states -- how many states to calculate the return for, default: 1
+
+    Returns transitions with returns instead of instantaneous rewards.
+
+    '''
+    # Ensure that this logic works correctly whether rewards is an
+    # iterator or an iterable (ie a list).
+    trace = iter(trace)
+
+    *transitions, last = list(itertools.islice(trace, n_states))
+
+    def accum(r_acc, r):
+        return r_acc + γ * r
+    final_return = functools.reduce(accum, (t.reward for t in trace), 0.0)
+
+    def update(
+            acc: Transition[S, A],
+            transition: Transition[S, A]
+    ) -> Transition[S, A]:
+        return dataclasses.replace(transition, reward=acc.reward)
+
+    initial =\
+        dataclasses.replace(last, reward=last.reward + γ * final_return)
+    return itertools.accumulate(
+        reversed(transitions), update, initial=initial
+    )
+
+
 class MarkovDecisionProcess(ABC, Generic[S, A]):
     @abstractmethod
     def apply_policy(self, policy: Policy[S, A]) -> MarkovRewardProcess[S]:
@@ -76,6 +128,44 @@ class MarkovDecisionProcess(ABC, Generic[S, A]):
         action: A
     ) -> Optional[Distribution[Tuple[S, float]]]:
         return self.apply_policy(Always(action)).transition_reward(state)
+
+    def simulate_actions(
+            self,
+            start_states: Distribution[S],
+            policy: Policy[S, A]
+    ) -> Iterable[Transition[S, A]]:
+        '''Simulate this MDP with the given policy, yielding the actions taken
+        at each step.
+
+        '''
+        state: S = start_states.sample()
+        reward: float = 0
+
+        while True:
+            action_distribution = policy.act(state)
+            if action_distribution is None:
+                return
+
+            action = action_distribution.sample()
+            next_distribution = self.step(state, action)
+            if next_distribution is None:
+                return
+
+            next_state, reward = next_distribution.sample()
+            yield Transition(state, action, next_state, reward)
+            state = next_state
+
+    def action_traces(
+            self,
+            start_states: Distribution[S],
+            policy: Policy[S, A]
+    ) -> Iterable[Iterable[Transition[S, A]]]:
+        '''Yield an infinite number of traces as returned by
+        simulate_actions.
+
+        '''
+        while True:
+            yield self.simulate_actions(start_states, policy)
 
 
 ActionMapping = Mapping[A, StateReward[S]]
@@ -124,15 +214,15 @@ class FiniteMarkovDecisionProcess(MarkovDecisionProcess[S, A]):
 
                 if action_map is None:
                     return None
-                else:
-                    def next_pair(action_map=action_map):
-                        action: A = policy.act(state).sample()
-                        return action_map[action].sample()
 
-                    return SampledDistribution(next_pair)
+                def next_pair(action_map=action_map):
+                    action: A = policy.act(state).sample()
+                    return action_map[action].sample()
+
+                return SampledDistribution(next_pair)
 
             def sample_states(self) -> Distribution[S]:
-                return Choose(set(self.mapping.keys()))
+                return Choose(set(mapping.keys()))
 
         return Process()
 
