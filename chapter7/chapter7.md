@@ -16,7 +16,7 @@ Personal Finances can be very simple for some people (earn a monthly salary, spe
 * *Consuming money*: The word "consume" refers to ""spending". Note that there is some *consumption of money* on a periodic basis that is required to satisfy basic needs like shelter, food and clothing. The rent or mortgage you pay on your house is one example - it may be a fixed amount every month, but if your mortgage rate is a floating rate, it is subject to variation. Moreover, if you move to a new house, the rent or mortgage can be different. The money you spend on food and clothing also constitutes *consuming money*. This can often be fairly stable from one month to the next, but if you have a newborn baby, it might require additional expenses of the baby's food, clothing and perhaps also toys. Then there is *consumption of money* that are beyond the "necessities" - things like eating out at a fancy restaurant on the weekend, taking a summer vacation, buying a luxury car or an expensive watch etc. One gains "satisfaction"/"happiness" (i.e., *Utility*) out of this *consumption of money*. The key point here is that we need to periodically make a decision on how much to spend (*consume money*) on a weekly or monthly basis. One faces a tension in the dynamic decision between *consuming money* (that gives us *Consumption Utility*) and *saving money* (which is the money we put in our investment portfolio in the hope of the money growing, so we can consume potentially larger amounts of money in the future). 
 * *Investing Money*: Let us suppose there are a variety of investment assets you can invest in - simple savings account giving small interest, exchange-traded stocks (ranging from value stocks to growth stocks, with their respective risk-return tradeoffs), real-estate (the house you bought and live in is indeed considered an investment asset), commodities such as gold, paintings etc. We call the composition of money invested in these assets as one's investment portfolio (see Appendix [-@sec:portfolio-theory-appendix] for a quick introduction to Portfolio Theory). Periodically, we need to decide if one should play safe by putting most of one's money in a savings account, or if  we should allocate investment capital mostly in stocks, or if we should be more speculative and invest in an early-stage startup or in a rare painting. Reviewing the composition and potentially re-allocating capital (refered to as re-balancing one's portfolio) is the problem of dynamic asset-allocation. Note also that we can put some of our *received money* into our investment portfolio (meaning we choose to not consume that money right away). Likewise, we can extract some money out of our investment portfolio so we can *consume money*. The decisions of insertion and extraction of money into/from our investment portfolio is essentially the dynamic money-consumption decision we make, which goes together with the dynamic asset-allocation decision.
 
-The above description has hopefully given you a flavor of the dual and dynamic decisioning of asset-allocation and consumption. Ultimately, our personal goal is to maximize the aggregated Utility of Consumption of Money over our lifetime (and perhaps, also include the Utility of Consumption of Money for one's spouse and children, after you die). Since investment portfolios are stochastic in nature and since we have to periodically make decisions on asset-allocation and consumption, you can see that this has all the ingredients of a Stochastic Control problem, and hence can be modeled as a Markov Decision Process (albeit typically fairly complicated, since real-life finances have plenty of nuances). Here's a rough and informal sketch of what that MDP might look like (bear in mind that we will formalize the MDP for simplified cases later in this chapter):
+The above description has hopefully given you a flavor of the dual and dynamic decisioning of asset-allocation and consumption. Ultimately, our personal goal is to maximize the Expected Aggregated Utility of Consumption of Money over our lifetime (and perhaps, also include the Utility of Consumption of Money for one's spouse and children, after you die). Since investment portfolios are stochastic in nature and since we have to periodically make decisions on asset-allocation and consumption, you can see that this has all the ingredients of a Stochastic Control problem, and hence can be modeled as a Markov Decision Process (albeit typically fairly complicated, since real-life finances have plenty of nuances). Here's a rough and informal sketch of what that MDP might look like (bear in mind that we will formalize the MDP for simplified cases later in this chapter):
 
 * States: The *State* can be quite complex in general, but mainly it consists of one's age (to keep track of the time to reach the MDP horizon), the quantities of money invested in each investment asset, the valuation of the assets invested in, and potentially also other aspects like one's job/career situation (required to make predictions of future salary possibilities).
 
@@ -39,7 +39,7 @@ We define wealth at any time $t$ (denoted $W_t$) as the aggregate market value o
 * You are allowed to buy or sell any fractional quantities of assets at any point in time (i.e., in continuous time).
 * There are no transaction costs with any of the buy or sell transactions in any of the assets.
 
-You start with wealth $W_0$ at time $t=0$. As mentioned earlier, the goal is to maximize your lifetime-aggregated Utility of Consumption of money with the actions at any point in time being two-fold: Asset-Allocation and Consumption (Consumption being equal to the capital extracted from the investment portfolio at any point in time). Note that since there is no external source of money and since all capital extracted from the investment portfolio at any point in time is immediately consumed, you are never adding capital to your investment portfolio. The growth of the investment portfolio can happen only from growth in the market value of assets in your investment portfolio. Lastly, we will assume that Consumption Utility function is Constant Relative Risk-Aversion (CRRA), which we covered in Chapter [-@sec:utility-theory-chapter].
+You start with wealth $W_0$ at time $t=0$. As mentioned earlier, the goal is to maximize your expected lifetime-aggregated Utility of Consumption of money with the actions at any point in time being two-fold: Asset-Allocation and Consumption (Consumption being equal to the capital extracted from the investment portfolio at any point in time). Note that since there is no external source of money and since all capital extracted from the investment portfolio at any point in time is immediately consumed, you are never adding capital to your investment portfolio. The growth of the investment portfolio can happen only from growth in the market value of assets in your investment portfolio. Lastly, we will assume that Consumption Utility function is Constant Relative Risk-Aversion (CRRA), which we covered in Chapter [-@sec:utility-theory-chapter].
 
 For ease of exposition, we will formalize the problem setting and derive Merton's beautiful analytical solution for the case of $n=1$ (i.e., only 1 risky asset). The solution generalizes in a straightforward manner to the case of $n > 1$ risky assets, so the heavier notation for $n$ risky assets is not worth much.
 
@@ -47,13 +47,13 @@ Since we are operating in continuous-time, the risky asset follows a stochastic 
 
 $$dS_t = \mu \cdot S_t \cdot dt + \sigma \cdot S_t \cdot dz_t$$
 
-where $\mu, \sigma \in \mathbb{R}^+$ are fixed constants (note that for $n$ assets, we would instead work with a vector for $\mu$ and a matrix for $\sigma$). 
+where $\mu \in \mathbb{R}, \sigma \in \mathbb{R}^+$ are fixed constants (note that for $n$ assets, we would instead work with a vector for $\mu$ and a matrix for $\sigma$). 
 
 The riskless asset has no uncertainty associated with it and has a fixed rate of growth in continuous-time, so the valuation of the riskless asset $R_t$ at time $t$ is given by:
 
 $$dR_t = r \cdot R_t \cdot dt$$
 
-Assume $r \in \mathbb{R}^+$ is a fixed constant and that $r < \mu$. We denote the consumption of wealth (equal to extraction of money from the investment portfolio) per unit time (at time $t$) as $c(t, W_t) \geq 0$ to make it clear that the consumption (our decision at any time $t$) will in general depend on both time $t$ and wealth $W_t$. Note that we talk about "rate of consumption in time" because consumption is assumed to be continuous in time. As mentioned earlier, we denote wealth at time $t$ as $W_t$ (note that $W$ is a stochastic process too). We assume that $W_t > 0$ for all $t \geq 0$. This is a reasonable assumption to make as it manifests in constraining the consumption (extraction from investment portfolio) to ensure wealth remains positive. We denote the fraction of wealth allocated to the risky asset at time $t$ as $\pi(t, W_t)$. Just like consumption $c$, risky-asset allocation fraction $\pi$ is a function of time $t$ and wealth $W_t$. Since there is only one risky asset, the fraction of wealth allocated to the riskless asset at time $t$ is $1 - \pi(t, W_t)$. Unlike the constraint $c(t, W_t) > 0$, $\pi(t, W_t)$ is assumed to be unconstrained. Note that $c(t, W_t)$ and $\pi(t, W_t)$ together constitute the decision (MDP action) you'd be making at time $t$. To keep our notation light, we shall write $c_t$ for $c(t, W_t)$ and $\pi_t$ for $\pi(t, W_t)$, but please do recognize throughout the derivation that both are functions of wealth $W_t$ at time $t$ as well as of time $t$ itself. Finally, we assume that the Utility of Consumption function is defined as the CRRA function:
+Assume $r \in \mathbb{R}$ is a fixed constant, representing the instantaneous rate of growth of money. We denote the consumption of wealth (equal to extraction of money from the investment portfolio) per unit time (at time $t$) as $c(t, W_t) \geq 0$ to make it clear that the consumption (our decision at any time $t$) will in general depend on both time $t$ and wealth $W_t$. Note that we talk about "rate of consumption in time" because consumption is assumed to be continuous in time. As mentioned earlier, we denote wealth at time $t$ as $W_t$ (note that $W$ is a stochastic process too). We assume that $W_t > 0$ for all $t \geq 0$. This is a reasonable assumption to make as it manifests in constraining the consumption (extraction from investment portfolio) to ensure wealth remains positive. We denote the fraction of wealth allocated to the risky asset at time $t$ as $\pi(t, W_t)$. Just like consumption $c$, risky-asset allocation fraction $\pi$ is a function of time $t$ and wealth $W_t$. Since there is only one risky asset, the fraction of wealth allocated to the riskless asset at time $t$ is $1 - \pi(t, W_t)$. Unlike the constraint $c(t, W_t) > 0$, $\pi(t, W_t)$ is assumed to be unconstrained. Note that $c(t, W_t)$ and $\pi(t, W_t)$ together constitute the decision (MDP action) you'd be making at time $t$. To keep our notation light, we shall write $c_t$ for $c(t, W_t)$ and $\pi_t$ for $\pi(t, W_t)$, but please do recognize throughout the derivation that both are functions of wealth $W_t$ at time $t$ as well as of time $t$ itself. Finally, we assume that the Utility of Consumption function is defined as the CRRA function:
 
 $$
 U(x) = 
@@ -295,77 +295,96 @@ Figure \ref{fig:merton-solution-wealth-trajectory} shows the time-trajectory of 
 
 ## A Discrete-Time Asset-Allocation Example
 
-In this section, we cover a discrete-time version of the problem that lends itself to analytical tractability, much like Merton's Portfolio Problem in continuous-time. We are given wealth $W_0$ at time 0. At each of discrete time steps labeled $t = 0, 1, \ldots, T$, we are allowed to allocate the current wealth $W_t$ in a risky asset and a riskless asset in an unconstrained manner with no transaction costs. The risky asset yields a random return $\sim N(\mu, \sigma^2)$ over each single time step. The riskless asset yields a constant return denoted by $r$ over each single time step.  We assume that there is no consumption of wealth at any time $t < T$, and that we liquidate and consume the wealth $W_T$ at time $t$. So our goal is simply to maximize the Utility of Wealth at the final time step $t=T$ by dynamically allocating $x_t$ in the risky asset and the remaining $W_t - x_t$ in the riskless asset for each $t = 0, 1, \ldots, T-1$. Assume the single-time-step discount factor is $\gamma$ and that the Utility of Wealth at the final time step $t=T$ is given by the following CARA function:
+In this section, we cover a discrete-time version of the problem that lends itself to analytical tractability, much like Merton's Portfolio Problem in continuous-time. We are given wealth $W_0$ at time 0. At each of discrete time steps labeled $t = 0, 1, \ldots, T-1$, we are allowed to allocate the wealth $W_t$ at time $t$ to a portfolio of a risky asset and a riskless asset in an unconstrained manner with no transaction costs. The risky asset yields a random return $\sim N(\mu, \sigma^2)$ over each single time step (for a given $\mu \in \mathbb{R}$ and a given $\sigma \in \mathbb{R}^+$). The riskless asset yields a constant return denoted by $r$ over each single time step (for a given $r \in \mathbb{R}$).  We assume that there is no consumption of wealth at any time $t < T$, and that we liquidate and consume the wealth $W_T$ at time $t$. So our goal is simply to maximize the Expected Utility of Wealth at the final time step $t=T$ by dynamically allocating $x_t \in \mathbb{R}$ in the risky asset and the remaining $W_t - x_t$ in the riskless asset for each $t = 0, 1, \ldots, T-1$. Assume the single-time-step discount factor is $\gamma$ and that the Utility of Wealth at the final time step $t=T$ is given by the following CARA function:
 
 $$U(W_T) = \frac {1 - e^{-a W_T}} {a} \text{ for some fixed } a \neq 0$$
 
+Thus, the problem is to maximize, for each $t=0, 1, \ldots, T-1$, over choices of $x_t \in \mathbb{R}$, the value:
+
+$$\mathbb{E}[\gamma^{T-t} \cdot \frac {1 - e^{-a W_T}} a | (t, W_t)]$$
+
+Since $\gamma^{T-t}$ and $a$ are constants, this is equivalent to maximizing, for each $t=0, 1, \ldots, T-1$, over choices of $x_t \in \mathbb{R}$, the value:
+
+\begin{equation}
+\mathbb{E}[\frac {- e^{-a W_T}} a | (t, W_t)] \label{eq:asset-alloc-discrete-objective}
+\end{equation}
+
 We formulate this problem as a *Continuous States* and *Continuous Actions* MDP by specifying it's *State Transitions*, *Rewards* and *Discount Factor* precisely. The problem then is to find the Optimal Policy.
 
-*State* will be represented as $(t, W_t)$. Our decision (*Action*) at any time step $0 \leq t < T$ is represented by the quantity of investment in the risky asset ($=x_t$). Hence, the quantity of investment in the riskless asset at time $t$ will be $W_t - x_t$. We denote the policy as $\pi$, and express the policy function as $\pi(t, W_t) = x_t$ (rather than the more precise expression $\pi((t, W_t)) = x_t$). Denote the random variable for the single-time-step return of the risky asset at time $t$ as $S_t \sim N(\mu, \sigma^2)$. So,
+*State* will be represented as $(t, W_t)$. Our decision (*Action*) at any time step $t = 0, 1, \ldots, T-1$ is represented by the quantity of investment in the risky asset ($=x_t$). Hence, the quantity of investment in the riskless asset at time $t$ will be $W_t - x_t$. We denote the policy as $\pi$, and express the policy function as $\pi(t, W_t) = x_t$ (rather than the more precise expression $\pi((t, W_t)) = x_t$). Denote the random variable for the single-time-step return of the risky asset at time $t$ as $S_t \sim N(\mu, \sigma^2)$. So,
 
 $$W_{t+1} = x_t \cdot (1 + S_t) + (W_t - x_t) \cdot (1 + r) = x_t \cdot (S_t - r) + W_t \cdot (1 + r)$$
 
-The *Reward* is 0 for all $t = 0, 1, \ldots, T-1$ and the *Reward* at the terminal time step $t=T$ is:
+The *Reward* is 0 for all $t = 0, 1, \ldots, T-1$. As a result of the simplified objective \eqref{eq:asset-alloc-discrete-objective} above, we treat the *Reward* at the terminal time step $t=T$ as:
 
-$$U(W_T) = \frac {1 - e^{-a W_T}} {a}$$
+$$\frac {- e^{-a W_T}} {a}$$
 
-The MDP discount factor is $\gamma$.
+and we consider the MDP discount factor to be $\gamma = 1$ (again, because of the simplified objective \eqref{eq:asset-alloc-discrete-objective} above).
 
-As always, we strive to find the Optimal Value Function. The first step in determining the Optimal Value Function is to write the Bellman Optimality Equation. We denote the Value Function for a given policy as:
-$$V^{\pi}(t, W_t) = \mathbb{E}_{\pi}[\gamma^{T-t} \cdot U(W_T) | (t, W_t)] = \mathbb{E}_{\pi}[\gamma^{T-t} \cdot \frac {e^{1 - a W_T}} a | (t, W_t)]$$
+We denote the Value Function for a given policy $\pi$ as:
+$$V^{\pi}(t, W_t) = \mathbb{E}_{\pi}[\frac {- e^{-a W_T}} a | (t, W_t)]$$
 We denote the Optimal Value Function as:
-$$V^*(t, W_t) = \max_{\pi} V^{\pi}(t, W_t) = \max_{\pi} \{ \mathbb{E}_{\pi}[\gamma^{T-t} \cdot \frac {1 - e^{-a W_T}} a | (t, W_t)] \}$$
+$$V^*(t, W_t) = \max_{\pi} V^{\pi}(t, W_t) = \max_{\pi} \{ \mathbb{E}_{\pi}[\frac {- e^{-a W_T}} a | (t, W_t)] \}$$
 
 The Bellman Optimality Equation is:
 
-$$V^*(t, W_t) = \max_{x_t} \{\mathbb{E}_{R \sim N(\mu, \sigma^2)}[\gamma \cdot V^*(t+1, W_{t+1})]\}$$
+$$V^*(t, W_t) = \max_{x_t} \{\mathbb{E}_{S_t \sim N(\mu, \sigma^2)}[V^*(t+1, W_{t+1})]\}$$
 
-We make an educated guess for the functional form for the Optimal Value Function as:
-
-$$V^*(t, W_t) = a(t) + b(t) \cdot e^{c(t) \cdot W_t}$$
-where $b(\cdot), c(\cdot)$ are unknowns functions of only $t$. Next, we express the Bellman Optimality Equation using this functional form for the Optimal Value Function:
-
-$$V^*(t, W_t) = \max_{x_t} \{ \mathbb{E}_{S_t \sim N(\mu, \sigma^2)} [\gamma \cdot (a(t+1) + b(t+1) \cdot e^{c(t+1) \cdot (x_t \cdot (S_t - r) + W_t \cdot (1+r))}] \}$$
+We make an educated guess for the functional form of the Optimal Value Function as:
 
 \begin{equation}
-\Rightarrow V^*(t, W_t) = \max_{x_t} \{ - \gamma \cdot b(t+1) \cdot e^{-c(t+1) \cdot W_t \cdot (1+r) - c(t+1) \cdot x_t \cdot (\mu - r) + \frac {\sigma^2} {2} \cdot c^2(t+1) \cdot x_t^2} \} \label{eq:bellman_optimality-asset-alloc-discrete}
+V^*(t, W_t) = - b(t) \cdot e^{-c(t) \cdot W_t} \label{eq:v-star-functional-discrete}
+\end{equation}
+where $b(\cdot), c(\cdot)$ are unknowns functions of only $t$. Next, we express the Bellman Optimality Equation using this functional form for the Optimal Value Function:
+
+$$V^*(t, W_t) = \max_{x_t} \{ \mathbb{E}_{S_t \sim N(\mu, \sigma^2)} [-b(t+1) \cdot e^{-c(t+1) \cdot (x_t \cdot (S_t - r) + W_t \cdot (1+r))}] \}$$
+
+\begin{equation}
+\Rightarrow V^*(t, W_t) = \max_{x_t} \{-b(t+1) \cdot e^{-c(t+1) \cdot W_t \cdot (1+r) - c(t+1) \cdot x_t \cdot (\mu - r) + \frac {\sigma^2} {2} \cdot c^2(t+1) \cdot x_t^2} \} \label{eq:bellman-optimality-asset-alloc-discrete}
 \end{equation}
 
-Since the right-hand-side of the Bellman Optimality Equation involves a $\max$ over $x_t$, we can say that the partial derivative of the term inside the $\max$ with respect to $x_t$ is 0. This enables us to write the Optimal Allocation $x_t^*$ in terms of $c(t+1)$.
+Since the right-hand-side of the Bellman Optimality Equation involves a $\max$ over $x_t$, we can say that the partial derivative of the term inside the $\max$ with respect to $x_t$ is 0. This enables us to write the Optimal Allocation $x_t^*$ in terms of $c(t+1)$, as follows:
 
 $$ -c(t+1) \cdot (\mu - r) + \sigma^2 \cdot c^2(t+1) \cdot x^*_t = 0$$
-$$\Rightarrow x^*_t = \frac {\mu - r} {\sigma^2 \cdot c(t+1)}$$
+\begin{equation}
+\Rightarrow x^*_t = \frac {\mu - r} {\sigma^2 \cdot c(t+1)}  \label{eq:pi-star-functional-discrete}
+\end{equation}
 
-Substituting this maximizing $x_t^*$ in the Bellman Optimality Equation (Equation \eqref{eq:bellman-optimality-asset-alloc-discrete}) enables us to express $b(t)$ and $c(t)$ as recursive equations in terms of $b(t+1)$ and $c(t+1)$ respectively, as follows:
+Next we substitute this maximizing $x_t^*$ in the Bellman Optimality Equation (Equation \eqref{eq:bellman-optimality-asset-alloc-discrete}):
 
-$$V^*(t, W_t) = - \gamma \cdot b(t+1) \cdot e^{-c(t+1) \cdot W_t \cdot (1 + r) - \frac {(\mu - r)^2} {2 \sigma^2}} $$
+$$V^*(t, W_t) = - b(t+1) \cdot e^{-c(t+1) \cdot W_t \cdot (1 + r) - \frac {(\mu - r)^2} {2 \sigma^2}} $$
 
 But since
 
 $$V^*(t, W_t) = -b(t) \cdot e^{-c(t) \cdot W_t}$$
 
-we can write the following recursive equations for $b(t)$ and $c(t)$.
+we can write the following recursive equations for $b(t)$ and $c(t)$:
 
-$$b(t) = \gamma \cdot b(t+1) \cdot e^{- \frac {(\mu -r)^2} {2 \sigma^2}}$$
+$$b(t) = b(t+1) \cdot e^{- \frac {(\mu -r)^2} {2 \sigma^2}}$$
 $$c(t) = c(t+1) \cdot (1 + r)$$
 
-We know $b(T)$ and $c(T)$ from the knowledge of the MDP *Reward* at $t=T$ (Utility of Terminal Wealth), which enables us to unroll the above recursions for $b(t)$ and $c(t)$.
+We know $b(T)$ and $c(T)$ from the knowledge of the MDP *Reward* at $t=T$ (Utility of Terminal Wealth), which will enable us to unroll the above recursions for $b(t)$ and $c(t)$.
 
-$$V^*(T, W_T) = - \frac {e^{-a W_T}} a =  -b(T) \cdot e^{-c(T) \cdot W_T}$$
+$$V^*(T, W_T) = \frac {- e^{-a W_T}} a =  - b(T) \cdot e^{-c(T) \cdot W_T}$$
 
 Therefore,
-
-$$b(T) = \frac 1 a \text{ and } c(T) = a$$
+$$b(T) = \frac {1} a$$
+$$c(T) = a$$
 
 Now we can unroll the above recursions for $b(t)$ and $c(t)$:
 
-$$b(t) = \frac {\gamma^{T-t}} a \cdot e^{- \frac {(\mu - r)^2 \cdot (T-t)} {2 \sigma^2}}$$
+$$b(t) = \frac {e^{- \frac {(\mu - r)^2 \cdot (T-t)} {2 \sigma^2}}} a$$
 $$c(t) = a \cdot (1+ r)^{T-t}$$
 
-Solving $b(t)$ and $c(t)$ yields the Optimal Policy and the Optimal Value Function.
+Substituting the above solutions for $b(t)$ and $c(t)$ in Equation \eqref{eq:v-star-functional-discrete} gives us the solution for the Optimal Value Function:
+\begin{equation}
+V^*(t, W_t) = \frac {- e^{- \frac {(\mu - r)^2 \cdot (T-t)} {2 \sigma^2} - a \cdot (1+ r)^{T-t} \cdot W_t}} a \label{eq:v-star-solution-discrete}
+\end{equation}
 
-$$\pi^*(t, W_t) = x^*_t = \frac {\mu - r} {\sigma^2 \cdot a \cdot (1+ r)^{T-t-1}}$$
-$$V^*(t, W_t) = - \frac {\gamma^{T-t}} a \cdot e^{- \frac {(\mu - r)^2 \cdot (T-t)} {2 \sigma^2}} \cdot e^{- a \cdot (1+ r)^{T-t} \cdot W_t}$$
+Substituting the solutions for $c(t+1)$ in Equation \eqref{eq:pi-star-functional-discrete} gives us the solution for the Optimal Policy:
+\begin{equation}
+\pi^*(t, W_t) = x^*_t = \frac {\mu - r} {\sigma^2 \cdot a \cdot (1+ r)^{T-t-1}} \label{eq:pi-star-solution-discrete}
+\end{equation}
 
 ## Porting to Real-World
 
