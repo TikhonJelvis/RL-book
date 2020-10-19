@@ -121,7 +121,7 @@ Note that Linear Utility function $U(x) = a + b x$ implies *Risk-Neutrality* (i.
 
 ## Constant Absolute Risk-Aversion (CARA)
 
-Consider the Utility function:
+Consider the Utility function $U: \mathbb{R} \rightarrow \mathbb{R}$, parameterized by $a \in \mathbb{R}$,  defined as:
 $$
 U(x) =
 \begin{cases}
@@ -130,11 +130,25 @@ x & \text{ for } a = 0
 \end{cases}
 $$
 
-So then, the Absolute Risk-Aversion function is a constant, as seen below:
+Firstly, note that $U(x)$ is continuous with respect to $a$ for all $x \in \mathbb{R}$ since:
+
+$$\lim_{a\rightarrow 0} \frac {1 - e^{-ax}} {a} = x$$
+
+Now let us analyze the function $U(\cdot)$ for any fixed $a$. We note that for all $a \in \mathbb{R}$:
+
+* $U(0) = 0$
+* $U'(x) = e^{-ax} > 0$ for all $x \in \mathbb{R}$ 
+* $U''(x) = -a \cdot e^{-ax}$
+
+This means $U(\cdot)$ is a monotonically increasing function passing through the origin, and it's curvature has the opposite sign as that of $a$ (note: no curvature when $a=0$).
+
+So now we can calculate the Absolute Risk-Aversion function:
 
 $$A(x) = \frac {-U''(x)} {U'(x)} = a$$
 
-$a$ is called the Coefficient of *Constant Absolute Risk-Aversion (CARA)*. Note that the case of $a=0$ ($U(x) = x$) is the case of being Risk-Neutral. If the random outcome $x \sim \mathcal{N}(\mu, \sigma^2)$, then using Equation \eqref{eq:normmgf} from Appendix [-@sec:mgf-appendix], we get:
+So we see that the Absolute Risk-Aversion function is the constant value $a$. Consequently, we say that this Utility function corresponds to *Constant Absolute Risk-Aversion (CRRA)*. The parameter $a$ is refered to as the Coefficient of CRRA. The magnitude of positive $a$ signifies the degree of risk-aversion. $a=0$ is the case of being Risk-Neutral. Negative values of $a$ mean one is "risk-seeking", i.e., one will pay to take risk (the opposite of risk-aversion) and the magnitude of negative $a$ signifies the degree of risk-seeking. 
+
+If the random outcome $x \sim \mathcal{N}(\mu, \sigma^2)$, then using Equation \eqref{eq:normmgf} from Appendix [-@sec:mgf-appendix], we get:
 
 $$
 \mathbb{E}[U(x)] = 
@@ -152,22 +166,22 @@ For optimization problems where we need to choose across probability distributio
 
 ## A Portfolio Application of CARA
 
-Let's say we are given \$1 to invest and hold for a horizon of 1 year. Let's say our investment choices are:
+Let's say we are given \$1 to invest and hold for a horizon of 1 year. Let's say our portfolio investment choices are:
 
-* A risky asset with Annual Return $\sim \mathcal{N}(\mu, \sigma^2)$
-* A riskless asset with Annual Return $=r$
+* A risky asset with Annual Return $\sim \mathcal{N}(\mu, \sigma^2)$, $\mu \in \mathbb{R}, \sigma \in \mathbb{R}^+$.
+* A riskless asset with Annual Return $=r \in \mathbb{R}$.
 
-Our task is to determine the allocation $\pi$ (out of the given \$1) to invest in the risky asset (so, $1-\pi$ is invested in the riskless asset). Note that we allow $\pi$ to be unconstrained, i.e., $\pi$ can be any real number from $-\infty$ to $+\infty$. The goal is for the portfolio of the risky and riskless asset to have maximum Utility of Consumption of Wealth in 1 year.
+Our task is to determine the allocation $\pi$ (out of the given \$1) to invest in the risky asset (so, $1-\pi$ is invested in the riskless asset) so as to maximize the Expected Utility of Consumption of Portfolio Wealth in 1 year. Note that we allow $\pi$ to be unconstrained, i.e., $\pi$ can be any real number from $-\infty$ to $+\infty$. So, if $\pi > 0$, we buy the risky asset and if $\pi < 0$, we "short-sell" the risky asset. Likewise, if $1 - \pi > 0$, we lend $1-\pi$ (and will be paid back $(1-\pi)(1+r)$ in 1 year), and if $1 - \pi < 0$, we borrow $1 - \pi$ (and need to pay back $(1-\pi)(1+r)$ in 1 year). 
 
 Portfolio Wealth $W$ in 1 year is given by:
 
-$$W \sim \mathcal{N}(1+ r + \pi(\mu - r), \pi^2 \sigma^2)$$
+$$W \sim \mathcal{N}(1 + r + \pi(\mu - r), \pi^2 \sigma^2)$$
 
 We assume CARA Utility with $a \neq 0$, so:
 
 $$U(W) = \frac {1 -e^{-aW}} {a}$$
 
-We know that maximizing $\mathbb{E}[U(W)]$ is equivalent to maximizing the Certainty-Equivalent Value of Wealth $W$, which in this case (using the formula for $x_{XE}$ in the section on CARA) is given by:
+We know that maximizing $\mathbb{E}[U(W)]$ is equivalent to maximizing the Certainty-Equivalent Value of Wealth $W$, which in this case (using the formula for $x_{CE}$ in the section on CARA) is given by:
 
 $$1+r+\pi (\mu - r) - \frac {a \pi^2 \sigma^2} 2$$
 
@@ -177,7 +191,7 @@ $$\pi^* = \frac {\mu - r} {a \sigma^2}$$
 
 ## Constant Relative Risk-Aversion (CRRA)
 
-Consider the Utility function
+Consider the Utility function $U: \mathbb{R}^+ \rightarrow \mathbb{R}$, parameterized by $\gamma \in \mathbb{R}$,  defined as:
 $$
 U(x) =
 \begin{cases}
@@ -186,10 +200,25 @@ U(x) =
 \end{cases}
 $$
 
-So then, the Relative Risk-Aversion function is a constant, as seen below:
+Firstly, note that $U(x)$ is continuous with respect to $\gamma$ for all $x \in \mathbb{R}^+$ since:
+
+$$\lim_{\gamma\rightarrow 1}  \frac {x^{1-\gamma} - 1} {1 - \gamma} = \log(x)$$
+
+Now let us analyze the function $U(\cdot)$ for any fixed $\gamma$. We note that for all $\gamma \in \mathbb{R}$:
+
+* $U(1) = 0$
+* $U'(x) = x^{-\gamma} > 0$ for all $x \in \mathbb{R}^+$ 
+* $U''(x) =  -\gamma \cdot x^{-1-\gamma}$
+
+This means $U(\cdot)$ is a monotonically increasing function passing through $(1,0)$, and it's curvature has the opposite sign as that of $\gamma$ (note: no curvature when $\gamma=0$).
+
+So now we can calculate the Relative Risk-Aversion function:
+
 $$R(x) = \frac {-U''(x) \cdot x} {U'(x)} = \gamma$$
 
-$\gamma$ is called the Coefficient of *Constant Relative Risk-Aversion (CRRA)*. Note that the case of $\gamma = 0$ ($U(x) = x - 1$) is the case of being Risk-Neutral. If the random outcome $x$ is lognormal, with $\log(x) \sim \mathcal{N}(\mu, \sigma^2)$, then making a substitution $y=\log(x)$, expressing $\mathbb{E}[U(x)]$ as $\mathbb{E}[U(e^y)]$, and using Equation \eqref{eq:normmgf} in Appendix [-@sec:mgf-appendix], we get:
+So we see that the Relative Risk-Aversion function is the constant value $\gamma$. Consequently, we say that this Utility function corresponds to *Constant Relative Risk-Aversion (CRRA)*. The parameter $\gamma$ is refered to as the Coefficient of CRRA. The magnitude of positive $\gamma$ signifies the degree of risk-aversion. $\gamma=0$ yields the Utility function $U(x) = x - 1$ and is the case of being Risk-Neutral. Negative values of $\gamma$ mean one is "risk-seeking", i.e., one will pay to take risk (the opposite of risk-aversion) and the magnitude of negative $\gamma$ signifies the degree of risk-seeking. 
+
+If the random outcome $x$ is lognormal, with $\log(x) \sim \mathcal{N}(\mu, \sigma^2)$, then making a substitution $y=\log(x)$, expressing $\mathbb{E}[U(x)]$ as $\mathbb{E}[U(e^y)]$, and using Equation \eqref{eq:normmgf} in Appendix [-@sec:mgf-appendix], we get:
 
 $$
 \mathbb{E}[U(x)] = 
@@ -207,18 +236,16 @@ For optimization problems where we need to choose across probability distributio
 
 ## A Portfolio Application of CRRA
 
-This application of CRRA is a special case of [Merton's Portfolio Problem](https://en.wikipedia.org/wiki/Merton%27s_portfolio_problem) that we shall cover in its full generality in Chapter [-@sec:optimal-asset-allocation]. This section requires us to have some basic familiarity with Stochastic Calculus (covered in Appendix [-@sec:stochasticcalculus-appendix]), specifically Ito Processes and Ito's Lemma. Here we consider the single-decision version of the  problem where our investment choices are:
+This application of CRRA is a special case of [Merton's Portfolio Problem](https://en.wikipedia.org/wiki/Merton%27s_portfolio_problem) that we shall cover in its full generality in Chapter [-@sec:optimal-asset-allocation]. This section requires us to have some basic familiarity with Stochastic Calculus (covered in Appendix [-@sec:stochasticcalculus-appendix]), specifically Ito Processes and Ito's Lemma. Here we consider the single-decision version of the  problem where our portfolio investment choices are:
 
 * A risky asset, evolving in continuous time, with stochastic process $S$ whose movements are defined by the Ito process:
 $$dS_t = \mu \cdot S_t \cdot dt + \sigma \cdot S_t \cdot dz_t$$
-$$S_0 = 1$$
-where $\mu \in \mathbb{R}, \sigma \in \mathbb{R}_{\geq 0}$ are given constants.
+where $\mu \in \mathbb{R}, \sigma \in \mathbb{R}^+$ are given constants.
 * A riskless asset, growing continuously in time, with value denoted $R$ whose growth is defined by the ordinary differential equation:
 $$dR_t = r \cdot R_t \cdot dt$$
-$$R_0 = 1$$
-where $r \in \mathbb{R}_{\geq 0}$ is a given constant.
+where $r \in \mathbb{R}$ is a given constant.
 
-We are given \$1 to invest over a period of 1 year. Our task is to determine the constant fraction $\pi \in \mathbb{R}$ of portfolio wealth $W_t$ at any time $t$ to maintain in the risky asset so as to maximize the Expected Utility of Consumption of Wealth at the end of 1 year (i.e., of Portfolio Wealth $W_1$). Without loss of generality, assume $W_0 = 1$. The key feature of this problem is that we are required to continuously rebalance the portfolio to maintain the same constant fraction $\pi$ of investment in the risky asset. Since $W_t$ is the portfolio wealth at time $t$, the value of the investment in the risky asset at time $t$ would need to be $\pi \cdot W_t$ and the value of the investment in the riskless asset at time $t$ would need to be $(1 - \pi)\cdot W_t$. 
+We are given \$1 to invest over a period of 1 year. Our task is to determine the constant fraction $\pi \in \mathbb{R}$ of portfolio wealth $W_t$ at any time $t$ to maintain in the risky asset so as to maximize the Expected Utility of Consumption of Wealth at the end of 1 year (i.e., of Portfolio Wealth $W_1$). Without loss of generality, assume $W_0 = 1$. The key feature of this problem is that we are required to continuously rebalance the portfolio to maintain the same constant fraction $\pi$ of investment in the risky asset. Since $W_t$ is the portfolio wealth at time $t$, the value of the investment in the risky asset at time $t$ would need to be $\pi \cdot W_t$ and the value of the investment in the riskless asset at time $t$ would need to be $(1 - \pi)\cdot W_t$. We allow $\pi$ to be unconstrained, i.e., $\pi$ can take any value from $-\infty$ to $+\infty$. Positive $\pi$ means we have a "long" position in the risky asset and negative $\pi$ means we have a "short" position in the risky asset. Likewise, positive $1-\pi$ means we are lending money at the riskless interest rate of $r$ and negative $1-\pi$ means we are borrowing money at the riskless interest rate of $r$.
 
 Therefore, the change in the value of the risky asset investment from time $t$ to time $t + dt$ is:
 
@@ -234,10 +261,16 @@ $$dW_t = (r + \pi (\mu - r)) \cdot W_t \cdot dt + \pi \cdot \sigma \cdot W_t \cd
 
 Note that this is an Ito process defining the stochastic evolution of portfolio wealth.
 
-We assume CRRA Utility with $\gamma \neq 1$, so:
-$$U(W) = \frac {W^{1-\gamma} - 1} {1-\gamma}$$
+We assume CRRA Utility with $\gamma \neq 0$, so:
+$$
+U(W_1) =
+\begin{cases}
+\frac {W_1^{1 - \gamma} - 1} {1 - \gamma} & \text{ for } \gamma \neq 1\\
+\log(W_1) & \text{ for } \gamma = 1
+\end{cases}
+$$
 
-Now we recover Merton's solution for this special case. Applying Ito's Lemma on $\log W_t$ gives us:
+Applying Ito's Lemma on $\log W_t$ gives us:
 $$d(\log W_t) = \frac 1 W_t \cdot dW_t - \frac 1 {2 W_t^2} \cdot (dW_t)^2$$
 $$\Rightarrow d(\log W_t) = (r + \pi (\mu - r)) \cdot dt + \pi \cdot \sigma \cdot dz_t - \frac {\pi^2 \sigma^2} 2 \cdot dt$$
 $$\Rightarrow \log W_t = \int_0^t (r + \pi (\mu - r) - \frac {\pi^2 \sigma^2} 2) \cdot du + \int_0^t \pi \cdot \sigma \cdot dz_u$$
@@ -245,7 +278,7 @@ Using the martingale property and Ito Isometry for the Ito integral $\int_0^t \p
 
 $$\log W_1 \sim \mathcal{N}(r+\pi(\mu -r) - \frac {\pi^2 \sigma^2} 2,  \pi^2 \sigma^2)$$
 
-We know that maximizing $\mathbb{E}[U(W_1)]$ is equivalent to maximizing the $\log$ of the Certainty-Equivalent Value of $W_1$, which in this case (using the formula for $x_{CE}$ from the section on CRRA) is given by:
+We know that maximizing $\mathbb{E}[U(W_1)]$ is equivalent to maximizing the Certainty-Equivalent Value of $W_1$, hence also equivalent to maximizing the $\log$ of the Certainty-Equivalent Value of $W_1$, which in this case (using the formula for $x_{CE}$ from the section on CRRA) is given by:
 $$r+\pi(\mu -r) - \frac {\pi^2 \sigma^2} 2 + \frac {\pi^2 \sigma^2 (1-\gamma)} 2$$
 $$= r + \pi(\mu - r) - \frac {\pi^2 \sigma^2 \gamma} 2$$
 
