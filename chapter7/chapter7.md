@@ -311,7 +311,9 @@ Since $\gamma^{T-t}$ and $a$ are constants, this is equivalent to maximizing, fo
 
 We formulate this problem as a *Continuous States* and *Continuous Actions* MDP by specifying it's *State Transitions*, *Rewards* and *Discount Factor* precisely. The problem then is to find the Optimal Policy.
 
-*State* will be represented as $(t, W_t)$. Our decision (*Action*) at any time step $t = 0, 1, \ldots, T-1$ is represented by the quantity of investment in the risky asset ($=x_t$). Hence, the quantity of investment in the riskless asset at time $t$ will be $W_t - x_t$. We denote the policy as $\pi$, and express the policy function as $\pi(t, W_t) = x_t$ (rather than the more precise expression $\pi((t, W_t)) = x_t$). Denote the random variable for the single-time-step return of the risky asset at time $t$ as $S_t \sim N(\mu, \sigma^2)$. So,
+*State* will be represented as $(t, W_t)$. Our decision (*Action*) at any time step $t = 0, 1, \ldots, T-1$ is represented by the quantity of investment in the risky asset ($=x_t$). Hence, the quantity of investment in the riskless asset at time $t$ will be $W_t - x_t$. We shall use the notation of Finite-Horizon Dynamic Programming that was covered in Section [-@sec:finite-horizon-section] in Chapter [-@sec:dp-chapter]. Specifically, we represent the policy and value function (including the optimal policy and optimal value function) as a sequence of policies/value functions indexed by time (with each of those policies/value functions taking as argument only the Wealth $W_t$ and not time $t$). Therefore, we represent the policy $\pi$ as the time-indexed sequence of functions $\pi_t$, and express it as $\pi_t(W_t) = x_t$.
+
+Denote the random variable for the single-time-step return of the risky asset at time $t$ as $S_t \sim N(\mu, \sigma^2)$. So,
 
 $$W_{t+1} = x_t \cdot (1 + S_t) + (W_t - x_t) \cdot (1 + r) = x_t \cdot (S_t - r) + W_t \cdot (1 + r)$$
 
@@ -319,71 +321,71 @@ The *Reward* is 0 for all $t = 0, 1, \ldots, T-1$. As a result of the simplified
 
 $$\frac {- e^{-a W_T}} {a}$$
 
-and we consider the MDP discount factor to be $\gamma = 1$ (again, because of the simplified objective \eqref{eq:asset-alloc-discrete-objective} above).
+and we set the MDP discount factor to be $\gamma = 1$ (again, because of the simplified objective \eqref{eq:asset-alloc-discrete-objective} above).
 
-We denote the Value Function for a given policy $\pi$ as:
-$$V^{\pi}(t, W_t) = \mathbb{E}_{\pi}[\frac {- e^{-a W_T}} a | (t, W_t)]$$
+We denote the Value Function at time $t$ (for all $t = 0, 1, \ldots, T$) for a given policy $\pi = (\pi_0, \pi_1, \ldots, \pi_{T-1})$ as:
+$$V^{\pi}_t(W_t) = \mathbb{E}_{\pi}[\frac {- e^{-a W_T}} a | (t, W_t)]$$
 We denote the Optimal Value Function as:
-$$V^*(t, W_t) = \max_{\pi} V^{\pi}(t, W_t) = \max_{\pi} \{ \mathbb{E}_{\pi}[\frac {- e^{-a W_T}} a | (t, W_t)] \}$$
+$$V^*_t(W_t) = \max_{\pi} V^{\pi}_t(W_t) = \max_{\pi} \{ \mathbb{E}_{\pi}[\frac {- e^{-a W_T}} a | (t, W_t)] \}$$
 
 The Bellman Optimality Equation is:
 
-$$V^*(t, W_t) = \max_{x_t} \{\mathbb{E}_{S_t \sim N(\mu, \sigma^2)}[V^*(t+1, W_{t+1})]\}$$
+$$V^*_t(W_t) = \max_{x_t} \{\mathbb{E}_{S_t \sim N(\mu, \sigma^2)}[V^*_{t+1}(W_{t+1})]\}$$
 
 We make an educated guess for the functional form of the Optimal Value Function as:
 
 \begin{equation}
-V^*(t, W_t) = - b(t) \cdot e^{-c(t) \cdot W_t} \label{eq:v-star-functional-discrete}
+V^*_t(W_t) = - b_t \cdot e^{-c_t \cdot W_t} \label{eq:v-star-functional-discrete}
 \end{equation}
-where $b(\cdot), c(\cdot)$ are unknowns functions of only $t$. Next, we express the Bellman Optimality Equation using this functional form for the Optimal Value Function:
+where $b_t, c_t$ are independent of the wealth $W_t$ for all $t=0, 1, \ldots, T$. Next, we express the Bellman Optimality Equation using this functional form for the Optimal Value Function:
 
-$$V^*(t, W_t) = \max_{x_t} \{ \mathbb{E}_{S_t \sim N(\mu, \sigma^2)} [-b(t+1) \cdot e^{-c(t+1) \cdot (x_t \cdot (S_t - r) + W_t \cdot (1+r))}] \}$$
+$$V^*_t(W_t) = \max_{x_t} \{ \mathbb{E}_{S_t \sim N(\mu, \sigma^2)} [-b_{t+1} \cdot e^{-c_{t+1} \cdot (x_t \cdot (S_t - r) + W_t \cdot (1+r))}] \}$$
 
 \begin{equation}
-\Rightarrow V^*(t, W_t) = \max_{x_t} \{-b(t+1) \cdot e^{-c(t+1) \cdot W_t \cdot (1+r) - c(t+1) \cdot x_t \cdot (\mu - r) + \frac {\sigma^2} {2} \cdot c^2(t+1) \cdot x_t^2} \} \label{eq:bellman-optimality-asset-alloc-discrete}
+\Rightarrow V^*_t(W_t) = \max_{x_t} \{-b_{t+1} \cdot e^{-c_{t+1} \cdot W_t \cdot (1+r) - c_{t+1} \cdot x_t \cdot (\mu - r) + \frac {\sigma^2} {2} \cdot c^2_{t+1} \cdot x_t^2} \} \label{eq:bellman-optimality-asset-alloc-discrete}
 \end{equation}
 
-Since the right-hand-side of the Bellman Optimality Equation involves a $\max$ over $x_t$, we can say that the partial derivative of the term inside the $\max$ with respect to $x_t$ is 0. This enables us to write the Optimal Allocation $x_t^*$ in terms of $c(t+1)$, as follows:
+Since the right-hand-side of the Bellman Optimality Equation involves a $\max$ over $x_t$, we can say that the partial derivative of the term inside the $\max$ with respect to $x_t$ is 0. This enables us to write the Optimal Allocation $x_t^*$ in terms of $c_{t+1}$, as follows:
 
-$$ -c(t+1) \cdot (\mu - r) + \sigma^2 \cdot c^2(t+1) \cdot x^*_t = 0$$
+$$ -c_{t+1} \cdot (\mu - r) + \sigma^2 \cdot c^2_{t+1} \cdot x^*_t = 0$$
 \begin{equation}
-\Rightarrow x^*_t = \frac {\mu - r} {\sigma^2 \cdot c(t+1)}  \label{eq:pi-star-functional-discrete}
+\Rightarrow x^*_t = \frac {\mu - r} {\sigma^2 \cdot c_{t+1}}  \label{eq:pi-star-functional-discrete}
 \end{equation}
 
 Next we substitute this maximizing $x_t^*$ in the Bellman Optimality Equation (Equation \eqref{eq:bellman-optimality-asset-alloc-discrete}):
 
-$$V^*(t, W_t) = - b(t+1) \cdot e^{-c(t+1) \cdot W_t \cdot (1 + r) - \frac {(\mu - r)^2} {2 \sigma^2}} $$
+$$V^*_t(W_t) = - b_{t+1} \cdot e^{-c_{t+1} \cdot W_t \cdot (1 + r) - \frac {(\mu - r)^2} {2 \sigma^2}} $$
 
 But since
 
-$$V^*(t, W_t) = -b(t) \cdot e^{-c(t) \cdot W_t}$$
+$$V^*_t(W_t) = -b_t \cdot e^{-c_t \cdot W_t}$$
 
-we can write the following recursive equations for $b(t)$ and $c(t)$:
+we can write the following recursive equations for $b_t$ and $c_t$:
 
-$$b(t) = b(t+1) \cdot e^{- \frac {(\mu -r)^2} {2 \sigma^2}}$$
-$$c(t) = c(t+1) \cdot (1 + r)$$
+$$b_t = b_{t+1} \cdot e^{- \frac {(\mu -r)^2} {2 \sigma^2}}$$
+$$c_t = c_{t+1} \cdot (1 + r)$$
 
-We know $b(T)$ and $c(T)$ from the knowledge of the MDP *Reward* at $t=T$ (Utility of Terminal Wealth), which will enable us to unroll the above recursions for $b(t)$ and $c(t)$.
+We know $b_T$ and $c_T$ from the knowledge of the MDP *Reward* at $t=T$ (Utility of Terminal Wealth), which will enable us to unroll the above recursions for $b_T$ and $c_T$.
 
-$$V^*(T, W_T) = \frac {- e^{-a W_T}} a =  - b(T) \cdot e^{-c(T) \cdot W_T}$$
+$$V^*_T(W_T) = \frac {- e^{-a W_T}} a =  - b_T \cdot e^{-c_T \cdot W_T}$$
 
 Therefore,
-$$b(T) = \frac {1} a$$
-$$c(T) = a$$
+$$b_T = \frac {1} a$$
+$$c_T = a$$
 
-Now we can unroll the above recursions for $b(t)$ and $c(t)$:
+Now we can unroll the above recursions for $b_t$ and $c_t$:
 
-$$b(t) = \frac {e^{- \frac {(\mu - r)^2 \cdot (T-t)} {2 \sigma^2}}} a$$
-$$c(t) = a \cdot (1+ r)^{T-t}$$
+$$b_t = \frac {e^{- \frac {(\mu - r)^2 \cdot (T-t)} {2 \sigma^2}}} a$$
+$$c_t = a \cdot (1+ r)^{T-t}$$
 
-Substituting the above solutions for $b(t)$ and $c(t)$ in Equation \eqref{eq:v-star-functional-discrete} gives us the solution for the Optimal Value Function:
+Substituting the above solutions for $b_t$ and $c_t$ in Equation \eqref{eq:v-star-functional-discrete} gives us the solution for the Optimal Value Function:
 \begin{equation}
-V^*(t, W_t) = \frac {- e^{- \frac {(\mu - r)^2 \cdot (T-t)} {2 \sigma^2} - a \cdot (1+ r)^{T-t} \cdot W_t}} a \label{eq:v-star-solution-discrete}
+V^*_t(W_t) = \frac {- e^{- \frac {(\mu - r)^2 \cdot (T-t)} {2 \sigma^2} - a \cdot (1+ r)^{T-t} \cdot W_t}} a \label{eq:v-star-solution-discrete}
 \end{equation}
 
-Substituting the solutions for $c(t+1)$ in Equation \eqref{eq:pi-star-functional-discrete} gives us the solution for the Optimal Policy:
+Substituting the solution for $c_{t+1}$ in Equation \eqref{eq:pi-star-functional-discrete} gives us the solution for the Optimal Policy:
 \begin{equation}
-\pi^*(t, W_t) = x^*_t = \frac {\mu - r} {\sigma^2 \cdot a \cdot (1+ r)^{T-t-1}} \label{eq:pi-star-solution-discrete}
+\pi^*_t(W_t) = x^*_t = \frac {\mu - r} {\sigma^2 \cdot a \cdot (1+ r)^{T-t-1}} \label{eq:pi-star-solution-discrete}
 \end{equation}
 
 ## Porting to Real-World
