@@ -406,4 +406,4 @@ However, real-world situations involve (among other things):
 
 These real-world considerations require us to tap into Dynamic Programming (typically, Approximate Dynamic Programming) algorithms, and often Reinforcement Learning algorithms. In fact, the large/continuous action space points to a class of RL algorithms meant to tackle large/continuous action spaces: Policy Gradient Algorithms that we shall learn in Chapter [-@sec:policy-gradient-chapter].
 
-
+## Key Takeaways from this Chapter
