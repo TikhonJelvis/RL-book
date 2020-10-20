@@ -1,9 +1,10 @@
+from __future__ import annotations
+
 from abc import ABC, abstractmethod
 from collections import defaultdict
-import dataclasses
 from dataclasses import dataclass
-import functools
 import itertools
+import math
 from typing import (DefaultDict, Dict, Iterable, Generic, Mapping,
                     Tuple, Sequence, TypeVar, Optional)
 
@@ -66,48 +67,76 @@ class FinitePolicy(Policy[S, A]):
         return self.policy_map.keys()
 
 
-@dataclass
+@dataclass(frozen=True)
 class Transition(Generic[S, A]):
+    '''A single step in the simulation of an MDP, containing:
+
+    state -- the state we start from
+    action -- the action we took at that state
+    next_state -- the state we ended up in after the action
+    reward -- the instantaneous reward we got for this transition
+    '''
     state: S
     action: A
     next_state: S
     reward: float
 
+    def add_return(self, γ: float, return_: float) -> ReturnTransition[S, A]:
+        '''Given a γ and the return from 'next_state', this annotates the
+        transition with a return for 'state'.
+
+        '''
+        return ReturnTransition(
+            self.state,
+            self.action,
+            self.next_state,
+            self.reward,
+            return_=self.reward + γ * return_
+        )
+
+
+@dataclass(frozen=True)
+class ReturnTransition(Transition[S, A]):
+    '''A Transition that also contains the total *return* for its starting
+    state.
+
+    '''
+    return_: float
+
 
 def returns(
         trace: Iterable[Transition[S, A]],
-        γ: float = 1,
-        n_states: int = 1
-) -> Iterable[Transition[S, A]]:
-    '''Given an iterator of transitions, calculate the return for each
-    subsequent transition.
+        γ: float,
+        tolerance: float = 1e-6
+) -> Iterable[ReturnTransition[S, A]]:
+    '''Given an iterator of transitions, annotate each transition with the
+    total return from that state onwards.
 
     Arguments:
     rewards -- transitions with instantaneous rewards
-    γ -- the discount factor (0 < γ ≤ 1), default: 1
+    γ -- the discount factor (0 < γ ≤ 1). If γ is 1 and the MDP does
+    not always hit a terminal state, this function could loop forever.
     n_states -- how many states to calculate the return for, default: 1
 
-    Returns transitions with returns instead of instantaneous rewards.
-
     '''
-    trace = list(itertools.islice(iter(trace), n_states))
-    *transitions, last = trace
+    max_steps = None
 
-    def accum(r_acc, r):
-        return r_acc + γ * r
-    final_return = functools.reduce(accum, (t.reward for t in trace), 0.0)
+    if γ < 1:
+        max_steps = round(math.log(tolerance) / math.log(γ))
+        trace = itertools.islice(trace, 2 * max_steps)
 
-    def update(
-            acc: Transition[S, A],
-            transition: Transition[S, A]
-    ) -> Transition[S, A]:
-        return dataclasses.replace(transition, reward=acc.reward)
-
-    initial =\
-        dataclasses.replace(last, reward=last.reward + γ * final_return)
-    return itertools.accumulate(
-        reversed(transitions), update, initial=initial
+    *transitions, last_transition = list(trace)
+    return_transitions = itertools.accumulate(
+        reversed(transitions),
+        func=lambda next, curr: curr.add_return(γ, next.return_),
+        initial=last_transition.add_return(γ, 0)
     )
+
+    return_iter = reversed(list(return_transitions))
+    if max_steps is not None:
+        return_iter = itertools.islice(return_transitions, max_steps)
+
+    return return_iter
 
 
 class MarkovDecisionProcess(ABC, Generic[S, A]):
