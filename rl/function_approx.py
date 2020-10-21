@@ -152,11 +152,15 @@ class Weights:
             self.adam_cache1 + (1 - self.adam_gradient.decay1) * gradient
         new_adam_cache2: np.ndarray = self.adam_gradient.decay2 * \
             self.adam_cache2 + (1 - self.adam_gradient.decay2) * gradient ** 2
-        new_weights: np.ndarray = self.weights - \
-            self.adam_gradient.learning_rate * self.adam_cache1 / \
-            (np.sqrt(self.adam_cache2) + SMALL_NUM) * \
-            np.sqrt(1 - self.adam_gradient.decay2 ** time) / \
+        corrected_m: np.ndarray = new_adam_cache1 / \
             (1 - self.adam_gradient.decay1 ** time)
+        corrected_v: np.ndarray = new_adam_cache2 / \
+            (1 - self.adam_gradient.decay2 ** time)
+
+        new_weights: np.ndarray = self.weights - \
+            self.adam_gradient.learning_rate * corrected_m / \
+            (np.sqrt(corrected_v) + SMALL_NUM)
+
         return replace(
             self,
             time=time,
