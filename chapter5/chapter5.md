@@ -920,7 +920,7 @@ MDP_FuncApproxV_Distribution = Tuple[
 
 def back_opt_vf_and_policy(
     mdp_f0_mu_triples: Sequence[MDP_FuncApproxV_Distribution[S, A]],
-    γ: float,
+    gamma: float,
     num_state_samples: int,
     error_tolerance: float
 ) -> Iterator[Tuple[FunctionApprox[S], Policy[S, A]]]:
@@ -931,7 +931,7 @@ def back_opt_vf_and_policy(
 
         def return_(s_r: Tuple[S, float], i=i) -> float:
             s, r = s_r
-            return r + γ * (vp[i-1][0].evaluate([s]).item() if i > 0 else 0.)
+            return r + gamma * (vp[i-1][0].evaluate([s]).item() if i > 0 else 0.)
 
         this_v = FunctionApprox.converged(
             sgd(
@@ -960,7 +960,7 @@ def back_opt_vf_and_policy(
 
 ## Finite-Horizon Approximate Q-Value Iteration
 
-The above code for Finite-Horizon Approximate Value Iteration extends the Finite-Horizon Backward Induction Value Iteration algorithm of Chapter [-@sec:dp-chapter] by treating the Value Function as a function approximation instead of an exact tabular representation. However, there is an alternative (and arguably simpler and more effective) way to solve the Finite-Horizon Control problem - we can perform backward induction on the Action-Value (Q-Value) function instead of the (State-)Value Function. We will perform the function approximation on the Q-Value function and step back in time similar to the backward induction we performed above for the (State-)Value function. The code below in `back_opt_qvf` is quite similar to the code above in `back_opt_vf_and_policy`. The key difference is that the `FunctionApprox` in the input to the function needs to be set up as a `FunctionApprox[Tuple[S, A]]` instead of `FunctionApprox[S]` to reflect the fact that we are approximating $Q_t^*: \mathcal{S} \times \mathcal{A} \rightarrow \mathbb{R}$ for all time steps $t$ in the finite horizon. For each non-terminal time step, we express the $Q$-value function (for a set of sample states $s$ and for all actions $a$) in terms of the $Q$-value function approximation of the next time step. This is essentially the MDP Action-Value Function Bellman Optimality Equation for the finite-horizon case (adapted to function approximation). `back_opt_qvf` returns an Iterator over `FunctionApprox[Tuple[S, A]]` (representing the Optimal Q-Value Function), from time step 0 to the horizon time step.
+The above code for Finite-Horizon Approximate Value Iteration extends the Finite-Horizon Backward Induction Value Iteration algorithm of Chapter [-@sec:dp-chapter] by treating the Value Function as a function approximation instead of an exact tabular representation. However, there is an alternative (and arguably simpler and more effective) way to solve the Finite-Horizon Control problem - we can perform backward induction on the Action-Value (Q-Value) function instead of the (State-)Value Function. We will perform the function approximation on the Q-Value function and step back in time similar to the backward induction we performed above for the (State-)Value function. The code below in `back_opt_qvf` is quite similar to the code above in `back_opt_vf_and_policy`. The key difference is that the `FunctionApprox` in the input to the function needs to be set up as a `FunctionApprox[Tuple[S, A]]` instead of `FunctionApprox[S]` to reflect the fact that we are approximating $Q_t^*: \mathcal{S} \times \mathcal{A} \rightarrow \mathbb{R}$ for all time steps $t$ in the finite horizon. For each non-terminal time step, we express the $Q$-value function (for a set of sample states $s$ and for all actions $a$) in terms of the $Q$-value function approximation of the next time step. This is essentially the MDP Action-Value Function Bellman Optimality Equation for the finite-horizon case (adapted to function approximation). `back_opt_qvf` returns an Iterator over `FunctionApprox[Tuple[S, A]]` (representing the Optimal Q-Value Function), from time step 0 to the horizon time step. We can then obtain $V^*_t$ (Optimal State-Value Function) and $\pi^*_t$ for each $t$ by simply performing a $\max/\argmax$ over all actions $a \in \mathcal{A}_t$ of $Q^*_t(s, a)$ for any $s \in \mathcal{S}_t$.
 
 ```python
 MDP_FuncApproxQ_Distribution = Tuple[
@@ -971,7 +971,7 @@ MDP_FuncApproxQ_Distribution = Tuple[
 
 def back_opt_qvf(
     mdp_f0_mu_triples: Sequence[MDP_FuncApproxQ_Distribution[S, A]],
-    γ: float,
+    gamma: float,
     num_state_samples: int,
     error_tolerance: float
 ) -> Iterator[FunctionApprox[Tuple[S, A]]]:
@@ -982,7 +982,7 @@ def back_opt_qvf(
 
         def return_(s_r: Tuple[S, float], i=i, mdp=mdp) -> float:
             s, r = s_r
-            return r + γ * (
+            return r + gamma * (
                 max(qvf[i-1].evaluate([(s, a)]).item()
                     for a in mdp_f0_mu_triples[horizon - i][0].actions(s))
                 if i > 0 else 0.
