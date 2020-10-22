@@ -120,7 +120,7 @@ Likewise, the Quadratic Variance formula generalizes to:
 
 $$\int_S^T (X^{(1)}_t \cdot dz^{(1)}_t)(X^{(2)}_t \cdot dz^{(2)}_t) = \int_S^T X^{(1)}_t\cdot X^{(2)}_t \cdot \rho \cdot dt$$
 
-## Ito's Lemma
+## Ito's Lemma {#sec:itos-lemma-section}
 
 We can extend the above Ito Integral to an Ito process $Y$ as defined below:
 
@@ -160,3 +160,60 @@ df(t, \bm{Y}_t) = (\pdv{f}{t} + (\nabla_{\bm{Y}} f)^T \cdot \bm{\mu}_t + \frac 1
 
 where the symbol $\nabla$ represents the gradient of a function, the symbol $\Delta$ represents the [Hessian](https://en.wikipedia.org/wiki/Hessian_matrix) of a function, and the symbol $Tr$ represents the [Trace](https://en.wikipedia.org/wiki/Trace_(linear_algebra)) of a matrix.
 
+Next, we cover two common Ito processes, and use Ito's Lemma to solve the Stochastic Differential Equation represented by these Ito Processes:
+
+## A Lognormal Process {#sec:lognormal-process-section}
+
+Consider a stochastic process $x$ described in the form of the following Ito process:
+
+$$dx_t = \mu(t) \cdot x_t \cdot dt + \sigma(t) \cdot x_t \cdot dz_t$$
+
+Note that here $z$ is standard (one-dimensional) Brownian motion, and $\mu$, $\sigma$ are deterministic functions of time $t$. This is solved easily by defining an appropriate function of $x_t$ and applying Ito's Lemma, as follows:
+
+$$y_t = \log(x_t)$$
+
+Applying Ito's Lemma on $y_t$ with respect to $x_t$, we get:
+
+$$dy_t = \frac {dx_t} {x_t} - \frac {\sigma^2(t)} 2 \cdot dt = (\mu(t) - \frac {\sigma^2(t)} 2) \cdot dt + \sigma(t) \cdot dz_t$$
+$$y_T = y_S + \int_S^T (\mu(t) - \frac {\sigma^2(t)} 2) \cdot dt + \int_S^T  \sigma(t) \cdot dz_t$$
+$$x_T = x_S \cdot e^{\int_S^T (\mu(t) - \frac {\sigma^2(t)} 2) \cdot dt + \int_S^T  \sigma(t) \cdot dz_t}$$
+
+$x_T | x_S$ follows a lognormal distribution, i.e., 
+
+$$y_T = \log(x_T) \sim \mathcal{N}(\log(x_S) + \int_S^T (\mu(t) - \frac {\sigma^2(t)} 2) \cdot dt, \int_S^T  \sigma^2(t) \cdot dt)$$
+
+$$E[x_T|x_S] = x_S \cdot e^{\int_S^T \mu(t) \cdot dt}$$
+$$E[x_T^2|x_S] = x_S^2 \cdot e^{\int_S^T (2 \mu(t) + \sigma^2(t)) \cdot dt}$$
+$$Variance[x_T|x_S] = E[x_T^2|x_S] - (E[x_T|x_S])^2 = x_S^2 \cdot e^{\int_S^T 2 \mu(t) \cdot dt} \cdot (e^{\int_S^T \sigma^2(t) \cdot dt} - 1)$$
+
+The special case of $\mu(t) = \mu$ (constant) and $\sigma(t) = \sigma$ (constant) is a very common Ito process used all over Finance/Economics (for its simplicity, tractability as well as practicality), and is known as [Geometric Brownian Motion](https://en.wikipedia.org/wiki/Geometric_Brownian_motion) (to reflect the fact that the stochastic increment of the process $\mu \cdot x_t \cdot dz_t$ is multiplicative to the level of the process $x_t$). If we consider this special case, we get:
+
+$$y_T = \log(x_T) \sim \mathcal{N}(\log(x_S) + (\mu - \frac {\sigma^2} 2)(T-S), \sigma^2 (T-S))$$
+$$E[x_T|x_S] = x_S \cdot e^{\mu (T-S)}$$
+$$Variance[x_T|x_S] = x_S^2 \cdot e^{2 \mu (T-S)} \cdot (e^{\sigma^2 (T-S)} - 1)$$
+
+## A Mean-Reverting Process {#sec:mean-reverting-process-section}
+
+Now we consider a stochastic process $x$ described in the form of the following Ito process:
+
+$$dx_t = \mu(t) \cdot x_t \cdot dt + \sigma(t) \cdot dz_t$$
+
+As in the process of the previous section, $z$ is standard (one-dimensional) Brownian motion, and $\mu$, $\sigma$ are deterministic functions of time $t$. This is solved easily by defining an appropriate function of $x_t$ and applying Ito's Lemma, as follows:
+
+$$y_t = x_t \cdot e^{-\int_0^t \mu(u) \cdot du}$$
+Applying Ito's Lemma on $y_t$ with respect to $x_t$, we get:
+
+$$dy_t = e^{-\int_0^t \mu(u) \cdot du} \cdot dx_t - x_t \cdot e^{-\int_0^t \mu(u) \cdot du} \cdot  \mu(t) \cdot dt = \sigma(t) \cdot e^{-\int_0^t \mu(u) \cdot du} \cdot dz_t$$
+$y_t$ is a martingale. Using Ito Isometry, we get:
+
+$$y_T \sim \mathcal{N}(y_S, \int_S^T \sigma^2(t) \cdot e^{-\int_0^t 2 \mu(u) \cdot du} \cdot dt)$$
+
+Therefore,
+
+$$x_T \sim \mathcal{N}(x_S \cdot e^{\int_S^T \mu(t) \cdot dt}, e^{\int_0^T 2\mu(t) \cdot dt} \cdot \int_S^T \sigma^2(t) \cdot e^{-\int_0^t 2 \mu(u) \cdot du} \cdot dt)$$
+
+We call this process "mean-reverting" because with negative $\mu(t)$, the process is "pulled" to a baseline level of 0, at a speed whose expectation is proportional to $-\mu(t)$ and proportional to the distance from the baseline (so we say the process reverts to a baseline of 0 and the strength of mean-reversion is greater if the distance from the baseline is greater). If $\mu(t)$ is positive, then we say that the process is "mean-diverting" to signify that it gets pulled away from the baseline level of 0.
+
+The special case of $\mu(t) = \mu$ (constant) and $\sigma(t) = \sigma$ (constant) is a fairly common Ito process (again for it's simplicity, tractability as well as practicality), and is known as the [Ornstein-Uhlenbeck Process](https://en.wikipedia.org/wiki/Ornstein%E2%80%93Uhlenbeck_process) with the mean (baseline) level set to 0. If we consider this special case, we get:
+
+$$x_T \sim \mathcal{N}(x_S \cdot e^{\mu (T-S)}, \frac {\sigma^2} {2 \mu} \cdot (e^{2 \mu (T-S)} - 1))$$

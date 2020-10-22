@@ -49,7 +49,10 @@ There is no short-cut to learning Reinforcement Learning or learning the Financi
 
 #### Chapter 0: Overview
 
-* What this book is about and how best to learn this topic
+* Learning Reinforcement Learning
+* What you'll learn from this book
+* Expected Background to read this book
+* Overview of Chapters
 * Decluttering the jargon in Optimal Decisioning under Uncertainty
 * Introduction to the Markov Decision Process (MDP) framework
 * Examples of important real-world problems that fit the MDP framework
@@ -60,7 +63,7 @@ There is no short-cut to learning Reinforcement Learning or learning the Financi
 * Outline of chapters in the book
 * Overview of the 5 Financial Applications
  
-This is an introductory/overview chapter familiarizing the reader with the general space of optimal decisioning under uncertainty, the framework used to tackle such problems, and a high-level overview of the techniques/algorithms (Dynamic Programming and Reinforcement Learning). The reader will also get an overview of the range of business problems that can be targeted and the intuitive difficulty in tackling these problems. Finally, the reader will be familiarized with the flow of chapters (with a study plan for different levels of background and different levels of time investment) and will be introduced to the 5 important Financial applications that will be covered in this book. This chapter starts with an articulation of the approach we take in this book to explain RL: Mathematics/Theory, Intuition, Programming, Financial Applications.
+This is an introductory/overview chapter familiarizing the reader with the general space of optimal decisioning under uncertainty, the framework used to tackle such problems, and a high-level overview of the techniques/algorithms (Dynamic Programming and Reinforcement Learning). The reader will also get an overview of the range of business problems that can be targeted and the intuitive difficulty in tackling these problems. In this chapter, the reader will be familiarized with the flow of chapters and will be introduced to the 5 important Financial applications that will be covered in this book. This chapter starts with an articulation of the approach we take in this book to explain RL, blending Mathematics/Theory, Intuition, Programming, and Applications.
 
 #### Chapter 1: Best Practices in Python for Applied Mathematics
 
@@ -73,78 +76,112 @@ This is an introductory/overview chapter familiarizing the reader with the gener
  
 Given this book’s emphasis on “learning by programming”, this chapter will familiarize the reader with some core techniques in Python that will be very important in implementing models and algorithms. To be clear, this chapter is not a full Python tutorial – the reader is expected to have some background in Python already. It is a tutorial of some key techniques and practices in Python (that many readers might not be accustomed to) that are highly relevant to programming in the broader area of Applied Mathematics. As part of this chapter, the reader will do some exercises with these techniques/practices in Python and will emerge prepared to learn the material of this book with appropriate Python paradigms.
 
-#### Chapter 2: Markov Processes and Markov Reward Processes
+#### Chapter 2: Markov Processes
 
-* The Markov Property (illustrated with a stock price example)
-* Markov Processes (MPs)
+* The concept of State in a Process
+* Understanding Markov Property from Stock Price Examples
+* Formal Definitions for Markov Processes (MP)
+* Stock Price Examples modeled as Markov Processes
 * Finite Markov Processes
-* Markov Reward Processes (MRPs)
+* Simple Inventory Example
+* Stationary Distribution of a Markov Process
+* Formalism of Markov Reward Processes (MRP)
+* Simple Inventory Example as a Markov Reward Process
 * Finite Markov Reward Processes
-* MRP Value Function
-* MRP Bellman Equation
+* Simple Inventory Example as a Finite Markov Reward Process
+* Value Function of a Markov Reward Process
 
 This chapter covers the foundational topics required to understand Markov Decision Processes - The Markov property, Markov Processes (sometimes refered to as Markov Chains), Markov Reward Processes, the concept of Value Function of a Markov Reward Process, and the Bellman Equation for a Markov Reward Process. These concepts are motivated with examples of stock prices and with a simple inventory example that serves first as a Markov Process and then as a Markov Reward Process. There will be a significant amount of programming in this chapter to develop comfort with these concepts.
 
 #### Chapter 3: Markov Decision Processes
 
-* Markov Decision Processes (MDPs)
-* The relationship between MDPs and MRPs
-* MDP Value Function for a Given Policy
-* Bellman Expectation Equations
-* MDP Optimal Value Function and Optimal Policy
-* Bellman Optimality Equations
-* Proof of Existence of Optimal Policy achieving Optimal Value Function
+* Simple Inventory Example: How much to Order?
+* The Difficulty of Sequential Decisioning under Uncertainty
+* Formal Definition of a Markov Decision Process (MDP)
+* Policy
+* [Markov Decision Process, Policy] := Markov Reward Process
+* Simple Inventory Example with Unlimited Capacity
+* Finite Markov Decision Processes
+* Simple Inventory Example as a Finite Markov Decision Process
+* MDP Value Function for a Fixed Policy
+* Optimal Value Function and Optimal Policies
 * Variants and Extensions of MDPs
 
 This chapter lays the foundational theory underpinning RL – the framework for representing problems dealing with optimal decisioning under uncertainty (Markov Decision Process). The reader will learn about the relationship between Markov Decision Processes and Markov Reward Processes, the Value Function (key ingredient in RL algorithms) and the Bellman Equations (a powerful property, which enables solving complex decisioning problems). There will be a considerable amount of programming exercises in this chapter. The heavy investment in this theory together with hands-on programming will put the reader in a highly advantaged position to learn the following chapters in a very clear and speedy manner.
 
-#### Chapter 4: Dynamic Programming (DP)
+#### Chapter 4: Dynamic Programming Algorithms
 
-* DP as a form of Planning
-* Solving the Value Function as a Fixed-Point
-* Policy Evaluation Algorithm
+* Planning versus Learning
+* Usage of the term **Dynamic Programming** (DP)
+* Solving the Value Function as a **Fixed-Point**
+* Bellman Policy Operator and Policy Evaluation Algorithm
+* Greedy Policy
 * Policy Improvement
-* Policy Iteration (PI) Algorithm
-* Value Iteration (VI) Algorithm
-* Optimal Policy From Optimal Value Function
-* Generalized Policy Iteration (GPI)
+* Policy Iteration Algorithm
+* Bellman Optimality Operator and Value Iteration Algorithm
+* Optimal Policy from Optimal Value Function
+* Revisiting the Simple Inventory Example
+* Generalized Policy Iteration
 * Asynchronous Dynamic Programming
-* Backward Induction
+* Finite-Horizon Dynamic Programming: Backward Induction
+* Dynamic Pricing For End-of-Life/End-of-Season of a Product
+* Extensions to Non-Tabular Algorithms
 
 This chapter covers the Planning technique of Dynamic Programming (DP), which is an important class of foundational algorithms that can be an alternative to RL if the business problem is not too large or too complex. Also, learning these algorithms will provide important foundations to the reader to be able to understand subsequent RL algorithms more deeply. The reader will learn about several important DP algorithms and at the end of the chapter, the reader will learn about why DP gets difficult in practice which draws the reader to the motivation behind RL. Again, we will do plenty of DP algorithms, which are quick to implement and will aid considerably in internalizing the concepts. Finally, we emphasize a special algorithm - Backward Induction - for solving finite-horizon Markov Decision Processes, which is the setting for the financial applications we cover in this book.
 
 #### Chapter 5: Function Approximation and Approximate Dynamic Programming
 
-* Curse of Dimensionality & Function Approximation as a Cure
+* Function Approximation
 * Linear Function Approximation
-* Deep Neural Networks
-* Tabular as a special case of Linear Function Approximation
+* Neural Network Function Approximation
+* Tabular as a form of **FunctionApprox**
+* Approximate Policy Evaluation
+* Approximate Value Iteration
+* Finite-Horizon Approximate Policy Evaluation
+* Finite-Horizon Approximate Value Iteration
 * Approximate Dynamic Programming (ADP)
 
 The Dynamic Programming algorithms covered in the previous chapter suffer from the two so-called curses: Curse of Dimensionality and Curse of Modeling. These curses can be cured with a combination of sampling and function approximation. The next section covers the sampling cure (using Reinforcement Learning). This chapter covers the topic of function approximation and shows how an intermediate cure - Approximate Dynamic Programming (function approximation without sampling) - is quite viable and can be suitable for some problems.
 
 ### Section II: Modeling Financial Applications
 
-#### Chapter 6: Utility Theory for Risk-Aversion
+#### Chapter 6: Utility Theory
 
-* Risk-Aversion and Risk-Premium
-* Utility of Consumption
-* Absolute and Relative Risk-Aversion
-* Constant Absolute Risk-Aversion
-* Constant Relative Risk-Aversion
+* Introduction to the Concept of Utility
+* A Simple Financial Example
+* The shape of the Utility function
+* Calculating the Risk-Premium
+* Constant Absolute Risk-Aversion (CARA)
+* A Portfolio Application of CARA
+* Constant Relative Risk-Aversion (CRRA)
+* A Portfolio Application of CRRA
 
 Having learnt DP algorithms and before learning RL algorithms, the reader will learn about the 5 financial applications. For each of the financial applications, we will go over the core financial background and concepts within these applications, then learn how to solve them with DP, then introduce real-world considerations and finally explain why tackling those considerations requires RL. Later, we will revisit these financial problems when we cover RL algorithms (in the 2nd half of the book). But before we get into each of the 5 financial applications, readers need to get familiar with the key economics concept of risk-aversion that applies to 4 of the 5 financial applications. So this chapter is dedicated to risk-aversion and the related concepts of risk-premium and Utility functions. As ever, we will write plenty of code in this chapter to understand these concepts thoroughly.
 
-#### Chapter 7: Dynamic Asset Allocation (Portfolio Optimization) 
+#### Chapter 7: Dynamic Asset Allocation and Consumption
 
-* Merton’s Portfolio problem and solution
-* Discrete Portfolio Optimization example
-* Real-world considerations
+* Optimization of Personal Finance
+* Merton’s Portfolio Problem and Solution
+* Discrete Portfolio Optimization Example
+* Real-world Considerations
 * References
 
-This chapter cover the first financial application – dynamic asset allocation (part of the larger space of Portfolio Optimization). This problem is best understood in the context of Merton’s landmark paper in 1969 where he stated and solved this problem. This chapter is mainly focused on the mathematical derivation of Merton’s solution of this problem with Dynamic Programming. Through this derivation, the reader will learn about the broader result called Hamilton-Jacobi-Bellman (HJB) equation, which will re-appear in the Market-Making problem in Chapter 10. As ever, we will do some programming exercises. In particular, the reader will learn how to solve Dynamic Asset Allocation in a simple setting with Backward Induction (a DP algorithm we learnt in Chapter 3). Finally, the reader will learn about Dynamic Asset Allocation in practice, where Merton’s frictionless setting is replaced by several real-world frictions, which will require us to move to RL. We will revisit this problem after coverage of RL algorithms in the second half of the book.
+This chapter cover the first financial application – dynamic asset allocation and consumption. This problem is best understood in the context of Merton’s landmark paper in 1969 where he stated and solved this problem. This chapter is mainly focused on the mathematical derivation of Merton’s solution of this problem with Dynamic Programming. Through this derivation, the reader will learn about the broader result called Hamilton-Jacobi-Bellman (HJB) equation, which will re-appear in the Market-Making problem in Chapter 12. As ever, we will do some programming exercises. In particular, the reader will learn how to solve Dynamic Asset Allocation in a simple setting with Backward Induction (a DP algorithm we learnt in Chapter 4). Finally, the reader will learn about Dynamic Asset Allocation in practice, where Merton’s frictionless setting is replaced by several real-world frictions, which will require us to move to RL. We will revisit this problem after coverage of RL algorithms in the second half of the book.
 
-#### Chapter 8: Pricing and Hedging of Derivatives in an Incomplete Market
+#### Chapter 8: Fundamental Theorems of Asset Pricing: No-Arbitrage and Complete Markets
+
+* A Simple Setting for Intuitive Understanding
+* Portfolios, Arbitrage and Risk-Neutral Measure
+* First Fundamental Theorem of Asset Pricing
+* Derivatives, Replicating Portfolios and Hedging
+* Second Fundamental Theorem of Asset Pricing
+* Derivatives Pricing
+* Some Examples
+* Overview of General Theory
+
+This chapter provides the theoretical background for the derivatives pricing applications we shall cover in Chapters 9 and 10. The background on derivatives pricing and hedging is a fairly elaborate and advanced topic, and beyond the scope of this book. But we have provided a way to understand the theory in this chapter by considering a very simple setting - that of a single-period with discrete outcomes and no provision for rebalancing of the hedges, that is typical in the general theory. In this chapter, you will learn about some highly important financial foundations such as the concepts of arbitrage, replication, market completeness, and the all-important risk-neutral measure. You will learn the proofs of the two fundamental theorems of asset pricing in this simple setting. At the end of the chapter, we also provide an overview of the general theory (beyond this simple setting).
+
+#### Chapter 9: Pricing and Hedging of Derivatives in an Incomplete Market
 
 * Classical Pricing and Hedging of Derivatives
 * Pricing and Hedging in an Incomplete Market
@@ -155,7 +192,7 @@ This chapter cover the first financial application – dynamic asset allocation 
 
 Perhaps the greatest innovation in Financial Trading is the structuring of complex options and other forms of financial derivatives, and pricing/risk-managing them. In this chapter, the reader is first familiarized with the key concepts of arbitrage, hedging and consequent pricing of options/derivatives based on these concepts. This forms the basis of classical pricing and hedging methods for derivatives. However, traders have consistently struggled with incorporating real-world frictions in these classical solutions, and the friction overlays have always felt with inconsistent and incorrect “hacks”. The reader will then be familiarized with a radically different way to price and hedge derivatives amidst real-world frictions – by modeling this problem as an MDP. We will revisit this problem after we learn the RL algorithms because the only practical way of solving this problem in the real-world is by designing a market-calibrated simulator and then employing RL algorithms on this simulator. As ever, we will write some code to develop a firm grasp of pricing and hedging derivatives.
 
-#### Chapter 9: American Options Pricing
+#### Chapter 10: American Options Pricing
 
 * Stopping Time and Optimal Stopping problem
 * Optimal Stopping problem as an MDP
@@ -164,9 +201,9 @@ Perhaps the greatest innovation in Financial Trading is the structuring of compl
 * RL as an alternative to Longstaff-Schwartz
 * LSPI and FQI customized to American Options Pricing
 
-This chapter covers Financial Application 3 – Pricing history-dependent American options. The reader will be familiarized with the more general problem of optimal stopping time and how it can be modeled as an MDP. The reader will then learn how American Options Pricing is a special case of the more general Optimal Stopping Time problem. The reader will learn how to use Backward Induction (a DP algorithm we learnt in Chapter 3) to solve this problem when the state-space is not too big. The reader will also learn about a very creative technique developed by Longstaff and Schwartz (a sort of hybrid between DP and RL techniques), which is very popular in the finance industry. We will return to this problem in chapter 14 after we have learnt about LSPI (an important RL algorithm that can be used to tackle this problem more efficiently than the popular Longstaff-Schwartz method). As ever, we will write plenty of code in this chapter, including Backward Induction and Longstaff-Schwartz algorithm. By the end of this chapter, the reader would have developed significant expertise in pricing and hedging complex derivatives, a skill that is in high demand in the finance industry.
+This chapter covers Financial Application 3 – Pricing history-dependent American options. The reader will be familiarized with the more general problem of optimal stopping time and how it can be modeled as an MDP. The reader will then learn how American Options Pricing is a special case of the more general Optimal Stopping Time problem. The reader will learn how to use Backward Induction (a DP algorithm we learnt in Chapter 4) to solve this problem when the state-space is not too big. The reader will also learn about a very creative technique developed by Longstaff and Schwartz (a sort of hybrid between DP and RL techniques), which is very popular in the finance industry. We will return to this problem in chapter 14 after we have learnt about LSPI (an important RL algorithm that can be used to tackle this problem more efficiently than the popular Longstaff-Schwartz method). As ever, we will write plenty of code in this chapter, including Backward Induction and Longstaff-Schwartz algorithm. By the end of this chapter, the reader would have developed significant expertise in pricing and hedging complex derivatives, a skill that is in high demand in the finance industry.
 
-#### Chapter 10:  Optimal Trade Order Execution
+#### Chapter 11:  Optimal Trade Order Execution
 
 * Basics of Limit Order Books (LOB)
 * Price Impact and LOB Dynamics
@@ -177,7 +214,7 @@ This chapter covers Financial Application 3 – Pricing history-dependent Americ
 
 This chapter introduces the reader to the world of Algorithmic Trading. However, current Algorithms tend to be rules-based and heuristic. Algorithmic Trading is transforming into Machine Learning-based Algorithms. The natural extension is to automate not just forecasting but also decisioning, the realm of Reinforcement Learning. In this chapter, the reader is first introduced to the mechanics of trade order placements (market orders and limit orders), and then introduced to a very important real-world problem – how to submit a large-sized market order by splitting and timing the splits optimally in order to overcome “price impact” and gain maximum proceeds. The reader will learn about the classical methods based on Dynamic Programming. Then the reader will learn about market frictions and the need to tackle them with RL. We will return to this problem in the second half of the book after we have learnt some RL algorithms.
 
-#### Chapter 11: Optimal Market-Making
+#### Chapter 12: Optimal Market-Making
 
 * Market-Making on a Limit Order Book
 * Problem Statement and MDP Formulation
@@ -190,7 +227,7 @@ This chapter is about the Algorithmic Trading twin of the previous problem – t
 
 ### Section III: Reinforcement Learning Algorithms
 
-#### Chapter 12: Tabular Monte-Carlo & Temporal Difference for Prediction
+#### Chapter 13: Tabular Monte-Carlo & Temporal Difference for Prediction
 
 * Tabular Monte-Carlo (MC) Policy Evaluation
 * Tabular Temporal-Difference (TD) Policy Evaluation
@@ -203,7 +240,7 @@ This chapter is about the Algorithmic Trading twin of the previous problem – t
 
 This chapter starts a new phase in this book, our entry into the world of RL algorithms. To understand the basics of RL, in this chapter, I restrict the RL problem to a very simple one – one where the state space is small and manageable as a table enumeration (known as tabular RL) and one where we only have to calculate the Value Function for a Fixed Policy (this problem is known as the Prediction problem, versus the optimization problem which is known as the Control problem). So this chapter is about RL for Tabular Prediction. This restriction is important because it makes it much easier to understand the core concepts of Monte-Carlo (MC) and Temporal-Difference (TD) in this simplified setting. The remaining chapters will build upon this chapter by adding more complexity and more nuances, while retaining much of the key core concepts developed in this chapter. As ever, the reader will learn by coding plenty of MC and TD algorithms from scratch.
 
-#### Chapter 13: Tabular Monte-Carlo & Temporal Difference for Control
+#### Chapter 14: Tabular Monte-Carlo & Temporal Difference for Control
 
 * Making MC work with GPI: Action-Value Function and Epsilon-Greedy
 * GLIE Monte-Carlo Control
@@ -213,7 +250,7 @@ This chapter starts a new phase in this book, our entry into the world of RL alg
 
 This chapter makes the natural extension from Prediction to Control, while remaining in the tabular setting. The investments made in the previous chapter will bear fruit here as important algorithms such as SARSA and Q-learning can now be learnt with enormous clarity. In this chapter, the reader will implement both SARSA and Q-Learning from scratch in Python. This chapter also introduces the reader to a very important concept for the future success of RL in the real-world: off-policy learning (Q-Learning is the simplest off-policy learning algorithm and it has had good success in various applications).
 
-#### Chapter 14: Monte-Carlo and Temporal Difference with Function Approximation
+#### Chapter 15: Monte-Carlo and Temporal Difference with Function Approximation
 
 * Value Function Approximation
 * A quick review of Deep Neural Networks and Stochastic Gradient Descent
@@ -224,7 +261,7 @@ This chapter makes the natural extension from Prediction to Control, while remai
  
 In this chapter, the reader will learn how to scale the RL algorithms learnt in chapters 11 and 12 to real-world situations where the state space is large and consequently require approximate representations of the Value Function, eg: using Deep Neural Networks. The reader will gain an appreciation of how RL and Neural Networks technology are complementary and together they can surmount real-world challenges. The reader will also learn about intricate choices of how much to bootstrap, and whether to do on-policy or off-policy learning when doing function approximation.
 
-#### Chapter 15: Batch RL
+#### Chapter 16: Batch RL
 
 * Experience Replay
 * Deep Q-Networks (DQN)
@@ -233,7 +270,7 @@ In this chapter, the reader will learn how to scale the RL algorithms learnt in 
 
 In this chapter, the reader will learn about a different class of RL algorithms that are data-efficient. These batch algorithms such as Experience Replay, Deep Q-networks and Least Squares Policy Iteration are state-of-the-art and have had a lot of success in practice. The reader will also explore these algorithms in the context of the Financial Applications that were previously covered.
 
-#### Chapter 16: Value Function Geometry and Gradient TD
+#### Chapter 17: Value Function Geometry and Gradient TD
 
 * Motivation for Value Function Geometry
 * Bellman Operator and Projection Operator
@@ -244,7 +281,7 @@ In this chapter, the reader will learn about a different class of RL algorithms 
 
 This chapter is heavier on Theory relative to other chapters. The motivation for this chapter is to develop deeper insights into the core mathematics underpinning RL algorithms (back to the basics of Bellman Equation). Understanding Value Function Geometry will place the reader in a highly advantaged situation in terms of truly understanding what is it that makes some Algorithms succeed in certain situations and other than don’t. This chapter also shows the reader how to break out of the so-called Deadly Traid (when bootstrapping, function approximation and off-policy are employed together, RL algorithms tend to fail). The state-of-the-art Gradient TD Algorithm resist the deadly triad and we dive deep into its inner workings to understand how and why.
 
-#### Chapter 17: Policy Gradient Algorithms
+#### Chapter 18: Policy Gradient Algorithms
 
 * Policy Improvement with Gradient Ascent
 * Expected-Returns Objective and Policy Gradient Theorem (PGT)
@@ -259,7 +296,7 @@ This chapter is heavier on Theory relative to other chapters. The motivation for
 
 In this chapter, the reader will be exposed to yet another class of RL algorithms that are based on improving the policy using the gradient of the policy function approximation (rather than the usual policy improvement based on argmax). When action spaces are large or continuous, Policy Gradient tends to be the only option and so, this chapter is useful to overcome many real-world situations (including many financial applications) where the action space is indeed large. The reader will learn about the mathematical proof of the elegant Policy Gradient Theorem and implement a couple of Policy Gradient Algorithms from scratch. The reader will learn about state-of-the-art Actor-Critic methods. Lastly, the reader will also learn about Evolutionary Strategies, an algorithm that looks quite similar to Policy Gradient Algorithms, but is actually not classified as an RL Algorithm. However, learning about Evolutionary Strategies is important because some real-world applications, including Financial Applications can indeed be tackled well with Evolutionary Strategies.
 
-#### Chapter 18: Learning versus Planning
+#### Chapter 19: Learning versus Planning
 
 * Model-based RL
 * Learning a Model
@@ -272,7 +309,7 @@ In this chapter, the reader will be exposed to yet another class of RL algorithm
 
 This chapter brings the various pieces of Planning and Learning concepts learnt in this book together. The reader will learn that in practice, one needs to be creative about blending planning and learning concepts (a technique known as Model-based RL). In practice, many problems are tackled using Model-based RL. The reader will also get familiar with an algorithm (Monte Carlo Tree Search) that was highly popularized when it solved the Game of GO, a problem that was thought to be unsurmountable by present AI technology.
 
-#### Chapter 19: Exploration versus Exploitation
+#### Chapter 20: Exploration versus Exploitation
 
 * The Multi-Armed Bandit (MAB) Problem
 * Regret Analysis
@@ -287,7 +324,7 @@ This chapter brings the various pieces of Planning and Learning concepts learnt 
 
 This chapter enables the reader to deep-dive into the topic of balancing exploration and exploitation, a topic of great importance in RL algorithms. Exploration versus Exploitation is best understood in the simpler setting of the Multi-Armed Bandit (MAB) problem. The reader will learn about various state-of-the-art MAB algorithms, implement them in Python, and draw various graphs to understand how they perform versus each other in various problem settings. The reader will then be exposed to Contextual Bandits which are a popular technique in optimal choices of Advertisement placements. Finally, the reader will learn how to apply the MAB algorithms within RL.
 
-#### Chapter 20: RL in Real-World Finance: Reality versus Hype, Present versus Future
+#### Chapter 21: RL in Real-World Finance: Reality versus Hype, Present versus Future
 
 This concluding chapter will enable the reader to put the entire book’s content in perspective relative to the current state of the financial industry, the practical challenges in adoption of RL, and some guidance on how to go about building an end-to-end system for financial applications based on RL. The reader will be guided on reality versus hype in the current “AI First” landscape. The reader will also gain a perspective of where RL stands today and what the future holds.
 
@@ -297,5 +334,14 @@ This concluding chapter will enable the reader to put the entire book’s conten
 2. Portfolio Theory
 3. Introduction To and Overview Of Stochastic Calculus Basics
 4. The Hamilton-Jacobi-Bellman (HJB) Equation
-5. Fundamental Theorems of Asset-Pricing: No-Arbitrage and Complete Markets
-6. Black-Scholes Theory
+5. Black-Scholes Theory
+
+## Decluttering the jargon in Optimal Decisioning under Uncertainty
+## Introduction to the Markov Decision Process (MDP) framework
+## Examples of important real-world problems that fit the MDP framework
+## The inherent difficulty in solving MDPs
+## Overview of Value Function, Bellman Equation, Dynamic Programming and Reinforcement Learning
+## Why is RL useful/interesting to learn about?
+## Many faces of RL and where it lies in the classification of ML
+## Outline of chapters in the book
+## Overview of the 5 Financial Applications

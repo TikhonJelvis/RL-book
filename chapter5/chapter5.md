@@ -151,11 +151,15 @@ class Weights:
             self.adam_cache1 + (1 - self.adam_gradient.decay1) * gradient
         new_adam_cache2: np.ndarray = self.adam_gradient.decay2 * \
             self.adam_cache2 + (1 - self.adam_gradient.decay2) * gradient ** 2
-        new_weights: np.ndarray = self.weights - \
-            self.adam_gradient.learning_rate * self.adam_cache1 / \
-            (np.sqrt(self.adam_cache2) + SMALL_NUM) * \
-            np.sqrt(1 - self.adam_gradient.decay2 ** time) / \
+        corrected_m: np.ndarray = new_adam_cache1 / \
             (1 - self.adam_gradient.decay1 ** time)
+        corrected_v: np.ndarray = new_adam_cache2 / \
+            (1 - self.adam_gradient.decay2 ** time)
+
+        new_weights: np.ndarray = self.weights - \
+            self.adam_gradient.learning_rate * corrected_m / \
+            (np.sqrt(corrected_v) + SMALL_NUM)
+
         return replace(
             self,
             time=time,
@@ -908,15 +912,19 @@ from rl.function_approx import sgd
 from rl.distribution import Constant
 from operator import itemgetter
 
-MDP_FuncApprox_Distribution = \
-    Tuple[MarkovDecisionProcess[S, A], FunctionApprox[S], Distribution[S]]
+MDP_FuncApproxV_Distribution = Tuple[
+    MarkovDecisionProcess[S, A],
+    FunctionApprox[S],
+    Distribution[S]
+]
 
 def back_opt_vf_and_policy(
-    mdp_f0_mu_triples: Sequence[MDP_FuncApprox_Distribution[S, A]],
+    mdp_f0_mu_triples: Sequence[MDP_FuncApproxV_Distribution[S, A]],
     gamma: float,
     num_state_samples: int,
     error_tolerance: float
 ) -> Iterator[Tuple[FunctionApprox[S], Policy[S, A]]]:
+
     vp: List[Tuple[FunctionApprox[S], Policy[S, A]]] = []
 
     for i, (mdp, approx0, mu) in enumerate(reversed(mdp_f0_mu_triples)):
@@ -950,7 +958,54 @@ def back_opt_vf_and_policy(
     return reversed(vp)
 ```
 
-All of the above code for Approximate Dynamic Programming algorithms is in the file [rl/approximate_dynamic_programming.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/approximate_dynamic_programming.py). We encourage you to create instances of `MarkovRewardProcess` and `MarkovDecisionProcess` (including finite-horizon instances) and play with the above ADP code with different choices of function approximations, state sampling distributions, and number of samples. A simple but valuable exercise is to reproduce the tabular versions of these algorithms by using the `Tabular` implementation of `FunctionApprox` (note: the `count_to_weights_func` would need to be lambda _: 1.) in the above ADP functions.
+## Finite-Horizon Approximate Q-Value Iteration {#sec:bi-approx-q-value-iteration}
+
+The above code for Finite-Horizon Approximate Value Iteration extends the Finite-Horizon Backward Induction Value Iteration algorithm of Chapter [-@sec:dp-chapter] by treating the Value Function as a function approximation instead of an exact tabular representation. However, there is an alternative (and arguably simpler and more effective) way to solve the Finite-Horizon Control problem - we can perform backward induction on the Action-Value (Q-Value) function instead of the (State-)Value Function. We will perform the function approximation on the Q-Value function and step back in time similar to the backward induction we performed above for the (State-)Value function. The code below in `back_opt_qvf` is quite similar to the code above in `back_opt_vf_and_policy`. The key difference is that the `FunctionApprox` in the input to the function needs to be set up as a `FunctionApprox[Tuple[S, A]]` instead of `FunctionApprox[S]` to reflect the fact that we are approximating $Q_t^*: \mathcal{S} \times \mathcal{A} \rightarrow \mathbb{R}$ for all time steps $t$ in the finite horizon. For each non-terminal time step, we express the $Q$-value function (for a set of sample states $s$ and for all actions $a$) in terms of the $Q$-value function approximation of the next time step. This is essentially the MDP Action-Value Function Bellman Optimality Equation for the finite-horizon case (adapted to function approximation). `back_opt_qvf` returns an Iterator over `FunctionApprox[Tuple[S, A]]` (representing the Optimal Q-Value Function), from time step 0 to the horizon time step. We can then obtain $V^*_t$ (Optimal State-Value Function) and $\pi^*_t$ for each $t$ by simply performing a $\max/\argmax$ over all actions $a \in \mathcal{A}_t$ of $Q^*_t(s, a)$ for any $s \in \mathcal{S}_t$.
+
+```python
+MDP_FuncApproxQ_Distribution = Tuple[
+    MarkovDecisionProcess[S, A],
+    FunctionApprox[Tuple[S, A]],
+    Distribution[S]
+]
+
+def back_opt_qvf(
+    mdp_f0_mu_triples: Sequence[MDP_FuncApproxQ_Distribution[S, A]],
+    gamma: float,
+    num_state_samples: int,
+    error_tolerance: float
+) -> Iterator[FunctionApprox[Tuple[S, A]]]:
+    horizon: int = len(mdp_f0_mu_triples)
+    qvf: List[FunctionApprox[Tuple[S, A]]] = []
+
+    for i, (mdp, approx0, mu) in enumerate(reversed(mdp_f0_mu_triples)):
+
+        def return_(s_r: Tuple[S, float], i=i, mdp=mdp) -> float:
+            s, r = s_r
+            return r + gamma * (
+                max(qvf[i-1].evaluate([(s, a)]).item()
+                    for a in mdp_f0_mu_triples[horizon - i][0].actions(s))
+                if i > 0 else 0.
+            )
+
+        this_qvf = FunctionApprox.converged(
+            sgd(
+                approx0,
+                repeat(
+                    [((s, a), mdp.step(s, a).expectation(return_))
+                     for s in mu.sample_n(num_state_samples)
+                     for a in mdp.actions(s)]
+                )
+            ),
+            error_tolerance
+        )
+
+        qvf.append(this_qvf)
+
+    return reversed(qvf)
+```
+
+All of the above code for Approximate Dynamic Programming (ADP) algorithms is in the file [rl/approximate_dynamic_programming.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/approximate_dynamic_programming.py). We encourage you to create instances of `MarkovRewardProcess` and `MarkovDecisionProcess` (including finite-horizon instances) and play with the above ADP code with different choices of function approximations, state sampling distributions, and number of samples. A simple but valuable exercise is to reproduce the tabular versions of these algorithms by using the `Tabular` implementation of `FunctionApprox` (note: the `count_to_weights_func` would need to be lambda _: 1.) in the above ADP functions.
 
 ## Key Takeaways from this Chapter
 
