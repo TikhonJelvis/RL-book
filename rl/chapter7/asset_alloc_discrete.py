@@ -16,6 +16,8 @@ class AssetAllocDiscrete:
     riskless_returns: Sequence[float]
     utility_func: Callable[[float], float]
     risky_alloc_choices: Sequence[float]
+    feature_functions: Sequence[Callable[[Tuple[float, float]]]]
+    dnn_spec: DNNSpec
     initial_wealth_distribution: Distribution[float]
 
     def time_steps(self) -> int:
@@ -60,7 +62,7 @@ class AssetAllocDiscrete:
 
                         return SampledDistribution(
                             sampler=sr_sampler_func,
-                            expectation_samples=1000
+                            expectation_samples=500
                         )
 
                 return AssetAllocMRP()
@@ -70,44 +72,36 @@ class AssetAllocDiscrete:
 
         return AssetAllocMDP()
 
-    def get_vf_func_approx(self, _: int) -> DNNApprox[float]:
-
-        feature_functions: Sequence[Callable[[float], float]] = [lambda w: w]
-        dnn_spec: DNNSpec = DNNSpec(
-            neurons=[1],
-            hidden_activation=lambda x: np.exp(x),
-            hidden_activation_deriv=lambda x: x,
-            output_activation=lambda x: x
-        )
-        adam_gradient: AdamGradient = AdamGradient(
-            learning_rate=0.1,
-            decay1=0.9,
-            decay2=0.999
-        )
-        return DNNApprox.create(
-            feature_functions=feature_functions,
-            dnn_spec=dnn_spec,
-            adam_gradient=adam_gradient
-        )
+    # def get_vf_func_approx(self, _: int) -> DNNApprox[float]:
+    # 
+    #     feature_functions: Sequence[Callable[[float], float]] = [lambda w: w]
+    #     dnn_spec: DNNSpec = DNNSpec(
+    #         neurons=[1],
+    #         hidden_activation=lambda x: np.exp(x),
+    #         hidden_activation_deriv=lambda x: x,
+    #         output_activation=lambda x: x
+    #     )
+    #     adam_gradient: AdamGradient = AdamGradient(
+    #         learning_rate=0.1,
+    #         decay1=0.9,
+    #         decay2=0.999
+    #     )
+    #     return DNNApprox.create(
+    #         feature_functions=feature_functions,
+    #         dnn_spec=dnn_spec,
+    #         adam_gradient=adam_gradient
+    #     )
 
     def get_qvf_func_approx(self, _: int) -> DNNApprox[Tuple[float, float]]:
 
-        feature_functions: Sequence[Callable[[Tuple[float, float]], float]] = \
-            [lambda w: w[0], lambda w: w[1], lambda w: w[1] * w[1]]
-        dnn_spec: DNNSpec = DNNSpec(
-            neurons=[1],
-            hidden_activation=lambda x: np.exp(x),
-            hidden_activation_deriv=lambda x: x,
-            output_activation=lambda x: x
-        )
         adam_gradient: AdamGradient = AdamGradient(
             learning_rate=0.1,
             decay1=0.9,
             decay2=0.999
         )
         return DNNApprox.create(
-            feature_functions=feature_functions,
-            dnn_spec=dnn_spec,
+            feature_functions=self.feature_functions,
+            dnn_spec=self.dnn_spec,
             adam_gradient=adam_gradient
         )
 
@@ -140,7 +134,7 @@ class AssetAllocDiscrete:
             self.get_states_distribution(i)
         ) for i in range(self.time_steps())]
 
-        num_state_samples: int = 300
+        num_state_samples: int = 500
         error_tolerance: float = 3e-5
 
         return back_opt_vf_and_policy(
@@ -163,7 +157,7 @@ class AssetAllocDiscrete:
             self.get_states_distribution(i)
         ) for i in range(self.time_steps())]
 
-        num_state_samples: int = 100
+        num_state_samples: int = 200
         error_tolerance: float = 3e-5
 
         return back_opt_qvf(
@@ -176,7 +170,7 @@ class AssetAllocDiscrete:
 
 if __name__ == '__main__':
 
-    steps: int = 4
+    steps: int = 5
     μ: float = 0.11
     σ: float = 0.2
     r: float = 0.05
@@ -187,7 +181,15 @@ if __name__ == '__main__':
     risky_ret: Sequence[Gaussian] = [Gaussian(μ=μ, σ=σ) for _ in range(steps)]
     riskless_ret: Sequence[float] = [r for _ in range(steps)]
     utility_function: Callable[[float], float] = lambda x: -np.exp(-a * x) / a
-    alloc_choices: Sequence[float] = np.linspace(1.2, 1.6, 9)
+    alloc_choices: Sequence[float] = np.linspace(1.0, 2.0, 11)
+    feature_funcs: Sequence[Callable[[Tuple[float, float]], float]] = \
+        [lambda w: w[0], lambda w: w[1], lambda w: w[1] * w[1]]
+    dnn: DNNSpec = DNNSpec(
+        neurons=[1],
+        hidden_activation=lambda x: np.exp(x),
+        hidden_activation_deriv=lambda x: x,
+        output_activation=lambda x: x
+    )
     init_wealth_distr: Gaussian = Gaussian(μ=init_wealth, σ=init_wealth_var)
 
     aad: AssetAllocDiscrete = AssetAllocDiscrete(
@@ -195,22 +197,10 @@ if __name__ == '__main__':
         riskless_returns=riskless_ret,
         utility_func=utility_function,
         risky_alloc_choices=alloc_choices,
+        feature_functions=feature_funcs,
+        dnn_spec=dnn,
         initial_wealth_distribution=init_wealth_distr
     )
-
-    it_vf_and_pi: Iterator[Tuple[DNNApprox[float], Policy[float, float]]] = \
-        aad.backward_induction_vf_and_pi()
-
-    print("Backward Induction: VF And Policy")
-    print("---------------------------------")
-    print("")
-    for t, (v, p) in enumerate(it_vf_and_pi):
-        alloc: float = p.act(init_wealth).value
-        val: float = v.evaluate([init_wealth])[0]
-        print(f"Time {t:d}: Risky Allocation = {alloc:.3f}, Val = {val:.3f}")
-        print("Weights")
-        for w in v.weights:
-            print(w.weights)
 
     it_qvf: Iterator[DNNApprox[Tuple[float, float]]] = \
         aad.backward_induction_qvf()
