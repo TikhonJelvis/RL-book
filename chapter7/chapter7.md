@@ -1,4 +1,4 @@
-# Dynamic Asset-Allocation and Consumption
+# Dynamic Asset-Allocation and Consumption {#sec:portfolio-chapter}
 
 This chapter covers the first of five financial applications of Stochastic Control covered in this book. This financial application deals with the topic of investment management for not just a financial company, but more broadly for any corporation or for any individual. The nuances for specific companies and individuals can vary considerably but what is common across these entities is the need to:
 
@@ -293,7 +293,7 @@ Figure \ref{fig:merton-solution-wealth-trajectory} shows the time-trajectory of 
 ![Expected Wealth Time-Trajectory \label{fig:merton-solution-wealth-trajectory}](./chapter7/wealth_trajectory.png "Expected Wealth Time-Trajectory")
 </div>
 
-## A Discrete-Time Asset-Allocation Example
+## A Discrete-Time Asset-Allocation Example {#sec:discrete-asset-alloc}
 
 In this section, we cover a discrete-time version of the problem that lends itself to analytical tractability, much like Merton's Portfolio Problem in continuous-time. We are given wealth $W_0$ at time 0. At each of discrete time steps labeled $t = 0, 1, \ldots, T-1$, we are allowed to allocate the wealth $W_t$ at time $t$ to a portfolio of a risky asset and a riskless asset in an unconstrained manner with no transaction costs. The risky asset yields a random return $\sim N(\mu, \sigma^2)$ over each single time step (for a given $\mu \in \mathbb{R}$ and a given $\sigma \in \mathbb{R}^+$). The riskless asset yields a constant return denoted by $r$ over each single time step (for a given $r \in \mathbb{R}$).  We assume that there is no consumption of wealth at any time $t < T$, and that we liquidate and consume the wealth $W_T$ at time $t$. So our goal is simply to maximize the Expected Utility of Wealth at the final time step $t=T$ by dynamically allocating $x_t \in \mathbb{R}$ in the risky asset and the remaining $W_t - x_t$ in the riskless asset for each $t = 0, 1, \ldots, T-1$. Assume the single-time-step discount factor is $\gamma$ and that the Utility of Wealth at the final time step $t=T$ is given by the following CARA function:
 
@@ -390,22 +390,145 @@ Substituting the solution for $c_{t+1}$ in Equation \eqref{eq:pi-star-functional
 
 ## Porting to Real-World
 
-Analytical tractability in Merton's formulation was due to:
+We have covered a continuous-time setting  and a discrete-time setting with simplifying assumptions that provide analytical tractability. The specific simplifying assumptions that enabled analytical tractability were:
 
 * Normal distribution of asset returns
-* Constant Relative Risk-Aversion
-* Frictionless, continuous trading
+* CRRA/CARA assumptions
+* Frictionless markets/trading (no transaction costs, unconstrained and continuous prices/allocation amounts/consumption)
 
-However, real-world situations involve (among other things):
+But real-world problems involving dynamic asset-allocation and consumption are not so simple and clean. We have arbitrary, more complex asset price movements. Utility functions don't fit into simple CRRA/CARA formulas. In practice, trading often occurs in discrete space - asset prices, allocation amounts and consumption are often discrete quantities. Moreover, when we change our asset allocations or liquidate a portion of our portfolio to consume, we incur transaction costs. Furthermore, trading doesn't always happen in continuous-time - there are typically specific  windows of time where one is locked-out from trading or there are trading restrictions. Lastly, many investments are illiquid (eg: real-estate) or simply not allowed to be liquidated until a certain horizon (eg: retirement funds), which poses major constraints on extracting money from one's portfolio for consumption. So even though prices/allocation amounts/consumption might be close to being continuous-variables, the other above-mentioned frictions mean that we don't get the benefits of calculus that we obtained in the simple examples we covered.
 
-* Discrete amounts of assets to hold and discrete quantities of trades
-* Transaction costs
-* Locked-out days for trading
-* Non-stationary/arbitrary/correlated processes of multiple assets
-* Changing/uncertain risk-free rate
-* Consumption constraints
-* Arbitrary Risk-Aversion/Utility specification
+With the above real-world considerations, we need to tap into Dynamic Programming  - more specifically, Approximate Dynamic Programming since real-world problems have large state spaces and large action spaces (even if these spaces are not continuous, they tend to be close to continuous). Appropriate function approximation of the Value Function is key to solving these problems. Implementing a full-blown real-world investment and consumption management system is beyond the scope of this book, but let us implement an illustrative example that provides sufficient understanding of how a full-blown real-world example would be implemented. We have to keep things simple enough and yet sufficiently general. So here is the setting we will implement:
 
-These real-world considerations require us to tap into Dynamic Programming (typically, Approximate Dynamic Programming) algorithms, and often Reinforcement Learning algorithms. In fact, the large/continuous action space points to a class of RL algorithms meant to tackle large/continuous action spaces: Policy Gradient Algorithms that we shall learn in Chapter [-@sec:policy-gradient-chapter].
+* One risky asset and one riskless asset.
+* Finite number of time steps (discrete-time setting akin to Section [-@sec:discrete-asset-alloc]).
+* No consumption (i.e., no extraction from the investment portfolio) until the end of the finite horizon.
+* Arbitrary distribution of return for the risky asset, allowing the distribution of returns to change in time (expressed as `risky_return_distributions: Sequence[Distribution[float]]` in the code below).
+* Allowing the return on the riskless asset to vary in time (expressed as `riskless_returns: Sequence[float]` in the code below).
+* Arbitrary Utility Function (expressed as `utility_func: Callable[[float], float]` in the code below).
+* Finite number of choices of investment amounts in the risky asset at each time step (expressed as `risky_alloc_choices: Sequence[float]` in the code below).
+
+The code in the class `AssetAllocDiscrete` below is fairly self-explanatory. We use the function `back_opt_qvf` covered in Section [-@sec:bi-approx-q-value-iteration] of Chapter [-@sec:func-approx-chapter] to perform backward induction on the optimal Q-Value Function. Since the state space is continuous, the optimal Q-Value Function is represented as a `FunctionApprox` (specifically, as a `DNNApprox`). Moreover, since we are working with a generic distribution of returns that govern the state transitions of this MDP, we need to work with the methods of the abstract class `MarkovDecisionProcess` (and not the class `FiniteMarkovDecisionProcess`). The method `backward_induction_qvf` below makes the call to `back_opt_vf`. Since the risky returns distribution is arbitrary and since the utility function is arbitrary, we don't have prior knowledge of the functional form of the Q-Value function. Hence, the user of the class `AssetAllocDiscrete` also needs to provide the set of feature functions (`feature_functions` in the code below) and the specification of a deep neural network to represent the Q-Value function (`dnn_spec` in the code below). The rest of the code below is mainly about preparing the input `mdp_f0_mu_triples` to be passed to `back_opt_qvf`. As was explained in Section [-@sec:bi-approx-q-value-iteration] of Chapter [-@sec:func-approx-chapter], `mdp_fo_mu_triples` is a sequence (for each time step) of the following triples:
+
+* A `MarkovDecisionProcess[float, float]` object, which in the code below is prepared by the method `get_mdp`. *State* is the portfolio wealth (`float` type) and *Action* is the quantity of investment in the risky asset (also of `float` type). The code in this method is not too complicated, but it's fairly intricate. We create a class `AssetAllocMDP` that implements the abstract class `MarkovDecisionProcess`. To do so, we need to implement the `apply_policy` method and the `actions` method. The `apply_policy` method creates a class `AssetAllocMRP` that implements the abstract class `MarkovRewardProcess`, which in turn needs to implement the `transition_reward` method. Since we are dealing with abstract distributions, the only thing we can do is to invoke the `sample` method of the abstract `Distribution` class. This in turn means that `transition_reward` returns an instance of `SampledDistribution`, which is based on the `sr_sampler_func` that returns a sample of the pair of next state (next time step's wealth) and reward, given the current state (current wealth) and action (current time step's quantity of investment in the risky asset).
+* A `FunctionApprox[Tuple[float, float]]` object, which in the code below is prepared by the method `get_qvf_func_approx`. This method sets up a 'DNNApprox' object that represents a neural-network function approximation for the optimal Q-Value Function. So the input to this neural network would be a `Tuple[float, float]` representing a (state, action) pair. 
+* A `Distribution[float]` object, which in the code below is prepared by the method `get_states_distribution`. This method constructs a `SampledDistribution[float]` representing the distribution of states (distribution of portfolio wealth) at each time step. The `SampledDistribution[float]` is prepared using the function `states_sampler_func` that simulates the state-transitions (portfolio wealth transitions) from time 0 to the given time step (the simulation invokes the `sample` method of the risky asset's return `Distribution` and the `sample` method of a uniform distribution over the action choices specified by `risky_alloc_choices`).
+
+
+```python
+from rl.distribution import Distribution, SampledDistribution, Choose, Gaussian
+from rl.function_approx import DNNSpec, AdamGradient, DNNApprox
+from rl.approximate_dynamic_programming import back_opt_qvf
+from operator import itemgetter
+import numpy as np
+
+@dataclass(frozen=True)
+class AssetAllocDiscrete:
+    risky_return_distributions: Sequence[Distribution[float]]
+    riskless_returns: Sequence[float]
+    utility_func: Callable[[float], float]
+    risky_alloc_choices: Sequence[float]
+    feature_functions: Sequence[Callable[[Tuple[float, float]]]]
+    dnn_spec: DNNSpec
+    initial_wealth_distribution: Distribution[float]
+
+    def time_steps(self) -> int:
+        return len(self.risky_return_distributions)
+
+    def uniform_actions(self) -> Choose[float]:
+        return Choose(set(self.risky_alloc_choices))
+
+    def get_mdp(self, t: int) -> MarkovDecisionProcess[float, float]:
+        distr: Distribution[float] = self.risky_return_distributions[t]
+        rate: float = self.riskless_returns[t]
+        alloc_choices: Sequence[float] = self.risky_alloc_choices
+        steps: int = self.time_steps()
+        utility_f: Callable[[float], float] = self.utility_func
+
+        class AssetAllocMDP(MarkovDecisionProcess[float, float]):
+
+            def apply_policy(
+                self,
+                policy: Policy[float, float]
+            ) -> MarkovRewardProcess[float]:
+
+                class AssetAllocMRP(MarkovRewardProcess[float]):
+
+                    def transition_reward(
+                        self,
+                        wealth: float
+                    ) -> SampledDistribution[Tuple[float, float]]:
+
+                        def sr_sampler_func() -> Tuple[float, float]:
+                            alloc: float = policy.act(wealth).sample()
+                            next_wealth: float = alloc * (1 + distr.sample()) \
+                                + (wealth - alloc) * (1 + rate)
+                            reward: float = utility_f(next_wealth) \
+                                if t == steps - 1 else 0.
+                            return (next_wealth, reward)
+
+                        return SampledDistribution(
+                            sampler=sr_sampler_func,
+                            expectation_samples=500
+                        )
+
+                return AssetAllocMRP()
+
+            def actions(self, wealth: float) -> Sequence[float]:
+                return alloc_choices
+
+        return AssetAllocMDP()
+
+    def get_qvf_func_approx(self, _: int) -> DNNApprox[Tuple[float, float]]:
+        adam_gradient: AdamGradient = AdamGradient(
+            learning_rate=0.1,
+            decay1=0.9,
+            decay2=0.999
+        )
+        return DNNApprox.create(
+            feature_functions=self.feature_functions,
+            dnn_spec=self.dnn_spec,
+            adam_gradient=adam_gradient
+        )
+
+    def get_states_distribution(self, t: int) -> SampledDistribution[float]:
+        distr: Distribution[float] = self.risky_return_distributions[t]
+        rate: float = self.riskless_returns[t]
+        actions_distr: Choose[float] = self.uniform_actions()
+
+        def states_sampler_func() -> float:
+            wealth: float = self.initial_wealth_distribution.sample()
+            for i in range(t):
+                alloc: float = actions_distr.sample()
+                wealth = alloc * (1 + distr.sample()) + \
+                    (wealth - alloc) * (1 + rate)
+            return wealth
+
+        return SampledDistribution(states_sampler_func)
+
+    def backward_induction_qvf(self) -> \
+            Iterator[DNNApprox[Tuple[float, float]]]:
+        mdp_f0_mu_triples: Sequence[Tuple[
+            MarkovDecisionProcess[float, float],
+            DNNApprox[Tuple[float, float]],
+            SampledDistribution[float]
+        ]] = [(
+            self.get_mdp(i),
+            self.get_qvf_func_approx(i),
+            self.get_states_distribution(i)
+        ) for i in range(self.time_steps())]
+
+        num_state_samples: int = 200
+        error_tolerance: float = 3e-5
+
+        return back_opt_qvf(
+            mdp_f0_mu_triples=mdp_f0_mu_triples,
+            gamma=1.0,
+            num_state_samples=num_state_samples,
+            error_tolerance=error_tolerance
+        )
+```
+
+Large/continuous action space points to a class of RL algorithms meant to tackle large/continuous action spaces: Policy Gradient Algorithms that we shall learn in Chapter [-@sec:policy-gradient-chapter].
 
 ## Key Takeaways from this Chapter
