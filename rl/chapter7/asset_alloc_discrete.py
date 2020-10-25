@@ -16,7 +16,7 @@ class AssetAllocDiscrete:
     riskless_returns: Sequence[float]
     utility_func: Callable[[float], float]
     risky_alloc_choices: Sequence[float]
-    feature_functions: Sequence[Callable[[Tuple[float, float]]]]
+    feature_functions: Sequence[Callable[[Tuple[float, float]], float]]
     dnn_spec: DNNSpec
     initial_wealth_distribution: Distribution[float]
 
@@ -62,7 +62,7 @@ class AssetAllocDiscrete:
 
                         return SampledDistribution(
                             sampler=sr_sampler_func,
-                            expectation_samples=500
+                            expectation_samples=10000
                         )
 
                 return AssetAllocMRP()
@@ -72,25 +72,19 @@ class AssetAllocDiscrete:
 
         return AssetAllocMDP()
 
-    # def get_vf_func_approx(self, _: int) -> DNNApprox[float]:
-    # 
-    #     feature_functions: Sequence[Callable[[float], float]] = [lambda w: w]
-    #     dnn_spec: DNNSpec = DNNSpec(
-    #         neurons=[1],
-    #         hidden_activation=lambda x: np.exp(x),
-    #         hidden_activation_deriv=lambda x: x,
-    #         output_activation=lambda x: x
-    #     )
-    #     adam_gradient: AdamGradient = AdamGradient(
-    #         learning_rate=0.1,
-    #         decay1=0.9,
-    #         decay2=0.999
-    #     )
-    #     return DNNApprox.create(
-    #         feature_functions=feature_functions,
-    #         dnn_spec=dnn_spec,
-    #         adam_gradient=adam_gradient
-    #     )
+    def get_vf_func_approx(self, _: int) -> DNNApprox[float]:
+
+        feature_functions: Sequence[Callable[[float], float]] = [lambda w: w]
+        adam_gradient: AdamGradient = AdamGradient(
+            learning_rate=0.1,
+            decay1=0.9,
+            decay2=0.999
+        )
+        return DNNApprox.create(
+            feature_functions=feature_functions,
+            dnn_spec=self.dnn_spec,
+            adam_gradient=adam_gradient
+        )
 
     def get_qvf_func_approx(self, _: int) -> DNNApprox[Tuple[float, float]]:
 
@@ -135,7 +129,7 @@ class AssetAllocDiscrete:
         ) for i in range(self.time_steps())]
 
         num_state_samples: int = 500
-        error_tolerance: float = 3e-5
+        error_tolerance: float = 5e-5
 
         return back_opt_vf_and_policy(
             mdp_f0_mu_triples=mdp_f0_mu_triples,
@@ -158,7 +152,7 @@ class AssetAllocDiscrete:
         ) for i in range(self.time_steps())]
 
         num_state_samples: int = 200
-        error_tolerance: float = 3e-5
+        error_tolerance: float = 5e-5
 
         return back_opt_qvf(
             mdp_f0_mu_triples=mdp_f0_mu_triples,
@@ -170,22 +164,52 @@ class AssetAllocDiscrete:
 
 if __name__ == '__main__':
 
-    steps: int = 5
-    μ: float = 0.11
-    σ: float = 0.2
+    steps: int = 2
+    μ: float = 0.1
+    σ: float = 0.1
     r: float = 0.05
     a: float = 1.0
     init_wealth: float = 1.0
     init_wealth_var: float = 0.1
 
+    print("Analytical Solution")
+    print("-------------------")
+    print()
+
+    excess: float = μ - r
+    var: float = σ * σ
+    base_alloc: float = excess / (a * var)
+
+    for t in range(steps):
+        print(f"Time {t:d}")
+        print()
+        left: int = steps - t
+        b_param: float = - np.exp(-excess * excess * left / (2 * var)) / a
+        c_param: float = - a * (1 + r) ** left
+        q_p1: float = c_param * (1 + r)
+        q_p2: float = c_param * excess
+        q_p3: float = c_param * c_param * var / 2
+        alloc: float = base_alloc / (1 + r) ** (left - 1)
+        val: float = b_param * np.exp(c_param * init_wealth)
+        print(f"Opt Risky Allocation = {alloc:.3f}, Opt Val = {val:.3f}")
+        print(f"b_param = {b_param:.3f}, c_param = {c_param:.3f}")
+        print(f"q_p1 = {q_p1: .3f}, q_p2 = {q_p2: .3f}, q_p3 = {q_p3:.3f}")
+        print()
+
     risky_ret: Sequence[Gaussian] = [Gaussian(μ=μ, σ=σ) for _ in range(steps)]
     riskless_ret: Sequence[float] = [r for _ in range(steps)]
     utility_function: Callable[[float], float] = lambda x: -np.exp(-a * x) / a
-    alloc_choices: Sequence[float] = np.linspace(1.0, 2.0, 11)
+    alloc_choices: Sequence[float] = np.linspace(2.0, 8.0, 25)
+    normalization: float = base_alloc / init_wealth
     feature_funcs: Sequence[Callable[[Tuple[float, float]], float]] = \
-        [lambda w: w[0], lambda w: w[1], lambda w: w[1] * w[1]]
+        [
+            lambda w: w[0],
+            lambda w: w[1] / normalization,
+            lambda w: w[1] * w[1] / (normalization * normalization)
+        ]
     dnn: DNNSpec = DNNSpec(
         neurons=[1],
+        bias=False,
         hidden_activation=lambda x: np.exp(x),
         hidden_activation_deriv=lambda x: x,
         output_activation=lambda x: x
@@ -202,32 +226,43 @@ if __name__ == '__main__':
         initial_wealth_distribution=init_wealth_distr
     )
 
+    it_vf: Iterator[Tuple[DNNApprox[float], Policy[float, float]]] = \
+        aad.backward_induction_vf_and_pi()
+
+    print("Backward Induction: VF And Policy")
+    print("---------------------------------")
+    print()
+    for t, (v, p) in enumerate(it_vf):
+        print(f"Time {t:d}")
+        print()
+        opt_alloc: float = p.act(init_wealth).value
+        val: float = v.evaluate([init_wealth])[0]
+        print(f"Opt Risky Allocation = {opt_alloc:.2f}, Opt Val = {val:.3f}")
+        print("Weights")
+        for w in v.weights:
+            print(w.weights)
+        print()
+
     it_qvf: Iterator[DNNApprox[Tuple[float, float]]] = \
         aad.backward_induction_qvf()
 
     print("Backward Induction: QVF")
     print("---------------------------------")
-    print("")
+    print()
     for t, q in enumerate(it_qvf):
-        alloc: float = max(
-            ((q.evaluate([(init_wealth, a)])[0], a) for a in alloc_choices),
+        print(f"Time {t:d}")
+        print()
+        # for ac in alloc_choices:
+        #     q_val: float = q.evaluate([(init_wealth, ac)])[0]
+        #     print(f"Risky Allocation = {ac:.2f}, Opt Q-Val = {q_val:.3f}")
+        opt_alloc: float = max(
+            ((q.evaluate([(init_wealth, ac)])[0], ac) for ac in alloc_choices),
             key=itemgetter(0)
         )[1]
-        val: float = max(q.evaluate([(init_wealth, a)])[0]
-                         for a in alloc_choices)
-        print(f"Time {t:d}: Risky Allocation = {alloc:.3f}, Val = {val:.3f}")
+        val: float = max(q.evaluate([(init_wealth, ac)])[0]
+                         for ac in alloc_choices)
+        print(f"Opt Risky Allocation = {opt_alloc:.2f}, Opt Val = {val:.3f}")
         print("Weights")
         for w in q.weights:
             print(w.weights)
-
-    print("Analytical Solution")
-    print("-------------------")
-    print("")
-    for t in range(steps):
-        left: int = steps - t
-        excess: float = μ - r
-        var: float = σ * σ
-        alloc: float = excess / (a * var * (1 + r) ** (left - 1))
-        val: float = - np.exp(- excess * excess * left / (2 * var)
-                              - a * (1 + r) ** left * init_wealth) / a
-        print(f"Time {t:d}: Risky Allocation = {alloc:.3f}, Val = {val:.3f}")
+        print()
