@@ -34,7 +34,7 @@ def data_seq_generator(
 
 
 def feature_functions():
-    return [lambda x: x[0], lambda x: x[1], lambda x: x[2]]
+    return [lambda _: 1., lambda x: x[0], lambda x: x[1], lambda x: x[2]]
 
 
 def adam_gradient():
@@ -70,6 +70,7 @@ def get_dnn_model() -> DNNApprox[Triple]:
 
     ds = DNNSpec(
         neurons=[2],
+        bias=True,
         hidden_activation=relu,
         hidden_activation_deriv=relu_deriv,
         output_activation=identity
