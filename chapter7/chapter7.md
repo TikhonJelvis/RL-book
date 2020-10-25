@@ -402,8 +402,8 @@ With the above real-world considerations, we need to tap into Dynamic Programmin
 
 * One risky asset and one riskless asset.
 * Finite number of time steps (discrete-time setting akin to Section [-@sec:discrete-asset-alloc]).
-* No consumption (i.e., no extraction from the investment portfolio) until the end of the finite horizon.
-* Arbitrary distribution of return for the risky asset, allowing the distribution of returns to change in time (expressed as `risky_return_distributions: Sequence[Distribution[float]]` in the code below).
+* No consumption (i.e., no extraction from the investment portfolio) until the end of the finite horizon, and hence, without loss of generality, we set the discount factor equal to 1.
+* Arbitrary distribution of return for the risky asset, and allowing the distribution of returns to change in time (expressed as `risky_return_distributions: Sequence[Distribution[float]]` in the code below).
 * Allowing the return on the riskless asset to vary in time (expressed as `riskless_returns: Sequence[float]` in the code below).
 * Arbitrary Utility Function (expressed as `utility_func: Callable[[float], float]` in the code below).
 * Finite number of choices of investment amounts in the risky asset at each time step (expressed as `risky_alloc_choices: Sequence[float]` in the code below).
@@ -412,11 +412,11 @@ The code in the class `AssetAllocDiscrete` below is fairly self-explanatory. We 
 
 * A `MarkovDecisionProcess[float, float]` object, which in the code below is prepared by the method `get_mdp`. *State* is the portfolio wealth (`float` type) and *Action* is the quantity of investment in the risky asset (also of `float` type). The code in this method is not too complicated, but it's fairly intricate. We create a class `AssetAllocMDP` that implements the abstract class `MarkovDecisionProcess`. To do so, we need to implement the `apply_policy` method and the `actions` method. The `apply_policy` method creates a class `AssetAllocMRP` that implements the abstract class `MarkovRewardProcess`, which in turn needs to implement the `transition_reward` method. Since we are dealing with abstract distributions, the only thing we can do is to invoke the `sample` method of the abstract `Distribution` class. This in turn means that `transition_reward` returns an instance of `SampledDistribution`, which is based on the `sr_sampler_func` that returns a sample of the pair of next state (next time step's wealth) and reward, given the current state (current wealth) and action (current time step's quantity of investment in the risky asset).
 * A `FunctionApprox[Tuple[float, float]]` object, which in the code below is prepared by the method `get_qvf_func_approx`. This method sets up a 'DNNApprox' object that represents a neural-network function approximation for the optimal Q-Value Function. So the input to this neural network would be a `Tuple[float, float]` representing a (state, action) pair. 
-* A `Distribution[float]` object, which in the code below is prepared by the method `get_states_distribution`. This method constructs a `SampledDistribution[float]` representing the distribution of states (distribution of portfolio wealth) at each time step. The `SampledDistribution[float]` is prepared using the function `states_sampler_func` that simulates the state-transitions (portfolio wealth transitions) from time 0 to the given time step (the simulation invokes the `sample` method of the risky asset's return `Distribution` and the `sample` method of a uniform distribution over the action choices specified by `risky_alloc_choices`).
+* A `Distribution[float]` object, which in the code below is prepared by the method `get_states_distribution`. This method constructs a `SampledDistribution[float]` representing the distribution of states (distribution of portfolio wealth) at each time step. The `SampledDistribution[float]` is prepared using the function `states_sampler_func` that creates a simulation path by sampling the state-transitions (portfolio wealth transitions) from time 0 to the given time step in a time-incremental manner (the simulation invokes the `sample` method of the risky asset's return `Distribution`s and the `sample` method of a uniform distribution over the action choices specified by `risky_alloc_choices`).
 
 
 ```python
-from rl.distribution import Distribution, SampledDistribution, Choose, Gaussian
+from rl.distribution import Distribution, SampledDistribution, Choose
 from rl.function_approx import DNNSpec, AdamGradient, DNNApprox
 from rl.approximate_dynamic_programming import back_opt_qvf
 from operator import itemgetter
@@ -529,6 +529,47 @@ class AssetAllocDiscrete:
         )
 ```
 
-Large/continuous action space points to a class of RL algorithms meant to tackle large/continuous action spaces: Policy Gradient Algorithms that we shall learn in Chapter [-@sec:policy-gradient-chapter].
+The above code is in the file [rl/chapter7/asset_alloc_discrete.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/chapter7/asset_alloc_discrete.py). We encourage you to create a few different instances of `AssetAllocDiscrete` by varying it's inputs (try different return distributions, different utility functions, different action spaces). But how do we know the code above is correct? We need a way to test it. A good test is to specialize the inputs to fit the setting of Section [-@sec:discrete-asset-alloc] for which we have a closed-form solution to compare against. So let us write some code to specialize the inputs to fit this setting. Since the above code has been written with an educational motivation rather than an efficient-computation motivation, the convergence of the backward induction ADP algorithm is going to be slow. So we shall test it on a small number of time steps. We write code below to create an instance of `AssetAllocDiscrete` with time steps $T=5$, $\mu = 11\%, \sigma = 20\%, r = 5\%$, coefficient of CARA $a = 1.0$. We know from the close-form solution that:
+
+$$\pi^*_t = \frac {1.5} {1.05}^{5-t}$$
+
+Therefore, we create risk asset allocation choices (action choices) in the range [1.0, 2.0] in increments of 0.1 to see if our code can hit the correct values within the 0.1 granularity of action choices.
+
+```python
+from rl.distribution import Gaussian
+steps: int = 5
+mu: float = 0.11
+sigma: float = 0.2
+r: float = 0.05
+a: float = 1.0
+init_wealth: float = 1.0
+init_wealth_var: float = 0.1
+
+risky_ret: Sequence[Gaussian] = [Gaussian(mu=mu, sigma=sigma) for _ in range(steps)]
+riskless_ret: Sequence[float] = [r for _ in range(steps)]
+utility_function: Callable[[float], float] = lambda x: -np.exp(-a * x) / a
+alloc_choices: Sequence[float] = np.linspace(1.0, 2.0, 11)
+feature_funcs: Sequence[Callable[[Tuple[float, float]], float]] = \
+    [lambda w: w[0], lambda w: w[1], lambda w: w[1] * w[1]]
+dnn: DNNSpec = DNNSpec(
+    neurons=[1],
+    hidden_activation=lambda x: np.exp(x),
+    hidden_activation_deriv=lambda x: x,
+    output_activation=lambda x: x
+)
+init_wealth_distr: Gaussian = Gaussian(mu=init_wealth, sigma=init_wealth_var)
+
+aad: AssetAllocDiscrete = AssetAllocDiscrete(
+    risky_return_distributions=risky_ret,
+    riskless_returns=riskless_ret,
+    utility_func=utility_function,
+    risky_alloc_choices=alloc_choices,
+    feature_functions=feature_funcs,
+    dnn_spec=dnn,
+    initial_wealth_distribution=init_wealth_distr
+    )
+```
+
+We need to point out here that the general case of dynamic asset allocation and consumption for a large number of risky assets will involve a continuously-valued action space of high dimension. This means ADP algorithms will have challenges in performing the $\max/\argmax$ calculation across this large and continuous action space. Even many of the RL algorithms find it challenging to deal with very large action spaces. Sometimes we can take advantage of the specifics of the control problem to overcome this challenge. But in a general setting, these large/continuous action space require special types of RL algorithms that are well suited to tackle such action spaces. One such class of RL algorithms is Policy Gradient Algorithms that we shall learn in Chapter [-@sec:policy-gradient-chapter].
 
 ## Key Takeaways from this Chapter
