@@ -179,34 +179,9 @@ if __name__ == '__main__':
     init_wealth: float = 1.0
     init_wealth_var: float = 0.1
 
-    print("Analytical Solution")
-    print("-------------------")
-    print()
-
     excess: float = μ - r
     var: float = σ * σ
     base_alloc: float = excess / (a * var)
-
-    for t in range(steps):
-        print(f"Time {t:d}")
-        print()
-        left: int = steps - t
-        growth: float = (1 + r) ** (left - 1)
-        alloc: float = base_alloc / growth
-        val: float = - np.exp(- excess * excess * left / (2 * var)
-                              - a * growth * (1 + r) * init_wealth) / a
-        bias_wt: float = excess * excess * (left - 1) / \
-            (2 * var) + np.log(np.abs(a))
-        w_t_wt: float = a * growth * (1 + r)
-        x_t_wt: float = a * excess * growth
-        x_t2_wt: float = - var * (a * growth) ** 2 / 2
-
-        print(f"Opt Risky Allocation = {alloc:.3f}, Opt Val = {val:.3f}")
-        print(f"Bias Weight = {bias_wt: .5f}")
-        print(f"W_t Weight = {w_t_wt: .3f}")
-        print(f"x_t Weight = {x_t_wt: .3f}")
-        print(f"x_t^2 Weight = {x_t2_wt:.3f}")
-        print()
 
     risky_ret: Sequence[Gaussian] = [Gaussian(μ=μ, σ=σ) for _ in range(steps)]
     riskless_ret: Sequence[float] = [r for _ in range(steps)]
@@ -219,9 +194,9 @@ if __name__ == '__main__':
     feature_funcs: Sequence[Callable[[Tuple[float, float]], float]] = \
         [
             lambda _: 1.,
-            lambda w: w[0],
-            lambda w: w[1],
-            lambda w: w[1] * w[1]
+            lambda w_x: w_x[0],
+            lambda w_x: w_x[1],
+            lambda w_x: w_x[1] * w_x[1]
         ]
     dnn: DNNSpec = DNNSpec(
         neurons=[],
@@ -276,7 +251,32 @@ if __name__ == '__main__':
         val: float = max(q.evaluate([(init_wealth, ac)])[0]
                          for ac in alloc_choices)
         print(f"Opt Risky Allocation = {opt_alloc:.3f}, Opt Val = {val:.3f}")
-        print("Weights")
+        print("Optimal Weights below:")
         for wts in q.weights:
             pprint(wts.weights)
+        print()
+
+    print("Analytical Solution")
+    print("-------------------")
+    print()
+
+    for t in range(steps):
+        print(f"Time {t:d}")
+        print()
+        left: int = steps - t
+        growth: float = (1 + r) ** (left - 1)
+        alloc: float = base_alloc / growth
+        val: float = - np.exp(- excess * excess * left / (2 * var)
+                              - a * growth * (1 + r) * init_wealth) / a
+        bias_wt: float = excess * excess * (left - 1) / (2 * var) + \
+            np.log(np.abs(a))
+        w_t_wt: float = a * growth * (1 + r)
+        x_t_wt: float = a * excess * growth
+        x_t2_wt: float = - var * (a * growth) ** 2 / 2
+
+        print(f"Opt Risky Allocation = {alloc:.3f}, Opt Val = {val:.3f}")
+        print(f"Bias Weight = {bias_wt:.3f}")
+        print(f"W_t Weight = {w_t_wt:.3f}")
+        print(f"x_t Weight = {x_t_wt:.3f}")
+        print(f"x_t^2 Weight = {x_t2_wt:.3f}")
         print()
