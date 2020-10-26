@@ -325,12 +325,14 @@ and we set the MDP discount factor to be $\gamma = 1$ (again, because of the sim
 
 We denote the Value Function at time $t$ (for all $t = 0, 1, \ldots, T$) for a given policy $\pi = (\pi_0, \pi_1, \ldots, \pi_{T-1})$ as:
 $$V^{\pi}_t(W_t) = \mathbb{E}_{\pi}[\frac {- e^{-a W_T}} a | (t, W_t)]$$
-We denote the Optimal Value Function as:
+We denote the Optimal Value Function at time $t$ (for all $t=0, 1, \ldots, T$) as:
 $$V^*_t(W_t) = \max_{\pi} V^{\pi}_t(W_t) = \max_{\pi} \{ \mathbb{E}_{\pi}[\frac {- e^{-a W_T}} a | (t, W_t)] \}$$
 
 The Bellman Optimality Equation is:
 
-$$V^*_t(W_t) = \max_{x_t} \{\mathbb{E}_{S_t \sim N(\mu, \sigma^2)}[V^*_{t+1}(W_{t+1})]\}$$
+$$V^*_t(W_t) = \max_{x_t} Q^*_t(W_t, x_t) = \max_{x_t} \{\mathbb{E}_{S_t \sim N(\mu, \sigma^2)}[V^*_{t+1}(W_{t+1})]\}$$
+
+where $Q^*_t$ is the Optimal Action-Value Function at time $t$ (for all $t=0, 1, \ldots, T-1$).
 
 We make an educated guess for the functional form of the Optimal Value Function as:
 
@@ -342,10 +344,16 @@ where $b_t, c_t$ are independent of the wealth $W_t$ for all $t=0, 1, \ldots, T$
 $$V^*_t(W_t) = \max_{x_t} \{ \mathbb{E}_{S_t \sim N(\mu, \sigma^2)} [-b_{t+1} \cdot e^{-c_{t+1} \cdot (x_t \cdot (S_t - r) + W_t \cdot (1+r))}] \}$$
 
 \begin{equation}
-\Rightarrow V^*_t(W_t) = \max_{x_t} \{-b_{t+1} \cdot e^{-c_{t+1} \cdot W_t \cdot (1+r) - c_{t+1} \cdot x_t \cdot (\mu - r) + \frac {\sigma^2} {2} \cdot c^2_{t+1} \cdot x_t^2} \} \label{eq:bellman-optimality-asset-alloc-discrete}
+\Rightarrow V^*_t(W_t) = \max_{x_t} \{-b_{t+1} \cdot e^{-c_{t+1} \cdot (1 + r) \cdot W_t - c_{t+1} \cdot (\mu - r) \cdot x_t + c^2_{t+1} \cdot \frac {\sigma^2} {2} \cdot x_t^2} \} \label{eq:bellman-optimality-asset-alloc-discrete}
 \end{equation}
 
-Since the right-hand-side of the Bellman Optimality Equation involves a $\max$ over $x_t$, we can say that the partial derivative of the term inside the $\max$ with respect to $x_t$ is 0. This enables us to write the Optimal Allocation $x_t^*$ in terms of $c_{t+1}$, as follows:
+Since $V^*_t(W_t) = \max_{x_t} Q^*_t(W_t, x_t)$, from Equation \eqref{eq:bellman-optimality-asset-alloc-discrete}, we can infer the functional form for $Q^*_t(W_t, x_t)$ in terms of $b_{t+1}$ and $c_{t+1}$:
+
+\begin{equation}
+Q^*_t(W_t, x_t) = -b_{t+1} \cdot e^{-c_{t+1} \cdot (1 + r) \cdot W_t - c_{t+1} \cdot (\mu - r) \cdot x_t + c^2_{t+1} \cdot \frac {\sigma^2} {2} \cdot x_t^2} \label{eq:q-star-functional-discrete}
+\end{equation}
+
+Since the right-hand-side of the Bellman Optimality Equation \eqref{eq:bellman-optimality-asset-alloc-discrete} involves a $\max$ over $x_t$, we can say that the partial derivative of the term inside the $\max$ with respect to $x_t$ is 0. This enables us to write the Optimal Allocation $x_t^*$ in terms of $c_{t+1}$, as follows:
 
 $$ -c_{t+1} \cdot (\mu - r) + \sigma^2 \cdot c^2_{t+1} \cdot x^*_t = 0$$
 \begin{equation}
@@ -354,7 +362,7 @@ $$ -c_{t+1} \cdot (\mu - r) + \sigma^2 \cdot c^2_{t+1} \cdot x^*_t = 0$$
 
 Next we substitute this maximizing $x_t^*$ in the Bellman Optimality Equation (Equation \eqref{eq:bellman-optimality-asset-alloc-discrete}):
 
-$$V^*_t(W_t) = - b_{t+1} \cdot e^{-c_{t+1} \cdot W_t \cdot (1 + r) - \frac {(\mu - r)^2} {2 \sigma^2}} $$
+$$V^*_t(W_t) = - b_{t+1} \cdot e^{-c_{t+1} \cdot (1 + r) \cdot W_t - \frac {(\mu - r)^2} {2 \sigma^2}} $$
 
 But since
 
@@ -378,14 +386,20 @@ Now we can unroll the above recursions for $b_t$ and $c_t$:
 $$b_t = \frac {e^{- \frac {(\mu - r)^2 \cdot (T-t)} {2 \sigma^2}}} a$$
 $$c_t = a \cdot (1+ r)^{T-t}$$
 
-Substituting the above solutions for $b_t$ and $c_t$ in Equation \eqref{eq:v-star-functional-discrete} gives us the solution for the Optimal Value Function:
-\begin{equation}
-V^*_t(W_t) = \frac {- e^{- \frac {(\mu - r)^2 \cdot (T-t)} {2 \sigma^2} - a \cdot (1+ r)^{T-t} \cdot W_t}} a \label{eq:v-star-solution-discrete}
-\end{equation}
-
 Substituting the solution for $c_{t+1}$ in Equation \eqref{eq:pi-star-functional-discrete} gives us the solution for the Optimal Policy:
 \begin{equation}
 \pi^*_t(W_t) = x^*_t = \frac {\mu - r} {\sigma^2 \cdot a \cdot (1+ r)^{T-t-1}} \label{eq:pi-star-solution-discrete}
+\end{equation}
+
+
+Substituting the solutions for $b_t$ and $c_t$ in Equation \eqref{eq:v-star-functional-discrete} gives us the solution for the Optimal Value Function:
+\begin{equation}
+V^*_t(W_t) = \frac {- e^{- \frac {(\mu - r)^2 (T-t)} {2 \sigma^2}}} a \cdot e^{- a (1+ r)^{T-t} \cdot W_t} \label{eq:v-star-solution-discrete}
+\end{equation}
+
+Substituting the solutions for $b_{t+1}$ and $c_{t+1}$ in Equation \eqref{eq:q-star-functional-discrete} gives us the solution for the Optimal Action-Value Function:
+\begin{equation}
+Q^*_t(W_t, x_t) = \frac {- e^{- \frac {(\mu - r)^2 (T-t-1)} {2 \sigma^2}}} a \cdot e^{- a (1+r)^{T-t} \cdot W_t - a (\mu - r) (1+r)^{T-t-1} \cdot x_t + \frac {(a\sigma (1+r)^{T-t-1})^2} 2 \cdot x_t^2} \label{eq:q-star-solution-discrete}
 \end{equation}
 
 ## Porting to Real-World
@@ -407,12 +421,13 @@ With the above real-world considerations, we need to tap into Dynamic Programmin
 * Allowing the return on the riskless asset to vary in time (expressed as `riskless_returns: Sequence[float]` in the code below).
 * Arbitrary Utility Function (expressed as `utility_func: Callable[[float], float]` in the code below).
 * Finite number of choices of investment amounts in the risky asset at each time step (expressed as `risky_alloc_choices: Sequence[float]` in the code below).
+* Arbitrary probability distribution of the initial wealth $W_0$ (expressed as `initial_wealth_distribution: Distribution[float]` in the code below).
 
-The code in the class `AssetAllocDiscrete` below is fairly self-explanatory. We use the function `back_opt_qvf` covered in Section [-@sec:bi-approx-q-value-iteration] of Chapter [-@sec:func-approx-chapter] to perform backward induction on the optimal Q-Value Function. Since the state space is continuous, the optimal Q-Value Function is represented as a `FunctionApprox` (specifically, as a `DNNApprox`). Moreover, since we are working with a generic distribution of returns that govern the state transitions of this MDP, we need to work with the methods of the abstract class `MarkovDecisionProcess` (and not the class `FiniteMarkovDecisionProcess`). The method `backward_induction_qvf` below makes the call to `back_opt_vf`. Since the risky returns distribution is arbitrary and since the utility function is arbitrary, we don't have prior knowledge of the functional form of the Q-Value function. Hence, the user of the class `AssetAllocDiscrete` also needs to provide the set of feature functions (`feature_functions` in the code below) and the specification of a deep neural network to represent the Q-Value function (`dnn_spec` in the code below). The rest of the code below is mainly about preparing the input `mdp_f0_mu_triples` to be passed to `back_opt_qvf`. As was explained in Section [-@sec:bi-approx-q-value-iteration] of Chapter [-@sec:func-approx-chapter], `mdp_fo_mu_triples` is a sequence (for each time step) of the following triples:
+The code in the class `AssetAllocDiscrete` below is fairly self-explanatory. We use the function `back_opt_qvf` covered in Section [-@sec:bi-approx-q-value-iteration] of Chapter [-@sec:func-approx-chapter] to perform backward induction on the optimal Q-Value Function. Since the state space is continuous, the optimal Q-Value Function is represented as a `FunctionApprox` (specifically, as a `DNNApprox`). Moreover, since we are working with a generic distribution of returns that govern the state transitions of this MDP, we need to work with the methods of the abstract class `MarkovDecisionProcess` (and not the class `FiniteMarkovDecisionProcess`). The method `backward_induction_qvf` below makes the call to `back_opt_qvf`. Since the risky returns distribution is arbitrary and since the utility function is arbitrary, we don't have prior knowledge of the functional form of the Q-Value function. Hence, the user of the class `AssetAllocDiscrete` also needs to provide the set of feature functions (`feature_functions` in the code below) and the specification of a deep neural network to represent the Q-Value function (`dnn_spec` in the code below). The rest of the code below is mainly about preparing the input `mdp_f0_mu_triples` to be passed to `back_opt_qvf`. As was explained in Section [-@sec:bi-approx-q-value-iteration] of Chapter [-@sec:func-approx-chapter], `mdp_f0_mu_triples` is a sequence (for each time step) of the following triples:
 
 * A `MarkovDecisionProcess[float, float]` object, which in the code below is prepared by the method `get_mdp`. *State* is the portfolio wealth (`float` type) and *Action* is the quantity of investment in the risky asset (also of `float` type). The code in this method is not too complicated, but it's fairly intricate. We create a class `AssetAllocMDP` that implements the abstract class `MarkovDecisionProcess`. To do so, we need to implement the `apply_policy` method and the `actions` method. The `apply_policy` method creates a class `AssetAllocMRP` that implements the abstract class `MarkovRewardProcess`, which in turn needs to implement the `transition_reward` method. Since we are dealing with abstract distributions, the only thing we can do is to invoke the `sample` method of the abstract `Distribution` class. This in turn means that `transition_reward` returns an instance of `SampledDistribution`, which is based on the `sr_sampler_func` that returns a sample of the pair of next state (next time step's wealth) and reward, given the current state (current wealth) and action (current time step's quantity of investment in the risky asset).
 * A `FunctionApprox[Tuple[float, float]]` object, which in the code below is prepared by the method `get_qvf_func_approx`. This method sets up a 'DNNApprox' object that represents a neural-network function approximation for the optimal Q-Value Function. So the input to this neural network would be a `Tuple[float, float]` representing a (state, action) pair. 
-* A `Distribution[float]` object, which in the code below is prepared by the method `get_states_distribution`. This method constructs a `SampledDistribution[float]` representing the distribution of states (distribution of portfolio wealth) at each time step. The `SampledDistribution[float]` is prepared using the function `states_sampler_func` that creates a simulation path by sampling the state-transitions (portfolio wealth transitions) from time 0 to the given time step in a time-incremental manner (the simulation invokes the `sample` method of the risky asset's return `Distribution`s and the `sample` method of a uniform distribution over the action choices specified by `risky_alloc_choices`).
+* A `Distribution[float]` object, which in the code below is prepared by the method `get_states_distribution`. This method constructs a `SampledDistribution[float]` representing the distribution of states (distribution of portfolio wealth) at each time step. The `SampledDistribution[float]` is prepared using the function `states_sampler_func` that generates a simulation path by sampling the state-transitions (portfolio wealth transitions) from time 0 to the given time step in a time-incremental manner (the simulation invokes the `sample` method of the risky asset's return `Distribution`s and the `sample` method of a uniform distribution over the action choices specified by `risky_alloc_choices`).
 
 
 ```python
@@ -428,7 +443,7 @@ class AssetAllocDiscrete:
     riskless_returns: Sequence[float]
     utility_func: Callable[[float], float]
     risky_alloc_choices: Sequence[float]
-    feature_functions: Sequence[Callable[[Tuple[float, float]]]]
+    feature_functions: Sequence[Callable[[Tuple[float, float]], float]]
     dnn_spec: DNNSpec
     initial_wealth_distribution: Distribution[float]
 
@@ -519,31 +534,39 @@ class AssetAllocDiscrete:
         ) for i in range(self.time_steps())]
 
         num_state_samples: int = 200
-        error_tolerance: float = 3e-5
+        error_tolerance: float = 1e-5
 
         return back_opt_qvf(
             mdp_f0_mu_triples=mdp_f0_mu_triples,
-            gamma=1.0,
+            γ=1.0,
             num_state_samples=num_state_samples,
             error_tolerance=error_tolerance
         )
 ```
 
-The above code is in the file [rl/chapter7/asset_alloc_discrete.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/chapter7/asset_alloc_discrete.py). We encourage you to create a few different instances of `AssetAllocDiscrete` by varying it's inputs (try different return distributions, different utility functions, different action spaces). But how do we know the code above is correct? We need a way to test it. A good test is to specialize the inputs to fit the setting of Section [-@sec:discrete-asset-alloc] for which we have a closed-form solution to compare against. So let us write some code to specialize the inputs to fit this setting. Since the above code has been written with an educational motivation rather than an efficient-computation motivation, the convergence of the backward induction ADP algorithm is going to be slow. So we shall test it on a small number of time steps. We write code below to create an instance of `AssetAllocDiscrete` with time steps $T=5$, $\mu = 11\%, \sigma = 20\%, r = 5\%$, coefficient of CARA $a = 1.0$. We know from the close-form solution that:
+The above code is in the file [rl/chapter7/asset_alloc_discrete.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/chapter7/asset_alloc_discrete.py). We encourage you to create a few different instances of `AssetAllocDiscrete` by varying it's inputs (try different return distributions, different utility functions, different action spaces). But how do we know the code above is correct? We need a way to test it. A good test is to specialize the inputs to fit the setting of Section [-@sec:discrete-asset-alloc] for which we have a closed-form solution to compare against. So let us write some code to specialize the inputs to fit this setting. Since the above code has been written with an educational motivation rather than an efficient-computation motivation, the convergence of the backward induction ADP algorithm is going to be slow. So we shall test it on a small number of time steps and provide some assistance for fast convergence (using limited knowledge from the closed-form solution in specifying the function approximation). We write code below to create an instance of `AssetAllocDiscrete` with time steps $T=4$, $\mu = 13\%, \sigma = 20\%, r = 7\%$, coefficient of CARA $a = 1.0$.
 
-$$\pi^*_t = \frac {1.5} {1.05}^{5-t}$$
+
+We know from the closed-form solution that the optimal allocation to the risky asset for each of time steps $t = 0,1,2,3$ is given by:
+
+$$x^*_t = \frac {1.5} {{1.07}^{4-t}}$$
 
 Therefore, we create risk asset allocation choices (action choices) in the range [1.0, 2.0] in increments of 0.1 to see if our code can hit the correct values within the 0.1 granularity of action choices.
 
 ```python
 from rl.distribution import Gaussian
-steps: int = 5
-mu: float = 0.11
+
+steps: int = 4
+mu: float = 0.13
 sigma: float = 0.2
-r: float = 0.05
+r: float = 0.07
 a: float = 1.0
 init_wealth: float = 1.0
 init_wealth_var: float = 0.1
+
+excess: float = μ - r
+var: float = σ * σ
+base_alloc: float = excess / (a * var)
 
 risky_ret: Sequence[Gaussian] = [Gaussian(mu=mu, sigma=sigma) for _ in range(steps)]
 riskless_ret: Sequence[float] = [r for _ in range(steps)]
