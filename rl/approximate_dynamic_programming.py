@@ -302,7 +302,7 @@ def back_opt_qvf(
 
     for i, (mdp, approx0, mu) in enumerate(reversed(mdp_f0_mu_triples)):
 
-        def return_(s_r: Tuple[S, float], i=i, mdp=mdp) -> float:
+        def return_(s_r: Tuple[S, float], i=i) -> float:
             s, r = s_r
             return r + γ * (
                 max(qvf[i-1].evaluate([(s, a)]).item()

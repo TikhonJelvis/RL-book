@@ -83,7 +83,7 @@ This problem of minimizing $\mathbb{E}_x[e^{tx}]$ shows up a lot in various plac
 Let us denote $t^*$ as the value of $t$ that minimizes the MGF. Specifically,
 $$t^* = \argmin_{t\in \mathbb{R}} f_x(t) = \argmin_{t \in \mathbb{R}} \mathbb{E}_x[e^{tx}]$$
 
-# Minimizing the MGF when $x$ follows a normal distribution
+### Minimizing the MGF when $x$ follows a normal distribution
 
 Here we consider the fairly typical case where $x$ follows a normal distribution. Let $x\sim \mathcal{N}(\mu, \sigma^2)$. Then we have to solve the problem:
 $$\min_{t\in \mathbb{R}} f_{x\sim \mathcal{N}(\mu, \sigma^2)}(t) = \min_{t\in \mathbb{R}} \mathbb{E}_{x\sim \mathcal{N}(\mu, \sigma^2)}[e^{tx}] = \min_{t\in \mathbb{R}} e^{\mu t + \frac {\sigma^2 t^2} 2}$$
@@ -105,7 +105,7 @@ Substituting $t=t^*$ in $f_{x\sim \mathcal{N}(\mu, \sigma^2)}(t) = e^{\mu t + \f
 \min_{t\in \mathbb{R}} f_{x\sim \mathcal{N}(\mu, \sigma^2)}(t) = e^{\mu t^* + \frac {\sigma^2 {t^*}^2} 2} = e^{\frac {-\mu^2} {2\sigma^2}}
 \end{equation*}
 
-## Minimizing the MGF when $x$ is a symmetric binary distribution
+### Minimizing the MGF when $x$ is a symmetric binary distribution
 
 Here we consider the case where $x$ follows a binary distribution: $x$ takes values $\mu + \sigma$ and $\mu - \sigma$ with probability 0.5 each. Let us refer to this distribution as $x \sim \mathcal{B}(\mu + \sigma, \mu - \sigma)$. Note that the mean and variance of $x$ under $\mathcal{B}(\mu + \sigma, \mu - \sigma)$ are $\mu$ and $\sigma^2$ respectively. So we have to solve the problem:
 $$\min_{t\in \mathbb{R}} f_{x\sim \mathcal{B}(\mu + \sigma, \mu - \sigma)}(t) = \min_{t\in \mathbb{R}} \mathbb{E}_{x\sim \mathcal{B}(\mu + \sigma, \mu - \sigma)}[e^{tx}] = \min_{t\in \mathbb{R}} 0.5(e^{(\mu + \sigma)t} + e^{(\mu - \sigma)t})$$
