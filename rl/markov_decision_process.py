@@ -62,20 +62,37 @@ class FinitePolicy(Policy[S, A]):
 
 
 class MarkovDecisionProcess(ABC, Generic[S, A]):
-    @abstractmethod
     def apply_policy(self, policy: Policy[S, A]) -> MarkovRewardProcess[S]:
-        pass
+        mdp = self
+
+        class RewardProcess(MarkovRewardProcess[S]):
+            def transition_reward(
+                    self,
+                    state: S
+            ) -> Optional[Distribution[Tuple[S, float]]]:
+                actions = policy.act(state)
+
+                if actions is None:
+                    return None
+
+                # TODO: Handle the case where mdp.step(state, a)
+                # returns None
+                #
+                # Idea: use an exception for termination instead of
+                # return None?
+                return action.apply(lambda a: mdp.step(state, a))
 
     @abstractmethod
     def actions(self, state: S) -> Iterable[A]:
         pass
 
+    @abstractmethod
     def step(
         self,
         state: S,
         action: A
     ) -> Optional[Distribution[Tuple[S, float]]]:
-        return self.apply_policy(Always(action)).transition_reward(state)
+        pass
 
 
 ActionMapping = Mapping[A, StateReward[S]]
