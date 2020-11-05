@@ -332,7 +332,7 @@ if __name__ == '__main__':
     num_training_paths: int = 5000
     spot_price_frac_val: float = 0.0
 
-    dql_training_iters: int = 10000
+    dql_training_iters: int = 1000000
     lspi_training_iters: int = 8
 
     split_val: int = 1000
