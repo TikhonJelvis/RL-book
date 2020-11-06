@@ -134,6 +134,19 @@ class Policy(ABC, Generic[S, A]):
         pass
 ```
 
+The simplest type of `Policy` is one that produces a single fixed action with 100% probability for each state. We can represent such a policy with the following `class Always`:
+
+```python
+class Always(Policy[S, A]):
+    action: A
+
+    def __init__(self, action: A):
+        self.action = action
+
+    def act(self, _: S) -> Optional[Distribution[A]]:
+        return Constant(self.action)
+```
+
 Now let's write some code to create some concrete policies for an example we are familiar with - the simple inventory example. We first create a concrete class `SimpleInventoryDeterministicPolicy` for deterministic inventory replenishment policies that implements the interface of the abstract class `Policy` (specifically implements the `@abstractmethod act`). Note that the generic state `S` is replaced here with the class `InventoryState` that represents a state in the inventory example, comprising of the On-Hand and On-Order inventory quantities. Also note that the generic action `A` is replaced here with the `int` type since in this example, the action is the quantity of inventory to be ordered at store-closing (which is an integer quantity). Note that since our class is meant to produce a deterministic policy, the `act` method returns a `Constant[int]` which is a probability distribution with 100% of the probability concentrated at a single `int` value (`int` represents the integer quantity of inventory to be ordered). The code in `act` implements the following deterministic policy:
 
 $$\pi_D((\alpha, \beta)) = \max(C - (\alpha + \beta), 0)$$ where $C$ is a parameter representing the "reorder point" (meaning, we order only when the inventory position falls below the "reorder point"), $\alpha$ is the On-Hand Inventory at store-closing, $\beta$ is the On-Order Inventory at store-closing, and inventory position is equal to $\alpha + \beta$. In Chapter [-@sec:mrp-chapter], we set the reorder point to be equal to the store capacity $C$.
@@ -229,6 +242,8 @@ class MarkovDecisionProcess(ABC, Generic[S, A]):
 
                 return actions.apply(lambda a: mdp.step(state, a))
 
+        return RewardProcess()        
+
     @abstractmethod
     def actions(self, state: S) -> Iterable[A]:
         pass
@@ -240,21 +255,6 @@ class MarkovDecisionProcess(ABC, Generic[S, A]):
         action: A
     ) -> Optional[Distribution[Tuple[S, float]]]:
         pass
-```
-
-Note the use of the policy `Always` which is a policy where each state maps to the same action. The code for this `Policy` is shown below:
-
-```python
-from rl.distribution import Constant
-
-class Always(Policy[S, A]):
-    action: A
-
-    def __init__(self, action: A):
-        self.action = action
-
-    def act(self, _: S) -> Optional[Distribution[A]]:
-        return Constant(self.action)
 ```
 
 The above code for `Policy`, `Always` and `MarkovDecisionProcess` is in the file [rl/markov_decision_process.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/markov_decision_process.py).   
