@@ -82,6 +82,8 @@ class MarkovDecisionProcess(ABC, Generic[S, A]):
                 # return None?
                 return actions.apply(lambda a: mdp.step(state, a))
 
+        return RewardProcess()
+
     @abstractmethod
     def actions(self, state: S) -> Iterable[A]:
         pass
