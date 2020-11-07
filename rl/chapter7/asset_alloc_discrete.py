@@ -2,7 +2,6 @@ from dataclasses import dataclass
 from typing import Sequence, Callable, Tuple, Iterator
 from rl.distribution import Distribution, SampledDistribution, Choose, Gaussian
 from rl.markov_decision_process import MarkovDecisionProcess, Policy
-from rl.markov_process import MarkovRewardProcess
 from rl.function_approx import DNNSpec, AdamGradient, DNNApprox
 from rl.approximate_dynamic_programming import back_opt_vf_and_policy
 from rl.approximate_dynamic_programming import back_opt_qvf
