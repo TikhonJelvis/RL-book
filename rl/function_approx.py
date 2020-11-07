@@ -5,7 +5,6 @@ from typing import Sequence, Mapping, Tuple, TypeVar, Callable, List, Dict, \
 import numpy as np
 from collections import defaultdict
 from dataclasses import dataclass, replace, field
-from more_itertools import pairwise
 
 import rl.iterate as iterate
 
@@ -152,11 +151,15 @@ class Weights:
             self.adam_cache1 + (1 - self.adam_gradient.decay1) * gradient
         new_adam_cache2: np.ndarray = self.adam_gradient.decay2 * \
             self.adam_cache2 + (1 - self.adam_gradient.decay2) * gradient ** 2
-        new_weights: np.ndarray = self.weights - \
-            self.adam_gradient.learning_rate * self.adam_cache1 / \
-            (np.sqrt(self.adam_cache2) + SMALL_NUM) * \
-            np.sqrt(1 - self.adam_gradient.decay2 ** time) / \
+        corrected_m: np.ndarray = new_adam_cache1 / \
             (1 - self.adam_gradient.decay1 ** time)
+        corrected_v: np.ndarray = new_adam_cache2 / \
+            (1 - self.adam_gradient.decay2 ** time)
+
+        new_weights: np.ndarray = self.weights - \
+            self.adam_gradient.learning_rate * corrected_m / \
+            (np.sqrt(corrected_v) + SMALL_NUM)
+
         return replace(
             self,
             time=time,
@@ -188,13 +191,14 @@ class LinearFunctionApprox(FunctionApprox[X]):
             regularization_coeff=regularization_coeff,
             weights=Weights.create(
                 adam_gradient=adam_gradient,
-                weights=np.zeros(len(feature_functions) + 1)
+                weights=np.zeros(len(feature_functions))
             ) if weights is None else weights
         )
 
     def get_feature_values(self, x_values_seq: Sequence[X]) -> np.ndarray:
-        return np.array([[1.] + [f(x) for f in self.feature_functions]
-                         for x in x_values_seq])
+        return np.array(
+            [[f(x) for f in self.feature_functions] for x in x_values_seq]
+        )
 
     def evaluate(self, x_values_seq: Sequence[X]) -> np.ndarray:
         return np.dot(
@@ -250,6 +254,7 @@ class LinearFunctionApprox(FunctionApprox[X]):
 @dataclass(frozen=True)
 class DNNSpec:
     neurons: Sequence[int]
+    bias: bool
     hidden_activation: Callable[[np.ndarray], np.ndarray]
     hidden_activation_deriv: Callable[[np.ndarray], np.ndarray]
     output_activation: Callable[[np.ndarray], np.ndarray]
@@ -272,12 +277,14 @@ class DNNApprox(FunctionApprox[X]):
         weights: Optional[Sequence[Weights]] = None
     ) -> DNNApprox[X]:
         if weights is None:
-            augmented_layers = [len(feature_functions)] + \
-                dnn_spec.neurons + [1]
+            inputs: Sequence[int] = [len(feature_functions)] + \
+                [n + (1 if dnn_spec.bias else 0)
+                 for i, n in enumerate(dnn_spec.neurons)]
+            outputs: Sequence[int] = dnn_spec.neurons + [1]
             wts = [Weights.create(
                 adam_gradient,
-                np.random.randn(output, inp + 1) / np.sqrt(inp + 1)
-            ) for inp, output in pairwise(augmented_layers)]
+                np.random.randn(output, inp) / np.sqrt(inp)
+            ) for inp, output in zip(inputs, outputs)]
         else:
             wts = weights
 
@@ -289,8 +296,9 @@ class DNNApprox(FunctionApprox[X]):
         )
 
     def get_feature_values(self, x_values_seq: Sequence[X]) -> np.ndarray:
-        return np.array([[1.] + [f(x) for f in self.feature_functions]
-                         for x in x_values_seq])
+        return np.array(
+            [[f(x) for f in self.feature_functions] for x in x_values_seq]
+        )
 
     def forward_propagation(
         self,
@@ -299,25 +307,28 @@ class DNNApprox(FunctionApprox[X]):
         """
         :param x_values_seq: a n-length-sequence of input points
         :return: list of length (L+2) where the first (L+1) values
-                 each represent the 2-D input arrays (of size n x (|I_l| + 1),
+                 each represent the 2-D input arrays (of size n x |I_l|),
                  for each of the (L+1) layers (L of which are hidden layers),
                  and the last value represents the output of the DNN (as a
                  2-D array of length n x 1)
         """
         inp: np.ndarray = self.get_feature_values(x_values_seq)
-        outputs: List[np.ndarray] = [inp]
+        ret: List[np.ndarray] = [inp]
         for w in self.weights[:-1]:
             out: np.ndarray = self.dnn_spec.hidden_activation(
                 np.dot(inp, w.weights.T)
             )
-            inp: np.ndarray = np.insert(out, 0, 1., axis=1)
-            outputs.append(inp)
-        outputs.append(
+            if self.dnn_spec.bias:
+                inp = np.insert(out, 0, 1., axis=1)
+            else:
+                inp = out
+            ret.append(inp)
+        ret.append(
             self.dnn_spec.output_activation(
                 np.dot(inp, self.weights[-1].weights.T)
             )
         )
-        return outputs
+        return ret
 
     def evaluate(self, x_values_seq: Sequence[X]) -> np.ndarray:
         return self.forward_propagation(x_values_seq)[-1][:, 0]
@@ -335,7 +346,7 @@ class DNNApprox(FunctionApprox[X]):
     ) -> Sequence[np.ndarray]:
         """
         :param xy_vals_seq: list of pairs of n (x, y) points
-        :return: list (of length L+1) of |O_l| x (|I_l| + 1) 2-D array,
+        :return: list (of length L+1) of |O_l| x |I_l| 2-D array,
                  i.e., same as the type of self.weights.weights
         This function computes the gradient (with respect to weights) of
         cross-entropy loss where the output layer activation function
@@ -347,28 +358,29 @@ class DNNApprox(FunctionApprox[X]):
         deriv: np.ndarray = (
             fwd_prop[-1][:, 0] - np.array(y_vals)
         ).reshape(1, -1)
-        back_prop: List[np.ndarray] = []
+        back_prop: List[np.ndarray] = [np.dot(deriv, layer_inputs[-1]) /
+                                       deriv.shape[1]]
         # L is the number of hidden layers, n is the number of points
         # layer l deriv represents dObj/dS_l where S_l = I_l . weights_l
         # (S_l is the result of applying layer l without the activation func)
-        # deriv_l is a 2-D array of dimension |I_{l+1}| x n = |O_l| x n
-        # The recursive formulation of deriv is as follows:
-        # deriv_{l-1} = (weights_l^T inner deriv_l) haddamard g'(S_{l-1}),
-        # which is # ((|I_l| + 1) x |O_l| inner |O_l| x n) haddamard
-        # (|I_l| + 1) x n, which is ((|I_l| + 1) x n = (|O_{l-1}| + 1) x n
-        # (first row  of the result is removed after this calculation to yield
-        # a 2-D array of dimension |O_{l-1}| x n).
-        # Note: g'(S_{l-1}) is expressed as hidden layer activation derivative
-        # as a function of O_{l-1} (=I_l).
-        for i in reversed(range(len(self.weights))):
+        for i in reversed(range(len(self.weights) - 1)):
+            # deriv_l is a 2-D array of dimension |O_l| x n
+            # The recursive formulation of deriv is as follows:
+            # deriv_{l-1} = (weights_l^T inner deriv_l) haddamard g'(S_{l-1}),
+            # which is ((|I_l| x |O_l|) inner (|O_l| x n)) haddamard
+            # (|I_l| x n), which is (|I_l| x n) = (|O_{l-1}| x n)
+            # Note: g'(S_{l-1}) is expressed as hidden layer activation
+            # derivative as a function of O_{l-1} (=I_l).
+            deriv = np.dot(self.weights[i + 1].weights.T, deriv) * \
+                self.dnn_spec.hidden_activation_deriv(layer_inputs[i + 1].T)
+            # If self.dnn_spec.bias is True, then I_l = O_{l-1} + 1, in which
+            # case # the first row of the calculated deriv is removed to yield
+            # a 2-D array of dimension |O_{l-1}| x n.
+            if self.dnn_spec.bias:
+                deriv = deriv[1:]
             # layer l gradient is deriv_l inner layer_inputs_l, which is
-            # |O_l| x n inner n x (|I_l| + 1) = |O_l| x (|I_l| + 1)
+            # of dimension (|O_l| x n) inner (n x (|I_l|) = |O_l| x |I_l|
             back_prop.append(np.dot(deriv, layer_inputs[i]) / deriv.shape[1])
-            # the next line implements the recursive formulation of deriv
-            deriv = (np.dot(self.weights[i].weights.T, deriv) *
-                     self.dnn_spec.hidden_activation_deriv(
-                         layer_inputs[i].T
-                     ))[1:]
         return back_prop[::-1]
 
     def regularized_loss_gradient(
@@ -377,8 +389,8 @@ class DNNApprox(FunctionApprox[X]):
     ) -> Sequence[np.ndarray]:
         """
         :param xy_vals_seq: list of pairs of n (x, y) points
-        :return: list (of length L+1) of |O_l| x (|I_l| + 1) 2-D array,
-                 i.e., same as the type of self.weights
+        :return: list (of length L+1) of |O_l| x |I_l| 2-D array,
+                 i.e., same as the type of self.weights.weights
         This function computes the regularized gradient (with respect to
         weights) of cross-entropy loss where the output layer activation
         function is the canonical link function of the conditional
@@ -448,6 +460,7 @@ if __name__ == '__main__':
         decay2=0.999
     )
     ffs = [
+        lambda _: 1.,
         lambda x: x[0],
         lambda x: x[1],
         lambda x: x[2]
@@ -481,6 +494,7 @@ if __name__ == '__main__':
 
     ds = DNNSpec(
         neurons=[2],
+        bias=True,
         hidden_activation=lambda x: x,
         hidden_activation_deriv=lambda x: np.ones_like(x),
         output_activation=lambda x: x

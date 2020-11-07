@@ -634,13 +634,13 @@ V^*(s) = \max_{a\in \mathcal{A}} Q^*(s,a) \text{ for all } s \in \mathcal{N} \la
 Likewise, let's think about what it means to be optimal from a given non-terminal-state and action pair $(s,a)$, i.e, let's unravel $Q^*(s,a)$. First, we get the immediate expected reward $\mathcal{R}(s,a)$. Next, we consider all possible random states $s' \in \mathcal{S}$ we can transition to, and from each of those states which are non-terminal states, we recursively act optimally. Formally, this gives us the following equation:
 
 \begin{equation}
-Q^*(s,a) = \mathcal{R}(s,a) + \sum_{s' \in \mathcal{N}} \mathcal{P}(s,a,s') \cdot V^*(s') \text{ for all } s \in \mathcal{N}, a \in \mathcal{A} \label{eq:mdp_bellman_opt_eqn_qv}
+Q^*(s,a) = \mathcal{R}(s,a) + \gamma \cdot \sum_{s' \in \mathcal{N}} \mathcal{P}(s,a,s') \cdot V^*(s') \text{ for all } s \in \mathcal{N}, a \in \mathcal{A} \label{eq:mdp_bellman_opt_eqn_qv}
 \end{equation}
 
 Substituting for $Q^*(s,a)$ from Equation \eqref{eq:mdp_bellman_opt_eqn_qv} in Equation \eqref{eq:mdp_bellman_opt_eqn_vq} gives:
 
 \begin{equation}
-V^*(s) = \max_{a\in \mathcal{A}} \{ \mathcal{R}(s,a) + \sum_{s' \in \mathcal{N}} \mathcal{P}(s,a,s') \cdot V^*(s') \} \text{ for all } s \in \mathcal{N} \label{eq:mdp_bellman_opt_eqn_vv}
+V^*(s) = \max_{a\in \mathcal{A}} \{ \mathcal{R}(s,a) + \gamma \cdot \sum_{s' \in \mathcal{N}} \mathcal{P}(s,a,s') \cdot V^*(s') \} \text{ for all } s \in \mathcal{N} \label{eq:mdp_bellman_opt_eqn_vv}
 \end{equation}
 
 Equation \eqref{eq:mdp_bellman_opt_eqn_vv} is known as the MDP State-Value Function Bellman Optimality Equation and is depicted in Figure \ref{fig:mdp_bellman_opt_tree_vv} as a visualization aid.
@@ -648,7 +648,7 @@ Equation \eqref{eq:mdp_bellman_opt_eqn_vv} is known as the MDP State-Value Funct
 Substituting for $V^*(s)$ from Equation \eqref{eq:mdp_bellman_opt_eqn_vq} in Equation \eqref{eq:mdp_bellman_opt_eqn_qv} gives:
 
 \begin{equation}
-Q^*(s,a) = \mathcal{R}(s,a) + \sum_{s' \in \mathcal{N}} \mathcal{P}(s,a,s') \cdot \max_{a'\in \mathcal{A}} Q^*(s',a') \text{ for all  } s \in \mathcal{N}, a \in \mathcal{A} \label{eq:mdp_bellman_opt_eqn_qq}
+Q^*(s,a) = \mathcal{R}(s,a) + \gamma \cdot \sum_{s' \in \mathcal{N}} \mathcal{P}(s,a,s') \cdot \max_{a'\in \mathcal{A}} Q^*(s',a') \text{ for all  } s \in \mathcal{N}, a \in \mathcal{A} \label{eq:mdp_bellman_opt_eqn_qq}
 \end{equation}
 
 Equation \eqref{eq:mdp_bellman_opt_eqn_qq} is known as the MDP Action-Value Function Bellman Optimality Equation and is depicted in Figure \ref{fig:mdp_bellman_opt_tree_qq} as a visualization aid.

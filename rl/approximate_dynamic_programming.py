@@ -228,12 +228,15 @@ def back_opt_vf_and_policy_finite(
     return reversed(vp)
 
 
-MDP_FuncApprox_Distribution = \
-    Tuple[MarkovDecisionProcess[S, A], FunctionApprox[S], Distribution[S]]
+MDP_FuncApproxV_Distribution = Tuple[
+    MarkovDecisionProcess[S, A],
+    FunctionApprox[S],
+    Distribution[S]
+]
 
 
 def back_opt_vf_and_policy(
-    mdp_f0_mu_triples: Sequence[MDP_FuncApprox_Distribution[S, A]],
+    mdp_f0_mu_triples: Sequence[MDP_FuncApproxV_Distribution[S, A]],
     γ: float,
     num_state_samples: int,
     error_tolerance: float
@@ -274,3 +277,51 @@ def back_opt_vf_and_policy(
         vp.append((this_v, ThisPolicy()))
 
     return reversed(vp)
+
+
+MDP_FuncApproxQ_Distribution = Tuple[
+    MarkovDecisionProcess[S, A],
+    FunctionApprox[Tuple[S, A]],
+    Distribution[S]
+]
+
+
+def back_opt_qvf(
+    mdp_f0_mu_triples: Sequence[MDP_FuncApproxQ_Distribution[S, A]],
+    γ: float,
+    num_state_samples: int,
+    error_tolerance: float
+) -> Iterator[FunctionApprox[Tuple[S, A]]]:
+    '''Use backwards induction to find the optimal q-value function  policy at
+    each time step, using the given FunctionApprox (for Q-Value) for each time
+    step for a random sample of the time step's states.
+
+    '''
+    horizon: int = len(mdp_f0_mu_triples)
+    qvf: List[FunctionApprox[Tuple[S, A]]] = []
+
+    for i, (mdp, approx0, mu) in enumerate(reversed(mdp_f0_mu_triples)):
+
+        def return_(s_r: Tuple[S, float], i=i) -> float:
+            s, r = s_r
+            return r + γ * (
+                max(qvf[i-1].evaluate([(s, a)]).item()
+                    for a in mdp_f0_mu_triples[horizon - i][0].actions(s))
+                if i > 0 else 0.
+            )
+
+        this_qvf = FunctionApprox.converged(
+            sgd(
+                approx0,
+                repeat(
+                    [((s, a), mdp.step(s, a).expectation(return_))
+                     for s in mu.sample_n(num_state_samples)
+                     for a in mdp.actions(s)]
+                )
+            ),
+            error_tolerance
+        )
+
+        qvf.append(this_qvf)
+
+    return reversed(qvf)

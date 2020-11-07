@@ -46,13 +46,13 @@ This means the MGF of $x$ can be calculated as $e^{\alpha_0 t}$ times the produc
 
 Here we assume that the random variables $x$ follows a normal distribution. Let $x \sim \mathcal{N}(\mu, \sigma^2)$.
 
-\begin{align*}
-f_{x\sim \mathcal{N}(\mu, \sigma^2)}(t) & = \mathbb{E}_{x\sim \mathcal{N}(\mu, \sigma^2)}[e^{tx}] \\
-& = \int_{-\infty}^{+\infty} \frac {1} {\sqrt{2\pi} \sigma} \cdot e^{-\frac {(x - \mu)^2} {2\sigma^2}} \cdot e^{tx} \cdot dx \\
-& = \int_{-\infty}^{+\infty} \frac {1} {\sqrt{2\pi} \sigma} \cdot e^{-\frac {(x-(\mu +t\sigma^2))^2} {2\sigma^2}} \cdot e^{\mu t + \frac {\sigma^2 t^2} {2}} \cdot dx \\
-& = e^{\mu t + \frac {\sigma^2 t^2} 2} \cdot \mathbb{E}_{x\sim \mathcal{N}(\mu + t\sigma^2, \sigma^2)}[1] \\
-& = e^{\mu t + \frac {\sigma^2 t^2} 2}
-\end{align*}
+\begin{align}
+f_{x\sim \mathcal{N}(\mu, \sigma^2)}(t) & = \mathbb{E}_{x\sim \mathcal{N}(\mu, \sigma^2)}[e^{tx}] \nonumber \\
+& = \int_{-\infty}^{+\infty} \frac {1} {\sqrt{2\pi} \sigma} \cdot e^{-\frac {(x - \mu)^2} {2\sigma^2}} \cdot e^{tx} \cdot dx \nonumber \\
+& = \int_{-\infty}^{+\infty} \frac {1} {\sqrt{2\pi} \sigma} \cdot e^{-\frac {(x-(\mu +t\sigma^2))^2} {2\sigma^2}} \cdot e^{\mu t + \frac {\sigma^2 t^2} {2}} \cdot dx \nonumber \\
+& = e^{\mu t + \frac {\sigma^2 t^2} 2} \cdot \mathbb{E}_{x\sim \mathcal{N}(\mu + t\sigma^2, \sigma^2)}[1] \nonumber \\
+& = e^{\mu t + \frac {\sigma^2 t^2} 2} \label{eq:normmgf}
+\end{align}
 
 \begin{equation}
 f_{x\sim \mathcal{N}(\mu, \sigma^2)}'(t) = \mathbb{E}_{x\sim \mathcal{N}(\mu, \sigma^2)}[x \cdot e^{tx}] = (\mu + \sigma^2t)\cdot e^{\mu t + \frac {\sigma^2 t^2} 2} \label{eq:normmgfderiv}
@@ -83,7 +83,7 @@ This problem of minimizing $\mathbb{E}_x[e^{tx}]$ shows up a lot in various plac
 Let us denote $t^*$ as the value of $t$ that minimizes the MGF. Specifically,
 $$t^* = \argmin_{t\in \mathbb{R}} f_x(t) = \argmin_{t \in \mathbb{R}} \mathbb{E}_x[e^{tx}]$$
 
-# Minimizing the MGF when $x$ follows a normal distribution
+### Minimizing the MGF when $x$ follows a normal distribution
 
 Here we consider the fairly typical case where $x$ follows a normal distribution. Let $x\sim \mathcal{N}(\mu, \sigma^2)$. Then we have to solve the problem:
 $$\min_{t\in \mathbb{R}} f_{x\sim \mathcal{N}(\mu, \sigma^2)}(t) = \min_{t\in \mathbb{R}} \mathbb{E}_{x\sim \mathcal{N}(\mu, \sigma^2)}[e^{tx}] = \min_{t\in \mathbb{R}} e^{\mu t + \frac {\sigma^2 t^2} 2}$$
@@ -105,7 +105,7 @@ Substituting $t=t^*$ in $f_{x\sim \mathcal{N}(\mu, \sigma^2)}(t) = e^{\mu t + \f
 \min_{t\in \mathbb{R}} f_{x\sim \mathcal{N}(\mu, \sigma^2)}(t) = e^{\mu t^* + \frac {\sigma^2 {t^*}^2} 2} = e^{\frac {-\mu^2} {2\sigma^2}}
 \end{equation*}
 
-## Minimizing the MGF when $x$ is a symmetric binary distribution
+### Minimizing the MGF when $x$ is a symmetric binary distribution
 
 Here we consider the case where $x$ follows a binary distribution: $x$ takes values $\mu + \sigma$ and $\mu - \sigma$ with probability 0.5 each. Let us refer to this distribution as $x \sim \mathcal{B}(\mu + \sigma, \mu - \sigma)$. Note that the mean and variance of $x$ under $\mathcal{B}(\mu + \sigma, \mu - \sigma)$ are $\mu$ and $\sigma^2$ respectively. So we have to solve the problem:
 $$\min_{t\in \mathbb{R}} f_{x\sim \mathcal{B}(\mu + \sigma, \mu - \sigma)}(t) = \min_{t\in \mathbb{R}} \mathbb{E}_{x\sim \mathcal{B}(\mu + \sigma, \mu - \sigma)}[e^{tx}] = \min_{t\in \mathbb{R}} 0.5(e^{(\mu + \sigma)t} + e^{(\mu - \sigma)t})$$
