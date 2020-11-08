@@ -2,8 +2,8 @@ from abc import ABC, abstractmethod
 from collections import defaultdict
 from typing import (DefaultDict, Dict, Iterable, Generic, Mapping,
                     Tuple, Sequence, TypeVar, Optional)
-from rl.distribution import (Constant, Categorical, Choose, Distribution,
-                             FiniteDistribution, SampledDistribution)
+from rl.distribution import (Constant, Categorical, Distribution,
+                             FiniteDistribution)
 from rl.markov_process import (
     FiniteMarkovRewardProcess, MarkovRewardProcess, StateReward)
 
@@ -130,10 +130,10 @@ class FiniteMarkovDecisionProcess(MarkovDecisionProcess[S, A]):
 
     def step(self, state: S, action: A) -> Optional[StateReward]:
         action_map: Optional[ActionMapping[A, S]] = self.mapping[state]
+
         if action_map is None:
             return None
-        else:
-            return action_map[action]
+        return action_map[action]
 
     def apply_finite_policy(self, policy: FinitePolicy[S, A])\
             -> FiniteMarkovRewardProcess[S]:
