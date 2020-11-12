@@ -13,16 +13,19 @@ let
   };
 
   python-packages = ps: with ps;
-    [ graphviz
+    [ # Dependencies
+      graphviz
+      matplotlib
+      numpy
+      pandas
+      scipy
+
+      # Development
       ipython
       jedi
       jupyter
-      matplotlib
       mypy
-      numpy
-      pandas
-      pylint
-      scipy
+      pytest
     ];
 
   # Applications and utilties for buidling the book
