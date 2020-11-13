@@ -683,7 +683,7 @@ For any Markov Decision Process
 \label{th:mdp_opt_vf_policy}
 \end{theorem}
 
-Before proceeding with the proof of Theorem (\ref{th:mdp_opt_vf_policy}), we establish a simple Lemma.
+Before proceeding with the proof of Theorem \eqref{th:mdp_opt_vf_policy}, we establish a simple Lemma.
 \begin{lemma}
 For any two Optimal Policies $\pi_1$ and $\pi_2$, $V^{\pi_1}(s) = V^{\pi_2}(s)$ for all $s \in \mathcal{N}$
 \end{lemma}
