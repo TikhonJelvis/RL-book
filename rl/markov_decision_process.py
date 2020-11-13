@@ -134,7 +134,7 @@ def returns(
 
     return_iter = reversed(list(return_transitions))
     if max_steps is not None:
-        return_iter = itertools.islice(return_transitions, max_steps)
+        return_iter = itertools.islice(return_iter, max_steps)
 
     return return_iter
 
