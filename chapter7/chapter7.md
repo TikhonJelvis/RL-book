@@ -28,7 +28,7 @@ The above description has hopefully given you a flavor of the dual and dynamic d
 
 Since our goal here was to simply do a rough and informal sketch, the above coverage of the MDP is very hazy but we hope you get a sense for what the MDP might look like. Now we are ready to take a simple special case of this MDP which does away with many of the real-world frictions and complexities, yet retains the key features (in particular, the dual dynamic decisioning aspect). This simple special case was the subject of [Merton's Portfolio Problem](https://en.wikipedia.org/wiki/Merton%27s_portfolio_problem) which he formulated and solved in 1969 in a landmark paper. A key feature of his formulation was that time is continuous and so, *state* (based on asset prices) evolves as a stochastic process, and actions (asset-allocation and consumption) are made continuously. We cover the important parts of his paper in the next section. Note that our coverage below requires some familiarity with Stochastic Calculus (covered in Appendix [-@sec:stochasticcalculus-appendix]) and with the Hamilton-Jacobi-Bellman Equation (covered in Appendix [-@sec:hjb-appendix]), which is the continuous-time analog of Bellman's Optimality Equation.
 
-### Merton's Portfolio Problem and Solution
+## Merton's Portfolio Problem and Solution
 
 Now we describe Merton's Portfolio problem and derive its analytical solution, which is one of the most elegant solutions in Mathematical Economics. The solution structure will provide tremendous intuition for how the asset-allocation and consumption decisions depend on not just the state variables but also on the problem inputs.
 
