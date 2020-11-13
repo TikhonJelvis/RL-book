@@ -32,7 +32,7 @@ class OptimalExerciseRL:
     def training_sim_data(
         self,
         num_paths: int,
-        spot_price_frac: int
+        spot_price_frac: float
     ) -> Sequence[TrainingDataType]:
         ret: List[TrainingDataType] = []
         dt: float = self.expiry / self.num_steps
@@ -211,8 +211,8 @@ class OptimalExerciseRL:
             ll: Sequence[float] = [p for p, c, e in zip(prices, cp, ep)
                                    if e > c]
             ret.append(max(ll) if len(ll) > 0 else 0.)
-        final: Sequence[float] = [(p, self.payoff(self.expiry, p))
-                                  for p in prices]
+        final: Sequence[Tuple[float, float]] = \
+            [(p, self.payoff(self.expiry, p)) for p in prices]
         ret.append(max(p for p, e in final if e > 0))
         return ret
 
@@ -381,7 +381,7 @@ if __name__ == '__main__':
 
     print("Fitted LSPI Model")
 
-    for step in [0, num_steps_val / 2, num_steps_val - 1]:
+    for step in [0, int(num_steps_val / 2), num_steps_val - 1]:
         prices: np.ndarray = np.arange(120.0)
         exer_curve: np.ndarray = opt_ex_rl.exercise_curve(
             step=step,

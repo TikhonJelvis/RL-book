@@ -39,6 +39,29 @@ class Distribution(ABC, Generic[A]):
         '''
         pass
 
+    def map(
+            self,
+            f: Callable[[A], B]
+    ) -> Distribution[B]:
+        '''Apply a function to the outcomes of this distribution.'''
+        return SampledDistribution(lambda: f(self.sample()))
+
+    def apply(
+            self,
+            f: Callable[[A], Distribution[B]]
+    ) -> Distribution[B]:
+        '''Apply a function that returns a distribution to the outcomes of
+        this distribution. This lets us express *dependent random
+        variables*.
+
+        '''
+        def sample():
+            a = self.sample()
+            b_dist = f(a)
+            return b_dist.sample()
+
+        return SampledDistribution(sample)
+
 
 class SampledDistribution(Distribution[A]):
     '''A distribution defined by a function to sample it.

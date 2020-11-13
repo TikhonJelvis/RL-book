@@ -2,8 +2,8 @@ from abc import ABC, abstractmethod
 from collections import defaultdict
 from typing import (DefaultDict, Dict, Iterable, Generic, Mapping,
                     Tuple, Sequence, TypeVar, Optional)
-from rl.distribution import (Constant, Categorical, Choose, Distribution,
-                             FiniteDistribution, SampledDistribution)
+from rl.distribution import (Constant, Categorical, Distribution,
+                             FiniteDistribution)
 from rl.markov_process import (
     FiniteMarkovRewardProcess, MarkovRewardProcess, StateReward)
 
@@ -62,20 +62,39 @@ class FinitePolicy(Policy[S, A]):
 
 
 class MarkovDecisionProcess(ABC, Generic[S, A]):
-    @abstractmethod
     def apply_policy(self, policy: Policy[S, A]) -> MarkovRewardProcess[S]:
-        pass
+        mdp = self
+
+        class RewardProcess(MarkovRewardProcess[S]):
+            def transition_reward(
+                self,
+                state: S
+            ) -> Optional[Distribution[Tuple[S, float]]]:
+                actions = policy.act(state)
+
+                if actions is None:
+                    return None
+
+                # TODO: Handle the case where mdp.step(state, a)
+                # returns None
+                #
+                # Idea: use an exception for termination instead of
+                # return None?
+                return actions.apply(lambda a: mdp.step(state, a))
+
+        return RewardProcess()
 
     @abstractmethod
     def actions(self, state: S) -> Iterable[A]:
         pass
 
+    @abstractmethod
     def step(
         self,
         state: S,
         action: A
     ) -> Optional[Distribution[Tuple[S, float]]]:
-        return self.apply_policy(Always(action)).transition_reward(state)
+        pass
 
 
 ActionMapping = Mapping[A, StateReward[S]]
@@ -109,32 +128,12 @@ class FiniteMarkovDecisionProcess(MarkovDecisionProcess[S, A]):
                             + f"Reward {r:.3f}] with Probability {p:.3f}\n"
         return display
 
-    # Note: We need both apply_policy and apply_finite_policy because,
-    # to be compatible with MarkovRewardProcess, apply_policy has to
-    # work even if the policy is *not* finite.
-    def apply_policy(self, policy: Policy[S, A]) -> MarkovRewardProcess[S]:
-        mapping = self.mapping
+    def step(self, state: S, action: A) -> Optional[StateReward]:
+        action_map: Optional[ActionMapping[A, S]] = self.mapping[state]
 
-        class Process(MarkovRewardProcess[S]):
-
-            def transition_reward(self, state: S)\
-                    -> Optional[SampledDistribution[Tuple[S, float]]]:
-
-                action_map: Optional[ActionMapping[A, S]] = mapping[state]
-
-                if action_map is None:
-                    return None
-                else:
-                    def next_pair(action_map=action_map):
-                        action: A = policy.act(state).sample()
-                        return action_map[action].sample()
-
-                    return SampledDistribution(next_pair)
-
-            def sample_states(self) -> Distribution[S]:
-                return Choose(set(self.mapping.keys()))
-
-        return Process()
+        if action_map is None:
+            return None
+        return action_map[action]
 
     def apply_finite_policy(self, policy: FinitePolicy[S, A])\
             -> FiniteMarkovRewardProcess[S]:

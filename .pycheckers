@@ -1,0 +1,7 @@
+[DEFAULT]
+vevn_path = ./.venv
+
+checkers = flake8, pylint, mypy3
+
+mypy_config_file = ./mypy.ini
+pylint_config_file = ./.pylintrc
