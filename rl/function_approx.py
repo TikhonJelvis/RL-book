@@ -80,7 +80,7 @@ class Tabular(FunctionApprox[X]):
         field(default_factory=lambda: defaultdict(float))
     counts_map: Mapping[X, int] =\
         field(default_factory=lambda: defaultdict(int))
-    count_to_weight_func: Callable[int, float] =\
+    count_to_weight_func: Callable[[int], float] =\
         field(default_factory=lambda: lambda n: 1. / n)
 
     def evaluate(self, x_values_seq: Sequence[X]) -> np.ndarray:
