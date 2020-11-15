@@ -176,10 +176,10 @@ This chapter cover the first financial application – dynamic asset allocation 
 * Portfolios, Arbitrage and Risk-Neutral Probability Measure
 * First Fundamental Theorem of Asset Pricing (1st FTAP)
 * Second Fundamental Theorem of Asset Pricing (2nd FTAP)
-* Derivatives Pricing
-* Overview of General Theory
-* Optimal Pricing/Hedging in an Incomplete Market
-* Optimal Exercise of American Options
+* Derivatives Pricing in Single-Period Setting
+* Overview of Multi-Period/Continuous-Time Theory
+* Pricing/Hedging in an Incomplete Market Cast as an MDP
+* Optimal Exercise of American Options Cast as an MDP
 
 This chapter covers the most important topic in Mathematical Finance: Pricing and Hedging of Derivatives. Full and rigorous coverage of derivatives pricing and hedging is a fairly elaborate and advanced topic, and beyond the scope of this book. But we have provided a way to understand the theory in this chapter by considering a very simple setting - that of a single-period with discrete outcomes and no provision for rebalancing of the hedges, that is typical in the general theory. Following the coverage of the foundational theory, we cover the problem of optimal pricing/hedging of derivatives in an incomplete market and the problem of optimal exercise of American Options (both problems are modeled as MDPs). In this chapter, you will learn about some highly important financial foundations such as the concepts of arbitrage, replication, market completeness, and the all-important risk-neutral measure. You will learn the proofs of the two fundamental theorems of asset pricing in this simple setting. We also provide an overview of the general theory (beyond this simple setting). Next you will learn about how to price/hedge derivatives incorporating real-world frictions by modeling this problem as an MDP. We will revisit this problem after we learn the RL algorithms because the only practical way of solving this problem in the real-world is by designing a market-calibrated simulator and then employing RL algorithms on this simulator. In the final section of this chapter, you will learn how to model optimal stopping as an MDP. You will learn how to use Backward Induction (a DP algorithm we learnt in Chapter 4) to solve this problem when the state-space is not too big. We will revisit this problem after we have covered RL algorithms. By the end of this chapter, the reader would have developed significant expertise in pricing and hedging complex derivatives, a skill that is in high demand in the finance industry.
 
@@ -307,7 +307,7 @@ This concluding chapter will enable the reader to put the entire book’s conten
 2. Portfolio Theory
 3. Introduction To and Overview Of Stochastic Calculus Basics
 4. The Hamilton-Jacobi-Bellman (HJB) Equation
-5. Black-Scholes Theory
+5. Black-Scholes Equation and it's Solution for Call/Put Options
 
 ## Decluttering the jargon in Optimal Decisioning under Uncertainty
 ## Introduction to the Markov Decision Process (MDP) framework
