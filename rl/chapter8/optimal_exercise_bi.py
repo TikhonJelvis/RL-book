@@ -4,9 +4,8 @@ import numpy as np
 from scipy.stats import norm
 from rl.distribution import SampledDistribution
 from rl.markov_decision_process import MarkovDecisionProcess, Policy
-from rl.function_approx import FunctionApprox, AdamGradient, BSplineApprox
+from rl.function_approx import FunctionApprox, BSplineApprox
 from rl.approximate_dynamic_programming import back_opt_vf_and_policy
-from numpy.polynomial.laguerre import lagval
 
 StateType = Tuple[float, bool]
 
