@@ -13,19 +13,23 @@ let
   };
 
   python-packages = ps: with ps;
-    [ # Dependencies
+    [ # Libraries
       graphviz
       matplotlib
       numpy
       pandas
       scipy
 
-      # Development
+      # Tools
       ipython
       jedi
       jupyter
-      mypy
       pytest
+
+      # Checkers
+      flake8
+      mypy
+      pylint
     ];
 
   # Applications and utilties for buidling the book
