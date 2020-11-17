@@ -6,8 +6,8 @@ from collections import defaultdict
 import numpy as np
 from pprint import pprint
 
-from rl.distribution import (Categorical, Choose, Distribution,
-                             FiniteDistribution, SampledDistribution)
+from rl.distribution import (Categorical, Distribution, FiniteDistribution,
+                             SampledDistribution)
 
 S = TypeVar('S')
 
