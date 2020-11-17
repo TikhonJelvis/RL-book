@@ -88,6 +88,19 @@ class MarkovDecisionProcess(ABC, Generic[S, A]):
     def actions(self, state: S) -> Iterable[A]:
         pass
 
+    def is_terminal(self, state: S) -> bool:
+        '''Is the given state a terminal state?
+
+        We cannot take any actions from a terminal state. This means
+        that a state is terminal iff `self.actions(s)` is empty.
+
+        '''
+        try:
+            next(iter(self.actions(state)))
+            return False
+        except StopIteration:
+            return True
+
     @abstractmethod
     def step(
         self,
@@ -162,8 +175,6 @@ class FiniteMarkovDecisionProcess(MarkovDecisionProcess[S, A]):
     def action_mapping(self, state: S) -> Optional[ActionMapping[A, S]]:
         return self.mapping[state]
 
-    # Note: For now, this is only available on finite MDPs; this might
-    # change in the future.
     def actions(self, state: S) -> Iterable[A]:
         '''All the actions allowed for the given state.
 
