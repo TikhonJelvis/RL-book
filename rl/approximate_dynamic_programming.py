@@ -245,28 +245,12 @@ def back_opt_vf_and_policy(
             s, r = s_r
             return r + γ * (vp[i-1][0].evaluate([s]).item() if i > 0 else 0.)
 
-        l1 = []
-        l2 = []
-        l3 = []
-        print(i)
-        for s in sorted(mu.sample_n(num_state_samples), key=lambda z: z[0]):
-            l1.append(s)
-            dep = max(mdp.step(s, a).expectation(return_)
-                      for a in mdp.actions(s))
-            l2.append(dep)
-        this_v = approx0.solve(list(zip(l1, l2)), error_tolerance)
-        l3 = [this_v.evaluate([s]).item() for s in l1]
-        ll1 = [z[0] for z in l1]
-        import matplotlib.pyplot as plt
-        plt.plot(ll1, l2, "b", ll1, l3, "r")
-        plt.show()
-
-        # this_v = approx0.solve(
-        #     [(s, max(mdp.step(s, a).expectation(return_)
-        #              for a in mdp.actions(s)))
-        #      for s in mu.sample_n(num_state_samples)],
-        #     error_tolerance
-        # )
+        this_v = approx0.solve(
+            [(s, max(mdp.step(s, a).expectation(return_)
+                     for a in mdp.actions(s)))
+             for s in mu.sample_n(num_state_samples)],
+            error_tolerance
+        )
 
         class ThisPolicy(Policy[S, A]):
             def act(self, state: S) -> Constant[A]:
