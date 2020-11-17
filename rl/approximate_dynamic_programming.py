@@ -1,5 +1,5 @@
 from typing import Iterator, Mapping, Tuple, TypeVar, Sequence, List
-from rl.function_approx import FunctionApprox, sgd
+from rl.function_approx import FunctionApprox
 from itertools import repeat
 from rl.iterate import iterate
 from operator import itemgetter
@@ -143,11 +143,8 @@ def backward_evaluate_finite(
             return r + γ * (v[i-1].evaluate([s]).item() if i > 0 else 0.)
 
         v.append(
-            FunctionApprox.converged(sgd(
-                approx0,
-                repeat([(s, res.expectation(return_))
-                        for s, res in step.items()])
-            ))
+            approx0.solve([(s, res.expectation(return_))
+                           for s, res in step.items()])
         )
 
     return reversed(v)
@@ -178,12 +175,9 @@ def backward_evaluate(
             return r + γ * (v[i-1].evaluate([s]).item() if i > 0 else 0.)
 
         v.append(
-            FunctionApprox.converged(
-                sgd(
-                    approx0,
-                    repeat([(s, mrp.transition_reward(s).expectation(return_))
-                            for s in mu.sample_n(num_state_samples)])
-                ),
+            approx0.solve(
+                [(s, mrp.transition_reward(s).expectation(return_))
+                 for s in mu.sample_n(num_state_samples)],
                 error_tolerance
             )
         )
@@ -207,13 +201,10 @@ def back_opt_vf_and_policy_finite(
             s, r = s_r
             return r + γ * (vp[i-1][0].evaluate([s]).item() if i > 0 else 0.)
 
-        this_v = FunctionApprox.converged(sgd(
-            approx0,
-            repeat([(
-                s,
-                max(res.expectation(return_) for a, res in actions_map.items())
-            ) for s, actions_map in step.items()])
-        ))
+        this_v = approx0.solve(
+            [(s, max(res.expectation(return_) for a, res in actions_map.items()))
+             for s, actions_map in step.items()]
+        )
 
         class ThisPolicy(Policy[S, A]):
             def act(self, state: S) -> Constant[A]:
@@ -254,15 +245,10 @@ def back_opt_vf_and_policy(
             s, r = s_r
             return r + γ * (vp[i-1][0].evaluate([s]).item() if i > 0 else 0.)
 
-        this_v = FunctionApprox.converged(
-            sgd(
-                approx0,
-                repeat([(
-                    s,
-                    max(mdp.step(s, a).expectation(return_)
-                        for a in mdp.actions(s))
-                ) for s in mu.sample_n(num_state_samples)])
-            ),
+        this_v = approx0.solve(
+            [(s, max(mdp.step(s, a).expectation(return_)
+                     for a in mdp.actions(s)))
+             for s in mu.sample_n(num_state_samples)],
             error_tolerance
         )
 
@@ -310,15 +296,9 @@ def back_opt_qvf(
                 if i > 0 else 0.
             )
 
-        this_qvf = FunctionApprox.converged(
-            sgd(
-                approx0,
-                repeat(
-                    [((s, a), mdp.step(s, a).expectation(return_))
-                     for s in mu.sample_n(num_state_samples)
-                     for a in mdp.actions(s)]
-                )
-            ),
+        this_qvf = approx0.solve(
+            [((s, a), mdp.step(s, a).expectation(return_))
+             for s in mu.sample_n(num_state_samples) for a in mdp.actions(s)],
             error_tolerance
         )
 
