@@ -6,7 +6,7 @@ from rl.approximate_dynamic_programming import (evaluate_mrp,
 from rl.distribution import Categorical, Choose
 from rl.finite_horizon import (finite_horizon_MRP, evaluate,
                                unwrap_finite_horizon_MRP, WithTime)
-from rl.function_approx import Dynamic, FunctionApprox
+from rl.function_approx import Dynamic
 from rl.markov_process import FiniteMarkovRewardProcess
 import rl.iterate as iterate
 
