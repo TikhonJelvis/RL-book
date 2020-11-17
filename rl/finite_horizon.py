@@ -107,10 +107,8 @@ def evaluate(
 
     for step in reversed(steps):
         v.append({s: res.expectation(
-            lambda s_r: s_r[1] + gamma * (v[-1][s_r[0]] if
-                                          len(v) > 0 and s_r[0] in v[-1]
-                                          else 0.)
-            ) for s, res in step.items() if res is not None})
+            lambda s_r: s_r[1] + gamma * (v[-1][s_r[0]] if len(v) > 0 else 0.)
+            ) for s, res in step.items()})
 
     return reversed(v)
 
@@ -194,16 +192,13 @@ def optimal_vf_and_policy(
         this_v: Dict[S, float] = {}
         this_a: Dict[S, FiniteDistribution[A]] = {}
         for s, actions_map in step.items():
-            if actions_map is not None:
-                action_values = ((res.expectation(
-                    lambda s_r: s_r[1] + gamma * (v_p[-1][0][s_r[0]] if
-                                                  len(v_p) > 0 and
-                                                  s_r[0] in v_p[-1][0]
-                                                  else 0.)
-                ), a) for a, res in actions_map.items())
-                v_star, a_star = max(action_values, key=itemgetter(0))
-                this_v[s] = v_star
-                this_a[s] = Constant(a_star)
+            action_values = ((res.expectation(
+                lambda s_r: s_r[1] + gamma * (v_p[-1][0][s_r[0]]
+                                              if len(v_p) > 0 else 0.)
+            ), a) for a, res in actions_map.items())
+            v_star, a_star = max(action_values, key=itemgetter(0))
+            this_v[s] = v_star
+            this_a[s] = Constant(a_star)
         v_p.append((this_v, FinitePolicy(this_a)))
 
     return reversed(v_p)
