@@ -4,8 +4,10 @@ import numpy as np
 from scipy.stats import norm
 from rl.distribution import SampledDistribution
 from rl.markov_decision_process import MarkovDecisionProcess, Policy
-from rl.function_approx import FunctionApprox, BSplineApprox
+from rl.function_approx import FunctionApprox, LinearFunctionApprox
+from rl.function_approx import AdamGradient
 from rl.approximate_dynamic_programming import back_opt_vf_and_policy
+from numpy.polynomial.laguerre import lagval
 
 StateType = Tuple[float, bool]
 
@@ -35,7 +37,6 @@ class OptimalExerciseBI:
         exer_payoff: Callable[[float], float] = self.payoff
         r: float = self.rate
         s: float = self.vol
-        steps: int = self.num_steps
 
         class OptExerciseBIMDP(MarkovDecisionProcess[StateType, bool]):
 
@@ -64,14 +65,12 @@ class OptimalExerciseBI:
 
                 return SampledDistribution(
                     sampler=sr_sampler_func,
-                    expectation_samples=300
+                    expectation_samples=200
                 )
 
             def actions(self, price_exer: StateType) -> Sequence[bool]:
                 if price_exer[1]:
-                    ret = [False]
-                elif t == steps:
-                    ret = [True]
+                    ret = []
                 else:
                     ret = [True, False]
                 return ret
@@ -102,15 +101,32 @@ class OptimalExerciseBI:
 
     def get_vf_func_approx(
         self,
-        t: int
-    ) -> BSplineApprox[StateType]:
-        return BSplineApprox(
-            feature_function=lambda p_e: p_e[0],
-            degree=3
+        t: int,
+        features: Sequence[Callable[[StateType], float]],
+        reg_coeff: float
+    ) -> LinearFunctionApprox[StateType]:
+        ag: AdamGradient = AdamGradient(
+            learning_rate=0.1,
+            decay1=0.9,
+            decay2=0.999
         )
+        return LinearFunctionApprox.create(
+            feature_functions=features,
+            adam_gradient=ag,
+            regularization_coeff=reg_coeff,
+            direct_solve=True
+        )
+
+#     ) -> BSplineApprox[StateType]:
+#         return BSplineApprox(
+#             feature_function=lambda p_e: p_e[0],
+#             degree=3
+#         )
 
     def backward_induction_vf_and_pi(
         self,
+        features: Sequence[Callable[[StateType], float]],
+        reg_coeff: float
     ) -> Iterator[
         Tuple[FunctionApprox[StateType], Policy[StateType, bool]]
     ]:
@@ -120,12 +136,16 @@ class OptimalExerciseBI:
             FunctionApprox[StateType],
             SampledDistribution[StateType]
         ]] = [(
-            self.get_mdp(i),
-            self.get_vf_func_approx(i),
-            self.get_states_distribution(i)
+            self.get_mdp(t=i),
+            self.get_vf_func_approx(
+                t=i,
+                features=features,
+                reg_coeff=reg_coeff
+            ),
+            self.get_states_distribution(t=i)
         ) for i in range(self.num_steps + 1)]
 
-        num_state_samples: int = 300
+        num_state_samples: int = 1000
 
         return back_opt_vf_and_policy(
             mdp_f0_mu_triples=mdp_f0_mu_triples,
@@ -177,8 +197,8 @@ if __name__ == '__main__':
     expiry_val: float = 1.0
     rate_val: float = 0.05
     vol_val: float = 0.25
-    num_steps_val: int = 20
-    spot_price_frac_val: float = 0.2
+    num_steps_val: int = 200
+    spot_price_frac_val: float = 0.02
 
     opt_ex_bi: OptimalExerciseBI = OptimalExerciseBI(
         spot_price=spot_price_val,
@@ -190,7 +210,18 @@ if __name__ == '__main__':
         spot_price_frac=spot_price_frac_val
     )
 
-    it_vf = opt_ex_bi.backward_induction_vf_and_pi()
+    num_laguerre: int = 4
+    reglr_coeff: float = 0.001
+
+    ident: np.ndarray = np.eye(num_laguerre)
+    ffs: List[Callable[[StateType], float]] = [lambda _: 1.]
+    ffs += [(lambda s_e: np.log(1 + np.exp(-s_e[0] / (2 * strike))) *
+            lagval(s_e[0] / strike, ident[i]))
+            for i in range(num_laguerre)]
+    it_vf = opt_ex_bi.backward_induction_vf_and_pi(
+        features=ffs,
+        reg_coeff=reglr_coeff
+    )
 
     prices: np.ndarray = np.arange(120.0)
 
