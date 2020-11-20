@@ -90,7 +90,7 @@ if __name__ == '__main__':
     spot_price_val: float = 100.0
     strike: float = 100.0
     is_call: bool = False
-    expiry_val: float = 5.0
+    expiry_val: float = 2.0
     rate_val: float = 0.05
     vol_val: float = 0.25
     num_steps_val: int = 500
