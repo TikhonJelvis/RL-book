@@ -8,8 +8,10 @@ import math
 from typing import (DefaultDict, Dict, Iterable, Generic, Mapping,
                     Tuple, Sequence, TypeVar, Optional)
 
-from rl.distribution import (Constant, Categorical, Choose, Distribution,
-                             FiniteDistribution, SampledDistribution)
+from rl.distribution import (Bernoulli, Constant, Categorical, Choose,
+                             Distribution, FiniteDistribution)
+from rl.function_approx import FunctionApprox
+import rl.iterate as iterate
 from rl.markov_process import (
     FiniteMarkovRewardProcess, MarkovRewardProcess, StateReward)
 
@@ -119,12 +121,7 @@ def returns(
     tolerance -- a small value—we stop iterating once γᵏ ≤ tolerance
 
     '''
-    trace = iter(trace)
-
-    max_steps = None
-    if γ < 1:
-        max_steps = round(math.log(tolerance) / math.log(γ))
-        trace = itertools.islice(trace, 2 * max_steps)
+    trace = iterate.discount_tolerance(iter(trace), γ, tolerance)
 
     *transitions, last_transition = list(trace)
     return_transitions = itertools.accumulate(
@@ -133,11 +130,7 @@ def returns(
         initial=last_transition.add_return(γ, 0)
     )
 
-    return_iter = reversed(list(return_transitions))
-    if max_steps is not None:
-        return_iter = itertools.islice(return_iter, max_steps)
-
-    return return_iter
+    return reversed(list(return_transitions))
 
 
 class MarkovDecisionProcess(ABC, Generic[S, A]):
@@ -225,6 +218,39 @@ class MarkovDecisionProcess(ABC, Generic[S, A]):
         '''
         while True:
             yield self.simulate_actions(start_states, policy)
+
+
+def policy_from_q(
+        q: FunctionApprox[Tuple[S, A]],
+        mdp: MarkovDecisionProcess[S, A],
+        ϵ: float = 0.0
+) -> Policy[S, A]:
+    '''Return a policy that chooses the action that maximizes the reward
+    for each state in the given Q function.
+
+    Arguments:
+      q -- approximation of the Q function for the MDP
+      mdp -- the process for which we're generating a policy
+      ϵ -- the fraction of the actions where we explore rather
+      than following the optimal policy
+
+    Returns a policy based on the given Q function.
+
+    '''
+    explore = Bernoulli(ϵ)
+
+    class QPolicy(Policy[S, A]):
+        def act(self, s: S) -> Optional[Distribution[A]]:
+            if mdp.is_terminal(s):
+                return None
+
+            if explore.sample():
+                return Choose(set(mdp.actions(s)))
+
+            _, action = q.argmax((s, a) for a in mdp.actions(s))
+            return Constant(action)
+
+    return QPolicy()
 
 
 ActionMapping = Mapping[A, StateReward[S]]

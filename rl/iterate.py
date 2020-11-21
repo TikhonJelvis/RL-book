@@ -81,6 +81,26 @@ def converged(values: Iterator[X],
     return result
 
 
+def discount_tolerance(stream: Iterator[X], γ: float, tolerance: float):
+    '''Stop the iterator after n steps where γⁿ ≤ tolerance if γ < 1.
+
+    Arguments:
+      stream -- the iterator we're capping
+      γ -- discount factor
+      tolerance -- a small value that determines when we stop iterating
+
+    Returns:
+      Stream that stops once γⁿ ≤ tolerance if γ < 1, otherwise
+      returns the stream unchanged.
+
+    '''
+    if γ < 1:
+        max_steps = round(math.log(tolerance) / math.log(γ))
+        return itertools.islice(stream, max_steps)
+
+    return stream
+
+
 # TODO: Unify with mdp.returns (using a protocol)?
 def returns(
         rewards: Iterable[Tuple[X, float]],
@@ -98,14 +118,8 @@ def returns(
     '''
     # Ensure that this logic works correctly whether rewards is an
     # iterator or an iterable (ie a list).
-    rewards = iter(rewards)
-
-    max_steps = None
-    if γ < 1:
-        max_steps = round(math.log(tolerance) / math.log(γ))
-        rewards = itertools.islice(rewards, 2 * max_steps)
-
-    *initial, (last_s, last_r) = list(itertools.islice(rewards, max_steps))
+    rewards = discount_tolerance(iter(rewards), γ, tolerance)
+    *initial, (last_s, last_r) = list(rewards)
 
     def accum(r_acc, r):
         return r_acc + γ * r

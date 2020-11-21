@@ -5,7 +5,7 @@ Markov Decision Processes.
 
 from typing import Iterator, Optional, Tuple, TypeVar
 
-from rl.distribution import Distribution
+from rl.distribution import Bernoulli, Choose, Constant, Distribution
 from rl.function_approx import FunctionApprox
 import rl.iterate as iterate
 import rl.markov_decision_process as markov_decision_process
@@ -37,6 +37,9 @@ def evaluate_mrp(
       γ -- discount rate (0 < γ ≤ 1), default: 1
       tolerance -- a small value—we stop iterating once γᵏ ≤ tolerance
 
+    Returns an iterator with updates to the approximated value
+    function after each episode.
+
     '''
     v = approx_0
 
@@ -50,30 +53,36 @@ def evaluate_mdp(
         states: Distribution[S],
         approx_0: FunctionApprox[Tuple[S, A]],
         γ: float,
+        ϵ: float,
         tolerance: float = 1e-6
 ) -> Iterator[FunctionApprox[Tuple[S, A]]]:
-    q = approx_0
-    p = policy_from_q(q, mdp)
+    '''Evaluate an MRP using the monte carlo method, simulating episodes
+    of the given number of steps.
 
-    for trace in mdp.action_traces(states, p):
+    Each value this function yields represents the approximated value
+    function for the MRP after one additional epsiode.
+
+    Arguments:
+      mrp -- the Markov Reward Process to evaluate
+      states -- distribution of states to start episodes from
+      approx_0 -- initial approximation of value function
+      γ -- discount rate (0 < γ ≤ 1), default: 1
+      ϵ -- the fraction of the actions where we explore rather
+      than following the optimal policy
+      tolerance -- a small value—we stop iterating once γᵏ ≤ tolerance
+
+    Returns an iterator with updates to the approximated Q function
+    after each episode.
+
+    '''
+    q = approx_0
+    p = markov_decision_process.policy_from_q(q, mdp)
+
+    while True:
+        trace = mdp.simulate_actions(states, p)
         q = q.update(
             [((trace.state, trace.action), trace.reward)
              for trace in markov_decision_process.returns(trace, γ, tolerance)]
         )
-        p = policy_from_q(q, mdp)
+        p = markov_decision_process.policy_from_q(q, mdp, ϵ)
         yield q
-
-
-def policy_from_q(
-        q: FunctionApprox[Tuple[S, A]],
-        mdp: MarkovDecisionProcess[S, A]
-) -> Policy[S, A]:
-    '''Return a policy that chooses the action that maximizes the reward
-    for each state in the given Q function.
-
-    '''
-    class QPolicy(Policy[S, A]):
-        def act(self, s: S) -> Optional[Distribution[A]]:
-            return max(q.evaluate([(s, a) for a in mdp.actions(s)]))
-
-    return QPolicy()

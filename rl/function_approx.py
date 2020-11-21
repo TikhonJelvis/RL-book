@@ -36,6 +36,17 @@ class FunctionApprox(ABC, Generic[X]):
 
         '''
 
+    def argmax(self, xs: Iterable[X]) -> X:
+        '''Return the input X that maximizes the function being approximated.
+
+        Arguments:
+          xs -- list of inputs to evaluate and maximize, cannot be empty
+
+        Returns the X that maximizes the function this approximates.
+
+        '''
+        return list(xs)[np.argmax(self.evaluate(xs))]
+
     def __call__(self, x_value: X) -> float:
         return self.evaluate([x_value]).item()
 
@@ -44,6 +55,7 @@ class FunctionApprox(ABC, Generic[X]):
         self,
         pairs: Iterable[Tuple[X, float]]
     ) -> FunctionApprox[X]:
+
         '''Update the internal parameters of the FunctionApprox
         based on incremental data provided in the form of (x,y)
         pairs as a xy_vals_seq data structure

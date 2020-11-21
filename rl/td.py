@@ -3,12 +3,11 @@ Markov Decision Processes.
 
 '''
 
-import itertools
-import math
 from typing import Iterator, TypeVar
 
 from rl.distribution import Constant, Distribution
 from rl.function_approx import FunctionApprox
+import rl.iterate as iterate
 from rl.markov_decision_process import MarkovRewardProcess
 
 S = TypeVar('S')
@@ -38,22 +37,17 @@ def td_0(
     '''
     v = approx_0
 
-    max_steps = None
-    if γ < 1:
-        max_steps = round(math.log(tolerance) / math.log(γ))
-
     while True:
         start = states.sample()
-        episode = mrp.simulate_reward(Constant(start))
-        if max_steps is not None:
-            episode = itertools.islice(episode, max_steps)
+        episode = iterate.discount_tolerance(
+            iter(mrp.simulate_reward(Constant(start))),
+            γ,
+            tolerance
+        )
 
         state = start
-        updates = []
         for next_state, reward in episode:
             diff = v.evaluate([next_state]) - v.evaluate([state])
-            updates += [(state, reward + γ * diff)]
+            v = v.update([(state, reward + γ * diff)])
             state = next_state
-
-        v = v.update(updates)
-        yield v
+            yield v
