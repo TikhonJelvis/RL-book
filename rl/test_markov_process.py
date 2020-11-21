@@ -29,9 +29,6 @@ class FlipFlop(MarkovProcess[bool]):
 
         return SampledDistribution(next_state)
 
-    def sample_states(self) -> Distribution[bool]:
-        return Bernoulli(self.p)
-
 
 class FiniteFlipFlop(FiniteMarkovProcess[bool]):
     ''' A version of FlipFlop implemented with the FiniteMarkovProcess machinery.
@@ -64,9 +61,6 @@ class RewardFlipFlop(MarkovRewardProcess[bool]):
                 return state, 0.5
 
         return SampledDistribution(next_state)
-
-    def sample_states(self):
-        return Bernoulli(self.p)
 
 
 class TestMarkovProcess(unittest.TestCase):

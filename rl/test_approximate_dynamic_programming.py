@@ -6,8 +6,9 @@ from rl.approximate_dynamic_programming import (evaluate_mrp,
 from rl.distribution import Categorical, Choose
 from rl.finite_horizon import (finite_horizon_MRP, evaluate,
                                unwrap_finite_horizon_MRP, WithTime)
-from rl.function_approx import Dynamic, FunctionApprox
+from rl.function_approx import Dynamic
 from rl.markov_process import FiniteMarkovRewardProcess
+import rl.iterate as iterate
 
 
 class FlipFlop(FiniteMarkovRewardProcess[bool]):
@@ -30,11 +31,14 @@ class TestEvaluate(unittest.TestCase):
 
     def test_evaluate_finite_mrp(self):
         start = Dynamic({s: 0.0 for s in self.finite_flip_flop.states()})
-        v = FunctionApprox.converged(evaluate_finite_mrp(
-            self.finite_flip_flop,
-            γ=0.99,
-            approx_0=start
-        ))
+        v = iterate.converged(
+            evaluate_finite_mrp(
+                self.finite_flip_flop,
+                γ=0.99,
+                approx_0=start
+            ),
+            done=lambda a, b: a.within(b, 1e-4)
+        )
 
         self.assertEqual(len(v.values_map), 2)
 
@@ -44,25 +48,33 @@ class TestEvaluate(unittest.TestCase):
     def test_evaluate_mrp(self):
         start = Dynamic({s: 0.0 for s in self.finite_flip_flop.states()})
 
-        v = FunctionApprox.converged(evaluate_mrp(
-            self.finite_flip_flop,
-            γ=0.99,
-            approx_0=start,
-            non_terminal_states_distribution=Choose(
-                set(self.finite_flip_flop.states())
+        v = iterate.converged(
+            evaluate_mrp(
+                self.finite_flip_flop,
+                γ=0.99,
+                approx_0=start,
+                non_terminal_states_distribution=Choose(
+                    set(self.finite_flip_flop.states())
+                ),
+                num_state_samples=5
             ),
-            num_state_samples=5
-        ))
+            done=lambda a, b: a.within(b, 1e-4)
+        )
 
         self.assertEqual(len(v.values_map), 2)
 
         for s in v.values_map:
             self.assertLess(abs(v(s) - 170), 1.0)
 
-        v_finite = FunctionApprox.converged(evaluate_finite_mrp(
-            self.finite_flip_flop,
-            γ=0.99,
-            approx_0=start))
+        v_finite = iterate.converged(
+            evaluate_finite_mrp(
+                self.finite_flip_flop,
+                γ=0.99,
+                approx_0=start
+            ),
+            done=lambda a, b: a.within(b, 1e-4)
+        )
+
         assert_allclose(v.evaluate([True, False]),
                         v_finite.evaluate([True, False]),
                         rtol=0.01)
@@ -71,10 +83,15 @@ class TestEvaluate(unittest.TestCase):
         finite_horizon = finite_horizon_MRP(self.finite_flip_flop, 10)
 
         start = Dynamic({s: 0.0 for s in finite_horizon.states()})
-        v = FunctionApprox.converged(evaluate_finite_mrp(
-            finite_horizon,
-            γ=1,
-            approx_0=start))
+        v = iterate.converged(
+            evaluate_finite_mrp(
+                finite_horizon,
+                γ=1,
+                approx_0=start
+            ),
+            done=lambda a, b: a.within(b, 1e-4)
+        )
+
         self.assertEqual(len(v.values_map), 22)
 
         finite_v =\

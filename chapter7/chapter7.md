@@ -28,7 +28,7 @@ The above description has hopefully given you a flavor of the dual and dynamic d
 
 Since our goal here was to simply do a rough and informal sketch, the above coverage of the MDP is very hazy but we hope you get a sense for what the MDP might look like. Now we are ready to take a simple special case of this MDP which does away with many of the real-world frictions and complexities, yet retains the key features (in particular, the dual dynamic decisioning aspect). This simple special case was the subject of [Merton's Portfolio Problem](https://en.wikipedia.org/wiki/Merton%27s_portfolio_problem) which he formulated and solved in 1969 in a landmark paper. A key feature of his formulation was that time is continuous and so, *state* (based on asset prices) evolves as a stochastic process, and actions (asset-allocation and consumption) are made continuously. We cover the important parts of his paper in the next section. Note that our coverage below requires some familiarity with Stochastic Calculus (covered in Appendix [-@sec:stochasticcalculus-appendix]) and with the Hamilton-Jacobi-Bellman Equation (covered in Appendix [-@sec:hjb-appendix]), which is the continuous-time analog of Bellman's Optimality Equation.
 
-### Merton's Portfolio Problem and Solution
+## Merton's Portfolio Problem and Solution
 
 Now we describe Merton's Portfolio problem and derive its analytical solution, which is one of the most elegant solutions in Mathematical Economics. The solution structure will provide tremendous intuition for how the asset-allocation and consumption decisions depend on not just the state variables but also on the problem inputs.
 
@@ -425,7 +425,7 @@ With the above real-world considerations, we need to tap into Dynamic Programmin
 
 The code in the class `AssetAllocDiscrete` below is fairly self-explanatory. We use the function `back_opt_qvf` covered in Section [-@sec:bi-approx-q-value-iteration] of Chapter [-@sec:func-approx-chapter] to perform backward induction on the optimal Q-Value Function. Since the state space is continuous, the optimal Q-Value Function is represented as a `FunctionApprox` (specifically, as a `DNNApprox`). Moreover, since we are working with a generic distribution of returns that govern the state transitions of this MDP, we need to work with the methods of the abstract class `MarkovDecisionProcess` (and not the class `FiniteMarkovDecisionProcess`). The method `backward_induction_qvf` below makes the call to `back_opt_qvf`. Since the risky returns distribution is arbitrary and since the utility function is arbitrary, we don't have prior knowledge of the functional form of the Q-Value function. Hence, the user of the class `AssetAllocDiscrete` also needs to provide the set of feature functions (`feature_functions` in the code below) and the specification of a deep neural network to represent the Q-Value function (`dnn_spec` in the code below). The rest of the code below is mainly about preparing the input `mdp_f0_mu_triples` to be passed to `back_opt_qvf`. As was explained in Section [-@sec:bi-approx-q-value-iteration] of Chapter [-@sec:func-approx-chapter], `mdp_f0_mu_triples` is a sequence (for each time step) of the following triples:
 
-* A `MarkovDecisionProcess[float, float]` object, which in the code below is prepared by the method `get_mdp`. *State* is the portfolio wealth (`float` type) and *Action* is the quantity of investment in the risky asset (also of `float` type). The code in this method is not too complicated, but it's fairly intricate. We create a class `AssetAllocMDP` that implements the abstract class `MarkovDecisionProcess`. To do so, we need to implement the `apply_policy` method and the `actions` method. The `apply_policy` method creates a class `AssetAllocMRP` that implements the abstract class `MarkovRewardProcess`, which in turn needs to implement the `transition_reward` method. Since we are dealing with abstract distributions, the only thing we can do is to invoke the `sample` method of the abstract `Distribution` class. This in turn means that `transition_reward` returns an instance of `SampledDistribution`, which is based on the `sr_sampler_func` that returns a sample of the pair of next state (next time step's wealth) and reward, given the current state (current wealth) and action (current time step's quantity of investment in the risky asset).
+* A `MarkovDecisionProcess[float, float]` object, which in the code below is prepared by the method `get_mdp`. *State* is the portfolio wealth (`float` type) and *Action* is the quantity of investment in the risky asset (also of `float` type). `get_mdp` creates a class `AssetAllocMDP` that implements the abstract class `MarkovDecisionProcess`. To do so, we need to implement the `step` method and the `actions` method. The `step` method returns an instance of `SampledDistribution`, which is based on the `sr_sampler_func` that returns a sample of the pair of next state (next time step's wealth) and reward, given the current state (current wealth) and action (current time step's quantity of investment in the risky asset).
 * A `FunctionApprox[Tuple[float, float]]` object, which in the code below is prepared by the method `get_qvf_func_approx`. This method sets up a 'DNNApprox' object that represents a neural-network function approximation for the optimal Q-Value Function. So the input to this neural network would be a `Tuple[float, float]` representing a (state, action) pair. 
 * A `Distribution[float]` object, which in the code below is prepared by the method `get_states_distribution`. This method constructs a `SampledDistribution[float]` representing the distribution of states (distribution of portfolio wealth) at each time step. The `SampledDistribution[float]` is prepared using the function `states_sampler_func` that generates a simulation path by sampling the state-transitions (portfolio wealth transitions) from time 0 to the given time step in a time-incremental manner (the simulation invokes the `sample` method of the risky asset's return `Distribution`s and the `sample` method of a uniform distribution over the action choices specified by `risky_alloc_choices`).
 
@@ -462,32 +462,26 @@ class AssetAllocDiscrete:
 
         class AssetAllocMDP(MarkovDecisionProcess[float, float]):
 
-            def apply_policy(
+            def step(
                 self,
-                policy: Policy[float, float]
-            ) -> MarkovRewardProcess[float]:
+                wealth: float,
+                alloc: float
+            ) -> SampledDistribution[Tuple[float, float]]:
 
-                class AssetAllocMRP(MarkovRewardProcess[float]):
+                def sr_sampler_func(
+                    wealth=wealth,
+                    alloc=alloc
+                ) -> Tuple[float, float]:
+                    next_wealth: float = alloc * (1 + distr.sample()) \
+                        + (wealth - alloc) * (1 + rate)
+                    reward: float = utility_f(next_wealth) \
+                        if t == steps - 1 else 0.
+                    return (next_wealth, reward)
 
-                    def transition_reward(
-                        self,
-                        wealth: float
-                    ) -> SampledDistribution[Tuple[float, float]]:
-
-                        def sr_sampler_func() -> Tuple[float, float]:
-                            alloc: float = policy.act(wealth).sample()
-                            next_wealth: float = alloc * (1 + distr.sample()) \
-                                + (wealth - alloc) * (1 + rate)
-                            reward: float = utility_f(next_wealth) \
-                                if t == steps - 1 else 0.
-                            return (next_wealth, reward)
-
-                        return SampledDistribution(
-                            sampler=sr_sampler_func,
-                            expectation_samples=1000
-                        )
-
-                return AssetAllocMRP()
+                return SampledDistribution(
+                    sampler=sr_sampler_func,
+                    expectation_samples=1000
+                )
 
             def actions(self, wealth: float) -> Sequence[float]:
                 return alloc_choices

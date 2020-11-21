@@ -78,12 +78,12 @@ f_{x\sim \mathcal{N}(\mu, \sigma^2)}''(1) = \mathbb{E}_{x\sim \mathcal{N}(\mu, \
 Now let us consider the problem of minimizing the MGF. The problem is to:
 $$\min_{t\in \mathbb{R}} f_x(t) = \min_{t\in \mathbb{R}} \mathbb{E}_x[e^{tx}]$$
 
-This problem of minimizing $\mathbb{E}_x[e^{tx}]$ shows up a lot in various places in Applied Mathematics when dealing with exponential functions (eg: when optimizing the Expectation of a Constant Absolute Risk-Aversion Utility function $U(y) = \frac {-e^{-\gamma y}} {\gamma}$ where $\gamma$ is the coefficient of risk-aversion and where $y$ is a parameterized function of a random variable $x$).
+This problem of minimizing $\mathbb{E}_x[e^{tx}]$ shows up a lot in various places in Applied Mathematics when dealing with exponential functions (eg: when optimizing the Expectation of a Constant Absolute Risk-Aversion (CARA) Utility function $U(y) = \frac {1 - e^{-\gamma y}} {\gamma}$ where $\gamma$ is the coefficient of risk-aversion and where $y$ is a parameterized function of a random variable $x$).
 
 Let us denote $t^*$ as the value of $t$ that minimizes the MGF. Specifically,
 $$t^* = \argmin_{t\in \mathbb{R}} f_x(t) = \argmin_{t \in \mathbb{R}} \mathbb{E}_x[e^{tx}]$$
 
-### Minimizing the MGF when $x$ follows a normal distribution
+### Minimizing the MGF when $x$ follows a normal distribution {#sec:norm-distrib-mgf-min}
 
 Here we consider the fairly typical case where $x$ follows a normal distribution. Let $x\sim \mathcal{N}(\mu, \sigma^2)$. Then we have to solve the problem:
 $$\min_{t\in \mathbb{R}} f_{x\sim \mathcal{N}(\mu, \sigma^2)}(t) = \min_{t\in \mathbb{R}} \mathbb{E}_{x\sim \mathcal{N}(\mu, \sigma^2)}[e^{tx}] = \min_{t\in \mathbb{R}} e^{\mu t + \frac {\sigma^2 t^2} 2}$$

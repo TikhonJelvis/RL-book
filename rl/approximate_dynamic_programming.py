@@ -5,13 +5,12 @@ state space.
 
 '''
 
-from typing import Iterator, Mapping, Tuple, TypeVar, Sequence, List
-from itertools import repeat
 from operator import itemgetter
 import numpy as np
+from typing import Iterator, Mapping, Tuple, TypeVar, Sequence, List
 
 from rl.distribution import Distribution, Constant
-from rl.function_approx import FunctionApprox, sgd
+from rl.function_approx import FunctionApprox
 from rl.iterate import iterate
 from rl.markov_process import (FiniteMarkovRewardProcess, MarkovRewardProcess,
                                RewardTransition)
@@ -66,8 +65,8 @@ def evaluate_mrp(
         )
 
         def return_(s_r: Tuple[S, float]) -> float:
-            s, r = s_r
-            return r + γ * v.evaluate([s]).item()
+            s1, r = s_r
+            return r + γ * v.evaluate([s1]).item()
 
         return v.update(
             [(s, mrp.transition_reward(s).expectation(return_))
@@ -90,8 +89,8 @@ def value_iteration_finite(
     def update(v: FunctionApprox[S]) -> FunctionApprox[S]:
 
         def return_(s_r: Tuple[S, float]) -> float:
-            s, r = s_r
-            return r + γ * v.evaluate([s]).item()
+            s1, r = s_r
+            return r + γ * v.evaluate([s1]).item()
 
         return v.update(
             [(
@@ -123,8 +122,8 @@ def value_iteration(
         )
 
         def return_(s_r: Tuple[S, float]) -> float:
-            s, r = s_r
-            return r + γ * v.evaluate([s]).item()
+            s1, r = s_r
+            return r + γ * v.evaluate([s1]).item()
 
         return v.update(
             [(s, max(mdp.step(s, a).expectation(return_,)
@@ -145,19 +144,19 @@ def backward_evaluate_finite(
     '''
 
     v: List[FunctionApprox[S]] = []
+    num_steps: int = len(step_f0_pairs)
 
     for i, (step, approx0) in enumerate(reversed(step_f0_pairs)):
 
         def return_(s_r: Tuple[S, float], i=i) -> float:
-            s, r = s_r
-            return r + γ * (v[i-1].evaluate([s]).item() if i > 0 else 0.)
+            s1, r = s_r
+            return r + γ * (v[i-1].evaluate([s1]).item() if i > 0 and
+                            step_f0_pairs[num_steps - i][0][s1] is not None
+                            else 0.)
 
         v.append(
-            FunctionApprox.converged(sgd(
-                approx0,
-                repeat([(s, res.expectation(return_))
-                        for s, res in step.items()])
-            ))
+            approx0.solve([(s, res.expectation(return_))
+                           for s, res in step.items() if res is not None])
         )
 
     return reversed(v)
@@ -181,19 +180,21 @@ def backward_evaluate(
     '''
     v: List[FunctionApprox[S]] = []
 
+    num_steps: int = len(mrp_f0_mu_triples)
+
     for i, (mrp, approx0, mu) in enumerate(reversed(mrp_f0_mu_triples)):
 
         def return_(s_r: Tuple[S, float], i=i) -> float:
-            s, r = s_r
-            return r + γ * (v[i-1].evaluate([s]).item() if i > 0 else 0.)
+            s1, r = s_r
+            return r + γ * (v[i-1].evaluate([s1]).item() if i > 0 and not
+                            mrp_f0_mu_triples[num_steps - i][0].is_terminal(s1)
+                            else 0.)
 
         v.append(
-            FunctionApprox.converged(
-                sgd(
-                    approx0,
-                    repeat([(s, mrp.transition_reward(s).expectation(return_))
-                            for s in mu.sample_n(num_state_samples)])
-                ),
+            approx0.solve(
+                [(s, mrp.transition_reward(s).expectation(return_))
+                 for s in mu.sample_n(num_state_samples)
+                 if not mrp.is_terminal(s)],
                 error_tolerance
             )
         )
@@ -211,19 +212,20 @@ def back_opt_vf_and_policy_finite(
     '''
     vp: List[Tuple[FunctionApprox[S], Policy[S, A]]] = []
 
+    num_steps: int = len(step_f0s)
+
     for i, (step, approx0) in enumerate(reversed(step_f0s)):
 
         def return_(s_r: Tuple[S, float], i=i) -> float:
-            s, r = s_r
-            return r + γ * (vp[i-1][0].evaluate([s]).item() if i > 0 else 0.)
+            s1, r = s_r
+            return r + γ * (vp[i-1][0].evaluate([s1]).item() if i > 0 and
+                            step_f0s[num_steps - i][0][s1] is not None else 0.)
 
-        this_v = FunctionApprox.converged(sgd(
-            approx0,
-            repeat([(
-                s,
-                max(res.expectation(return_) for a, res in actions_map.items())
-            ) for s, actions_map in step.items()])
-        ))
+        this_v = approx0.solve(
+            [(s, max(res.expectation(return_)
+                     for a, res in actions_map.items()))
+             for s, actions_map in step.items() if actions_map is not None]
+        )
 
         class ThisPolicy(Policy[S, A]):
             def act(self, state: S) -> Constant[A]:
@@ -258,21 +260,37 @@ def back_opt_vf_and_policy(
     '''
     vp: List[Tuple[FunctionApprox[S], Policy[S, A]]] = []
 
+    num_steps: int = len(mdp_f0_mu_triples)
+
     for i, (mdp, approx0, mu) in enumerate(reversed(mdp_f0_mu_triples)):
 
         def return_(s_r: Tuple[S, float], i=i) -> float:
-            s, r = s_r
-            return r + γ * (vp[i-1][0].evaluate([s]).item() if i > 0 else 0.)
+            s1, r = s_r
+            return r + γ * (vp[i-1][0].evaluate([s1]).item() if i > 0 and not
+                            mdp_f0_mu_triples[num_steps - i][0].is_terminal(s1)
+                            else 0.)
 
-        this_v = FunctionApprox.converged(
-            sgd(
-                approx0,
-                repeat([(
-                    s,
-                    max(mdp.step(s, a).expectation(return_)
-                        for a in mdp.actions(s))
-                ) for s in mu.sample_n(num_state_samples)])
-            ),
+#        l1 = []
+#        l2 = []
+#        l3 = []
+#        print(i)
+#        for s in sorted(mu.sample_n(num_state_samples), key=lambda z: z[0]):
+#            l1.append(s)
+#            dep = max(mdp.step(s, a).expectation(return_)
+#                      for a in mdp.actions(s))
+#            l2.append(dep)
+#        this_v = approx0.solve(list(zip(l1, l2)), error_tolerance)
+#        l3 = [this_v.evaluate([s]).item() for s in l1]
+#        ll1 = [z[0] for z in l1]
+#        import matplotlib.pyplot as plt
+#        plt.plot(ll1, l2, "b", ll1, l3, "r")
+#        plt.show()
+
+        this_v = approx0.solve(
+            [(s, max(mdp.step(s, a).expectation(return_)
+                     for a in mdp.actions(s)))
+             for s in mu.sample_n(num_state_samples)
+             if not mdp.is_terminal(s)],
             error_tolerance
         )
 
@@ -310,25 +328,24 @@ def back_opt_qvf(
     horizon: int = len(mdp_f0_mu_triples)
     qvf: List[FunctionApprox[Tuple[S, A]]] = []
 
+    num_steps: int = len(mdp_f0_mu_triples)
+
     for i, (mdp, approx0, mu) in enumerate(reversed(mdp_f0_mu_triples)):
 
         def return_(s_r: Tuple[S, float], i=i) -> float:
-            s, r = s_r
+            s1, r = s_r
             return r + γ * (
-                max(qvf[i-1].evaluate([(s, a)]).item()
-                    for a in mdp_f0_mu_triples[horizon - i][0].actions(s))
-                if i > 0 else 0.
+                max(qvf[i-1].evaluate([(s1, a)]).item()
+                    for a in mdp_f0_mu_triples[horizon - i][0].actions(s1))
+                if i > 0 and
+                not mdp_f0_mu_triples[num_steps - i][0].is_terminal(s1)
+                else 0.
             )
 
-        this_qvf = FunctionApprox.converged(
-            sgd(
-                approx0,
-                repeat(
-                    [((s, a), mdp.step(s, a).expectation(return_))
-                     for s in mu.sample_n(num_state_samples)
-                     for a in mdp.actions(s)]
-                )
-            ),
+        this_qvf = approx0.solve(
+            [((s, a), mdp.step(s, a).expectation(return_))
+             for s in mu.sample_n(num_state_samples)
+             if not mdp.is_terminal(s) for a in mdp.actions(s)],
             error_tolerance
         )
 

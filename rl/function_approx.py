@@ -6,10 +6,13 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from collections import defaultdict
 from dataclasses import dataclass, replace, field
-from typing import (Callable, Dict, Generic, Iterator, Iterable, List,
-                    Mapping, Optional, Sequence, Tuple, TypeVar)
-
+import itertools
+from itertools import repeat
 import numpy as np
+from operator import itemgetter
+from scipy.interpolate import splrep, BSpline
+from typing import (Sequence, Mapping, Tuple, TypeVar, Callable, List, Dict,
+                    Generic, Optional, Iterator, Iterable)
 
 import rl.iterate as iterate
 
@@ -28,40 +31,72 @@ class FunctionApprox(ABC, Generic[X]):
 
     @abstractmethod
     def evaluate(self, x_values_seq: Iterable[X]) -> np.ndarray:
-        '''Evaluate the approximation at the given points.'''
+        '''Computes expected value of f(x) for each x in x_values_seq (where f
+        is the FunctionApprox)
+
+        '''
 
     def __call__(self, x_value: X) -> float:
         return self.evaluate([x_value]).item()
 
     @abstractmethod
-    def update(self, pairs: Iterable[Tuple[X, float]]) -> FunctionApprox[X]:
-        '''Use the given x, y pairs to update the function approximation.
+    def update(
+        self,
+        pairs: Iterable[Tuple[X, float]]
+    ) -> FunctionApprox[X]:
+        '''Update the internal parameters of the FunctionApprox
+        based on incremental data provided in the form of (x,y)
+        pairs as a xy_vals_seq data structure
+        '''
+
+    @abstractmethod
+    def solve(
+        self,
+        pairs: Iterable[Tuple[X, float]],
+        error_tolerance: Optional[float] = None
+    ) -> FunctionApprox[X]:
+        '''Assuming the entire data set of (x,y) pairs is available
+        in the form of the given input xy_vals_seq data structure,
+        solve for the internal parameters of the FunctionApprox
+        such that the internal parameters are fitted to xy_vals_seq.
+        Since this is a best-fit, the internal parameters are fitted
+        to within the input error_tolerance (where applicable, since
+        some methods involve a direct solve for the fit that don't
+        require an error_tolerance)
         '''
 
     @abstractmethod
     def within(self, other: FunctionApprox[X], tolerance: float) -> bool:
-        '''Is this function approximation is within a given tolerance of
-        another approximation of the same type?
-
+        '''Is this function approximation within a given tolerance of
+        another function approximation of the same type?
         '''
 
-    @staticmethod
-    def converged(iterator: Iterator[FunctionApprox[X]],
-                  tolerance: float = 0.0001) -> FunctionApprox[X]:
-        '''Given an iterator of function approximations, return the last
-        approximation once successive approximations have converged
-        within the given tolerance.
-
-        If the iterator ends before converging, returns the last
-        approximation.
-
-        Raises an error if the iterator is empty.
-
+    def rmse(
+        self,
+        xy_seq: Iterable[Tuple[X, float]]
+    ) -> float:
+        '''The Root-Mean-Squared-Error between FunctionApprox's
+        predictions (from evaluate) and the associated (supervisory)
+        y values
         '''
-        def done(a, b):
-            return a.within(b, tolerance)
+        x_seq, y_seq = zip(*xy_seq)
+        errors: np.ndarray = self.evaluate(x_seq) - np.array(y_seq)
+        return np.sqrt(np.mean(errors * errors))
 
-        return iterate.converged(iterator, done=done)
+    def iterate_updates(
+        self,
+        xy_seq_stream: Iterator[Iterable[Tuple[X, float]]]
+    ) -> Iterator[FunctionApprox[X]]:
+        '''Given a stream (Iterator) of data sets of (x,y) pairs,
+        perform a series of incremental updates to the internal
+        parameters (using update method), with each internal
+        parameter update done for each data set of (x,y) pairs in the
+        input stream of xy_seq_stream
+        '''
+        return itertools.accumulate(
+            xy_seq_stream,
+            lambda fa, xy: fa.update(xy), initial=self
+        )
 
 
 @dataclass(frozen=True)
@@ -78,26 +113,21 @@ class Dynamic(FunctionApprox[X]):
     values_map: Mapping[X, float]
 
     def evaluate(self, x_values_seq: Iterable[X]) -> np.ndarray:
-        '''Evaluate the function approximation by looking up the value in the
-        mapping for each state.
-
-        Will raise an error if an X value has not been seen before and
-        was not initialized.
-
-        '''
         return np.array([self.values_map[x] for x in x_values_seq])
 
     def update(self, pairs: Iterable[Tuple[X, float]]) -> Dynamic[X]:
-        '''Update each X value by replacing its saved Y with a new one. Pairs
-        later in the list take precedence over pairs earlier in the
-        list.
-
-        '''
         new_map = dict(self.values_map)
         for x, y in pairs:
             new_map[x] = y
 
         return replace(self, values_map=new_map)
+
+    def solve(
+        self,
+        pairs: Iterable[Tuple[X, float]],
+        error_tolerance: Optional[float] = None
+    ) -> Dynamic[X]:
+        return replace(self, value_map=dict(pairs))
 
     def within(self, other: FunctionApprox[X], tolerance: float) -> bool:
         '''This approximation is within a tolerance of another if the value
@@ -140,35 +170,45 @@ class Tabular(FunctionApprox[X]):
         field(default_factory=lambda: defaultdict(float))
     counts_map: Mapping[X, int] =\
         field(default_factory=lambda: defaultdict(int))
-    count_to_weight_func: Callable[[int], float] = lambda n: 1.0 / n
+    count_to_weight_func: Callable[[int], float] =\
+        field(default_factory=lambda: lambda n: 1. / n)
 
     def evaluate(self, x_values_seq: Iterable[X]) -> np.ndarray:
-        '''Evaluate the approximation at each given X.
-
-        If an X has not been seen before, will return 0.0.
-        '''
         return np.array([self.values_map[x] for x in x_values_seq])
 
-    def update(self, pairs: Iterable[Tuple[X, float]]) -> Tabular[X]:
-        '''Update the approximation with the given points.
-
-        Each X keeps a count n of how many times it was updated, and
-        each subsequent update is discounted by
-        count_to_weight_func(n), which defines our learning rate.
-
-        '''
-        values_map: Dict[X, float] = dict(self.values_map)
-        counts_map: Dict[X, int] = dict(counts_map)
+    def update(
+        self,
+        pairs: Iterable[Tuple[X, float]]
+    ) -> Tabular[X]:
+        new_values_map: Dict[X, float] = dict(self.values_map)
+        new_counts_map: Dict[X, int] = dict(self.counts_map)
 
         for x, y in pairs:
-            counts_map[x] += 1
-            weight: float = self.count_to_weight_func(counts_map[x])
-            values_map[x] += weight * (y - values_map[x])
+            new_counts_map[x] += 1
+            weight: float = self.count_to_weight_func(new_counts_map[x])
+            new_values_map[x] += weight * (y - new_values_map[x])
 
         return replace(
             self,
-            values_map=values_map,
-            counts_map=counts_map
+            values_map=new_values_map,
+            counts_map=new_counts_map
+        )
+
+    def solve(
+        self,
+        pairs: Iterable[Tuple[X, float]],
+        error_tolerance: Optional[float] = None
+    ) -> Tabular[X]:
+        new_values_map: Dict[X, float] = defaultdict(float)
+        new_counts_map: Dict[X, int] = defaultdict(int)
+        for x, y in pairs:
+            new_counts_map[x] += 1
+            weight: float = self.count_to_weight_func(new_counts_map[x])
+            new_values_map[x] += weight * (y - new_values_map[x])
+        return replace(
+            self,
+            values_map=new_values_map,
+            counts_map=new_counts_map
         )
 
     def within(self, other: FunctionApprox[X], tolerance: float) -> bool:
@@ -176,8 +216,59 @@ class Tabular(FunctionApprox[X]):
             return\
                 all(abs(self.values_map[s] - other.values_map[s]) <= tolerance
                     for s in self.values_map)
-        else:
-            return False
+
+        return False
+
+
+@dataclass(frozen=True)
+class BSplineApprox(FunctionApprox[X]):
+    feature_function: Callable[[X], float]
+    degree: int
+    knots: np.ndarray = field(default_factory=lambda: np.array([]))
+    coeffs: np.ndarray = field(default_factory=lambda: np.array([]))
+
+    def get_feature_values(self, x_values_seq: Iterable[X]) -> Sequence[float]:
+        return [self.feature_function(x) for x in x_values_seq]
+
+    def evaluate(self, x_values_seq: Iterable[X]) -> np.ndarray:
+        spline_func: Callable[[Sequence[float]], np.ndarray] = \
+            BSpline(self.knots, self.coeffs, self.degree)
+        return spline_func(self.get_feature_values(x_values_seq))
+
+    def update(
+        self,
+        pairs: Iterable[Tuple[X, float]]
+    ) -> BSplineApprox[X]:
+        x_vals, y_vals = zip(*pairs)
+        feature_vals: Sequence[float] = self.get_feature_values(x_vals)
+        sorted_pairs: Sequence[Tuple[float, float]] = \
+            sorted(zip(feature_vals, y_vals), key=itemgetter(0))
+        new_knots, new_coeffs, _ = splrep(
+            [f for f, _ in sorted_pairs],
+            [y for _, y in sorted_pairs],
+            k=self.degree
+        )
+        return replace(
+            self,
+            knots=new_knots,
+            coeffs=new_coeffs
+        )
+
+    def solve(
+        self,
+        pairs: Iterable[Tuple[X, float]],
+        error_tolerance: Optional[float] = None
+    ) -> BSplineApprox[X]:
+        return self.update(pairs)
+
+    def within(self, other: FunctionApprox[X], tolerance: float) -> bool:
+        if isinstance(other, BSplineApprox):
+            return \
+                np.all(np.abs(self.knots - other.knots) <= tolerance).item() \
+                and \
+                np.all(np.abs(self.coeffs - other.coeffs) <= tolerance).item()
+
+        return False
 
 
 @dataclass(frozen=True)
@@ -237,7 +328,7 @@ class Weights:
             adam_cache2=new_adam_cache2,
         )
 
-    def within(self, other: Weights[X], tolerance: float) -> bool:
+    def within(self, other: Weights, tolerance: float) -> bool:
         return np.all(np.abs(self.weights - other.weights) <= tolerance).item()
 
 
@@ -247,13 +338,15 @@ class LinearFunctionApprox(FunctionApprox[X]):
     feature_functions: Iterable[Callable[[X], float]]
     regularization_coeff: float
     weights: Weights
+    direct_solve: bool
 
     @staticmethod
     def create(
-        feature_functions: Iterable[Callable[[X], float]],
+        feature_functions: Sequence[Callable[[X], float]],
         adam_gradient: AdamGradient,
         regularization_coeff: float = 0.,
-        weights: Optional[Weights] = None
+        weights: Optional[Weights] = None,
+        direct_solve: bool = True
     ) -> LinearFunctionApprox[X]:
         return LinearFunctionApprox(
             feature_functions=feature_functions,
@@ -261,10 +354,11 @@ class LinearFunctionApprox(FunctionApprox[X]):
             weights=Weights.create(
                 adam_gradient=adam_gradient,
                 weights=np.zeros(len(feature_functions))
-            ) if weights is None else weights
+            ) if weights is None else weights,
+            direct_solve=direct_solve
         )
 
-    def get_feature_values(self, x_values_seq: Sequence[X]) -> np.ndarray:
+    def get_feature_values(self, x_values_seq: Iterable[X]) -> np.ndarray:
         return np.array(
             [[f(x) for f in self.feature_functions] for x in x_values_seq]
         )
@@ -278,14 +372,14 @@ class LinearFunctionApprox(FunctionApprox[X]):
     def within(self, other: FunctionApprox[X], tolerance: float) -> bool:
         if isinstance(other, LinearFunctionApprox):
             return self.weights.within(other.weights, tolerance)
-        else:
-            return False
+
+        return False
 
     def regularized_loss_gradient(
         self,
-        xy_vals_seq: Iterable[Tuple[X, float]]
+        pairs: Iterable[Tuple[X, float]]
     ) -> np.ndarray:
-        x_vals, y_vals = zip(*xy_vals_seq)
+        x_vals, y_vals = zip(*pairs)
         feature_vals: np.ndarray = self.get_feature_values(x_vals)
         diff: np.ndarray = np.dot(feature_vals, self.weights.weights) \
             - np.array(y_vals)
@@ -294,30 +388,48 @@ class LinearFunctionApprox(FunctionApprox[X]):
 
     def update(
         self,
-        xy_vals_seq: Iterable[Tuple[X, float]]
+        pairs: Iterable[Tuple[X, float]]
     ) -> LinearFunctionApprox[X]:
-        gradient: np.ndarray = self.regularized_loss_gradient(xy_vals_seq)
+        gradient: np.ndarray = self.regularized_loss_gradient(pairs)
         new_weights: np.ndarray = self.weights.update(gradient)
         return replace(self, weights=new_weights)
 
-    def direct_solve(
+    def solve(
         self,
-        xy_vals_seq: Iterable[Tuple[X, float]]
-    ) -> LinearFunctionApprox[X]:
-        x_vals, y_vals = zip(*xy_vals_seq)
-        feature_vals: np.ndarray = self.get_feature_values(x_vals)
-        feature_vals_T: np.ndarray = feature_vals.T
-        left: np.ndarray = np.dot(feature_vals_T, feature_vals) \
-            + feature_vals.shape[0] * self.regularization_coeff * \
-            np.eye(len(self.weights.weights))
-        right: np.ndarray = np.dot(feature_vals_T, y_vals)
-        return replace(
-            self,
-            weights=Weights.create(
-                adam_gradient=self.weights.adam_gradient,
-                weights=np.dot(np.linalg.inv(left), right)
+        pairs: Iterable[Tuple[X, float]],
+        error_tolerance: Optional[float] = None
+    ) -> FunctionApprox[X]:
+        if self.direct_solve:
+            x_vals, y_vals = zip(*pairs)
+            feature_vals: np.ndarray = self.get_feature_values(x_vals)
+            feature_vals_T: np.ndarray = feature_vals.T
+            left: np.ndarray = np.dot(feature_vals_T, feature_vals) \
+                + feature_vals.shape[0] * self.regularization_coeff * \
+                np.eye(len(self.weights.weights))
+            right: np.ndarray = np.dot(feature_vals_T, y_vals)
+            ret = replace(
+                self,
+                weights=Weights.create(
+                    adam_gradient=self.weights.adam_gradient,
+                    weights=np.dot(np.linalg.inv(left), right)
+                )
             )
-        )
+        else:
+            tol: float = 1e-6 if error_tolerance is None else error_tolerance
+
+            def done(
+                a: LinearFunctionApprox[X],
+                b: LinearFunctionApprox[X],
+                tol: float = tol
+            ) -> bool:
+                return a.within(b, tol)
+
+            ret = iterate.converged(
+                self.iterate_updates(repeat(pairs)),
+                done=done
+            )
+
+        return ret
 
 
 @dataclass(frozen=True)
@@ -335,11 +447,11 @@ class DNNApprox(FunctionApprox[X]):
     feature_functions: Iterable[Callable[[X], float]]
     dnn_spec: DNNSpec
     regularization_coeff: float
-    weights: Iterable[Weights]
+    weights: Sequence[Weights]
 
     @staticmethod
     def create(
-        feature_functions: Iterable[Callable[[X], float]],
+        feature_functions: Sequence[Callable[[X], float]],
         dnn_spec: DNNSpec,
         adam_gradient: AdamGradient,
         regularization_coeff: float = 0.,
@@ -364,7 +476,7 @@ class DNNApprox(FunctionApprox[X]):
             weights=wts
         )
 
-    def get_feature_values(self, x_values_seq: Sequence[X]) -> np.ndarray:
+    def get_feature_values(self, x_values_seq: Iterable[X]) -> np.ndarray:
         return np.array(
             [[f(x) for f in self.feature_functions] for x in x_values_seq]
         )
@@ -400,7 +512,7 @@ class DNNApprox(FunctionApprox[X]):
         return ret
 
     def evaluate(self, x_values_seq: Iterable[X]) -> np.ndarray:
-        return self.forward_propagation(x_values_seq)[-1][:, 0]
+        return iterate.last(self.forward_propagation(x_values_seq))[:, 0]
 
     def within(self, other: FunctionApprox[X], tolerance: float) -> bool:
         if isinstance(other, DNNApprox):
@@ -411,17 +523,17 @@ class DNNApprox(FunctionApprox[X]):
 
     def backward_propagation(
         self,
-        xy_vals_seq: Iterable[Tuple[X, float]]
+        pairs: Iterable[Tuple[X, float]]
     ) -> Iterable[np.ndarray]:
         """
-        :param xy_vals_seq: list of pairs of n (x, y) points
+        :param pairs: list of pairs of n (x, y) points
         :return: list (of length L+1) of |O_l| x |I_l| 2-D array,
                  i.e., same as the type of self.weights.weights
         This function computes the gradient (with respect to weights) of
         cross-entropy loss where the output layer activation function
         is the canonical link function of the conditional distribution of y|x
         """
-        x_vals, y_vals = zip(*xy_vals_seq)
+        x_vals, y_vals = zip(*pairs)
         fwd_prop: Iterable[np.ndarray] = self.forward_propagation(x_vals)
         layer_inputs: Iterable[np.ndarray] = fwd_prop[:-1]
         deriv: np.ndarray = (
@@ -454,10 +566,10 @@ class DNNApprox(FunctionApprox[X]):
 
     def regularized_loss_gradient(
         self,
-        xy_vals_seq: Iterable[Tuple[X, float]]
+        pairs: Iterable[Tuple[X, float]]
     ) -> Iterable[np.ndarray]:
         """
-        :param xy_vals_seq: list of pairs of n (x, y) points
+        :param pairs: list of pairs of n (x, y) points
         :return: list (of length L+1) of |O_l| x |I_l| 2-D array,
                  i.e., same as the type of self.weights.weights
         This function computes the regularized gradient (with respect to
@@ -466,38 +578,38 @@ class DNNApprox(FunctionApprox[X]):
         distribution of y|x
         """
         return [x + self.regularization_coeff * self.weights[i].weights
-                for i, x in enumerate(self.backward_propagation(xy_vals_seq))]
+                for i, x in enumerate(self.backward_propagation(pairs))]
 
     def update(
         self,
-        xy_vals_seq: Iterable[Tuple[X, float]]
+        pairs: Iterable[Tuple[X, float]]
     ) -> DNNApprox[X]:
         return replace(
             self,
             weights=[w.update(g) for w, g in zip(
                 self.weights,
-                self.regularized_loss_gradient(xy_vals_seq)
+                self.regularized_loss_gradient(pairs)
             )]
         )
 
+    def solve(
+        self,
+        pairs: Iterable[Tuple[X, float]],
+        error_tolerance: Optional[float] = None
+    ) -> DNNApprox[X]:
+        tol: float = 1e-6 if error_tolerance is None else error_tolerance
 
-def rmse(
-    func_approx: FunctionApprox[X],
-    xy_seq: Iterable[Tuple[X, float]]
-) -> float:
-    x_seq, y_seq = zip(*xy_seq)
-    errors: np.ndarray = func_approx.evaluate(x_seq) - np.array(y_seq)
-    return np.sqrt(np.mean(errors * errors))
+        def done(
+            a: DNNApprox[X],
+            b: DNNApprox[X],
+            tol: float = tol
+        ) -> bool:
+            return a.within(b, tol)
 
-
-def sgd(
-    func_approx: FunctionApprox[X],
-    xy_seq_stream: Iterator[Iterable[Tuple[X, float]]]
-) -> Iterator[FunctionApprox[X]]:
-    for xy_seq in xy_seq_stream:
-        yield func_approx
-        func_approx = func_approx.update(xy_seq)
-
+        return iterate.converged(
+            self.iterate_updates(repeat(pairs)),
+            done=done
+        )
 
 if __name__ == '__main__':
 
@@ -538,10 +650,11 @@ if __name__ == '__main__':
     lfa = LinearFunctionApprox.create(
          feature_functions=ffs,
          adam_gradient=ag,
-         regularization_coeff=0.001
+         regularization_coeff=0.001,
+         direct_solve=True
     )
 
-    lfa_ds = lfa.direct_solve(xy_vals_seq)
+    lfa_ds = lfa.solve(xy_vals_seq)
     print("Direct Solve")
     pprint(lfa_ds.weights)
     errors: np.ndarray = lfa_ds.evaluate(pts) - \

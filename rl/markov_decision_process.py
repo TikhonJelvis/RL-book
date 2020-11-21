@@ -140,20 +140,52 @@ def returns(
 
 
 class MarkovDecisionProcess(ABC, Generic[S, A]):
-    @abstractmethod
     def apply_policy(self, policy: Policy[S, A]) -> MarkovRewardProcess[S]:
-        pass
+        mdp = self
+
+        class RewardProcess(MarkovRewardProcess[S]):
+            def transition_reward(
+                self,
+                state: S
+            ) -> Optional[Distribution[Tuple[S, float]]]:
+                actions = policy.act(state)
+
+                if actions is None:
+                    return None
+
+                # TODO: Handle the case where mdp.step(state, a)
+                # returns None
+                #
+                # Idea: use an exception for termination instead of
+                # return None?
+                return actions.apply(lambda a: mdp.step(state, a))
+
+        return RewardProcess()
 
     @abstractmethod
     def actions(self, state: S) -> Iterable[A]:
         pass
 
+    def is_terminal(self, state: S) -> bool:
+        '''Is the given state a terminal state?
+
+        We cannot take any actions from a terminal state. This means
+        that a state is terminal iff `self.actions(s)` is empty.
+
+        '''
+        try:
+            next(iter(self.actions(state)))
+            return False
+        except StopIteration:
+            return True
+
+    @abstractmethod
     def step(
         self,
         state: S,
         action: A
     ) -> Optional[Distribution[Tuple[S, float]]]:
-        return self.apply_policy(Always(action)).transition_reward(state)
+        pass
 
     def simulate_actions(
             self,
@@ -225,32 +257,12 @@ class FiniteMarkovDecisionProcess(MarkovDecisionProcess[S, A]):
                             + f"Reward {r:.3f}] with Probability {p:.3f}\n"
         return display
 
-    # Note: We need both apply_policy and apply_finite_policy because,
-    # to be compatible with MarkovRewardProcess, apply_policy has to
-    # work even if the policy is *not* finite.
-    def apply_policy(self, policy: Policy[S, A]) -> MarkovRewardProcess[S]:
-        mapping = self.mapping
+    def step(self, state: S, action: A) -> Optional[StateReward]:
+        action_map: Optional[ActionMapping[A, S]] = self.mapping[state]
 
-        class Process(MarkovRewardProcess[S]):
-
-            def transition_reward(self, state: S)\
-                    -> Optional[SampledDistribution[Tuple[S, float]]]:
-
-                action_map: Optional[ActionMapping[A, S]] = mapping[state]
-
-                if action_map is None:
-                    return None
-
-                def next_pair(action_map=action_map):
-                    action: A = policy.act(state).sample()
-                    return action_map[action].sample()
-
-                return SampledDistribution(next_pair)
-
-            def sample_states(self) -> Distribution[S]:
-                return Choose(set(mapping.keys()))
-
-        return Process()
+        if action_map is None:
+            return None
+        return action_map[action]
 
     def apply_finite_policy(self, policy: FinitePolicy[S, A])\
             -> FiniteMarkovRewardProcess[S]:
@@ -279,8 +291,6 @@ class FiniteMarkovDecisionProcess(MarkovDecisionProcess[S, A]):
     def action_mapping(self, state: S) -> Optional[ActionMapping[A, S]]:
         return self.mapping[state]
 
-    # Note: For now, this is only available on finite MDPs; this might
-    # change in the future.
     def actions(self, state: S) -> Iterable[A]:
         '''All the actions allowed for the given state.
 
