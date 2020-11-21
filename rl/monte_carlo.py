@@ -24,7 +24,6 @@ def evaluate_mrp(
         states: Distribution[S],
         approx_0: FunctionApprox[S],
         γ: float,
-        max_steps: int = 1,
         tolerance: float = 1e-6
 ) -> Iterator[FunctionApprox[S]]:
     '''Evaluate an MRP using the monte carlo method, simulating episodes
@@ -44,34 +43,24 @@ def evaluate_mrp(
     v = approx_0
 
     for trace in mrp.reward_traces(states):
-        if γ < 1:
-            stop_at = max_steps + round(math.log(tolerance) / math.log(γ))
-            trace = itertools.islice(trace, stop_at)
-
-        v = v.update(list(iterate.returns(trace, γ, n_states=max_steps)))
+        v = v.update(list(iterate.returns(trace, γ, tolerance)))
         yield v
 
 
 def evaluate_mdp(
         mdp: MarkovDecisionProcess[S, A],
         states: Distribution[S],
-        policy_0: Policy[S, A],
         approx_0: FunctionApprox[Tuple[S, A]],
         γ: float,
-        max_steps: int,
         tolerance: float = 1e-6
 ) -> Iterator[FunctionApprox[Tuple[S, A]]]:
     q = approx_0
-    p = policy_0
+    p = policy_from_q(q, mdp)
 
     for trace in mdp.action_traces(states, p):
-        if γ < 1:
-            stop_at = max_steps + round(math.log(tolerance) / math.log(γ))
-            trace = itertools.islice(trace, stop_at)
-
         q = q.update(
             [((trace.state, trace.action), trace.reward)
-             for trace in returns(trace, γ, n_states=max_steps)]
+             for trace in returns(trace, γ, tolerance)]
         )
         p = policy_from_q(q, mdp)
         yield q

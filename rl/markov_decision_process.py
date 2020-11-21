@@ -119,8 +119,9 @@ def returns(
     n_states -- how many states to calculate the return for, default: 1
 
     '''
-    max_steps = None
+    trace = iter(trace)
 
+    max_steps = None
     if γ < 1:
         max_steps = round(math.log(tolerance) / math.log(γ))
         trace = itertools.islice(trace, 2 * max_steps)

@@ -1,6 +1,7 @@
 '''Finding fixed points of functions using iterators.'''
 import functools
 import itertools
+import math
 from typing import (Callable, Iterable, Iterator, Optional, Tuple, TypeVar)
 
 X = TypeVar('X')
@@ -84,7 +85,7 @@ def converged(values: Iterator[X],
 def returns(
         rewards: Iterable[Tuple[X, float]],
         γ: float = 1,
-        n_states: int = 1
+        tolerance: float = 1e-6
 ) -> Iterator[Tuple[X, float]]:
     '''Given an iterator of states and rewards, calculate the return of
     the first N states.
@@ -99,7 +100,12 @@ def returns(
     # iterator or an iterable (ie a list).
     rewards = iter(rewards)
 
-    *initial, (last_s, last_r) = list(itertools.islice(rewards, n_states))
+    max_steps = None
+    if γ < 1:
+        max_steps = round(math.log(tolerance) / math.log(γ))
+        rewards = itertools.islice(rewards, 2 * max_steps)
+
+    *initial, (last_s, last_r) = list(itertools.islice(rewards, max_steps))
 
     def accum(r_acc, r):
         return r_acc + γ * r
