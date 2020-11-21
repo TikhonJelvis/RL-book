@@ -116,7 +116,7 @@ def returns(
     rewards -- transitions with instantaneous rewards
     γ -- the discount factor (0 < γ ≤ 1). If γ is 1 and the MDP does
     not always hit a terminal state, this function could loop forever.
-    n_states -- how many states to calculate the return for, default: 1
+    tolerance -- a small value—we stop iterating once γᵏ ≤ tolerance
 
     '''
     trace = iter(trace)

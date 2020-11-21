@@ -3,15 +3,13 @@ Markov Decision Processes.
 
 '''
 
-import math
-import itertools
 from typing import Iterator, Optional, Tuple, TypeVar
 
 from rl.distribution import Distribution
 from rl.function_approx import FunctionApprox
 import rl.iterate as iterate
-from rl.markov_decision_process import (returns,
-                                        MarkovRewardProcess,
+import rl.markov_decision_process as markov_decision_process
+from rl.markov_decision_process import (MarkovRewardProcess,
                                         MarkovDecisionProcess,
                                         Policy)
 
@@ -60,7 +58,7 @@ def evaluate_mdp(
     for trace in mdp.action_traces(states, p):
         q = q.update(
             [((trace.state, trace.action), trace.reward)
-             for trace in returns(trace, γ, tolerance)]
+             for trace in markov_decision_process.returns(trace, γ, tolerance)]
         )
         p = policy_from_q(q, mdp)
         yield q

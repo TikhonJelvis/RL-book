@@ -4,6 +4,7 @@ Markov Decision Processes.
 '''
 
 import itertools
+import math
 from typing import Iterator, TypeVar
 
 from rl.distribution import Constant, Distribution
@@ -18,7 +19,7 @@ def td_0(
         states: Distribution[S],
         approx_0: FunctionApprox[S],
         γ: float,
-        max_steps: int
+        tolerance: float
 ) -> Iterator[FunctionApprox[S]]:
     '''Evaluate an MRP using TD(0), simulating episodes of the given
     number of steps.
@@ -28,20 +29,24 @@ def td_0(
 
     Arguments:
       mrp -- the Markov Reward Process to evaluate
-      max_steps -- max steps to take in an episode
       states -- distribution of states to start episodes from
       approx_0 -- initial approximation of value function
       α -- learning rate, either a constant (0 < α ≤ 1) or a function
            from # of updates to a learning rate, default: 1
-      γ -- discount rate (0 < γ ≤ 1), default: 1
-
+      γ -- discount rate (0 < γ ≤ 1)
+      tolerance -- a small value—we stop iterating once γᵏ ≤ tolerance
     '''
     v = approx_0
 
+    max_steps = None
+    if γ < 1:
+        max_steps = round(math.log(tolerance) / math.log(γ))
+
     while True:
         start = states.sample()
-        episode =\
-            itertools.islice(mrp.simulate_reward(Constant(start)), max_steps)
+        episode = mrp.simulate_reward(Constant(start))
+        if max_steps is not None:
+            episode = itertools.islice(episode, max_steps)
 
         state = start
         updates = []
