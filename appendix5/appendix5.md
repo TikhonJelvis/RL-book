@@ -104,11 +104,18 @@ $$d_2 = d_1 - \sigma \sqrt{\tau}$$
 
 Substituting for $\tau, x, u(\tau, x)$ with $t, S_t, C(t,S_t)$, we get:
 
-$$C(t, S_t) = S \cdot N(d_1) - K \cdot e^{-r\cdot (T-t)} \cdot N(d_2)$$
+\begin{equation}
+C(t, S_t) = S \cdot N(d_1) - K \cdot e^{-r\cdot (T-t)} \cdot N(d_2)
+\label{eq:black-scholes-call-option-pricing}
+\end{equation}
 where
 $$d_1 = \frac {\log(\frac {S_t} K) + (r + \frac {\sigma^2} 2) \cdot (T-t)} {\sigma \cdot \sqrt{T-t}}$$
 $$d_2 = d_1 - \sigma \sqrt{T-t}$$
 
 The put option price is:
 
-$$P(t, S_t) = K \cdot e^{-r\cdot (T-t)} \cdot N(-d_2) - S_t \cdot N(-d_1)$$
+\begin{equation}
+P(t, S_t) = K \cdot e^{-r\cdot (T-t)} \cdot N(-d_2) - S_t \cdot N(-d_1)
+\label{eq:black-scholes-put-option-pricing}
+\end{equation}
+\end{equation}
