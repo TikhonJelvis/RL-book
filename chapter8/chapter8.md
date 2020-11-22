@@ -55,8 +55,8 @@ $$\sum_{i=1}^n \mu(\omega_i) = 1$$
 This simple single-period setting involves $m + 1$ fundamental assets $A_0, A_1, \ldots, A_m$ where $A_0$ is a riskless asset (i.e., it's price will evolve deterministically from $t=0$ to $t=1$) and $A_1, \ldots, A_m$ are risky assets. We denote the Spot Price (at $t=0$) of $A_j$ as $S_j^{(0)}$ for all $j = 0, 1, \ldots, m$. We denote the Price of $A_j$ in  $\omega_i$ as $S_j^{(i)}$ for all $j = 0, \ldots, m, i = 1, \ldots, n$. Assume that all asset prices are real numbers, i.e., in $\mathbb{R}$ (negative prices are typically unrealistic, but we still assume it for simplicity of exposition). For convenience, we normalize the Spot Price (at $t=0$) of the riskless asset $A_O$ to be 1. Therefore,
 
 $$S_0^{(0)} = 1 \text{ and } S_0^{(i)}= 1 + r \text{ for all } i = 1, \ldots, n$$
-where $r$ represents the constant risk-free rate of growth. We should interpret this risk-free rate of growth as the 
-["time value of money"](https://en.wikipedia.org/wiki/Time_value_of_money) and $\frac 1 {1+r}$ as the risk-free discount factor corresponding to the "time value of money".
+where $r$ represents the constant riskless rate of growth. We should interpret this riskless rate of growth as the 
+["time value of money"](https://en.wikipedia.org/wiki/Time_value_of_money) and $\frac 1 {1+r}$ as the riskless discount factor corresponding to the "time value of money".
 
 ## Portfolios, Arbitrage and Risk-Neutral Probability Measure
 
@@ -87,7 +87,7 @@ Then, $\pi$ is said to be a Risk-Neutral Probability Measure if:
 S_j^{(0)} = \frac 1 {1+r} \cdot \sum_{i=1}^n \pi(\omega_i) \cdot S_j^{(i)} \mbox{ for all } j = 0, 1, \ldots, m
 \label{eq:disc-exp-asset-value}
 \end{equation}
-So for each of the $m+1$ assets, the asset spot price (at $t=0$) is the risk-free rate-discounted expectation (under $\pi$) of the asset price at $t=1$. The term "risk-neutral" here is the same as the term "risk-neutral" we used in Chapter [-@sec:utility-theory-chapter], meaning it's a situation where one doesn't need to be compensated for taking risk (the situation of a linear utility function). However, we are not saying that the market is risk-neutral - if that were the case, the market probability measure $\mu$ would be a risk-neutral probability measure. We are simply defining $\pi$ as a *hypothetical construct* under which each asset's spot price is equal to the risk-free rate-discounted expectation (under $\pi$) of the asset's price at $t=1$. This means that under the hypothetical $\pi$, there's no return in excess of $r$ for taking on the risk of variables outcomes at $t=1$ (note: outcome probabilities are governed by the hypothetical $\pi$). Hence, we refer to $\pi$ as a risk-neutral probability measure.
+So for each of the $m+1$ assets, the asset spot price (at $t=0$) is the riskless rate-discounted expectation (under $\pi$) of the asset price at $t=1$. The term "risk-neutral" here is the same as the term "risk-neutral" we used in Chapter [-@sec:utility-theory-chapter], meaning it's a situation where one doesn't need to be compensated for taking risk (the situation of a linear utility function). However, we are not saying that the market is risk-neutral - if that were the case, the market probability measure $\mu$ would be a risk-neutral probability measure. We are simply defining $\pi$ as a *hypothetical construct* under which each asset's spot price is equal to the riskless rate-discounted expectation (under $\pi$) of the asset's price at $t=1$. This means that under the hypothetical $\pi$, there's no return in excess of $r$ for taking on the risk of variables outcomes at $t=1$ (note: outcome probabilities are governed by the hypothetical $\pi$). Hence, we refer to $\pi$ as a risk-neutral probability measure.
 
 Before we cover the two fundamental theorems of asset pricing, we need to cover an important lemma that we will utilize in the proofs of the two fundamental theorems of asset pricing.
 
@@ -259,7 +259,7 @@ It seems quite reasonable that since $\theta$ is the replicating portfolio for $
 
 Consider candidate derivative prices $V_{\theta}^{(0)} - x$ for any positive real number $x$. Position $(1, -\theta_0 + x, -\theta_1, \ldots, -\theta_m)$ has value $x \cdot (1 + r) > 0$ in each of the random outcomes at $t=1$. But this position has spot ($t=0$) value of 0, which means this is an Arbitrage Position, rendering these candidate derivative prices invalid.  Next consider candidate derivative prices $V_{\theta}^{(0)} + x$  for any positive real number $x$. Position $(-1, \theta_0 + x, \theta_1, \ldots, \theta_m)$ has value $x \cdot (1 + r) > 0$ in each of the random outcomes at $t=1$. But this position has spot ($t=0$) value of 0, which means this is an Arbitrage Position, rendering these candidate derivative prices invalid as well. So every candidate derivative price other than $V_{\theta}^{(0)}$ is invalid. Now our goal is to {\em establish} $V_{\theta}^{(0)}$ as the derivative price of $D$ by showing that we eliminate the possibility of an arbitrage position in the market involving $D$ if $V_{\theta}^{(0)}$ is indeed the derivative price.
 
-Firstly, note that $V_{\theta}^{(0)}$ can be expressed as the discounted expectation (under $\pi$) of the payoff of $D$ at $t=1$, i.e.,
+Firstly, note that $V_{\theta}^{(0)}$ can be expressed as the riskless rate-discounted expectation (under $\pi$) of the payoff of $D$ at $t=1$, i.e.,
 \begin{multline}
 V_{\theta}^{(0)} = \sum_{j=0}^m \theta_j \cdot S_j^{(0)} = \sum_{j=0}^m \theta_j \cdot \frac 1 {1+r} \cdot \sum_{i=1}^n \pi(\omega_i) \cdot S_j^{(i)} = \frac 1 {1+r} \cdot \sum_{i=1}^n \pi(\omega_i) \cdot \sum_{j=0}^m \theta_j \cdot S_j^{(i)} \\
 = \frac 1 {1+r} \cdot \sum_{i=1}^n \pi(\omega_i) \cdot V_D^{(i)}
@@ -279,7 +279,7 @@ Combining the linearity in Equations \eqref{eq:disc-exp-asset-value}, \eqref{eq:
 V_{\gamma_D}^{(0)} = \frac 1 {1+r} \cdot \sum_{i=1}^n \pi(\omega_i) \cdot V_{\gamma_D}^{(i)} \label{eq:positiondiscexp}
 \end{equation}
 
-So the position spot value (at $t=0$) is the discounted expectation (under $\pi$) of the position value at $t=1$. For any $\gamma_D$ (containing any arbitrary portfolio $\beta$), with derivative price $V_D^{(0)}$ equal to $V_{\theta}^{(0)}$, if the following two conditions are satisfied:
+So the position spot value (at $t=0$) is the riskless rate-discounted expectation (under $\pi$) of the position value at $t=1$. For any $\gamma_D$ (containing any arbitrary portfolio $\beta$), with derivative price $V_D^{(0)}$ equal to $V_{\theta}^{(0)}$, if the following two conditions are satisfied:
 
 \begin{itemize}
 \item $V_{\gamma_D}^{(i)} \geq 0 \mbox{ for all } i = 1, \ldots,n$
@@ -364,14 +364,14 @@ $$SP = \sum_{j=0}^m \theta_j^* \cdot S_j^{(0)} = \sup_{\lambda} L(\lambda) = \su
 Complementary Slackness and some linear algebra over the space of risk-neutral probability measures $\pi : \Omega \rightarrow [0,1]$ enables us to argue that:
 $$SP = \sup_{\pi} \sum_{i=1}^n \frac {\pi(\omega_i)} {1 + r} \cdot V_D^{(i)}$$
 
-This means the Superhedging Price is the least upper-bound of the discounted expectation of derivative payoff across each of the risk-neutral probability measures in the incomplete market, which is quite an intuitive thing to do amidst multiple risk-neutral probability measures.``
+This means the Superhedging Price is the least upper-bound of the riskless rate-discounted expectation of derivative payoff across each of the risk-neutral probability measures in the incomplete market, which is quite an intuitive thing to do amidst multiple risk-neutral probability measures.``
 
 Likewise, the *Subhedging* price $SB$ is defined as:
 $$\max_{\theta} \sum_{j=0}^m \theta_j \cdot S_j^{(0)} \mbox{ such that } \sum_{j=0}^m \theta_j \cdot S_j^{(i)} \leq V_D^{(i)} \mbox{ for all } i = 1, \ldots, n$$
 Likewise arguments enable us to establish:
 $$SB = \inf_{\pi} \sum_{i=1}^n \frac {\pi(\omega_i)} {1+r} \cdot V_D^{(i)}$$
 
-This means the Subhedging Price is the highest lower-bound of the discounted expectation of derivative payoff across each of the risk-neutral probability measures in the incomplete market, which is quite an intuitive thing to do amidst multiple risk-neutral probability measures
+This means the Subhedging Price is the highest lower-bound of the riskless rate-discounted expectation of derivative payoff across each of the risk-neutral probability measures in the incomplete market, which is quite an intuitive thing to do amidst multiple risk-neutral probability measures
 
 So this technique provides an lower bound ($SB$) and an upper bound ($SP$) for the derivative price, meaning:
 
@@ -574,7 +574,7 @@ def max_exp_util_price_and_hedge(
 
 The above code for the class `MaxExpUtility` is in the file [rl/chapter8/max_exp_utility.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/chapter8/max_exp_utility.py). As ever, we encourge you to play with various choices of $S_0, r, \mu, \sigma, f$ in creating instances of `MaxExpUtility`, analyze the obtained prices/hedges and plot some graphs to develop intuition on how the results change as a function of the various inputs. 
 
-Running this code for $S_0 = 100, r = 5\%, \mu = 110, \sigma = 25$ when buying a call option (European since we have only one time period) with strike $= 105$, the method `complete_mkt_price_and hedges` gives an option price of 11.43, risky asset hedge units of -0.6 (i.e., we hedge the risk of owning the call option by short-selling 60% of the risky asset) and riskless asset hedge units of 48.57 (i.e., we take the \$60 proceeds of short-sale less the \$11.43 option price payment = \$48.57 of cash and invest in a risk-free account earning 5% interest). As mentioned earlier, this is the perfect hedge if we had a complete market (i.e., two random outcomes). Running this code for the same inputs for an incomplete market (calling the method `max_exp_util_price_and_hedge` for risk-aversion parameter values of $a=0.3, 0.6, 0.9$ gives us the following results:
+Running this code for $S_0 = 100, r = 5\%, \mu = 110, \sigma = 25$ when buying a call option (European since we have only one time period) with strike $= 105$, the method `complete_mkt_price_and hedges` gives an option price of 11.43, risky asset hedge units of -0.6 (i.e., we hedge the risk of owning the call option by short-selling 60% of the risky asset) and riskless asset hedge units of 48.57 (i.e., we take the \$60 proceeds of short-sale less the \$11.43 option price payment = \$48.57 of cash and invest in a risk-free bank account earning 5% interest). As mentioned earlier, this is the perfect hedge if we had a complete market (i.e., two random outcomes). Running this code for the same inputs for an incomplete market (calling the method `max_exp_util_price_and_hedge` for risk-aversion parameter values of $a=0.3, 0.6, 0.9$ gives us the following results:
 
 ```
 --- Risk Aversion Param = 0.30 ---
@@ -637,7 +637,7 @@ The good news is that much of the concepts we learnt for the single-period setti
  We learnt in the single-period setting that if the market is complete, there are two equivalent ways to conceptualize derivatives pricing:
  
  * Solve for the replicating portfolio (i.e., solve for the units in the fundamental assets that would replicate the derivative payoff), and then calculate the derivative price as the value of this replicating portfolio at $t=0$.
- * Calculate the probabilities of random-outcomes for the unique risk-neutral probability measure, and then calculate the derivative price as the discounted expectation (under this risk-neutral probability measure) of the derivative payoff.
+ * Calculate the probabilities of random-outcomes for the unique risk-neutral probability measure, and then calculate the derivative price as the riskless rate-discounted expectation (under this risk-neutral probability measure) of the derivative payoff.
  
 It turns out that even in the multi-period setting, when the market is complete, we can calculate the derivative price (not just at $t=0$, but at any random outcome at any future time) with either of the above two (equivalent) methods, as long as we appropriately adjust the fundamental asset's units in the replicating portfolio (depending on the random outcome) as we move from one time step to the next. It is important to note that when we alter the fundamental asset's units in the replicating portfolio at each time step, we need to respect the constraint that money cannot enter or leave the replicating portfolio (i.e., it is a *self-financing replicating portfolio* with the replicating portfolio value remaining unchanged in the process of altering the units in the fundamental assets). It is also important to note that the alteration in units in the fundamental assets is dependent on the prices of the fundamental assets (which are random outcomes as we move forward from one time step to the next). Hence, the fundamental asset's units in the replicating portfolio evolve as random variables, while respecting the self-financing constraint. Therefore, the replicating portfolio in a multi-period setting in often refered to as a *Dynamic Self-Financing Replicating Portfolio* to reflect the fact that the replicating portfolio is adapting to the changing prices of the fundamental assets. The negatives of the fundamental asset's units in the replicating portfolio form the hedges for the derivative.
  
@@ -652,34 +652,254 @@ To move on from multi-period to continuous-time, we simply make the time-periods
  
 To provide a sneak-peek into this rich continuous-time theory, we've sketched in Appendix [-@sec:black-scholes-appendix] the derivation of the famous Black-Scholes equation and it's solution for the case of European Call and Put Options.
  
-So to summarize, we are in good shape to price/hedge in a multi-period and continuous-time setting if the market is complete. But what if the market is incomplete (which is typical in a real-world situation)? Founded on the Fundamental Theorems of Asset Pricing (which applies to multi-period and continuous-time settings as well), there is indeed considerable literature on how to price in incomplete markets for multi-period/continuous-time, which includes the superhedging approach as well as the *Expected-Utility-Indifference* approach, that we had covered in Section [-@sec:derivatives-pricing-incomplete-market] for the simple setting of discrete-time with single-period. However, in practice, these approaches are not adopted as they fail to capture real-world nuances adequately. Besides, most of these approaches lead to fairly wide price bounds that are not particularly useful in practice. In Section [-@sec:incomplete-market-pricing], we extend the *Expected-Utility-Indifference* approach that we had covered for the single-period setting to the multi-period setting. It turns out that this approach can be modeled as an MDP, with the adjustments to the hedge quantities at each time step as the actions of the MDP - solving the optimal policy gives us the optimal derivative hedging strategy and the associated optimal value function gives us the derivative price. This approach is applicable to real-world situations and one can even incorporate all the real-world frictions in one's MDP to build a practical solution for derivatives trading (covered in Section [-@sec:incomplete-market-pricing]).
+So to summarize, we are in good shape to price/hedge in a multi-period and continuous-time setting if the market is complete. But what if the market is incomplete (which is typical in a real-world situation)? Founded on the Fundamental Theorems of Asset Pricing (which applies to multi-period and continuous-time settings as well), there is indeed considerable literature on how to price in incomplete markets for multi-period/continuous-time, which includes the superhedging approach as well as the *Expected-Utility-Indifference* approach, that we had covered in Subsection [-@sec:derivatives-pricing-incomplete-market] for the simple setting of discrete-time with single-period. However, in practice, these approaches are not adopted as they fail to capture real-world nuances adequately. Besides, most of these approaches lead to fairly wide price bounds that are not particularly useful in practice. In Section [-@sec:incomplete-market-pricing], we extend the *Expected-Utility-Indifference* approach that we had covered for the single-period setting to the multi-period setting. It turns out that this approach can be modeled as an MDP, with the adjustments to the hedge quantities at each time step as the actions of the MDP - solving the optimal policy gives us the optimal derivative hedging strategy and the associated optimal value function gives us the derivative price. This approach is applicable to real-world situations and one can even incorporate all the real-world frictions in one's MDP to build a practical solution for derivatives trading (covered in Section [-@sec:incomplete-market-pricing]).
 
 ## Optimal Exercise of American Options cast as a Finite MDP {#sec:binomial-pricing-model}
 
-The original Binomial Options Pricing Model was developed to price (and hedge) derivatives on an underlying whose price evolves according to a lognormal stochastic process, with the stochastic process approximated in the form of a simple discrete-time, discrete-states process that enables enormous computational tractability. The lognormal stochastic process is basically of the same form as the stochastic process of the underlying price in the Black-Scholes model (covered in Appendix [-@sec:black-scholes-appendix]). However, the underlying price process in the Black-Scholes model is specified in the real-world probability measure whereas here we specify the underlying price process in the risk-neutral probability measure. This is because here we will employ the pricing method of discounted expectation (under the risk-neutral probability measure) of the derivative payoff. Recall that in the single-period setting, the underlying asset price grows (in expectation) at the riskless rate $r$. This calibration of the risk-neutral probability measure applies even in the multi-period and continuous-time setting. For a continuous-time lognormal stochastic process, the lognormal drift will hence be $r$ in the risk-neutral probability measure (rather than $\mu$ in the real-world probability measure, as per Black-Scholes model). Precisely, the stochastic process $S$ for the underlying price in the risk-neutral probability measure is:
+The original Binomial Options Pricing Model was developed to price (and hedge) options (including American) on an underlying whose price evolves according to a lognormal stochastic process, with the stochastic process approximated in the form of a simple discrete-time, discrete-states process that enables enormous computational tractability. The lognormal stochastic process is basically of the same form as the stochastic process of the underlying price in the Black-Scholes model (covered in Appendix [-@sec:black-scholes-appendix]). However, the underlying price process in the Black-Scholes model is specified in the real-world probability measure whereas here we specify the underlying price process in the risk-neutral probability measure. This is because here we will employ the pricing method of riskless rate-discounted expectation (under the risk-neutral probability measure) of the option payoff. Recall that in the single-period setting, the underlying asset price's expected rate of growth is calibrated to be equal to the riskless rate $r$, under the risk-probability probability measure. This calibration applies even in the multi-period and continuous-time setting. For a continuous-time lognormal stochastic process, the lognormal drift will hence be equal to $r$ in the risk-neutral probability measure (rather than $\mu$ in the real-world probability measure, as per the Black-Scholes model). Precisely, the stochastic process $S$ for the underlying price in the risk-neutral probability measure is:
 
 $$dS_t = r \cdot S_t \cdot dt + \sigma \cdot S_t \cdot dz_t$$
 
 where $\sigma$ is the lognormal dispersion (often refered to as "lognormal volatility" - we will simply call it volatility for the rest of this section). If you want to develop a thorough understanding of the broader topic of change of probability measures and how it affects the drift term (beyond the scope of this book, but an important topic in continuous-time financial pricing theory), we refer you to the technical material on [Radon-Nikodym Derivative](https://en.wikipedia.org/wiki/Radon%E2%80%93Nikodym_theorem) and [Girsanov Theorem](https://en.wikipedia.org/wiki/Girsanov_theorem).
 
-The Binomial Options Pricing Model serves as a discrete-time, finite-states approximation to this continuous-time process, and essentially an extension to the single-period model we had covered earlier for the case of a single fundamental risky asset. We've learnt previously that in the single-period case for a single fundamental risky asset, in order to be a complete market, we need to have exactly two random outcomes. We basically extend this "two random outcomes" pattern from each outcomes at each time step, by essentially growing out a "binary tree". But there is a caveat - with a binary tree, we end up with an exponential ($2^n$) number of outcomes after $n$ time steps. To contain the exponential growth, we construct a "recombining tree", meaning an "up move" followed by a "down move" ends up in the same underlying price outcome as a "down move" followed by an "up move" (as illustrated in Figure \ref{fig:binomial-tree}). Thus, we have $n+1$ price outcomes after $n \in \mathbb{Z}_{\geq 0}$ time steps in this "recombining tree", and we shall refer to these $n+1$ price outcomes as states $\mathcal{S}_n = \{0, 1, \ldots, n\}$ corresponding to the ascending-sorted sequence of $n+1$ price outcomes (conceptualizing the price movements as a discrete-time, finite-state Markov Chain). Since we are modeling a lognormal process, we model the discrete-time price moves as multiplicative to the price. We denote $S_{n,i}$ as the price after $n$ time steps in state $i$ (for any $n \in \mathbb{Z}_{\geq 0}$ and for any $0 \leq i \leq n$), then the two prices resulting from $S_{n,i}$ at time $n+1$ are $S_{n+1,i+1} = S_{n,i} \cdot u$ and $S_{n+1,i} = \frac {S_{n,i}} u$ for some constant $u$ (that we will calibrate). The important point is that $u$ remains a constant across time $t$ and across states $i$ at each time $t$. Since the "up move" is a multiplicative factor of $u$ and the "down move" is a multiplicative factor of $\frac 1 u$, we ensure the "recombining" feature. 
+The Binomial Options Pricing Model serves as a discrete-time, finite-states approximation to this continuous-time process, and is essentially an extension to the single-period model we had covered earlier for the case of a single fundamental risky asset. We've learnt previously that in the single-period case for a single fundamental risky asset, in order to be a complete market, we need to have exactly two random outcomes. We basically extend this "two random outcomes" pattern to each outcome at each time step, by essentially growing out a "binary tree". But there is a caveat - with a binary tree, we end up with an exponential ($2^i$) number of outcomes after $i$ time steps. To contain the exponential growth, we construct a "recombining tree", meaning an "up move" followed by a "down move" ends up in the same underlying price outcome as a "down move" followed by an "up move" (as illustrated in Figure \ref{fig:binomial-tree}). Thus, we have $i+1$ price outcomes after $i$ time steps in this "recombining tree". We conceptualize the ascending-sorted sequence of $i+1$ price outcomes as the (time step $=i$) states $\mathcal{S}_i = \{0, 1, \ldots, i\}$ (since the price movements form a discrete-time, finite-states Markov Chain). Since we are modeling a lognormal process, we model the discrete-time price moves as multiplicative to the price. We denote $S_{i,j}$ as the price after $i$ time steps in state $j$ (for any $i \in \mathbb{Z}_{\geq 0}$ and for any $0 \leq j \leq i$). So the two random prices resulting from $S_{i,j}$ are $S_{i+1,j+1} = S_{i,j} \cdot u$ and $S_{i+1,j} = \frac {S_{i,j}} u$ for some constant $u$ (that we will calibrate). The important point is that $u$ remains a constant across time steps $i$ and across states $j$ at each time step $i$. Since the "up move" is a multiplicative factor of $u$ and the "down move" is a multiplicative factor of $\frac 1 u$, we ensure the "recombining tree" feature. 
 
-Let $q$ be the probability of the "up move" (typically, we use $p$ to denote real-world probability and $q$ to denote the risk-neutral probability) so that $1-q$ is the probability of the "down move", Our goal is to calibrate $q$ and $u$ so that the probability distribution of log-price-ratios $\{\log(\frac {S_{n,0}} {S_{0,0}}), \log(\frac {S_{n,1}} {S_{0,0}}), \ldots, \log(\frac {S_{n_n}} {S_{0,0}})\}$ after $n \in \mathbb{Z}_{\geq 0}$ time steps (with each time step of interval $\frac T n$ for a given $T\in \mathbb{R}^+$) serves as a good approximation to $\mathcal{N}(rT, \sigma^2T)$ (that we know to be the distribution of $\log(\frac {S_T} {S_0})$, as derived in Section [-@sec:lognormal-process-section]in Appendix [-@sec:stochasticcalculus-appendix]). Note that the starting price $S_{0,0}$ of the discrete-time approximation process is equal to the starting price $S_0$ of the continuous-time process.
+![Binomial Option Pricing Model (Binomial Tree) \label{fig:binomial-tree}](./chapter8/binomial_tree.png "Binomial Options Pricing Model (Binomial Tree)")
+
+Let $q$ be the probability of the "up move" (typically, we use $p$ to denote real-world probability and $q$ to denote the risk-neutral probability) so that $1-q$ is the probability of the "down move", Our goal is to calibrate $q$ and $u$ so that the probability distribution of log-price-ratios $\{\log(\frac {S_{n,0}} {S_{0,0}}), \log(\frac {S_{n,1}} {S_{0,0}}), \ldots, \log(\frac {S_{n_n}} {S_{0,0}})\}$ after $n \in \mathbb{Z}_{\geq 0}$ time steps (with each time step of interval $\frac T n$ for a given $T\in \mathbb{R}^+$) serves as a good approximation to $\mathcal{N}(rT, \sigma^2T)$ (that we know to be the distribution of $\log(\frac {S_T} {S_0})$, as derived in Section [-@sec:lognormal-process-section] in Appendix [-@sec:stochasticcalculus-appendix]). Note that the starting price $S_{0,0}$ of this discrete-time approximation process is equal to the starting price $S_0$ of the continuous-time process.
 We shall calibrate $q$ and $u$ in two steps:
 
-* In the first step, we pretend that $q=0.5$ and calibrate $u$ such that the variance of the two random outcomes (with equal probabilities) $\log(\frac {S_{j+1, i+1}} {S_{j, i}}) = \log(u)$ and $\log(\frac {S_{j+1, i}} {S_{j, i}}) = -\log(u)$ is equal to the variance $\frac {\sigma^2 T} n$ of the normally-distributed (stationary) process $\log(\frac {S_{t + \frac T n}} {S_t})$ for any $j \in \mathbb{Z}_{\geq 0}$. This yields:
+* In the first step, we pretend that $q=0.5$ and calibrate $u$ such that the variance of the two random outcomes $\log(\frac {S_{i+1, j+1}} {S_{i, j}}) = \log(u)$ and $\log(\frac {S_{i+1, j}} {S_{i, j}}) = -\log(u)$ is equal to the variance $\frac {\sigma^2 T} n$ of the normally-distributed (stationary) process $\log(\frac {S_{t + \frac T n}} {S_t})$ for any $i \in \mathbb{Z}_{\geq 0}$ for all $0 \leq j \leq i$. This yields:
 $$\log^2(u) = \frac {\sigma^2 T} n \Rightarrow u = e^{\frac {\sigma \sqrt{T}} n}$$
 This ensures that the variance of the symmetric binomial distribution after $n$ time steps matches the variance $\sigma^2 T$ of the normal distribution of $\log(\frac {S_T} {S_0})$.
-* In the second step, we adjust the probability $q$ so that the mean of the two random outcomes $\frac {S_{j+1, i+1}} {S_{j, i}} = u$ and $\frac {S_{j+1,i}} {S_{j,i}} = \frac 1 u$ is equal to the mean $e^{\frac {rT} n}$ of the lognormally-distributed (stationary) process $\frac {S_{t + \frac T n}} {S_t}$ for any $j \in \mathbb{Z}_{\geq 0}$. This yields:
-$$q u + \frac {1-q} u = e^{\frac {rT} n} \Rightarrow \frac {u \cdot e^{\frac {rT} n} - 1} {u^2 - 1} = \frac {e^{\frac {rT + \sigma \sqrt{T}} n} - 1} {e^{\frac {2\sigma \sqrt{T}} n} - 1}$$
+* In the second step, we adjust the probability $q$ so that the mean of the two random outcomes $\frac {S_{i+1, j+1}} {S_{i, j}} = u$ and $\frac {S_{i+1,j}} {S_{i,j}} = \frac 1 u$ is equal to the mean $e^{\frac {rT} n}$ of the lognormally-distributed (stationary) process $\frac {S_{t + \frac T n}} {S_t}$ for any $i \in \mathbb{Z}_{\geq 0}$ for all $0 \leq j \leq i$. This yields:
+$$q u + \frac {1-q} u = e^{\frac {rT} n} \Rightarrow q = \frac {u \cdot e^{\frac {rT} n} - 1} {u^2 - 1} = \frac {e^{\frac {rT + \sigma \sqrt{T}} n} - 1} {e^{\frac {2\sigma \sqrt{T}} n} - 1}$$
 
-Thus, we have the parameters $u$ and $q$ that fully specify the Binomial Options Pricing Model. Now we get to the application of this model. We are interested in using this model for optimal exercise (and hence, pricing) of American Options. This is in contrast to the Black-Scholes Partial Differential Equation which only enabled us to price derivatives with a fixed payoff at a fixed point in time (eg: European Call and Put Options). Of course, a special case of American Options is indeed European Options. It's important to note that here we are tackling the much harder problem of the ideal timing of exercise of an American Option - the Binomial Options Pricing Model is well suited for this. 
+Thus, we have the parameters $u$ and $q$ that fully specify the Binomial Options Pricing Model. Now we get to the application of this model. We are interested in using this model for optimal exercise (and hence, pricing) of American Options. This is in contrast to the Black-Scholes Partial Differential Equation which only enabled us to price options with a fixed payoff at a fixed point in time (eg: European Call and Put Options). Of course, a special case of American Options is indeed European Options. It's important to note that here we are tackling the much harder problem of the ideal timing of exercise of an American Option - the Binomial Options Pricing Model is well suited for this. 
 
-As mentioned earlier, we want to model the problem of Optimal Exercise of American Options as an MDP. Here we will utilize the states and state transitions (probabilistic price movements of the underlying) given by the Binomial Options Pricing Model as the states and state transitions in the MDP. The MDP actions in each state will be binary - either exercise the option (and immediately move to a terminal state) or don't exercise the option (i.e., continue on to the next time step's random state, as given by the Binomial Options Pricing Model). If the exercise option is chosen, the MDP reward is the option payoff. If the continue option is chosen, the reward is 0. The discount factor $\gamma$ is $e^{-\frac {rT} n}$ since (as we've learnt in the single-period case), the price (which translates here to the Optimal Value Function) is defined as the riskless-rate-discounted expectation (under the risk-neutral probability measure) of the option payoff. In the multi-period setting, the overall discounting amounts to composition (multiplication) of each time step's discounting (which is equal to $\gamma$) and the overall risk-neutral probability measure amounts to the composition of each time step's risk-neutral probability measure (which is given by the calibrated value $q$).
+As mentioned earlier, we want to model the problem of Optimal Exercise of American Options as an MDP. Here we will utilize the states and state transitions (probabilistic price movements of the underlying) given by the Binomial Options Pricing Model as the states and state transitions in the MDP. The MDP actions in each state will be binary - either exercise the option (and immediately move to a terminal state) or don't exercise the option (i.e., continue on to the next time step's random state, as given by the Binomial Options Pricing Model). If the exercise action is chosen, the MDP reward is the option payoff. If the continue action is chosen, the reward is 0. The discount factor $\gamma$ is $e^{-\frac {rT} n}$ since (as we've learnt in the single-period case), the price (which translates here to the Optimal Value Function) is defined as the riskless rate-discounted expectation (under the risk-neutral probability measure) of the option payoff. In the multi-period setting, the overall discounting amounts to composition (multiplication) of each time step's discounting (which is equal to $\gamma$) and the overall risk-neutral probability measure amounts to the composition of each time step's risk-neutral probability measure (which is specified by the calibrated value $q$).
+
+Now let's write some code to determine the Optimal Exercise of American Options (and hence, the price of American Options) by modeling this problem as an MDP. We create a `dataclass OptimalExerciseBinTree` whose data members are `spot_price` (specifying the current, i.e., time=0 price of the underlying), `payoff` (specifying the option payoff, when exercised), `expiry` (specifying the time $T$ to expiration of the American Option), `rate` (specifying the riskless rate $r$), `vol` (specifying the lognormal volatility $\sigma$), and `num_steps` (specifying the number $n$ of time steps in the binomial tree). Note that each time step is of interval $\frac T n$ (which is implemented below in the method `dt`). Note also that the `payoff` function is fairly generic taking two arguments - the first argument is the time at which the option is exercised, and the second argument is the underlying price at the time the option is exercised. Note that for a typical American Call or Put Option, the payoff does not depend on time and the dependency on the underlying price is the standard "hockey-stick" payoff that we are now fairly familiar with (however, we designed the interface to allow for more general option payoff functions). 
+
+The set of states $\mathcal{S}_i$ at time step $i$ is: $\{0, 1, \ldots, i\}$ and the method `state_price` below calculates the price in state $j$ at time step $i$ as:
+
+$$S_{i,j} = S_{0,0} \cdot e^{\frac {(2j - i)\sigma T} n}$$
+
+Finally, the method `get_opt_vf_and_policy` calculates $u$ (`up_factor`) and $q$ (`up_prob`), prepares the requisite state-reward transitions (conditional on current state and action) to move from one time step to the next, and passes along the constructed time-sequenced transitions (`Sequence[StateActionMapping[int, bool]]`) to `rl.finite_horizon.get_opt_vf_and_policy` (which we had written in Chapter [-@sec:dp-chapter]) to perform the requisite backward induction and return an `Iterator` on pairs of `V[int]` and `FinitePolicy[int, bool]`. Note that the states at any time-step $i$ are the integers from $0$ to $i$ and hence, represented as `int`, and the actions are represented as `bool` (`True` for exercise and `False` for continue). We need to point out a couple of small details in the code. Firstly, we represent an early terminal state (in case of option exercise before expiration of the option) as -1. Secondly, note that there is no action map from an early terminal state and so, the value associated with a key (state) of -1 is `None` (according to the representation protocol in  `StateActionMapping` which specifies a `FiniteMarkovDecisionProcess`).
+
+```python
+from rl.distribution import Constant, Categorical
+from rl.finite_horizon import optimal_vf_and_policy
+from rl.dynamic_programming import V
+from rl.markov_decision_process import FinitePolicy
+
+@dataclass(frozen=True)
+class OptimalExerciseBinTree:
+
+    spot_price: float
+    payoff: Callable[[float, float], float]
+    expiry: float
+    rate: float
+    vol: float
+    num_steps: int
+
+    def dt(self) -> float:
+        return self.expiry / self.num_steps
+
+    def state_price(self, i: int, j: int) -> float:
+        return self.spot_price * np.exp((2 * j - i) * self.vol *
+                                        np.sqrt(self.dt()))
+
+    def get_opt_vf_and_policy(self) -> \
+            Iterator[Tuple[V[int], FinitePolicy[int, bool]]]:
+        dt: float = self.dt()
+        up_factor: float = np.exp(self.vol * np.sqrt(dt))
+        up_prob: float = (np.exp(self.rate * dt) * up_factor - 1) / \
+            (up_factor * up_factor - 1)
+        return optimal_vf_and_policy(
+            steps=[
+                {j: None if j == -1 else {
+                    True: Constant(
+                        (
+                            -1,
+                            self.payoff(i * dt, self.state_price(i, j))
+                        )
+                    ),
+                    False: Categorical(
+                        {
+                            (j + 1, 0.): up_prob,
+                            (j, 0.): 1 - up_prob
+                        }
+                    )
+                } for j in range(i + 1)}
+                for i in range(self.num_steps + 1)
+            ],
+            gamma=np.exp(-self.rate * dt)
+        )
+```
+
+Now we want to try out this code on an American Call Option and American Put Option. We know that it is never optimal to exercise an American Call Option before the option expiration. The reason for this is as follows: Upon early exercise (say at time $\tau < T$), we borrow cash $K$ (to pay for the purchase of the underlying) and own the underlying (valued at $S_{\tau}$). So, at option expiration $T$, we owe cash $K\cdot e^{r(T-\tau)}$ and own the underlying valued at $S_T$, which is an overall value at time $T$ of $S_T - K\cdot e^{r(T-\tau)}$. We argue that this value is always less than the value $\max(S_T-K, 0)$ we'd obtain at option expiration $T$ if we'd made the choice to not exercise early. If the call option ends up in-the-money at option expiration $T$ (i.e., $S_T > K$), then $S_T - K\cdot e^{r(T-\tau)}$ is less than the value $S_T-K$ we'd get by exercising at option expiration $T$. If the call option ends up not being in-the-money at option expiration $T$ (i.e., $S_T \leq K$), then $S_T - K\cdot e^{r(T-\tau)} < 0$ which is less than the 0 payoff we'd obtain at option expiration $T$. Hence, we are always better off waiting until option expiration (i.e. it is never optimal to exercise a call option early, no matter how much in-the-money we get before option expiration). Hence, the price of an American Call Option should be equal to the price of an European Call Option with the same strike and expiration time. However, for an American Put Option, it is indeed optimal to exercise early and hence, the price of an American Put Option is greater then the price of an European Put Option with the same strike and expiration time. Thus, it is interesting to ask the question: For each time $t < T$, what is the threshold of underlying price $S_t$ below which it is optimal to exercise an American Put Option? It is interesting to view this threshold as a function of time (we call this function as the optimal exercise boundary of an American Put Option). One would expect that this optimal exercise boundary rises as one gets closer to the option expiration $T$. But exactly what shape does this optimal exercise boundary have? We can answer this question by analyzing the optimal policy at each time step - we just need to find the state $k$ at each time step $i$ such that the Optimal Policy $\pi^*_i(\cdot)$ evaluates to True for all states $j \leq k$ (and evaluates to False for all states $j > k$). We write the following method to calculate the Optimal Exercise Boundary:
+
+```python
+    def option_exercise_boundary(
+        self,
+        policy_seq: Sequence[FinitePolicy[int, bool]],
+        is_call: bool
+    ) -> Sequence[Tuple[float, float]]:
+        dt: float = self.dt()
+        ex_boundary: List[Tuple[float, float]] = []
+        for i in range(self.num_steps + 1):
+            ex_points = [j for j in range(i + 1)
+                         if policy_seq[i].act(j).value and
+                         self.payoff(i * dt, self.state_price(i, j)) > 0]
+            if len(ex_points) > 0:
+                boundary_pt = min(ex_points) if is_call else max(ex_points)
+                ex_boundary.append(
+                    (i * dt, opt_ex_bin_tree.state_price(i, boundary_pt))
+                )
+        return ex_boundary
+```
+
+`option_exercise_boundary` takes as input `policy_seq` which represents the sequence of optimal policies $\pi^*_i$ for each time step $0\leq i \leq T$, and produces as output the sequence of pairs $(\frac {iT} n, B_i)$ where
+
+$$B_i = \max_{j:\pi^*_i(j) = True} S_{i,j}$$ with the little detail that we only consider those states $j$ for which the option payoff is positive. For some time steps $i$, none of the states $j$ qualify as $\pi^*_i(j) = True$, in which case we don't include that time step $i$ in the output sequence.
+
+To compare the results of American Call and Put Option Pricing on this Binomial Options Pricing Model against the corresponding European Options prices, we write the following method to implement the Black-Scholes closed-form solution (derived as Equations \ref{eq:black-scholes-call-option-pricing} and \ref{eq:black-scholes-put-option-pricing} in Appendix [-@sec:black-scholes-appendix]):
+
+```python
+from scipy.stats import norm
+
+    def european_price(self, is_call: bool, strike: float) -> float:
+        sigma_sqrt: float = self.vol * np.sqrt(self.expiry)
+        d1: float = (np.log(self.spot_price / strike) +
+                     (self.rate + self.vol ** 2 / 2.) * self.expiry) \
+            / sigma_sqrt
+        d2: float = d1 - sigma_sqrt
+        if is_call:
+            ret = self.spot_price * norm.cdf(d1) - \
+                strike * np.exp(-self.rate * self.expiry) * norm.cdf(d2)
+        else:
+            ret = strike * np.exp(-self.rate * self.expiry) * norm.cdf(-d2) - \
+                self.spot_price * norm.cdf(-d1)
+        return ret
+```
+
+Here's some code to price an American Put Option (changing `is_call` to `True` will price American Call Options):
+
+```python
+from rl.gen_utils.plot_funcs import plot_list_of_curves
+
+spot_price_val: float = 100.0
+strike: float = 100.0
+is_call: bool = False
+expiry_val: float = 1.0
+rate_val: float = 0.05
+vol_val: float = 0.25
+num_steps_val: int = 300
+
+if is_call:
+    opt_payoff = lambda _, x: max(x - strike, 0)
+else:
+    opt_payoff = lambda _, x: max(strike - x, 0)
+
+opt_ex_bin_tree: OptimalExerciseBinTree = OptimalExerciseBinTree(
+    spot_price=spot_price_val,
+    payoff=opt_payoff,
+    expiry=expiry_val,
+    rate=rate_val,
+    vol=vol_val,
+    num_steps=num_steps_val
+)
+
+vf_seq, policy_seq = zip(*opt_ex_bin_tree.get_opt_vf_and_policy())
+ex_boundary: Sequence[Tuple[float, float]] = \
+    opt_ex_bin_tree.option_exercise_boundary(policy_seq, is_call)
+time_pts, ex_bound_pts = zip(*ex_boundary)
+label = ("Call" if is_call else "Put") + " Option Exercise Boundary"
+plot_list_of_curves(
+    list_of_x_vals=[time_pts],
+    list_of_y_vals=[ex_bound_pts],
+    list_of_colors=["b"],
+    list_of_curve_labels=[label],
+    x_label="Time",
+    y_label="Underlying Price",
+    title=label
+)
+
+european: float = opt_ex_bin_tree.european_price(is_call, strike)
+print(f"European Price = {european:.3f}")
+
+am_price: float = vf_seq[0][0]
+print(f"American Price = {am_price:.3f}")
+```
+
+This prints as output:
+
+```
+European Price = 7.459
+American Price = 7.971
+```
+
+![Put Option Exercise Boundary \label{fig:put_option_exercise_boundary}](./chapter8/put_option_ex_boundary.png "Put Option Exercise Boundary")
+
+So we can see that the price of this American Put Option is significantly higher than the price of the corresponding European Put Option. The exercise boundary produced by this code is shown in Figure \ref{fig:put_option_exercise_boundary}. The locally-jagged nature of the exercise boundary curve is because of the "diamond-like" local-structure of the underlying prices at the nodes in the binomial tree. We can see that when the time to expiry is large, it is not optimal to exercise unless the underlying price drops significantly. It is only when the time to expiry becomes quite small that the optimal exercise boundary rises sharply towards the strike value.
+
+Changing `is_call` to `True` (and not changing any of the other inputs) prints as output:
+
+```
+European Price = 12.336
+American Price = 12.328
+```
+
+This is a numerical validation of our proof above that it is never optimal to exercise an American Call Option before option expiration.   
+
+The above code is in the file [rl/chapter8/optimal_exercise_bin_tree.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/chapter8/optimal_exercise_bin_tree.py). As ever, we encourage you to play with various choices of inputs to develop intuition for how American Option Pricing changes as a function of the inputs (and how American Put Option Exercise Boundary changes). Note that you can specify the option payoff as any arbitrary function of time and the underlying price.
+
+## Generalizing to Optimal-Stopping Problems
+
+In this section, we generalize the problem of Optimal Exercise of American Options to the problem of Optimal Stopping in Stochastic Calculus, which has several applications in Mathematical Finance, including pricing of [exotic derivatives](https://en.wikipedia.org/wiki/Exotic_derivative). After defining the Optimal Stopping problem, we show how this problem can be modeled as an MDP (generalizing the MDP modeling of Optimal Exercise of American Options), which affords us the ability to solve them with Dynamic Programming or Reinforcement Learning algorithms.
+
+First we define the concept of *Stopping Time*. Informally, Stopping Time $\tau$ is a random time (time as a random variable) at which a given stochastic process exhibits certain behavior. Stopping time is defined by a *stopping policy* to decide whether to continue or stop a stochastic process based on the stochastic process' current and past values. Formally, it is a random variable $\tau$ such that the event $\{tau \leq t\}$ is in the $\sigma$-algebra $\mathcal{F}_t$ of the stochastic process, for all $t$.  This means the stopping decision (i.e., *stopping policy*) of whether $\tau \leq t$ only depends on information up to time $t$, i.e., we have all the information required to make the stopping decision at any time $t$.
+
+A simple example of Stopping Time is *Hitting Time* of a set $A$ for a process $X$. Informally, it is the first time when $X$ takes a value within the set $A$. Formally, Hitting Time $T_{X_A}$ is defined as:
+$$T_{X,A} = \min \{t \in \mathbb{R} | X_t \in A\}$$
+
+A simple and common example of Hitting Time is the first time a process exceeds a certain fixed threshold level. As an example, we might say we want to sell a stock when the stock price exceeds \$100. This \$100 threshold constitutes our stopping policy, which determines the stopping time (hitting time) in terms of when we want to sell the stock (i.e., exit from owning the stock). Different people may have different criterion for exiting owing the stock (your friend's threshold might be \$90), and each person's criterion defines their own stopping policy and hence, their own stopping time random variable.
+
+Now that we have defined Stopping Time, we are ready to define the Optimal Stopping problem. *Optimal Stopping* for a stochastic process $X$ is a function $W(\cdot)$ whose domain is the set of potential initial values of the stochastic process and co-domain is the range of time for which the stochastic process runs, defined as:
+$$W(x) = \max_{\tau} \mathbb{E}[H(X_{\tau})|X_0 = x]$$
+ where $\tau$ is a set of stopping times of $X$ and $H(\cdot)$ is a function from the domain of the stochastic process values to the set of real numbers.
+
+ Intuitively, you should think of Optimal Stopping as searching through many Stopping Times (i.e., many Stopping Policies), and picking out the best Stopping Policy - the one that maximizes the expected value of a function $H(\cdot)$ applied on the stochastic process at the stopping time.
+
+Unsurprisingly (noting the connection to Optimal Control in an MDP), $W(\cdot)$ is called the Value function, and $H$ is called the Reward function. Note that sometimes we can have several stopping times that maximize $\mathbb{E}[H(X_{\tau})]$ and we say that the optimal stopping time is the smallest stopping time achieving the maximum value. We mentioned above that Optimal Exercise of American Options is a special case of Optimal Stopping. Let's understand this specialization better:
+
+* $X$ is the stochastic process for the underlying's price in the risk-neutral probability measure.
+* $x$ is the underlying security's current price.
+* $\tau$ is a set of exercise times, each exercise time corresponding to a specific policy of option exercise (i.e., specific stopping policy).
+* $W(\cdot)$ is the American Option price as a function of the underlying's current price $x$.
+* $H(\cdot)$ is the option payoff function (with riskless-rate discounting built into $H(\cdot)$).
+
+Now let us define Optimal Stopping problems as control problems in Markov Decision Processes (MDPs).
+
+* The MDP *State* at time $t$ is $X_t$.
+* The MDP *Action* is Boolean: Stop the Process or Continue the Process.
+* The MDP *Reward* is  always 0, except upon Stopping, when it is equal to $H(X_{\tau})$.
+* The MDP *Discount Factor* $\gamma$ is equal to 1.
+* The MDP probabilistic-transitions are governed by the Stochastic Process $X$.
+
+A specific policy corresponds to a specific stopping-time random variable $\tau$, the Optimal Policy $\pi^*$ corresponds to the stopping-time $\tau^*$ that yields the maximum (over $\tau$) of $\mathbb{E}[H(X_{\tau})|X_0 = x]$, and the Optimal Value Function $V^*$ corresponds to the maximum value of $\mathbb{E}[H(X_{\tau})|X_0=x]$.
+
+For discrete time steps, the Bellman Optimality Equation is:
+$$V^*(X_t) = \max(H(X_t), \mathbb{E}[V^*(X_{t+1})|X_t])$$
+
+Thus, we see that Optimal Stopping is the solution to the above Bellman Optimality Equation (solving the Control problem of the MDP described above). For a finite number of time steps, we can run a backward induction algorithm from the final time step back to time step 0 (essentially a generalization of the backward induction we did with the Binomial Options Pricing Model to determine Optimal Exercise of American Options).
+
+Many derivatives pricing problems (and indeed many problems in the broader space of Mathematical Finance) can be cast as Optimal Stopping and hence can be modeled as MDPs (as described above). The important point here is that this enables us to employ Dynamic Programming or Reinforcement Learning algorithms to identify optimal stopping policy for exotic derivatives (which typically yields a pricing algorithm for exotic derivatives). When the state space is large (eg: when the payoff depends on several underlying assets or when the payoff depends on the history of underlying's prices, such as [Asian Options-payoff](https://en.wikipedia.org/wiki/Asian_option) with American exercise feature), the classical algorithms used in the finance industry for exotic derivatives pricing are not computationally tractable. This points to the use of Reinforcement Learning algorithms which tend to be good at handling large state spaces by effectively leveraging sampling and function approximation methodologies in the context of solving the Bellman Optimality Equation. Hence, we propose Reinforcement Learning as a promising alternative technique to pricing of certain exotic derivatives that can be cast as Optimal Stopping problems. We will discuss this more after having covered Reinforcement Learning algorithms.
  
 ## Pricing/Hedging in an Incomplete Market cast as an MDP {#sec:incomplete-market-pricing}
  
- In [-@sec:derivatives-pricing-incomplete-market], we developed a pricing/hedging approach based on *Expected-Utility-Indifference* for the simple setting of discrete-time with single-period, when the market is incomplete. In this section, we extend this approach to the case of discrete-time with multi-period. In the single-period setting, the solution is rather straightforward as it amounts to an unconstrained multi-variate optimization together with a single-variable root-solver. Now when we extend this solution approach to the multi-period setting, it amounts to a sequential/dynamic optimal control problem. Although this is far more complex than the single-period setting, the good news is that we can model this solution approach for the multi-period setting as a Markov Decision Process. This section will be dedicated to modeling this solution approach as an MDP, which gives us enormous flexibility in capturing the real-world nuances. Besides, modeling this approach as an MDP permits us to tap into some of the recent advances in Deep Learning and Reinforcement Learning (i.e. Deep Reinforcement Learning). Since we haven't yet learnt about Reinforcement Learning algorithms, this section won't cover the algorithmic aspects (i.e., how to solve the MDP) - it will simply cover how to model the MDP for the *Expected-Utility-Indifference* approach to pricing/hedging derivatives in an incomplete market.
+ In Subsection [-@sec:derivatives-pricing-incomplete-market], we developed a pricing/hedging approach based on *Expected-Utility-Indifference* for the simple setting of discrete-time with single-period, when the market is incomplete. In this section, we extend this approach to the case of discrete-time with multi-period. In the single-period setting, the solution is rather straightforward as it amounts to an unconstrained multi-variate optimization together with a single-variable root-solver. Now when we extend this solution approach to the multi-period setting, it amounts to a sequential/dynamic optimal control problem. Although this is far more complex than the single-period setting, the good news is that we can model this solution approach for the multi-period setting as a Markov Decision Process. This section will be dedicated to modeling this solution approach as an MDP, which gives us enormous flexibility in capturing the real-world nuances. Besides, modeling this approach as an MDP permits us to tap into some of the recent advances in Deep Learning and Reinforcement Learning (i.e. Deep Reinforcement Learning). Since we haven't yet learnt about Reinforcement Learning algorithms, this section won't cover the algorithmic aspects (i.e., how to solve the MDP) - it will simply cover how to model the MDP for the *Expected-Utility-Indifference* approach to pricing/hedging derivatives in an incomplete market.
  
  Before we get into the MDP modeling details, it pays to remind that in an incomplete market, we have multiple risk-neutral probability measures and hence, multiple valid derivative prices (each consistent with no-arbitrage). This means the market/traders need to "choose" a suitable risk-neutral probability measure (which amount to choosing one out of the many valid derivative prices). In practice, this "choice" is typically made in ad-hoc and inconsistent ways. Hence, our proposal of making this "choice" in a mathematically-disciplined manner by noting that ultimately a trader is interested in maximizing the "risk-adjusted return" of a derivative together with it's hedges (by sequential/dynamic adjustment of the hedge quantities). Once we take this view, it is reminiscent of the *Asset Allocation* problem we covered in Chapter [-@sec:portfolio-chapter] and the maximization objective is based on the specification of preference for trading risk versus return (which in turn, amounts to specification of a Utility function). Therefore, similar to the Asset Allocation problem, the decision at each time step is the set of adjustments one needs to make to the hedge quantities. With this rough overview, we are now ready to formalize the MDP model for this approach to multi-period pricing/hedging in an incomplete market. For ease of exposition, we simplify the problem setup a bit, although the approach and model we describe below essentially applies to more complex, more frictionful markets as well.
 
@@ -722,4 +942,10 @@ We denote the Action Space at time $t$ as $\mathcal{A}_t$ and a specific action 
  $$V_0^*((0,\alpha_0,P_0,\beta_0-x^*,D\cup D')) = V_0^*((0, \alpha_0, P_0, \beta_0, D))$$
  This Pricing principle is known as the principle of *Indifference Pricing*. The hedging strategy at time $t$ (for all $0 \leq t < T$) is given by the Optimal Policy $\pi_t^* : \mathcal{S}_t \rightarrow \mathcal{A}_t$
   
- 
+## Key Takeaways from this Chapter
+
+* The concepts of Arbitrage, Completeness and Risk-Neutral Probability Measure.
+* The two fundamental theorems of Asset Pricing.
+* Pricing of derivatives in a complete market in two equivalent ways: A) Based on construction of a replicating portfolio, and B) Based on riskless rate-discounted expectation in the risk-neutral probability measure.
+* Optimal Exercise of American Options (and it's generalization to Optimal Stopping problems) cast as an MDP Control problem.
+* Pricing and Hedging of Derivatives in an Incomplete (real-world) Market cast as an MDP Control problem.
