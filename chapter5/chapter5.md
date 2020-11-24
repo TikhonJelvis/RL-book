@@ -5,31 +5,35 @@ In Chapter [-@sec:dp-chapter], we covered Dynamic Programming algorithms where t
 1. A "tabular" representation of the MDP or of the Value Function, won't fit within storage limits
 2. Sweeping through all states and their transition probabilities would be time-prohibitive (or simply impossible, in the case of infinite state spaces)
 
-Hence, when the state space is very large, we need to resort to approximation of the Value Function.  The Dynamic Programming algorithms would need to be suitably modified to their Approximate Dynamic Programming (abbreviated as ADP) versions. The good news is that it's not hard to modify each of the (tabular) Dynamic Programming algorithms such that instead of sweeping through all the states in each iteration, we simply sample an appropriate subset of states, update the Value Function for those states (with the same Bellman Operator calculations as for the case of tabular), and then construct an approximation for the Value Function using just the updated values for the sample of states. Furthermore, if the set of transitions from a given state is large (or infinite), instead of using the explicit probabilities of those transitions, we can sample from the transitions probability distribution. The fundamental structure of the algorithms and the fundamental principles (Fixed-Point and Bellman Operators) would still be the same.
+Hence, when the state space is very large, we need to resort to approximation of the Value Function.  The Dynamic Programming algorithms would need to be suitably modified to their Approximate Dynamic Programming (abbreviated as ADP) versions. The good news is that it's not hard to modify each of the (tabular) Dynamic Programming algorithms such that instead of sweeping through all the states in each iteration, we simply sample an appropriate subset of non-terminal states, update the Value Function for those states (with the same Bellman Operator calculations as for the case of tabular), and then construct an approximation for the Value Function using just the updated values for the sample of non-terminal states. Furthermore, if the set of transitions from a given state is large (or infinite), instead of using the explicit probabilities of those transitions, we can sample from the transitions probability distribution. The fundamental structure of the algorithms and the fundamental principles (Fixed-Point and Bellman Operators) would still be the same.
 
 So, in this chapter, we do a quick review of function approximation, write some code for a couple for a couple of standard function approximation methods, and then utilize these function approximation methods to develop Approximate Dynamic Programming algorithms (in particular, Approximate Policy Evaluation, Approximate Value Iteration and Approximate Backward Induction). Since you are reading this book, it's highly likely that you are already familiar with the simple and standard function approximation methods such as linear function approximation and function approximation using neural networks supervised learning. So we shall go through the background on linear function approximation and neural networks supervised learning in a quick and terse manner, with the goal of developing some code for these methods that we can use not just for the ADP algorithms for this chapter, but also for RL algorithms later in the book. Note also that apart from approximation of Value Functions $\mathcal{N} \rightarrow \mathbb{R}$, these function approximation methods can also be used for approximation of Stochastic Policies $\mathcal{N} \times \mathcal{A} \rightarrow [0, 1]$ in Policy-based RL algorithms.
 
 ## Function Approximation
 
-In this section, we describe function approximation in a fairly generic setting (not specific to approximation of Value Functions or Policies). We denote the predictor variable as $x$, belonging to an arbitrary domain denoted $\mathcal{X}$ and the response variable as $y \in \mathbb{R}$. We treat $x$ and $y$ as unknown random variables and our goal is to estimate the probability distribution function $f$ of the conditional random variable $y|x$ from data provided in the form of a sequence of $(x,y)$ pairs. We shall consider parameterized functions $f$ with the parameters denoted as $w$. The exact data type of $w$ will depend on the specific form of function approximation. We denote the estimated probability of $y$ conditional on $x$ as $f(x; w)(y)$. Assume we are given the following data in the form of a sequence of $n$ $(x,y)$ pairs:
+In this section, we describe function approximation in a fairly generic setting (not specific to approximation of Value Functions or Policies). We denote the predictor variable as $x$, belonging to an arbitrary domain denoted $\mathcal{X}$ and the response variable as $y \in \mathbb{R}$. We treat $x$ and $y$ as unknown random variables and our goal is to estimate the probability distribution function $f$ of the conditional random variable $y|x$ from data provided in the form of a sequence of $(x,y)$ pairs. We shall consider parameterized functions $f$ with the parameters denoted as $w$. The exact data type of $w$ will depend on the specific form of function approximation. We denote the estimated probability of $y$ conditional on $x$ as $f(x; w)(y)$. Assume we are given data in the form of a sequence of $n$ $(x,y)$ pairs, as follows:
 $$[(x_i, y_i)|1 \leq i \leq n]$$
 The notion of estimating the conditional probability $\mathbb{P}[y|x]$ is formalized by solving for $w=w^*$ such that:
 $$w^* = \argmax_w \{ \prod_{i=1}^n f(x_i; w)(y_i)\} = \argmax_w \{ \sum_{i=1}^n \log f(x_i; w)(y_i)\}$$
-In other words, we shall be operating in the framework of [Maximum Likelihood Estimation](https://en.wikipedia.org/wiki/Maximum_likelihood_estimation). We say that the data $[(x_i, y_i)|1 \leq i \leq n]$ gives us the *empirical probability distribution* $D$ of $y|x$ and the function $f$ (parameterized by $w$) gives us the *model probability distribution* $M$ of $y|x$. With maximum likelihood estimation, we are essentially trying to reconcile the model probability distribution $M$ with the empirical probability distribution $D$. Maximum likelihood estimation is essentially minimization of a loss function defined as the [cross-entropy](https://en.wikipedia.org/wiki/Cross_entropy) $\mathcal{H}(D, M) = -\mathbb{E}_D[\log M]$ between the probability distributions $D$ and $M$.
+In other words, we shall be operating in the framework of [Maximum Likelihood Estimation](https://en.wikipedia.org/wiki/Maximum_likelihood_estimation). We say that the data $[(x_i, y_i)|1 \leq i \leq n]$ specifies the *empirical probability distribution* $D$ of $y|x$ and the function $f$ (parameterized by $w$) specifies the *model probability distribution* $M$ of $y|x$. With maximum likelihood estimation, we are essentially trying to reconcile the model probability distribution $M$ with the empirical probability distribution $D$. Hence, maximum likelihood estimation is essentially minimization of a loss function defined as the [cross-entropy](https://en.wikipedia.org/wiki/Cross_entropy) $\mathcal{H}(D, M) = -\mathbb{E}_D[\log M]$ between the probability distributions $D$ and $M$.
 
 Our framework will allow for incremental estimation wherein at each iteration $t$ of the incremental estimation (for $t=1, 2, \ldots$), data of the form
 
 $$[(x_{t,i}, y_{t,i})|1 \leq i \leq n_t]$$
 
 is used to update the parameters from $w_{t-1}$ to $w_t$ (parameters initialized at iteration $t=0$ to $w_0$). This framework can be used to update the parameters incrementally with a gradient descent algorithm, either stochastic gradient descent (where a single $(x,y)$ pair is used for each iteration's gradient calculation) or mini-batch gradient descent (where an appropriate subset of the available data is used for each iteration's gradient calculation) or simply re-using the entire data available for each iteration's gradient calculation (and consequent, parameter update). Moreover, the flexibility of our framework, allowing for incremental estimation, is particularly important for Reinforcement Learning algorithms wherein we update the parameters of the function approximation from the new data that is generated from each state transition as a result of interaction with either the real environment or a simulated environment.
- 
-Among other things, the estimate $f$ (parameterized by $w^*$) gives us the model expected value of $y$ conditional on $x$, i.e.
 
-$$\mathbb{E}_M[y|x] = \int_{-\infty}^{+\infty} y \cdot f(x;w^*)(y) \cdot dy$$
+Among other things, the estimate $f$ (parameterized by $w$) gives us the model-expected value of $y$ conditional on $x$, i.e.
+
+$$\mathbb{E}_M[y|x] = \mathbb{E}_{f(x;w)}[y] = \int_{-\infty}^{+\infty} y \cdot f(x;w)(y) \cdot dy$$
 
 For the purposes of Approximate Dynamic Programming and Reinforcement Learning, the above expectation will provide an estimate of the Value Function for any state ($x$ takes the role of the state, and $y$ takes the role of the Value Function for that state). In the case of function approximation for policies, $x$ takes the role of the state, and $y$ takes the role of the action for that policy, and $f(x;w)$ will provide the probability distribution of the actions for state $x$ (for a stochastic policy). It's also worthwhile pointing out that the broader theory of function approximations covers the case of multi-dimensional $y$ (where $y$ is a real-valued vector, rather than scalar) - this allows us to solve classification problems, along with regression problems. However, for ease of exposition and for sufficient coverage of function approximation applications in this book, we will only cover the case of scalar $y$.
 
-Now let us write code for this framework - for incremental estimation of $f$ with updates to $w$ at each iteration $t$ and for evaluation of $\mathbb{E}_M[y|x]$ using the function $f(x;w)$. We write an abstract base class `FunctionApprox` parameterized by `X` (to permit arbitrary data types $\mathcal{X}$). The first `@abstractmethod` is `update` that takes as input a sequence of $(x,y)$ pairs and is meant to update the weights $w$ that define $f(x;w)$. The second `@abstractmethod` is `evaluate` that takes as input a sequence of $x$ values and is meant to calculate $f(x;w)$ for each of those $x$ values and produce the output sequence of $f(x;w)$ values in the form of an `np.ndarray`. The concrete classes that implement this abstract class `FunctionApprox` will implement these two `abstractmethod`s according to the functional form assumptions for $f$.
+Now let us write some code that captures this framework. We write an abstract base class `FunctionApprox` parameterized by `X` (to permit arbitrary data types $\mathcal{X}$), representing $f(x;w)$, with the following 3 key `@abstractmethod`s, each of which will work with inputs of generic `Iterable` type (`Iterable` is any data type that we can iterate over, such as `Sequence` types or `Iterator` type):
+
+1. `solve`: takes as input an `Iterable` of $(x,y)$ pairs and solves for the optimal internal parameters $w^*$ that minimizes the cross-entropy between the empirical probability distribution of the input data of $(x,y)$ pairs and the model probability distribution $f(x;w)$. Some implementations of `solve` are iterative numerical methods and would require an additional input of `error_tolerance` that specifies the required precision of the best-fit parameters $w^*$. When an implementation of `solve` is an analytical solution not requiring an error tolerance, we specify the input `error_tolerance` as `None`. The output of `solve` is the `FunctionApprox` $f(x;w^*)$ (i.e., corresponding to the solved parameters $w^*$).
+2. `update`: takes as input an `Iterable` of $(x,y)$ pairs and updates the parameters $w$ defining $f(x;w)$. The purpose of `update` is to perform an incremental (iterative) improvement to the parameters $w$, given the input data of $(x,y)$ pairs in the current iteration. The output of `update` is the `FunctionApprox` corresponding to the updated parameters. Note that we should be able to `solve` based on an appropriate series of incremental `update`s (upto a specified `error_tolerance`). 
+3. `evaluate`: takes as input an `Iterable` of $x$ values and calculates $\mathbb{E}_M[y|x] = \mathbb{E}_{f(x;w)}[y]$ for each of the input $x$ values, and outputs these expected values in the form of a `numpy.ndarray`.
 
 ```python
 from abc import ABC, abstractmethod
@@ -40,33 +44,70 @@ X = TypeVar('X')
 class FunctionApprox(ABC, Generic[X]):
 
     @abstractmethod
+    def evaluate(self, x_values_seq: Iterable[X]) -> np.ndarray:
+        pass
+
+    @abstractmethod
     def update(
         self,
-        xy_vals_seq: Sequence[Tuple[X, float]]
+        xy_vals_seq: Iterable[Tuple[X, float]]
     ) -> FunctionApprox[X]:
         pass
 
     @abstractmethod
-    def evaluate(self, x_values_seq: Sequence[X]) -> np.ndarray:
+    def solve(
+        self,
+        xy_vals_seq: Iterable[Tuple[X, float]],
+        error_tolerance: Optional[float] = None
+    ) -> FunctionApprox[X]:
         pass
-
 ```
 
-We also need a couple of helper methods in `FunctionApprox`. One is a `@staticmethod within` that runs through an `Iterator` of `FunctionApprox` objects (obtained from the sequence of updates to the weights $w$) and terminates the updates when the weights $w$ in two successive `FunctionApprox` objects in the `Iterator` are "close enough". The judgement of "close enough" is made by an `@abstractmethod within` that is meant to examine the "closeness" of weights $w$ within two `FunctionApprox` objects. Specific classes that implement `FunctionApprox` will need to implement the method `within` along with the methods `update` and `evaluate`. The complete code for `FunctionApprox` is in the file [rl/function_approx.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/function_approx.py).
+When concrete classes implementing `FunctionApprox` write the `solve` method in terms of the `update` method, they will need to check if a newly updated `FunctionApprox` is "close enough" to the previous `FunctionApprox`. So each of them will need to implement their own version of "Are two `FunctionApprox` instances within a certain `error_tolerance` of each other?". Hence, we need the following `@abstractmethod within`:
 
 ```python
     @abstractmethod
     def within(self, other: FunctionApprox[X], tolerance: float) -> bool:
         pass
-
-    @staticmethod
-    def converged(iterator: Iterator[FunctionApprox[X]],
-                  tolerance: float = 0.0001) -> FunctionApprox[X]:
-        def done(a, b):
-            return a.within(b, tolerance)
-
-        return iterate.converged(iterator, done=done)
 ```
+
+Any concrete class that implement this abstract class `FunctionApprox` will need to implement these four `abstractmethod`s of `FunctionApprox`, based on the specific assumptions that the concrete class makes for $f$. 
+
+Next, we write some useful methods that the concrete classes implementing `FunctionApprox` can inherit and utilize. Firstly, we write a method called `iterate_updates` that takes as input a stream (`Iterator`) of `Iterable` of $(x,y)$ pairs, and performs a series of incremental updates to the parameters $w$ (each using the `update` method), with each `update` done for each `Iterable` of $(x,y)$ pairs in the input stream `xy_seq: Iterator[Iterable[Tuple[X, float]]]`. `iterate_updates` returns an `Iterator[FunctionApprox[X]]` representing the successively updated `FunctionApprox` instances as a consequence of the repeated invocations to `update`. Note the use of the standard Python function `itertools.acccumulate` to accomplish this. The `rmse` method will be useful in writing the `solve` method  in terms of the `update` method.
+
+```python
+import itertools
+
+    def iterate_updates(
+        self,
+        xy_seq_stream: Iterator[Iterable[Tuple[X, float]]]
+    ) -> Iterator[FunctionApprox[X]]:
+        return itertools.accumulate(
+            xy_seq_stream,
+            lambda fa, xy: fa.update(xy), initial=self
+        )
+```
+
+Next, we write a method called `rmse` to calculate the Root-Mean-Squared-Error of the predictions for $x$ (using `evaluate`) relative to associated (supervisory) $y$, given as input an `Iterable` of $(x,y)$ pairs. This method will be useful in testing the goodness of a `FunctionApprox` estimate.
+
+```python
+    def rmse(
+        self,
+        xy_seq: Iterable[Tuple[X, float]]
+    ) -> float:
+        x_seq, y_seq = zip(*xy_seq)
+        errors: np.ndarray = self.evaluate(x_seq) - np.array(y_seq)
+        return np.sqrt(np.mean(errors * errors))
+```
+
+Finally, we write a method `argmax` that takes as input an `Iterable` of $x$ values and returns the $x$ value that maximizes $\mathbb{E}_{f(x;w)}[x]$.
+
+```python
+    def argmax(self, xs: Iterable[X]) -> X:
+        return list(xs)[np.argmax(self.evaluate(xs))]
+```
+
+The above code for `FunctionApprox` is in the file [rl/function_approx.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/function_approx.py).
 
 Now we are ready to cover a concrete but simple function approximation - the case of linear function approximation. 
 
@@ -74,7 +115,7 @@ Now we are ready to cover a concrete but simple function approximation - the cas
 
 We define a sequence of feature functions
 $$\phi_j: \mathcal{X} \rightarrow \mathbb{R} \text{ for each } j = 1, 2, \ldots, m$$
-We define the weights $w$ as a vector $\bm{w} = (w_1, w_2, \ldots, w_m) \in \mathbb{R}^m$. Linear function approximation is based on the assumption of a Gaussian distribution for $y|x$ with mean
+For linear function approximation, the internal parameters $w$ are represented as a weights vector $\bm{w} = (w_1, w_2, \ldots, w_m) \in \mathbb{R}^m$. Linear function approximation is based on the assumption of a Gaussian distribution for $y|x$ with mean
 $$\sum_{j=1}^m \phi_j(x) \cdot w_j$$
 and constant variance $\sigma^2$, i.e.,
 $$\mathbb{P}[y|x] = f(x;\bm{w})(y) = \frac {1} {\sqrt{2\pi \sigma^2}} \cdot e^{-\frac {(y - \sum_{j=1}^m \phi_j(x) \cdot w_j)^2} {2\sigma^2}}$$
@@ -103,13 +144,13 @@ then the gradient estimate $\mathcal{G}_{(x_t,y_t)}(\bm{w}_t)$ at time $t$ is gi
 $$\mathcal{G}_{(x_t, y_t)}(\bm{w}_t) = \frac 1 n \cdot (\sum_{i=1}^{n_t} \bm{\phi}(x_{t,i}) \cdot (\bm{\phi}(x_{t,i}) \cdot \bm{w}_t - y_{t,i})) + \lambda \cdot \bm{w}_t$$
 which can be interpreted as the mean (over the data in iteration $t$) of the feature vectors $\bm{\phi}(x_{t,i})$ weghted by the (scalar) linear prediction errors $\bm{\phi}(x_{t,i}) \cdot \bm{w} - y_{t,i}$ (plus regularization term $\lambda \cdot \bm{w}$).
 
-Then, the update to the weights is given by:
+Then, the update to the weights vector $\bm{w}$ is given by:
 
 $$\bm{w}_{t+1} = \bm{w}_t - \alpha_t \cdot \mathcal{G}_{(x_t, y_t)}(\bm{w}_t)$$
 
 where $\alpha_t$ is the learning rate for the gradient descent at time $t$. To facilitate numerical convergence, we require $\alpha_t$ to be an appropriate function of time $t$. There are a number of numerical algorithms to achieve the appropriate time-trajectory of $\alpha_t$. We shall go with one such numerical algorithm - [ADAM](https://en.wikipedia.org/wiki/Stochastic_gradient_descent#Adam), which we shall use not just for linear function approximation but also for the deep neural network function approximation. Before we write code for linear function approximation, we need to write some helper code to implement the ADAM gradient descent algorithm.
 
-We create an `@dataclass Weights` to represent and update the weights of a function approximation. The `Weights` dataclass has 5 attributes: `adam_gradient` that captures the ADAM parameters, including the base learning rate and the decay parameter, `time` that represents how many times the weights have been updated, `weights` that represents the weight parameters of the function approximation as a numpy array (1-D array for linear function approximation and 2-D array for each layer of deep neural network function approximation), and the two ADAM cache parameters. The `@staticmethod create` serves as a factory method to create a new instance of the `Weights` dataclass. The `update` method of this `Weights` dataclass produces an updated instance of the `Weights` dataclass that represents the updated weight parameters together with the incremented `time` and the updated ADAM cache parameters. We will follow a programming design pattern wherein we don't update anything in-place - rather, we create a new object with updated values (using the `dataclasses.replace` function). This ensures we don't get unexpected/undesirable updates in-place, which are typically the cause of bugs in numerical code. Finally, we write the `within` method which will be required to implement the `within` method in the linear function approximation class as well as in the deep neural network function approximation class.
+We create an `@dataclass Weights` to represent and update the weights (i.e., internal parameters) of a function approximation. The `Weights` dataclass has 5 attributes: `adam_gradient` that captures the ADAM parameters, including the base learning rate and the decay parameter, `time` that represents how many times the weights have been updated, `weights` that represents the weight parameters of the function approximation as a numpy array (1-D array for linear function approximation and 2-D array for each layer of deep neural network function approximation), and the two ADAM cache parameters. The `@staticmethod create` serves as a factory method to create a new instance of the `Weights` dataclass. The `update` method of this `Weights` dataclass produces an updated instance of the `Weights` dataclass that represents the updated weight parameters together with the incremented `time` and the updated ADAM cache parameters. We will follow a programming design pattern wherein we don't update anything in-place - rather, we create a new object with updated values (using the `dataclasses.replace` function). This ensures we don't get unexpected/undesirable updates in-place, which are typically the cause of bugs in numerical code. Finally, we write the `within` method which will be required to implement the `within` method in the linear function approximation class as well as in the deep neural network function approximation class.
 
 ```python
 SMALL_NUM = 1e-6
@@ -176,23 +217,27 @@ class Weights:
         return np.all(np.abs(self.weights - other.weights) <= tolerance).item()
 ```
 
-Given this `Weights` dataclass, we are now ready to write the `@dataclass LinearFunctionApprox` for linear function approximation that implements the abstract base class `FunctionApprox`. It has attributes `feature_functions` that represents $\phi_j: \mathcal{X} \rightarrow \mathbb{R}$ for all $j = 1, 2, \ldots, m$, `regularization_coeff` that represents the regularization coefficient $\lambda$, and `weights` which is an instance of the `Weights` class we wrote above. The `@staticmethod create` serves as a factory method to create a new instance of `LinearFunctionApprox`. The method `get_feature_values` takes as input an `x_values_seq: Sequence[X]` (representing a sequence of $x \in \mathcal{X}$), and produces as output the corresponding feature vectors $\bm{\phi}(x) \in \mathbb{R}^m$ for each of the $x$ in the input sequence. The feature vectors are output in the form of a 2-D numpy array, with each feature vector $\bm{\phi}(x)$ (for each $x$ in the input sequence) appearing as a row in the output 2-D numpy array (the number of rows in this numpy array is the length of the input `x_values_seq` and the number of columns is the number of feature functions). Note that often we want to include a bias term in our linear function approximation, in which case we need to prepend the sequence of feature functions we want to provide as input with an artificial feature function `lambda _: 1.` to represent the constant feature with value 1. This will ensure we have a bias weight in addition to each of the weights that serve as coefficients to the (non-artificial) feature functions. The method `evaluate` (an `@abstractmethod` in `FunctionApprox`) calculates the prediction $\mathbb{E}_M[y|x]$ for each $x$ in the input sequence as: $\bm{\phi}(x) \cdot \bm{w} = \sum_{j=1}^m \phi_j(x) \cdot w_i$. The method `regularized_loss_gradient` performs the calculation $\mathcal{G}_{(x_t, y_t)}(\bm{w}_t)$ shown above. Finally, the method `update` (`@abstractmethod` in `FunctionApprox`) invokes `regularized_loss_gradient` and returns a new instance of `LinearFunctionApprox` that contains the updated weights, along with the ADAM cache updates (invoking the `update` method of the `Weights` class to ensure there are no in-place updates).
+Given this `Weights` dataclass, we are now ready to write the `@dataclass LinearFunctionApprox` for linear function approximation that implements the abstract base class `FunctionApprox`. It has attributes `feature_functions` that represents $\phi_j: \mathcal{X} \rightarrow \mathbb{R}$ for all $j = 1, 2, \ldots, m$, `regularization_coeff` that represents the regularization coefficient $\lambda$, `weights` which is an instance of the `Weights` class we wrote above, and `direct_solve` (which we will explain shortly. The `@staticmethod create` serves as a factory method to create a new instance of `LinearFunctionApprox`. The method `get_feature_values` takes as input an `x_values_seq: Iterable[X]` (representing a data set of $x \in \mathcal{X}$), and produces as output the corresponding feature vectors $\bm{\phi}(x) \in \mathbb{R}^m$ for each of the input $x$. The feature vectors are output in the form of a 2-D numpy array, with each feature vector $\bm{\phi}(x)$ (for each $x$ in the input sequence) appearing as a row in the output 2-D numpy array (the number of rows in this numpy array is the length of the input `x_values_seq` and the number of columns is the number of feature functions). Note that often we want to include a bias term in our linear function approximation, in which case we need to prepend the sequence of feature functions we want to provide as input with an artificial feature function `lambda _: 1.` to represent the constant feature with value 1. This will ensure we have a bias weight in addition to each of the weights that serve as coefficients to the (non-artificial) feature functions. The method `evaluate` (an `@abstractmethod` in `FunctionApprox`) calculates the prediction $\mathbb{E}_M[y|x]$ for each input $x$ as: $\bm{\phi}(x) \cdot \bm{w} = \sum_{j=1}^m \phi_j(x) \cdot w_i$. The method `regularized_loss_gradient` performs the calculation $\mathcal{G}_{(x_t, y_t)}(\bm{w}_t)$ shown above. The method `update` (`@abstractmethod` in `FunctionApprox`) invokes `regularized_loss_gradient` and returns a new instance of `LinearFunctionApprox` that contains the updated weights, along with the ADAM cache updates (invoking the `update` method of the `Weights` class to ensure there are no in-place updates).
 
 
 ```python
+from dataclasses import replace
+
 @dataclass(frozen=True)
 class LinearFunctionApprox(FunctionApprox[X]):
 
     feature_functions: Sequence[Callable[[X], float]]
     regularization_coeff: float
     weights: Weights
+    direct_solve: bool
 
     @staticmethod
     def create(
         feature_functions: Sequence[Callable[[X], float]],
         adam_gradient: AdamGradient,
         regularization_coeff: float = 0.,
-        weights: Optional[Weights] = None
+        weights: Optional[Weights] = None,
+        direct_solve: bool = True
     ) -> LinearFunctionApprox[X]:
         return LinearFunctionApprox(
             feature_functions=feature_functions,
@@ -200,23 +245,30 @@ class LinearFunctionApprox(FunctionApprox[X]):
             weights=Weights.create(
                 adam_gradient=adam_gradient,
                 weights=np.zeros(len(feature_functions))
-            ) if weights is None else weights
+            ) if weights is None else weights,
+            direct_solve=direct_solve
         )
 
-    def get_feature_values(self, x_values_seq: Sequence[X]) -> np.ndarray:
+    def get_feature_values(self, x_values_seq: Iterable[X]) -> np.ndarray:
         return np.array(
             [[f(x) for f in self.feature_functions] for x in x_values_seq]
         )
 
-    def evaluate(self, x_values_seq: Sequence[X]) -> np.ndarray:
+    def evaluate(self, x_values_seq: Iterable[X]) -> np.ndarray:
         return np.dot(
             self.get_feature_values(x_values_seq),
             self.weights.weights
         )
 
+    def within(self, other: FunctionApprox[X], tolerance: float) -> bool:
+        if isinstance(other, LinearFunctionApprox):
+            return self.weights.within(other.weights, tolerance)
+        else:
+            return False
+
     def regularized_loss_gradient(
         self,
-        xy_vals_seq: Sequence[Tuple[X, float]]
+        xy_vals_seq: Iterable[Tuple[X, float]]
     ) -> np.ndarray:
         x_vals, y_vals = zip(*xy_vals_seq)
         feature_vals: np.ndarray = self.get_feature_values(x_vals)
@@ -227,7 +279,7 @@ class LinearFunctionApprox(FunctionApprox[X]):
 
     def update(
         self,
-        xy_vals_seq: Sequence[Tuple[X, float]]
+        xy_vals_seq: Iterable[Tuple[X, float]]
     ) -> LinearFunctionApprox[X]:
         gradient: np.ndarray = self.regularized_loss_gradient(xy_vals_seq)
         new_weights: np.ndarray = self.weights.update(gradient)
@@ -244,7 +296,7 @@ We also require the `within` method, that simply delegates to the `within` metho
             return False
 ```
 
-Note that for linear function approximation, we can directly solve for $\bm{w^*}$ if the number of feature functions $m$ is not too large. If the entire provided data is $[(x_i, y_i)|1\leq i \leq n]$, then the gradient estimate based on this data can be set to 0 to solve for $\bm{w^*}$, i.e.,
+The only method that remains to be written now is the `solve` method. Note that for linear function approximation, we can directly solve for $\bm{w^*}$ if the number of feature functions $m$ is not too large. If the entire provided data is $[(x_i, y_i)|1\leq i \leq n]$, then the gradient estimate based on this data can be set to 0 to solve for $\bm{w^*}$, i.e.,
 $$\frac 1 n \cdot (\sum_{i=1}^n \bm{\phi}(x_i) \cdot (\bm{\phi}(x_i) \cdot \bm{w^*} - y_i)) + \lambda \cdot \bm{w^*} = 0$$
 We denote $\bm{\Phi}$ as the $n$ rows $\times$ $m$ columns matrix defined as $\bm{\Phi}_{i,j} = \phi_j(x_i)$ and the column vector $\bm{Y} \in \mathbb{R}^n$ defined as $\bm{Y}_i = y_i$. Then we can write the above equation as:
 $$\frac 1 n \cdot \bm{\Phi}^T \cdot (\bm{\Phi} \cdot \bm{w^*} - \bm{Y}) + \lambda \cdot \bm{w^*} = 0$$
@@ -252,27 +304,48 @@ $$\Rightarrow (\bm{\Phi}^T \cdot \bm{\Phi} + n \lambda \cdot \bm{I_m}) \cdot \bm
 $$\Rightarrow \bm{w^*} = (\bm{\Phi}^T \cdot \bm{\Phi} + n \lambda \cdot \bm{I_m})^{-1} \cdot \bm{\Phi}^T \cdot \bm{Y}$$
 where $\bm{I_m}$ is the $m \times m$ identity matrix. Note that this requires inversion of the $m \times m$ matrix $\bm{\Phi}^T \cdot \bm{\Phi} + n \lambda \cdot \bm{I_m}$ and so, this direct solution for $\bm{w^*}$ requires that $m$ not be too large.
 
-So let's also implement this direct-solve for $\bm{w^*}$ as a method in `LinearFunctionApprox`.
+On the other hand, if the number of feature functions $m$ is too large, then this direct-solve method is infeasible. In that case, we solve for $\bm{w^*}$ by repeatedly calling `update`. The attribute `direct_solve: bool' in `LinearFunctionApprox` specifies whether to perform a direct solution (linear algebra calculations shown above) or to perform a sequence of iterative (incremental) `updates` to $\bm{w}$ using gradient descent. The code below for the method `solve` does exactly this:
 
 ```python
-    def direct_solve(
+import itertools
+import rl.iterate import iterate
+
+    def solve(
         self,
-        xy_vals_seq: Sequence[Tuple[X, float]]
+        xy_vals_seq: Iterable[Tuple[X, float]],
+        error_tolerance: Optional[float] = None
     ) -> LinearFunctionApprox[X]:
-        x_vals, y_vals = zip(*xy_vals_seq)
-        feature_vals: np.ndarray = self.get_feature_values(x_vals)
-        feature_vals_T: np.ndarray = feature_vals.T
-        left: np.ndarray = np.dot(feature_vals_T, feature_vals) \
-            + feature_vals.shape[0] * self.regularization_coeff * \
-            np.eye(len(self.weights.weights))
-        right: np.ndarray = np.dot(feature_vals_T, y_vals)
-        return replace(
-            self,
-            weights=Weights.create(
-                adam_gradient=self.weights.adam_gradient,
-                weights=np.dot(np.linalg.inv(left), right)
+        if self.direct_solve:
+            x_vals, y_vals = zip(*xy_vals_seq)
+            feature_vals: np.ndarray = self.get_feature_values(x_vals)
+            feature_vals_T: np.ndarray = feature_vals.T
+            left: np.ndarray = np.dot(feature_vals_T, feature_vals) \
+                + feature_vals.shape[0] * self.regularization_coeff * \
+                np.eye(len(self.weights.weights))
+            right: np.ndarray = np.dot(feature_vals_T, y_vals)
+            ret = replace(
+                self,
+                weights=Weights.create(
+                    adam_gradient=self.weights.adam_gradient,
+                    weights=np.dot(np.linalg.inv(left), right)
+                )
             )
-        )
+        else:
+            tol: float = 1e-6 if error_tolerance is None else error_tolerance
+
+            def done(
+                a: LinearFunctionApprox[X],
+                b: LinearFunctionApprox[X],
+                tol: float = tol
+            ) -> bool:
+                return a.within(b, tol)
+
+            ret = iterate.converged(
+                self.iterate_updates(itertools.repeat(xy_vals_seq)),
+                done=done
+            )
+
+        return ret
 ```
 
 The above code is in the file [rl/function_approx.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/function_approx.py).
@@ -449,7 +522,7 @@ Here are some common specializations of the functional form for the conditional 
 
 Now we are ready to write a class for function approximation with the deep neural network framework described above. We shall assume that the activation functions $g_l(\cdot)$ are identical for all $l = 0, 1, \ldots, L-1$ (known as the hidden layers activation function) and the activation function $g_L(\cdot)$ will be known as the output layer activation function. Note that often we want to include a bias term in the linear transformations of the layers. To include a bias term in layer 0, just like in the case of `LinearFuncApprox`, we prepend the sequence of feature functions we want to provide as input with an artificial feature function `lambda _: 1.` to represent the constant feature with value 1. This will ensure we have a bias weight in layer 0 in addition to each of the weights (in layer 0) that serve as coefficients to the (non-artificial) feature functions. Moreover, we allow the specification of a `bias` boolean variable to enable a bias term in each if the layers $l = 1, 2, \ldots L$.
 
-Before we develop the code for forward-propagation and back-propagation, we write a `@dataclass` to hold the configuration of a deep neural network (number of `neurons`` in the layers, the `bias`` boolean variable, hidden layers activation function and output layer activation function).
+Before we develop the code for forward-propagation and back-propagation, we write a `@dataclass` to hold the configuration of a deep neural network (number of `neurons` in the layers, the `bias` boolean variable, hidden layers activation function and output layer activation function).
 
 ```python
 @dataclass(frozen=True)
@@ -470,13 +543,17 @@ Now we write the `@dataclass DNNApprox` that implements the abstract base class 
 * `regularization_coeff` that represents the common regularization coefficient $\lambda$ for the weights across all layers
 * `weights` which is a sequence of `Weights` objects (to represent and update the weights of all layers).
 
-The `get_feature_values` method is identical to the case of `LinearFunctionApprox` producing a matrix with number of rows equal to the number of $x$ values in it's input `x_values_seq: Sequence[X]` and number of columns equal to the number of specified `feature_functions`. The method `forward_propagation` implements the forward-propagation calculation that was covered earlier (combining Equations \eqref{eq:layers_input_output_connect} (potentially adjusted for the bias term, as mentioned above), \eqref{eq:layer_linearity} and \eqref{eq:layer_non_linearity}), computing a sequence of $y$ values as an `np.ndarray` corresponding to each of the sequence of $x$ values provided as input in `x_values_seq`. `forward_propagation` returns a list whose last element represents the final output of the neural network $\bm{O_L} = \mathbb{E}_M[y|x]$ and the remaining elements represent $\bm{I_l}$ for all $l = 0, 1, \ldots L$ (for each of the $x$ values provided as input in `x_values_seq`). The method `evaluate` (an `@abstractmethod` in `FunctionApprox`) returns the last element ($\bm{O_L} = \mathbb{E}_M[y|x]$) from the output of `forward_propagation`. The method `backward_propagation` is the most important method of `DNNApprox` and deserves a detailed explanation.
+The `get_feature_values` method is identical to the case of `LinearFunctionApprox` producing a matrix with number of rows equal to the number of $x$ values in it's input `x_values_seq: Iterable[X]` and number of columns equal to the number of specified `feature_functions`. The method `forward_propagation` implements the forward-propagation calculation that was covered earlier (combining Equations \eqref{eq:layers_input_output_connect} (potentially adjusted for the bias term, as mentioned above), \eqref{eq:layer_linearity} and \eqref{eq:layer_non_linearity}), computing a sequence of $y$ values as an `np.ndarray` corresponding to each of the input $x$ values `x_values_seq`. `forward_propagation` returns a list whose last element represents the final output of the neural network $\bm{O_L} = \mathbb{E}_M[y|x]$ and the remaining elements represent $\bm{I_l}$ for all $l = 0, 1, \ldots L$ (for each of the $x$ values provided as input in `x_values_seq`). The method `evaluate` (an `@abstractmethod` in `FunctionApprox`) returns the last element ($\bm{O_L} = \mathbb{E}_M[y|x]$) from the output of `forward_propagation`. The method `backward_propagation` is the most important method of `DNNApprox` and deserves a detailed explanation.
 
-`backward_propagation` takes as input `xy_vals_seq` which is a sequence of $(x,y)$ pairs, and the output of `backward_propagation` is an estimate of $\nabla_{\bm{w_l}} \mathcal{L} = \bm{P_l} \otimes \bm{I_l}$ (i.e., without the regularization term) for all $l = 0, 1, \ldots L$, using the input data of $(x,y)$ pairs. The first step in this method is to invoke `forward_propagation` and store the results in the variable `fwd_prop`, whose last element represents $\bm{O_L}$ and whose remaining elements represent $\bm{I_l}$ for all $l = 0, 1, \ldots L$ (for each of the $x$ values provided as input in `xy_vals_seq`). This sequence of $\bm{I_l}$ is stored in the variable `layer_inputs`. The variable `deriv` represents $\bm{P_l} = \nabla_{\bm{S_l}} \mathcal{L}$, computed for each of the $x$ values provided as input in `xy_vals_seq` (note that `deriv` is updated in each iteration of the loop). `deriv` is initialized to the value of $P_L = O_L - y$. Within the loop, we perform the calculations of Theorem \ref{th:recursive_gradient_formulation}: $\bm{P_l} = (\bm{w_{l+1}}^T \cdot \bm{P_{l+1}}) \circ g_l'(\bm{S_l})$ (updating the `deriv` variable) and Equation \eqref{eq:loss_gradient_formula}: $\nabla_{\bm{w_l}} \mathcal{L} = \bm{P_l} \otimes \bm{I_l}$ (storing the results in the variable `back_prop`).
+`backward_propagation` takes as input `xy_vals_seq` which is an `Iterable` of $(x,y)$ pairs, and the output of `backward_propagation` is an estimate of $\nabla_{\bm{w_l}} \mathcal{L} = \bm{P_l} \otimes \bm{I_l}$ (i.e., without the regularization term) for all $l = 0, 1, \ldots L$, using the input data of $(x,y)$ pairs. The first step in this method is to invoke `forward_propagation` and store the results in the variable `fwd_prop`, whose last element represents $\bm{O_L}$ and whose remaining elements represent $\bm{I_l}$ for all $l = 0, 1, \ldots L$ (for each of the $x$ values provided as input in `xy_vals_seq`). This sequence of $\bm{I_l}$ is stored in the variable `layer_inputs`. The variable `deriv` represents $\bm{P_l} = \nabla_{\bm{S_l}} \mathcal{L}$, computed for each of the $x$ values provided as input in `xy_vals_seq` (note that `deriv` is updated in each iteration of the loop). `deriv` is initialized to the value of $P_L = O_L - y$. Within the loop, we perform the calculations of Theorem \ref{th:recursive_gradient_formulation}: $\bm{P_l} = (\bm{w_{l+1}}^T \cdot \bm{P_{l+1}}) \circ g_l'(\bm{S_l})$ (updating the `deriv` variable) and Equation \eqref{eq:loss_gradient_formula}: $\nabla_{\bm{w_l}} \mathcal{L} = \bm{P_l} \otimes \bm{I_l}$ (storing the results in the variable `back_prop`).
 
-The method `regularized_loss_gradient` simply adds on the regularization term $\lambda \cdot \bm{w_l}$ to the output of `backward_propagation`. Finally, the method `update` (`@abstractmethod` in `FunctionApprox`) invokes `regularized_loss_gradient` and returns a new instance of `DNNApprox` that contains the updated weights, along with the ADAM cache updates (invoking the `update` method of the `Weights` class to ensure there are no in-place updates).
+The method `regularized_loss_gradient` simply adds on the regularization term $\lambda \cdot \bm{w_l}$ to the output of `backward_propagation`. The method `update` (`@abstractmethod` in `FunctionApprox`) invokes `regularized_loss_gradient` and returns a new instance of `DNNApprox` that contains the updated weights, along with the ADAM cache updates (invoking the `update` method of the `Weights` class to ensure there are no in-place updates). Finally, the method `solve` (`@abstractmethod` in `FunctionApprox`) utilizes the method `iterate_updates` (inherited from `FunctionApprox`) along with the method `within` to perform a best-fit of the weights that minimizes the cross-entropy loss function (basically, a series of incremental `update`s based on gradient descent).
 
 ```python
+from dataclasses import replace
+import itertools
+import rl.iterate import iterate
+
 @dataclass(frozen=True)
 class DNNApprox(FunctionApprox[X]):
 
@@ -512,14 +589,14 @@ class DNNApprox(FunctionApprox[X]):
             weights=wts
         )
 
-    def get_feature_values(self, x_values_seq: Sequence[X]) -> np.ndarray:
+    def get_feature_values(self, x_values_seq: Iterable[X]) -> np.ndarray:
         return np.array(
             [[f(x) for f in self.feature_functions] for x in x_values_seq]
         )
 
     def forward_propagation(
         self,
-        x_values_seq: Sequence[X]
+        x_values_seq: Iterable[X]
     ) -> Sequence[np.ndarray]:
         inp: np.ndarray = self.get_feature_values(x_values_seq)
         ret: List[np.ndarray] = [inp]
@@ -539,12 +616,19 @@ class DNNApprox(FunctionApprox[X]):
         )
         return ret
 
-    def evaluate(self, x_values_seq: Sequence[X]) -> np.ndarray:
+    def evaluate(self, x_values_seq: Iterable[X]) -> np.ndarray:
         return self.forward_propagation(x_values_seq)[-1][:, 0]
+
+    def within(self, other: FunctionApprox[X], tolerance: float) -> bool:
+        if isinstance(other, DNNApprox):
+            return all(w1.within(w2, tolerance)
+                       for w1, w2 in zip(self.weights, other.weights))
+        else:
+            return False
 
     def backward_propagation(
         self,
-        xy_vals_seq: Sequence[Tuple[X, float]]
+        xy_vals_seq: Iterable[Tuple[X, float]]
     ) -> Sequence[np.ndarray]:
         x_vals, y_vals = zip(*xy_vals_seq)
         fwd_prop: Sequence[np.ndarray] = self.forward_propagation(x_vals)
@@ -554,24 +638,39 @@ class DNNApprox(FunctionApprox[X]):
         ).reshape(1, -1)
         back_prop: List[np.ndarray] = [np.dot(deriv, layer_inputs[-1]) /
                                        deriv.shape[1]]
+        # L is the number of hidden layers, n is the number of points
+        # layer l deriv represents dObj/dS_l where S_l = I_l . weights_l
+        # (S_l is the result of applying layer l without the activation func)
         for i in reversed(range(len(self.weights) - 1)):
+            # deriv_l is a 2-D array of dimension |O_l| x n
+            # The recursive formulation of deriv is as follows:
+            # deriv_{l-1} = (weights_l^T inner deriv_l) haddamard g'(S_{l-1}),
+            # which is ((|I_l| x |O_l|) inner (|O_l| x n)) haddamard
+            # (|I_l| x n), which is (|I_l| x n) = (|O_{l-1}| x n)
+            # Note: g'(S_{l-1}) is expressed as hidden layer activation
+            # derivative as a function of O_{l-1} (=I_l).
             deriv = np.dot(self.weights[i + 1].weights.T, deriv) * \
                 self.dnn_spec.hidden_activation_deriv(layer_inputs[i + 1].T)
+            # If self.dnn_spec.bias is True, then I_l = O_{l-1} + 1, in which
+            # case # the first row of the calculated deriv is removed to yield
+            # a 2-D array of dimension |O_{l-1}| x n.
             if self.dnn_spec.bias:
                 deriv = deriv[1:]
+            # layer l gradient is deriv_l inner layer_inputs_l, which is
+            # of dimension (|O_l| x n) inner (n x (|I_l|) = |O_l| x |I_l|
             back_prop.append(np.dot(deriv, layer_inputs[i]) / deriv.shape[1])
         return back_prop[::-1]
 
     def regularized_loss_gradient(
         self,
-        xy_vals_seq: Sequence[Tuple[X, float]]
+        xy_vals_seq: Iterable[Tuple[X, float]]
     ) -> Sequence[np.ndarray]:
         return [x + self.regularization_coeff * self.weights[i].weights
                 for i, x in enumerate(self.backward_propagation(xy_vals_seq))]
 
     def update(
         self,
-        xy_vals_seq: Sequence[Tuple[X, float]]
+        xy_vals_seq: Iterable[Tuple[X, float]]
     ) -> DNNApprox[X]:
         return replace(
             self,
@@ -580,39 +679,25 @@ class DNNApprox(FunctionApprox[X]):
                 self.regularized_loss_gradient(xy_vals_seq)
             )]
         )
-```
-We also require the `within` method, that simply delegates to the `within` method of the `Weights` class.
 
-```python
-    def within(self, other: FunctionApprox[X], tolerance: float) -> bool:
-        if isinstance(other, DNNApprox):
-            return all(w1.within(w2, tolerance)
-                       for w1, w2 in zip(self.weights, other.weights))
-        else:
-            return False
-```
+    def solve(
+        self,
+        xy_vals_seq: Iterable[Tuple[X, float]],
+        error_tolerance: Optional[float] = None
+    ) -> DNNApprox[X]:
+        tol: float = 1e-6 if error_tolerance is None else error_tolerance
 
-We also need a couple of utilities to be able to use `LinearFunctionApprox` and `DNNApprox` objects:
+        def done(
+            a: DNNApprox[X],
+            b: DNNApprox[X],
+            tol: float = tol
+        ) -> bool:
+            return a.within(b, tol)
 
-* `sgd` which performs a stochastic gradient descent for an instance of `FunctionApprox` using an Iterator on a sequence of $(x,y)$ pairs (note how `sgd` calls `update` repeatedly).
-* `rmse` which calculates the Root-Mean-Squared-Error of the predictions from an instance of `FunctionApprox`, based on a sequence of $(x,y)$ pairs of test data.
-
-```python
-def sgd(
-    func_approx: FunctionApprox[X],
-    xy_seq_stream: Iterator[Sequence[Tuple[X, float]]]
-) -> Iterator[FunctionApprox[X]]:
-    for xy_seq in xy_seq_stream:
-        yield func_approx
-        func_approx = func_approx.update(xy_seq)
-
-def rmse(
-    func_approx: FunctionApprox[X],
-    xy_seq: Sequence[Tuple[X, float]]
-) -> float:
-    x_seq, y_seq = zip(*xy_seq)
-    errors: np.ndarray = func_approx.evaluate(x_seq) - np.array(y_seq)
-    return np.sqrt(np.mean(errors * errors))
+        return iterate.converged(
+            self.iterate_updates(itertools.repeat(xy_vals_seq)),
+            done=done
+        )
 ```
 
 All of the above code is in the file [rl/function_approx.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/function_approx.py).   
@@ -643,7 +728,7 @@ def data_seq_generator(
     num_pts: int
 ) -> Iterator[DataSeq]:
     while True:
-        pts: DataSeq = islice(data_generator, num_pts)
+        pts: DataSeq = list(islice(data_generator, num_pts))
         yield pts
 ```
 
@@ -666,7 +751,8 @@ def get_linear_model() -> LinearFunctionApprox[Triple]:
     return LinearFunctionApprox.create(
          feature_functions=ffs,
          adam_gradient=ag,
-         regularization_coeff=0.
+         regularization_coeff=0.,
+         direct_solve=True
     )
 ```   
 
@@ -715,9 +801,9 @@ training_data_gen: Iterator[DataSeq] = data_seq_generator(
 )
 test_data: DataSeq = list(islice(data_gen, test_num_pts))
 
-direct_solve: LinearFunctionApprox[Triple] = \
-    get_linear_model().direct_solve(next(training_data_gen))
-direct_solve_rmse: float = rmse(direct_solve, test_data)
+direct_solve_lfa: LinearFunctionApprox[Triple] = \
+    get_linear_model().solve(next(training_data_gen))
+direct_solve_rmse: float = direct_solve_lfa.rmse(test_data)
 ```
 
 Running the above code, we see that the Root-Mean-Squared-Error (`direct_solve_rmse`) is indeed 0.3, matching the standard deviation of the noise in the linear data model (which is used above to generate the training data as well as the test data).
@@ -726,14 +812,14 @@ Now let us perform stochastic gradient descent with instances of `LinearFunction
 
 ```python
 linear_model_rmse_seq: Sequence[float] = \
-    [rmse(lfa, test_data) for lfa in islice(
-        sgd(get_linear_model(), training_data_gen),
+    [lfa.rmse(test_data) for lfa in islice(
+        get_linear_model().iterate_updates(training_data_gen),
         training_iterations
     )]
 
 dnn_model_rmse_seq: Sequence[float] = \
-    [rmse(dfa, test_data) for dfa in islice(
-        sgd(get_dnn_model(), training_data_gen),
+    [dfa.rmse(test_data) for dfa in islice(
+        get_dnn_model().iterate_updates(training_data_gen),
         training_iterations
     )]
 ```
@@ -746,17 +832,28 @@ The plot of `linear_model_rmse_seq` and `dnn_model_rmse_seq` is shown in Figure 
 
 ## Tabular as a form of `FunctionApprox`
 
-Now we consider the simple case where we have a fixed set of $x$-values $\mathcal{X} = \{x_1, x_2, \ldots, x_n\}$, i.e., the $n$ $x$-values are stored in a table, and the corresponding prediction for each $x \in \mathcal{X}$ (to be stored in the table next to $x$) needs to be calculated only from the $y$-values associated with $x$ within the data set of $(x,y)$ pairs. In other words, the $y$-values in the data associated with other $x$ should not influence the prediction for $x$. Since we'd like the prediction for $x$ to be $\mathbb{E}[y|x]$, it would make sense for the prediction for a given $x$ to be the average of all the $y$ associated with $x$ within the data set of $(x,y)$ pairs seen so far. So the calculations for Tabular prediction are particularly straightforward. What is interesting though is the fact that Tabular prediction actually fits the interface of `FunctionApprox` in terms of implementing an `update` function (updating the average of $y$-values from each new $y$ in the data, associated with a given $x$) and an `evaluate` function (simply reporting the currently calculated average of $y$-values, associated with a given $x$). This view of Tabular prediction as a special case of `FunctionApprox` also permits us to cast the tabular algorithms of Dynamic Programming and Reinforcement Learning as special cases of the function approximation versions of the algorithms (using the `Tabular` class we develop below).
+Now we consider a simple case where we have a fixed and finite set of $x$-values $\mathcal{X} = \{x_1, x_2, \ldots, x_n\}$, and any data set of $(x,y)$ made available to us needs to have it's $x$-values from within this finite set $\mathcal{X}$. The prediction $\mathbb{E}[y|x]$ for each $x \in \mathcal{X}$ needs to be calculated only from the $y$-values associated with this $x$ within the data set of $(x,y)$ pairs. In other words, the $y$-values in the data associated with other $x$ should not influence the prediction for $x$. Since we'd like the prediction for $x$ to be $\mathbb{E}[y|x]$, it would make sense for the prediction for a given $x$ to be the average of all the $y$-values associated with $x$ within the data set of $(x,y)$ pairs seen so far. This simple case is refered to as *Tabular* because we can store all $x \in \mathcal{X}$ together with their corresponding predictions $\mathbb{E}[y|x]$ in a finite data structure (loosely refered to as a "table").
+
+So the calculations for Tabular prediction of $\mathbb{E}[y|x]$ is particularly straightforward. What is interesting though is the fact that Tabular prediction actually fits the interface of `FunctionApprox` in terms of implementing:
+
+* the `solve` method, that would simply take the average of all the $y$-values associated with each $x$ in the given data set, and store those averages in a dictionary data structure.
+* the `update` function, that would update the current averages in the dictionary data structure, based on the new data set of $(x,y)$ pairs that is provided.
+* the `evaluate` function, that would simply look up the dictionary data structure for the $y$-value averages associated with each $x$-value provided as input.
+
+ This view of Tabular prediction as a special case of `FunctionApprox` also permits us to cast the tabular algorithms of Dynamic Programming and Reinforcement Learning as special cases of the function approximation versions of the algorithms (using the `Tabular` class we develop below).
 
 So now let us write the code for `@dataclass Tabular` as an implementation of the abstract base class `FunctionApprox`. The attributes of `@dataclass Tabular` are:
 
-* `values_map` which is a dictionary mapping each $x$ value to the average of the $y$-values seen so far in the data, associated with $x$.
-* `counts_map` which is a dictionary mapping each $x$ value to the count of $y$-values seen so far in the data, associated with $x$. We need to track the count of $y$-values associated with each $x$ because this enables us to update `values_map` appropriately upon seeing a new $y$-value associated a given $x$.
+* `values_map` which is a dictionary mapping each $x$-value to the average of the $y$-values associated with $x$ that have been seen so far in the data.
+* `counts_map` which is a dictionary mapping each $x$-value to the count of $y$-values associated with $x$ that have been seen so far in the data. We need to track the count of $y$-values associated with each $x$ because this enables us to update `values_map` appropriately upon seeing a new $y$-value associated a given $x$.
 * `count_to_weight_func` which defines a function from number of $y$-values seen so far (associated with a given $x$) to the weight assigned to the most recent $y$. This enables us to do a weighted average of the $y$-values seen so far, controlling the emphasis to be placed on more recent $y$-values relative to previously seen $y$-values (associated with a given $x$).
 
-The `evaluate`, `update` and `within` methods are now self-explanatory.
+The `evaluate`, `update`, `solve` and `within` methods are now self-explanatory.
 
 ```python
+from collections import defaultdict
+from dataclasses import field
+
 @dataclass(frozen=True)
 class Tabular(FunctionApprox[X]):
 
@@ -767,23 +864,40 @@ class Tabular(FunctionApprox[X]):
     count_to_weight_func: Callable[[int], float] =\
         field(default_factory=lambda: lambda n: 1. / n)
 
-    def evaluate(self, x_values_seq: Sequence[X]) -> np.ndarray:
+    def evaluate(self, x_values_seq: Iterable[X]) -> np.ndarray:
         return np.array([self.values_map[x] for x in x_values_seq])
 
     def update(
         self,
-        xy_vals_seq: Sequence[Tuple[X, float]]
+        xy_vals_seq: Iterable[Tuple[X, float]]
     ) -> Tabular[X]:
-        values_map: Dict[X, float] = self.values_map.copy()
-        counts_map: Dict[X, int] = self.counts_map.copy()
+        new_values_map: Dict[X, float] = self.values_map.copy()
+        new_counts_map: Dict[X, int] = self.counts_map.copy()
         for x, y in xy_vals_seq:
-            counts_map[x] += 1
-            weight: float = self.count_to_weight_func(counts_map[x])
-            values_map[x] += weight * (y - values_map[x])
+            new_counts_map[x] += 1
+            weight: float = self.count_to_weight_func(new_counts_map[x])
+            new_values_map[x] += weight * (y - new_values_map[x])
         return replace(
             self,
-            values_map=values_map,
-            counts_map=counts_map
+            values_map=new_values_map,
+            counts_map=new_counts_map
+        )
+
+    def solve(
+        self,
+        xy_vals_seq: Iterable[Tuple[X, float]],
+        error_tolerance: Optional[float] = None
+    ) -> Tabular[X]:
+        new_values_map: Dict[X, float] = defaultdict(float)
+        new_counts_map: Dict[X, int] = defaultdict(int)
+        for x, y in xy_vals_seq:
+            new_counts_map[x] += 1
+            weight: float = self.count_to_weight_func(new_counts_map[x])
+            new_values_map[x] += weight * (y - new_values_map[x])
+        return replace(
+            self,
+            values_map=new_values_map,
+            counts_map=new_counts_map
         )
 
     def within(self, other: FunctionApprox[X], tolerance: float) -> bool:
@@ -803,10 +917,10 @@ Now we are ready to write algorithms for Approximate Dynamic Programming (ADP).
 
 ## Approximate Policy Evaluation
 
-The first ADP algorithm we cover is Approximate Policy Evaluation, i.e., evaluating the Value Function for a Markov Reward Process (MRP). Approximate Policy Evaluation is fundamentally the same as Tabular Policy Evaluation in terms of repeatedly applying the Bellman Policy Operator $\bm{B^}\pi$ on the Value Function $V: \mathcal{N} \rightarrow \mathbb{R}$. However, unlike Tabular Policy Evaluation algorithm, the Value Function $V(\cdot)$ is set up and updated as an instance of `FunctionApprox` rather than as a table of values for the states. This is because unlike Tabular Policy Evaluation which operates on an instance of a `FiniteMarkovRewardProcess`, Approximate Policy Evaluation algorithm operates on an instance of `MarkovRewardProcess`. So we do not have an enumeration of states of the MRP and we do not have the transition probabilities of the MRP. This is typical in many real-world problems where the state space is either very large or is continuous-valued, and the transitions could be too many or could be continuous-valued transitions. So, here's what we do to overcome these challenges:
+The first ADP algorithm we cover is Approximate Policy Evaluation, i.e., evaluating the Value Function for a Markov Reward Process (MRP). Approximate Policy Evaluation is fundamentally the same as Tabular Policy Evaluation in terms of repeatedly applying the Bellman Policy Operator $\bm{B^}\pi$ on the Value Function $V: \mathcal{N} \rightarrow \mathbb{R}$. However, unlike Tabular Policy Evaluation algorithm, the Value Function $V(\cdot)$ is set up and updated as an instance of `FunctionApprox` rather than as a table of values for the non-terminal states. This is because unlike Tabular Policy Evaluation which operates on an instance of a `FiniteMarkovRewardProcess`, Approximate Policy Evaluation algorithm operates on an instance of `MarkovRewardProcess`. So we do not have an enumeration of states of the MRP and we do not have the transition probabilities of the MRP. This is typical in many real-world problems where the state space is either very large or is continuous-valued, and the transitions could be too many or could be continuous-valued transitions. So, here's what we do to overcome these challenges:
 
-* We specify a sampling probability distribution of non-terminal states (argument `non_terminal_states_distribution` in the code below) from which we shall sample a specified number (`num_state_samples` in the code below) of state samples and construct a list of non-terminal states (`nt_states` in the code below) in each iteration.
-* We sample pairs of (next state $s'$, reward $r$) from a given state $s$, and calculate the expectation $\mathbb{E}[r + \gamma \cdot V(s')]$ by averaging $r+\gamma \cdot V(s')$ across the sampled pairs. Note that the method `expectation` of a `Distribution` object performs a sampled expectation. $V(s')$ is obtained from the function approximation instance of `FunctionApprox` that is being updated in each iteration.
+* We specify a sampling probability distribution of non-terminal states (argument `non_terminal_states_distribution` in the code below) from which we shall sample a specified number (`num_state_samples` in the code below) of non-terminal states, and construct a list of those sampled non-terminal states (`nt_states` in the code below) in each iteration.
+* We sample pairs of (next state $s'$, reward $r$) from a given non-terminal state $s$, and calculate the expectation $\mathbb{E}[r + \gamma \cdot V(s')]$ by averaging $r+\gamma \cdot V(s')$ across the sampled pairs. Note that the method `expectation` of a `Distribution` object performs a sampled expectation. $V(s')$ is obtained from the function approximation instance of `FunctionApprox` that is being updated in each iteration.
 * The sampled list of non-terminal states $s$ comprise our $x$-values and the associated sampled expectations described above comprise our $y$-values. This list of $(x,y)$ pairs are used to update the approximation of the Value Function in each iteration (producing a new instance of `FunctionApprox` using it's `update` method).
 
 The entire code is shown below. `evaluate_mrp` produces an `Iterator` on `FunctionApprox` instances, and the code that calls `evaluate_mrp` can decide when/how to terminate the iterations of Approximate Policy Evaluation.
@@ -841,7 +955,7 @@ def evaluate_mrp(
 
 ## Approximate Value Iteration
 
-Now that we've understood and coded Approximate Policy Evaluation (to solve the Prediction problem), we can extend the same concepts to Approximate Value Iteration (to solve the Control problem). The code below in `value_iteration` is almost the same as the code above in `evaluate_mrp`, except that instead of a `MarkovRewardProcess` at each time step, here we have a `MarkovDecisionProcess` at each time step, and instead of the Bellman Policy Operator update, here we have the Bellman Optimality Operator update. Therefore, in the Value Function update, we maximize the $Q$-value function (over all actions $a$) for each state $s$. Also, similar to `evaluate_mrp`, `value_iteration` produces an `Iterator` on `FunctionApprox` instances, and the code that calls `value_iteration` can decide when/how to terminate the iterations of Approximate Value Iteration.
+Now that we've understood and coded Approximate Policy Evaluation (to solve the Prediction problem), we can extend the same concepts to Approximate Value Iteration (to solve the Control problem). The code below in `value_iteration` is almost the same as the code above in `evaluate_mrp`, except that instead of a `MarkovRewardProcess` at each time step, here we have a `MarkovDecisionProcess` at each time step, and instead of the Bellman Policy Operator update, here we have the Bellman Optimality Operator update. Therefore, in the Value Function update, we maximize the $Q$-value function (over all actions $a$) for each non-terminal state $s$. Also, similar to `evaluate_mrp`, `value_iteration` produces an `Iterator` on `FunctionApprox` instances, and the code that calls `value_iteration` can decide when/how to terminate the iterations of Approximate Value Iteration.
 
 ```python
 from rl.iterate import iterate
@@ -879,16 +993,13 @@ Next, we move on to Approximate Policy Evaluation in a finite-horizon setting, m
 
 In the `backward_evaluate` code below, the input argument `mrp_f0_mu_triples` is a list of triples, with each triple corresponding to each non-terminal time step in the finite horizon. Each triple consists of:
 
-* An instance of `MarkovRewardProceess` (note that each time step has it's own instance of `MarkovRewardProcess` representation of transitions from the states $s$ in one time step $t$ to the (state $s'$, reward $r$) pairs in the next time step $t+1$ (variable `mrp` in the code below).
+* An instance of `MarkovRewardProceess` - note that each time step has it's own instance of `MarkovRewardProcess` representation of transitions from non-terminal states $s$ in a time step $t$ to the (state $s'$, reward $r$) pairs in the next time step $t+1$ (variable `mrp` in the code below).
 * An instance of `FunctionApprox` to capture the approximate Value Function for the time step (variable `approx0` in the code below, representing the initial `FunctionApprox` instance).
-* A sampling probability distribution of states in the time step (variable `mu` in the code below).
+* A sampling probability distribution of non-terminal states in the time step (variable `mu` in the code below).
 
-The backward induction code below should be pretty self-explanatory. Note that in backward induction, we don't invoke the `update` method of `FunctionApprox` like we did in the non-finite-horizon cases - here we invoke the `sgd` method (that we wrote earlier in this chapter) which internally performs a sequence of `update`s on the `FunctionApprox` for a given time step (until we converge to within a specified level of `error_tolerance`). In the non-finite-horizon cases, it was okay to simply do a single `update` in each iteration because we revisit the same set of states in further iterations. Here, once we converge to an acceptable `FunctionApprox` (using `sgd`) for a specific time step, we won't be performing any more updates to the Value Function for that time step (since we move on to the next time step, in reverse). `backward_evaluate` returns an Iterator over `FunctionApprox` objects, from time step 0 to the horizon time step.
+The backward induction code below should be pretty self-explanatory. Note that in backward induction, we don't invoke the `update` method of `FunctionApprox` like we did in the non-finite-horizon cases - here we invoke the `solve` method which internally performs a series of `update`s on the `FunctionApprox` for a given time step (until we converge to within a specified level of `error_tolerance`). In the non-finite-horizon cases, it was okay to simply do a single `update` in each iteration because we revisit the same set of states in further iterations. Here, once we converge to an acceptable `FunctionApprox` (using `solve`) for a specific time step, we won't be performing any more updates to the Value Function for that time step (since we move on to the next time step, in reverse). `backward_evaluate` returns an Iterator over `FunctionApprox` objects, from time step 0 to the horizon time step. We should point out that in the code below, we've taken special care to handle terminal states that occur before the end of the horizon.
 
 ```python
-from itertools import repeat
-from rl.function_approx import sgd
-
 MRP_FuncApprox_Distribution = \
     Tuple[MarkovRewardProcess[S], FunctionApprox[S], Distribution[S]]
 
@@ -900,19 +1011,21 @@ def backward_evaluate(
 ) -> Iterator[FunctionApprox[S]]:
     v: List[FunctionApprox[S]] = []
 
+    num_steps: int = len(mrp_f0_mu_triples)
+
     for i, (mrp, approx0, mu) in enumerate(reversed(mrp_f0_mu_triples)):
 
         def return_(s_r: Tuple[S, float], i=i) -> float:
-            s, r = s_r
-            return r + gamma * (v[i-1].evaluate([s]).item() if i > 0 else 0.)
+            s1, r = s_r
+            return r + gamma * (v[i-1].evaluate([s1]).item() if i > 0 and not
+                            mrp_f0_mu_triples[num_steps - i][0].is_terminal(s1)
+                            else 0.)
 
         v.append(
-            FunctionApprox.converged(
-                sgd(
-                    approx0,
-                    repeat([(s, mrp.transition_reward(s).expectation(return_))
-                            for s in mu.sample_n(num_state_samples)])
-                ),
+            approx0.solve(
+                [(s, mrp.transition_reward(s).expectation(return_))
+                 for s in mu.sample_n(num_state_samples)
+                 if not mrp.is_terminal(s)],
                 error_tolerance
             )
         )
@@ -922,11 +1035,9 @@ def backward_evaluate(
 
 ## Finite-Horizon Approximate Value Iteration
 
-Now that we've understood and coded finite-horizon Approximate Policy Evaluation (to solve the finite-horizon Prediction problem), we can extend the same concepts to finite-horizon Approximate Value Iteration (to solve the finite-horizon Control problem). The code below in `back_opt_vf_and_policy` is almost the same as the code above in `backward_evaluate`, except that instead of a `MarkovRewardProcess`, here we have a `MarkovDecisionProcess`. For each non-terminal time step, we maximize the $Q$-value function (over all actions $a$) for each state $s$. `back_opt_vf_and_policy` returns an Iterator over pairs of `FunctionApprox` and `Policy` objects (representing the Optimal Value Function and the Optimal Policy respectively), from time step 0 to the horizon time step.
+Now that we've understood and coded finite-horizon Approximate Policy Evaluation (to solve the finite-horizon Prediction problem), we can extend the same concepts to finite-horizon Approximate Value Iteration (to solve the finite-horizon Control problem). The code below in `back_opt_vf_and_policy` is almost the same as the code above in `backward_evaluate`, except that instead of a `MarkovRewardProcess`, here we have a `MarkovDecisionProcess`. For each non-terminal time step, we maximize the $Q$-value function (over all actions $a$) for each non-terminal state $s$. `back_opt_vf_and_policy` returns an Iterator over pairs of `FunctionApprox` and `Policy` objects (representing the Optimal Value Function and the Optimal Policy respectively), from time step 0 to the horizon time step.
 
 ```python
-from itertools import repeat
-from rl.function_approx import sgd
 from rl.distribution import Constant
 from operator import itemgetter
 
@@ -942,24 +1053,23 @@ def back_opt_vf_and_policy(
     num_state_samples: int,
     error_tolerance: float
 ) -> Iterator[Tuple[FunctionApprox[S], Policy[S, A]]]:
-
     vp: List[Tuple[FunctionApprox[S], Policy[S, A]]] = []
+
+    num_steps: int = len(mdp_f0_mu_triples)
 
     for i, (mdp, approx0, mu) in enumerate(reversed(mdp_f0_mu_triples)):
 
         def return_(s_r: Tuple[S, float], i=i) -> float:
-            s, r = s_r
-            return r + gamma * (vp[i-1][0].evaluate([s]).item() if i > 0 else 0.)
+            s1, r = s_r
+            return r + gamma * (vp[i-1][0].evaluate([s1]).item() if i > 0 and not
+                            mdp_f0_mu_triples[num_steps - i][0].is_terminal(s1)
+                            else 0.)
 
-        this_v = FunctionApprox.converged(
-            sgd(
-                approx0,
-                repeat([(
-                    s,
-                    max(mdp.step(s, a).expectation(return_)
-                        for a in mdp.actions(s))
-                ) for s in mu.sample_n(num_state_samples)])
-            ),
+        this_v = approx0.solve(
+            [(s, max(mdp.step(s, a).expectation(return_)
+                     for a in mdp.actions(s)))
+             for s in mu.sample_n(num_state_samples)
+             if not mdp.is_terminal(s)],
             error_tolerance
         )
 
@@ -978,9 +1088,9 @@ def back_opt_vf_and_policy(
 
 ## Finite-Horizon Approximate Q-Value Iteration {#sec:bi-approx-q-value-iteration}
 
-The above code for Finite-Horizon Approximate Value Iteration extends the Finite-Horizon Backward Induction Value Iteration algorithm of Chapter [-@sec:dp-chapter] by treating the Value Function as a function approximation instead of an exact tabular representation. However, there is an alternative (and arguably simpler and more effective) way to solve the Finite-Horizon Control problem - we can perform backward induction on the optimal Action-Value (Q-value) function instead of the optimal (State-)Value Function. The key advantage of working with the optimal Action Value function is that it has all the information necessary to extract the optimal State-Value function and the optimal Policy (since we just need to perform a $\max/\argmax$ over all the actions for any state). This contrasts with the case of working with the optimal State-Value function which requires us to also avail of the transition probabilities, rewards and discount factor in order to extract the optimal policy. Performing backward induction on the optimal Q-value function means that knowledge of the optimal Q-value function for a given time step $t$ immediately gives us the optimal State-Value function and the optimal policy for the same time step $t$. This contrasts with performing backward induction on the optimal State-Value function - knowledge of the optimal State-Value function for a given time step $t$ cannot give us the optimal policy for the same time step $t$ (for that, we need the optimal State-Value function for time step $t+1$ and furthermore, we also need the $t$ to $t+1$ state/reward transition probabilities).
+The above code for Finite-Horizon Approximate Value Iteration extends the Finite-Horizon Backward Induction Value Iteration algorithm of Chapter [-@sec:dp-chapter] by treating the Value Function as a function approximation instead of an exact tabular representation. However, there is an alternative (and arguably simpler and more effective) way to solve the Finite-Horizon Control problem - we can perform backward induction on the optimal Action-Value (Q-value) function instead of the optimal (State-)Value Function. The key advantage of working with the optimal Action Value function is that it has all the information necessary to extract the optimal State-Value function and the optimal Policy (since we just need to perform a $\max/\argmax$ over all the actions for any non-terminal state). This contrasts with the case of working with the optimal State-Value function which requires us to also avail of the transition probabilities, rewards and discount factor in order to extract the optimal policy. Performing backward induction on the optimal Q-value function means that knowledge of the optimal Q-value function for a given time step $t$ immediately gives us the optimal State-Value function and the optimal policy for the same time step $t$. This contrasts with performing backward induction on the optimal State-Value function - knowledge of the optimal State-Value function for a given time step $t$ cannot give us the optimal policy for the same time step $t$ (for that, we need the optimal State-Value function for time step $t+1$ and furthermore, we also need the $t$ to $t+1$ state/reward transition probabilities).
 
-So now we develop an algorithm that works with a function approximation for the Q-Value function and steps back in time similar to the backward induction we had performed earlier for the (State-)Value function. The code below in `back_opt_qvf` is quite similar to the code above in `back_opt_vf_and_policy`. The key difference is that the `FunctionApprox` in the input to the function needs to be set up as a `FunctionApprox[Tuple[S, A]]` instead of `FunctionApprox[S]` to reflect the fact that we are approximating $Q_t^*: \mathcal{S} \times \mathcal{A} \rightarrow \mathbb{R}$ for all time steps $t$ in the finite horizon. For each non-terminal time step, we express the $Q$-value function (for a set of sample states $s$ and for all actions $a$) in terms of the $Q$-value function approximation of the next time step. This is essentially the MDP Action-Value Function Bellman Optimality Equation for the finite-horizon case (adapted to function approximation). `back_opt_qvf` returns an Iterator over `FunctionApprox[Tuple[S, A]]` (representing the Optimal Q-Value Function), from time step 0 to the horizon time step. We can then obtain $V^*_t$ (Optimal State-Value Function) and $\pi^*_t$ for each $t$ by simply performing a $\max/\argmax$ over all actions $a \in \mathcal{A}_t$ of $Q^*_t(s, a)$ for any $s \in \mathcal{S}_t$.
+So now we develop an algorithm that works with a function approximation for the Q-Value function and steps back in time similar to the backward induction we had performed earlier for the (State-)Value function. The code below in `back_opt_qvf` is quite similar to the code above in `back_opt_vf_and_policy`. The key difference is that the `FunctionApprox` in the input to the function needs to be set up as a `FunctionApprox[Tuple[S, A]]` instead of `FunctionApprox[S]` to reflect the fact that we are approximating $Q_t^*: \mathcal{N}_t \times \mathcal{A}_t \rightarrow \mathbb{R}$ for all time steps $t$ in the finite horizon. For each non-terminal time step, we express the $Q$-value function (for a set of sample non-terminal states $s$ and for all actions $a$) in terms of the $Q$-value function approximation of the next time step. This is essentially the MDP Action-Value Function Bellman Optimality Equation for the finite-horizon case (adapted to function approximation). `back_opt_qvf` returns an Iterator over `FunctionApprox[Tuple[S, A]]` (representing the Optimal Q-Value Function), from time step 0 to the horizon time step. We can then obtain $V^*_t$ (Optimal State-Value Function) and $\pi^*_t$ for each $t$ by simply performing a $\max/\argmax$ over all actions $a \in \mathcal{A}_t$ of $Q^*_t(s, a)$ for any $s \in \mathcal{N}_t$.
 
 ```python
 MDP_FuncApproxQ_Distribution = Tuple[
@@ -998,25 +1108,24 @@ def back_opt_qvf(
     horizon: int = len(mdp_f0_mu_triples)
     qvf: List[FunctionApprox[Tuple[S, A]]] = []
 
+    num_steps: int = len(mdp_f0_mu_triples)
+
     for i, (mdp, approx0, mu) in enumerate(reversed(mdp_f0_mu_triples)):
 
-        def return_(s_r: Tuple[S, float], i=i, mdp=mdp) -> float:
-            s, r = s_r
+        def return_(s_r: Tuple[S, float], i=i) -> float:
+            s1, r = s_r
             return r + gamma * (
-                max(qvf[i-1].evaluate([(s, a)]).item()
-                    for a in mdp_f0_mu_triples[horizon - i][0].actions(s))
-                if i > 0 else 0.
+                max(qvf[i-1].evaluate([(s1, a)]).item()
+                    for a in mdp_f0_mu_triples[horizon - i][0].actions(s1))
+                if i > 0 and
+                not mdp_f0_mu_triples[num_steps - i][0].is_terminal(s1)
+                else 0.
             )
 
-        this_qvf = FunctionApprox.converged(
-            sgd(
-                approx0,
-                repeat(
-                    [((s, a), mdp.step(s, a).expectation(return_))
-                     for s in mu.sample_n(num_state_samples)
-                     for a in mdp.actions(s)]
-                )
-            ),
+        this_qvf = approx0.solve(
+            [((s, a), mdp.step(s, a).expectation(return_))
+             for s in mu.sample_n(num_state_samples)
+             if not mdp.is_terminal(s) for a in mdp.actions(s)],
             error_tolerance
         )
 
@@ -1027,17 +1136,17 @@ def back_opt_qvf(
 
 We should also point out here that working with the optimal Q-value function (rather than the optimal State-Value function) in the context of ADP prepares us nicely for RL because RL algorithms typically work with the optimal Q-value function instead of the optimal State-Value function.   
 
-All of the above code for Approximate Dynamic Programming (ADP) algorithms is in the file [rl/approximate_dynamic_programming.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/approximate_dynamic_programming.py). We encourage you to create instances of `MarkovRewardProcess` and `MarkovDecisionProcess` (including finite-horizon instances) and play with the above ADP code with different choices of function approximations, state sampling distributions, and number of samples. A simple but valuable exercise is to reproduce the tabular versions of these algorithms by using the `Tabular` implementation of `FunctionApprox` (note: the `count_to_weights_func` would need to be lambda _: 1.) in the above ADP functions.
+All of the above code for Approximate Dynamic Programming (ADP) algorithms is in the file [rl/approximate_dynamic_programming.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/approximate_dynamic_programming.py). We encourage you to create instances of `MarkovRewardProcess` and `MarkovDecisionProcess` (including finite-horizon instances) and play with the above ADP code with different choices of function approximations, non-terminal state sampling distributions, and number of samples. A simple but valuable exercise is to reproduce the tabular versions of these algorithms by using the `Tabular` implementation of `FunctionApprox` (note: the `count_to_weights_func` would need to be lambda _: 1.) in the above ADP functions.
 
-## How to Construct the States Distribution
+## How to Construct the Non-Terminal States Distribution
 
-Each of the above ADP algorithms takes as input probability distribution(s) of states. You may be wondering how one constructs the probability distribution of states so you can feed it as input to any of these  ADP algorithm. There is no simple, crisp answer to this. But we will provide some general pointers in this section on how to construct the probability distribution of states.
+Each of the above ADP algorithms takes as input probability distribution(s) of non-terminal states. You may be wondering how one constructs the probability distribution of non-terminal states so you can feed it as input to any of these ADP algorithm. There is no simple, crisp answer to this. But we will provide some general pointers in this section on how to construct the probability distribution of non-terminal states.
 
-Let us start with Approximate Policy Evaluation and Approximate Value Iteration algorithms. They require as input the probability distribution of non-terminal states. For Approximate Value Iteration algorithm, a natural choice would be evaluate the Markov Decision Process (MDP) with a uniform policy (equal probability for each action, from any state) to construct the implied Markov Reward Process (MRP), and then infer the stationary distribution of it's Markov Process, using some special property of the Markov Process (for instance, if it's a finite-states Markov Process, we might be able to perform the matrix calculations we covered in Chapter [-@sec:mrp-chapter] to calculate the stationary distribution). The stationary distribution would serve as the probability distribution of states to be used by the Approximate Value Iteration algorithm. For Approximate Policy Evaluation algorithm, we do the same stationary distribution calculation with the given MRP. If we cannot take advantage of any special properties of the given MDP/MRP, then we can run a simulation with the `simulate` method in `MarkovRewardProcess` (inherited from `MarkovProcess`) and create a `SampledDistribution` of states based on the states reached by the simulation after a sufficiently large (but fixed) number of time steps (this is essentially an estimate of the stationary distribution). If the above choices are infeasible or computationally expensive, then a simple and neutral choice is to use  a uniform distribution over the states.
+Let us start with Approximate Policy Evaluation and Approximate Value Iteration algorithms. They require as input the probability distribution of non-terminal states. For Approximate Value Iteration algorithm, a natural choice would be evaluate the Markov Decision Process (MDP) with a uniform policy (equal probability for each action, from any state) to construct the implied Markov Reward Process (MRP), and then infer the stationary distribution of it's Markov Process, using some special property of the Markov Process (for instance, if it's a finite-states Markov Process, we might be able to perform the matrix calculations we covered in Chapter [-@sec:mrp-chapter] to calculate the stationary distribution). The stationary distribution would serve as the probability distribution of non-terminal states to be used by the Approximate Value Iteration algorithm. For Approximate Policy Evaluation algorithm, we do the same stationary distribution calculation with the given MRP. If we cannot take advantage of any special properties of the given MDP/MRP, then we can run a simulation with the `simulate` method in `MarkovRewardProcess` (inherited from `MarkovProcess`) and create a `SampledDistribution` of non-terminal states based on the non-terminal states reached by the simulation after a sufficiently large (but fixed) number of time steps (this is essentially an estimate of the stationary distribution). If the above choices are infeasible or computationally expensive, then a simple and neutral choice is to use a uniform distribution over the states.
 
-Next, we consider the backward induction ADP algorithms for finite-horizon MDPs/MRPs. Our job here is to infer the distribution of states for each time step in the finite horizon. Sometimes you can take advantage of the mathematical structure of the underlying Markov Process to come up with an analytical expression (exact or approximate) for the probability distribution of states at any time step for the underlying Markov Process of the MRP/implied-MRP. For instance, if the Markov Process is described by a stochastic differential equation (SDE) and if we are able to solve the SDE, we would know the analytical expression for the probability distribution of states. If we cannot take advantage of any such special properties, then we can create simulation paths by time-incrementally sampling from the state-transition probability distributions of each of the Markov Reward Processes at each time step (if we are solving a Control problem, then we create implied-MRPs by evaluating the given MDPs with a uniform policy). The end points of these simulation paths at each time step provide a `SampledDistribution` of states for each time step within the finite horizon. If the above choices are infeasible or computationally expensive, then a simple and neutral choice is to use a uniform distribution over the states for each time step.
+Next, we consider the backward induction ADP algorithms for finite-horizon MDPs/MRPs. Our job here is to infer the distribution of non-terminal states for each time step in the finite horizon. Sometimes you can take advantage of the mathematical structure of the underlying Markov Process to come up with an analytical expression (exact or approximate) for the probability distribution of non-terminal states at any time step for the underlying Markov Process of the MRP/implied-MRP. For instance, if the Markov Process is described by a stochastic differential equation (SDE) and if we are able to solve the SDE, we would know the analytical expression for the probability distribution of non-terminal states. If we cannot take advantage of any such special properties, then we can create simulation paths by time-incrementally sampling from the state-transition probability distributions of each of the Markov Reward Processes at each time step (if we are solving a Control problem, then we create implied-MRPs by evaluating the given MDPs with a uniform policy). The end points of these simulation paths at each time step provide a `SampledDistribution` of non-terminal states for each time step within the finite horizon. If the above choices are infeasible or computationally expensive, then a simple and neutral choice is to use a uniform distribution over the non-terminal states for each time step.
 
-We will write some code in Chapter [-@sec:portfolio-chapter] to create a `SampledDistribution` of states for each time step of a finite-horizon problem by stitching together samples of state transitions at each time step. If you are curious about this now, you can [take a peek at the code](https://github.com/TikhonJelvis/RL-book/blob/master/rl/chapter7/asset_alloc_discrete.py).
+We will write some code in Chapter [-@sec:portfolio-chapter] to create a `SampledDistribution` of non-terminal states for each time step of a finite-horizon problem by stitching together samples of state transitions at each time step. If you are curious about this now, you can [take a peek at the code](https://github.com/TikhonJelvis/RL-book/blob/master/rl/chapter7/asset_alloc_discrete.py).
 
 ## Key Takeaways from this Chapter
 

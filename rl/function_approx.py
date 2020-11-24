@@ -2,7 +2,6 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import Sequence, Mapping, Tuple, TypeVar, Callable, List, Dict, \
     Generic, Optional, Iterator, Iterable
-from itertools import repeat
 import numpy as np
 import itertools
 from operator import itemgetter
@@ -20,8 +19,9 @@ class FunctionApprox(ABC, Generic[X]):
 
     @abstractmethod
     def evaluate(self, x_values_seq: Iterable[X]) -> np.ndarray:
-        '''Computes expected value of f(x) for each x in
-        x_values_seq (where f is the FunctionApprox)
+        '''Computes expected value of y for each x in
+        x_values_seq (with the probability distribution
+        function of y|x estimated as FunctionApprox)
         '''
         pass
 
@@ -62,6 +62,14 @@ class FunctionApprox(ABC, Generic[X]):
         another function approximation of the same type?
         '''
         pass
+
+    def argmax(self, xs: Iterable[X]) -> X:
+        '''Return the input X that maximizes the function being approximated.
+        Arguments:
+          xs -- list of inputs to evaluate and maximize, cannot be empty
+        Returns the X that maximizes the function this approximates.
+        '''
+        return list(xs)[np.argmax(self.evaluate(xs))]
 
     def rmse(
         self,
@@ -385,7 +393,7 @@ class LinearFunctionApprox(FunctionApprox[X]):
                 return a.within(b, tol)
 
             ret = iterate.converged(
-                self.iterate_updates(repeat(xy_vals_seq)),
+                self.iterate_updates(itertools.repeat(xy_vals_seq)),
                 done=done
             )
 
@@ -567,7 +575,7 @@ class DNNApprox(FunctionApprox[X]):
             return a.within(b, tol)
 
         return iterate.converged(
-            self.iterate_updates(repeat(xy_vals_seq)),
+            self.iterate_updates(itertools.repeat(xy_vals_seq)),
             done=done
         )
 

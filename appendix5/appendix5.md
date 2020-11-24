@@ -118,4 +118,3 @@ The put option price is:
 P(t, S_t) = K \cdot e^{-r\cdot (T-t)} \cdot N(-d_2) - S_t \cdot N(-d_1)
 \label{eq:black-scholes-put-option-pricing}
 \end{equation}
-\end{equation}

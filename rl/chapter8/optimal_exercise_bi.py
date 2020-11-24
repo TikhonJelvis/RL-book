@@ -117,12 +117,6 @@ class OptimalExerciseBI:
             direct_solve=True
         )
 
-#     ) -> BSplineApprox[StateType]:
-#         return BSplineApprox(
-#             feature_function=lambda p_e: p_e[0],
-#             degree=3
-#         )
-
     def backward_induction_vf_and_pi(
         self,
         features: Sequence[Callable[[StateType], float]],
