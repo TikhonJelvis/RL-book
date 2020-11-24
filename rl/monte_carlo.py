@@ -3,15 +3,14 @@ Markov Decision Processes.
 
 '''
 
-from typing import Iterator, Optional, Tuple, TypeVar
+from typing import Iterator, Tuple, TypeVar
 
-from rl.distribution import Bernoulli, Choose, Constant, Distribution
+from rl.distribution import Distribution
 from rl.function_approx import FunctionApprox
 import rl.iterate as iterate
 import rl.markov_decision_process as markov_decision_process
 from rl.markov_decision_process import (MarkovRewardProcess,
-                                        MarkovDecisionProcess,
-                                        Policy)
+                                        MarkovDecisionProcess)
 
 S = TypeVar('S')
 A = TypeVar('A')
