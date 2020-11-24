@@ -1,6 +1,6 @@
 import numpy as np
 import operator
-from typing import Mapping, Iterator, TypeVar, Tuple, Dict, Sequence
+from typing import Mapping, Iterator, TypeVar, Tuple, Dict
 
 from rl.iterate import converged, iterate
 from rl.markov_decision_process import (FiniteMarkovDecisionProcess,
