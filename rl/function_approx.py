@@ -64,12 +64,14 @@ class FunctionApprox(ABC, Generic[X]):
         some methods involve a direct solve for the fit that don't
         require an error_tolerance)
         '''
+        pass
 
     @abstractmethod
     def within(self, other: FunctionApprox[X], tolerance: float) -> bool:
         '''Is this function approximation within a given tolerance of
         another function approximation of the same type?
         '''
+        pass
 
     def argmax(self, xs: Iterable[X]) -> X:
         '''Return the input X that maximizes the function being approximated.
