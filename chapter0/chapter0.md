@@ -169,7 +169,7 @@ Having learnt DP algorithms and before learning RL algorithms, the reader will l
 
 This chapter cover the first financial application – dynamic asset allocation and consumption. This problem is best understood in the context of Merton’s landmark paper in 1969 where he stated and solved this problem. This chapter is mainly focused on the mathematical derivation of Merton’s solution of this problem with Dynamic Programming. Through this derivation, the reader will learn about the broader result called Hamilton-Jacobi-Bellman (HJB) equation, which will re-appear in the Market-Making problem in Chapter 12. As ever, we will do some programming exercises. In particular, the reader will learn how to solve Dynamic Asset Allocation in a simple setting with Backward Induction (a DP algorithm we learnt in Chapter 4). Finally, the reader will learn about Dynamic Asset Allocation in practice, where Merton’s frictionless setting is replaced by several real-world frictions, which will require us to move to RL. We will revisit this problem after coverage of RL algorithms in the second half of the book.
 
-#### Chapter 8: Derivative Pricing and Hedging
+#### Chapter 8: Derivatives Pricing and Hedging
 
 * A Brief Introduction to Derivatives
 * Notation for the Single-Period Simple Setting
