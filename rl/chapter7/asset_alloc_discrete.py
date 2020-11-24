@@ -2,7 +2,6 @@ from dataclasses import dataclass
 from typing import Sequence, Callable, Tuple, Iterator
 from rl.distribution import Distribution, SampledDistribution, Choose, Gaussian
 from rl.markov_decision_process import MarkovDecisionProcess, Policy
-from rl.markov_process import MarkovRewardProcess
 from rl.function_approx import DNNSpec, AdamGradient, DNNApprox
 from rl.approximate_dynamic_programming import back_opt_vf_and_policy
 from rl.approximate_dynamic_programming import back_opt_qvf
@@ -40,32 +39,26 @@ class AssetAllocDiscrete:
 
         class AssetAllocMDP(MarkovDecisionProcess[float, float]):
 
-            def apply_policy(
+            def step(
                 self,
-                policy: Policy[float, float]
-            ) -> MarkovRewardProcess[float]:
+                wealth: float,
+                alloc: float
+            ) -> SampledDistribution[Tuple[float, float]]:
 
-                class AssetAllocMRP(MarkovRewardProcess[float]):
+                def sr_sampler_func(
+                    wealth=wealth,
+                    alloc=alloc
+                ) -> Tuple[float, float]:
+                    next_wealth: float = alloc * (1 + distr.sample()) \
+                        + (wealth - alloc) * (1 + rate)
+                    reward: float = utility_f(next_wealth) \
+                        if t == steps - 1 else 0.
+                    return (next_wealth, reward)
 
-                    def transition_reward(
-                        self,
-                        wealth: float
-                    ) -> SampledDistribution[Tuple[float, float]]:
-
-                        def sr_sampler_func() -> Tuple[float, float]:
-                            alloc: float = policy.act(wealth).sample()
-                            next_wealth: float = alloc * (1 + distr.sample()) \
-                                + (wealth - alloc) * (1 + rate)
-                            reward: float = utility_f(next_wealth) \
-                                if t == steps - 1 else 0.
-                            return (next_wealth, reward)
-
-                        return SampledDistribution(
-                            sampler=sr_sampler_func,
-                            expectation_samples=1000
-                        )
-
-                return AssetAllocMRP()
+                return SampledDistribution(
+                    sampler=sr_sampler_func,
+                    expectation_samples=1000
+                )
 
             def actions(self, wealth: float) -> Sequence[float]:
                 return alloc_choices

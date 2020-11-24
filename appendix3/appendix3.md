@@ -186,7 +186,7 @@ $$E[x_T|x_S] = x_S \cdot e^{\int_S^T \mu(t) \cdot dt}$$
 $$E[x_T^2|x_S] = x_S^2 \cdot e^{\int_S^T (2 \mu(t) + \sigma^2(t)) \cdot dt}$$
 $$Variance[x_T|x_S] = E[x_T^2|x_S] - (E[x_T|x_S])^2 = x_S^2 \cdot e^{\int_S^T 2 \mu(t) \cdot dt} \cdot (e^{\int_S^T \sigma^2(t) \cdot dt} - 1)$$
 
-The special case of $\mu(t) = \mu$ (constant) and $\sigma(t) = \sigma$ (constant) is a very common Ito process used all over Finance/Economics (for its simplicity, tractability as well as practicality), and is known as [Geometric Brownian Motion](https://en.wikipedia.org/wiki/Geometric_Brownian_motion) (to reflect the fact that the stochastic increment of the process $\mu \cdot x_t \cdot dz_t$ is multiplicative to the level of the process $x_t$). If we consider this special case, we get:
+The special case of $\mu(t) = \mu$ (constant) and $\sigma(t) = \sigma$ (constant) is a very common Ito process used all over Finance/Economics (for its simplicity, tractability as well as practicality), and is known as [Geometric Brownian Motion](https://en.wikipedia.org/wiki/Geometric_Brownian_motion),  to reflect the fact that the stochastic increment of the process ($\sigma \cdot x_t \cdot dz_t$) is multiplicative to the level of the process $x_t$. If we consider this special case, we get:
 
 $$y_T = \log(x_T) \sim \mathcal{N}(\log(x_S) + (\mu - \frac {\sigma^2} 2)(T-S), \sigma^2 (T-S))$$
 $$E[x_T|x_S] = x_S \cdot e^{\mu (T-S)}$$
