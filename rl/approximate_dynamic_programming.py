@@ -169,7 +169,7 @@ def backward_evaluate(
 
     '''
     v: List[FunctionApprox[S]] = []
-    
+
     num_steps: int = len(mrp_f0_mu_triples)
 
     for i, (mrp, approx0, mu) in enumerate(reversed(mrp_f0_mu_triples)):
