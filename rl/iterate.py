@@ -1,6 +1,7 @@
 '''Finding fixed points of functions using iterators.'''
 import functools
 import itertools
+import math
 from typing import (Callable, Iterable, Iterator, Optional, Tuple, TypeVar)
 
 X = TypeVar('X')
@@ -80,11 +81,31 @@ def converged(values: Iterator[X],
     return result
 
 
+def discount_tolerance(stream: Iterator[X], γ: float, tolerance: float):
+    '''Stop the iterator after n steps where γⁿ ≤ tolerance if γ < 1.
+
+    Arguments:
+      stream -- the iterator we're capping
+      γ -- discount factor
+      tolerance -- a small value that determines when we stop iterating
+
+    Returns:
+      Stream that stops once γⁿ ≤ tolerance if γ < 1, otherwise
+      returns the stream unchanged.
+
+    '''
+    if γ < 1:
+        max_steps = round(math.log(tolerance) / math.log(γ))
+        return itertools.islice(stream, max_steps)
+
+    return stream
+
+
 # TODO: Unify with mdp.returns (using a protocol)?
 def returns(
         rewards: Iterable[Tuple[X, float]],
         γ: float = 1,
-        n_states: int = 1
+        tolerance: float = 1e-6
 ) -> Iterator[Tuple[X, float]]:
     '''Given an iterator of states and rewards, calculate the return of
     the first N states.
@@ -97,9 +118,8 @@ def returns(
     '''
     # Ensure that this logic works correctly whether rewards is an
     # iterator or an iterable (ie a list).
-    rewards = iter(rewards)
-
-    *initial, (last_s, last_r) = list(itertools.islice(rewards, n_states))
+    rewards = discount_tolerance(iter(rewards), γ, tolerance)
+    *initial, (last_s, last_r) = list(rewards)
 
     def accum(r_acc, r):
         return r_acc + γ * r

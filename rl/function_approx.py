@@ -4,11 +4,11 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-import numpy as np
+from dataclasses import dataclass, replace, field
 import itertools
+import numpy as np
 from operator import itemgetter
 from scipy.interpolate import splrep, BSpline
-from dataclasses import dataclass, replace, field
 from typing import (Callable, Dict, Generic, Iterator, Iterable, List,
                     Mapping, Optional, Sequence, Tuple, TypeVar)
 import rl.iterate as iterate
@@ -42,6 +42,7 @@ class FunctionApprox(ABC, Generic[X]):
         self,
         xy_vals_seq: Iterable[Tuple[X, float]]
     ) -> FunctionApprox[X]:
+
         '''Update the internal parameters of the FunctionApprox
         based on incremental data provided in the form of (x,y)
         pairs as a xy_vals_seq data structure
@@ -63,7 +64,6 @@ class FunctionApprox(ABC, Generic[X]):
         some methods involve a direct solve for the fit that don't
         require an error_tolerance)
         '''
-        pass
 
     @abstractmethod
     def within(self, other: FunctionApprox[X], tolerance: float) -> bool:
@@ -81,13 +81,13 @@ class FunctionApprox(ABC, Generic[X]):
 
     def rmse(
         self,
-        xy_seq: Iterable[Tuple[X, float]]
+        xy_vals_seq: Iterable[Tuple[X, float]]
     ) -> float:
         '''The Root-Mean-Squared-Error between FunctionApprox's
         predictions (from evaluate) and the associated (supervisory)
         y values
         '''
-        x_seq, y_seq = zip(*xy_seq)
+        x_seq, y_seq = zip(*xy_vals_seq)
         errors: np.ndarray = self.evaluate(x_seq) - np.array(y_seq)
         return np.sqrt(np.mean(errors * errors))
 
@@ -241,8 +241,8 @@ class Tabular(FunctionApprox[X]):
             return\
                 all(abs(self.values_map[s] - other.values_map[s]) <= tolerance
                     for s in self.values_map)
-        else:
-            return False
+
+        return False
 
 
 @dataclass(frozen=True)
@@ -292,8 +292,8 @@ class BSplineApprox(FunctionApprox[X]):
                 np.all(np.abs(self.knots - other.knots) <= tolerance).item() \
                 and \
                 np.all(np.abs(self.coeffs - other.coeffs) <= tolerance).item()
-        else:
-            return False
+
+        return False
 
 
 @dataclass(frozen=True)
@@ -397,8 +397,8 @@ class LinearFunctionApprox(FunctionApprox[X]):
     def within(self, other: FunctionApprox[X], tolerance: float) -> bool:
         if isinstance(other, LinearFunctionApprox):
             return self.weights.within(other.weights, tolerance)
-        else:
-            return False
+
+        return False
 
     def regularized_loss_gradient(
         self,
@@ -551,7 +551,7 @@ class DNNApprox(FunctionApprox[X]):
         xy_vals_seq: Iterable[Tuple[X, float]]
     ) -> Sequence[np.ndarray]:
         """
-        :param xy_vals_seq: list of pairs of n (x, y) points
+        :param pairs: list of pairs of n (x, y) points
         :return: list (of length L+1) of |O_l| x |I_l| 2-D array,
                  i.e., same as the type of self.weights.weights
         This function computes the gradient (with respect to weights) of
@@ -594,7 +594,7 @@ class DNNApprox(FunctionApprox[X]):
         xy_vals_seq: Iterable[Tuple[X, float]]
     ) -> Sequence[np.ndarray]:
         """
-        :param xy_vals_seq: list of pairs of n (x, y) points
+        :param pairs: list of pairs of n (x, y) points
         :return: list (of length L+1) of |O_l| x |I_l| 2-D array,
                  i.e., same as the type of self.weights.weights
         This function computes the regularized gradient (with respect to

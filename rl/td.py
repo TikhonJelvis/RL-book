@@ -3,11 +3,11 @@ Markov Decision Processes.
 
 '''
 
-import itertools
 from typing import Iterator, TypeVar
 
 from rl.distribution import Constant, Distribution
 from rl.function_approx import FunctionApprox
+import rl.iterate as iterate
 from rl.markov_decision_process import MarkovRewardProcess
 
 S = TypeVar('S')
@@ -18,7 +18,7 @@ def td_0(
         states: Distribution[S],
         approx_0: FunctionApprox[S],
         γ: float,
-        max_steps: int
+        tolerance: float
 ) -> Iterator[FunctionApprox[S]]:
     '''Evaluate an MRP using TD(0), simulating episodes of the given
     number of steps.
@@ -28,27 +28,26 @@ def td_0(
 
     Arguments:
       mrp -- the Markov Reward Process to evaluate
-      max_steps -- max steps to take in an episode
       states -- distribution of states to start episodes from
       approx_0 -- initial approximation of value function
       α -- learning rate, either a constant (0 < α ≤ 1) or a function
            from # of updates to a learning rate, default: 1
-      γ -- discount rate (0 < γ ≤ 1), default: 1
-
+      γ -- discount rate (0 < γ ≤ 1)
+      tolerance -- a small value—we stop iterating once γᵏ ≤ tolerance
     '''
     v = approx_0
 
     while True:
         start = states.sample()
-        episode =\
-            itertools.islice(mrp.simulate_reward(Constant(start)), max_steps)
+        episode = iterate.discount_tolerance(
+            iter(mrp.simulate_reward(Constant(start))),
+            γ,
+            tolerance
+        )
 
         state = start
-        updates = []
         for next_state, reward in episode:
             diff = v.evaluate([next_state]) - v.evaluate([state])
-            updates += [(state, reward + γ * diff)]
+            v = v.update([(state, reward + γ * diff)])
             state = next_state
-
-        v = v.update(updates)
-        yield v
+            yield v
