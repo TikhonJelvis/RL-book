@@ -1,3 +1,10 @@
+'''Approximate dynamic programming algorithms are variations on
+dynamic programming algorithms that can work with function
+approximations rather than exact representations of the process's
+state space.
+
+'''
+
 from typing import Iterator, Mapping, Tuple, TypeVar, Sequence, List
 from rl.function_approx import FunctionApprox
 from rl.iterate import iterate
@@ -19,13 +26,15 @@ V = Mapping[S, float]
 
 
 def evaluate_finite_mrp(
-    mrp: FiniteMarkovRewardProcess[S],
-    γ: float,
-    approx_0: FunctionApprox[S]
+        mrp: FiniteMarkovRewardProcess[S],
+        γ: float,
+        approx_0: FunctionApprox[S]
 ) -> Iterator[FunctionApprox[S]]:
+
     '''Iteratively calculate the value function for the give finite Markov
-    Reward Process, using the given FunctionApprox to approximate the value
-    function at each step.
+    Reward Process, using the given FunctionApprox to approximate the
+    value function at each step.
+
     '''
     def update(v: FunctionApprox[S]) -> FunctionApprox[S]:
         vs: np.ndarray = v.evaluate(mrp.non_terminal_states)

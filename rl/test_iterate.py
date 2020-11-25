@@ -1,7 +1,7 @@
 import itertools
 import unittest
 
-from rl.iterate import (iterate, last, converge, converged)
+from rl.iterate import (iterate, last, converge, converged, returns)
 
 
 class TestIterate(unittest.TestCase):
@@ -15,7 +15,7 @@ class TestLast(unittest.TestCase):
         self.assertEqual(last(range(0, 5)), 4)
         self.assertEqual(last(range(0, 10)), 9)
 
-        self.assertRaises(Exception, lambda: last([]))
+        self.assertEqual(last([]), None)
 
 
 class TestConverge(unittest.TestCase):

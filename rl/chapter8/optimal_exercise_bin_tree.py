@@ -89,7 +89,7 @@ if __name__ == '__main__':
     from rl.gen_utils.plot_funcs import plot_list_of_curves
     spot_price_val: float = 100.0
     strike: float = 100.0
-    is_call: bool = True
+    is_call: bool = False
     expiry_val: float = 1.0
     rate_val: float = 0.05
     vol_val: float = 0.25

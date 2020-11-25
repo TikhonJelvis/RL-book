@@ -1,14 +1,16 @@
+'''An interface for different kinds of function approximations
+(tabular, linear, DNN... etc), with several implementations.'''
+
 from __future__ import annotations
+
 from abc import ABC, abstractmethod
-from typing import Sequence, Mapping, Tuple, TypeVar, Callable, List, Dict, \
-    Generic, Optional, Iterator, Iterable
-import numpy as np
+from dataclasses import dataclass, replace, field
 import itertools
+import numpy as np
 from operator import itemgetter
 from scipy.interpolate import splrep, BSpline
-from collections import defaultdict
-from dataclasses import dataclass, replace, field
-
+from typing import (Callable, Dict, Generic, Iterator, Iterable, List,
+                    Mapping, Optional, Sequence, Tuple, TypeVar)
 import rl.iterate as iterate
 
 X = TypeVar('X')
@@ -16,6 +18,13 @@ SMALL_NUM = 1e-6
 
 
 class FunctionApprox(ABC, Generic[X]):
+    '''Interface for function approximations.
+
+    An object of this class approximates some function X ↦ ℝ in a way
+    that can be evaluated at specific points in X and updated with
+    additional (X, ℝ) points.
+
+    '''
 
     @abstractmethod
     def evaluate(self, x_values_seq: Iterable[X]) -> np.ndarray:
@@ -33,6 +42,7 @@ class FunctionApprox(ABC, Generic[X]):
         self,
         xy_vals_seq: Iterable[Tuple[X, float]]
     ) -> FunctionApprox[X]:
+
         '''Update the internal parameters of the FunctionApprox
         based on incremental data provided in the form of (x,y)
         pairs as a xy_vals_seq data structure
@@ -73,13 +83,13 @@ class FunctionApprox(ABC, Generic[X]):
 
     def rmse(
         self,
-        xy_seq: Iterable[Tuple[X, float]]
+        xy_vals_seq: Iterable[Tuple[X, float]]
     ) -> float:
         '''The Root-Mean-Squared-Error between FunctionApprox's
         predictions (from evaluate) and the associated (supervisory)
         y values
         '''
-        x_seq, y_seq = zip(*xy_seq)
+        x_seq, y_seq = zip(*xy_vals_seq)
         errors: np.ndarray = self.evaluate(x_seq) - np.array(y_seq)
         return np.sqrt(np.mean(errors * errors))
 
@@ -102,16 +112,32 @@ class FunctionApprox(ABC, Generic[X]):
 @dataclass(frozen=True)
 class Dynamic(FunctionApprox[X]):
     '''A FunctionApprox that works exactly the same as exact dynamic
-    programming.
+    programming. Each update for a value in X replaces the previous
+    value at X altogether.
+
+    Fields:
+    values_map -- mapping from X to its approximated value
     '''
 
     values_map: Mapping[X, float]
 
     def evaluate(self, x_values_seq: Iterable[X]) -> np.ndarray:
+        '''Evaluate the function approximation by looking up the value in the
+        mapping for each state.
+
+        Will raise an error if an X value has not been seen before and
+        was not initialized.
+
+        '''
         return np.array([self.values_map[x] for x in x_values_seq])
 
     def update(self, xy_vals_seq: Iterable[Tuple[X, float]]) -> Dynamic[X]:
-        new_map = self.values_map.copy()
+        '''Update each X value by replacing its saved Y with a new one. Pairs
+        later in the list take precedence over pairs earlier in the
+        list.
+
+        '''
+        new_map = dict(self.values_map)
         for x, y in xy_vals_seq:
             new_map[x] = y
 
@@ -125,41 +151,74 @@ class Dynamic(FunctionApprox[X]):
         return replace(self, value_map=dict(xy_vals_seq))
 
     def within(self, other: FunctionApprox[X], tolerance: float) -> bool:
-        if isinstance(other, Dynamic):
-            return\
-                all(abs(self.values_map[s] - other.values_map[s]) <= tolerance
-                    for s in self.values_map)
-        else:
+        '''This approximation is within a tolerance of another if the value
+        for each X in both approximations is within the given
+        tolerance.
+
+        Raises an error if the other approximation is missing states
+        that this approximation has.
+
+        '''
+        if not isinstance(other, Dynamic):
             return False
+
+        return all(abs(self.values_map[s] - other.values_map[s]) <= tolerance
+                   for s in self.values_map)
 
 
 @dataclass(frozen=True)
 class Tabular(FunctionApprox[X]):
+    '''Approximates a function with a discrete domain (`X'), without any
+    interpolation. The value for each `X' is maintained as a weighted
+    mean of observations by recency (managed by
+    `count_to_weight_func').
 
-    values_map: Mapping[X, float] =\
-        field(default_factory=lambda: defaultdict(float))
-    counts_map: Mapping[X, int] =\
-        field(default_factory=lambda: defaultdict(int))
-    count_to_weight_func: Callable[[int], float] =\
-        field(default_factory=lambda: lambda n: 1. / n)
+    In practice, this means you can use this to approximate a function
+    with a learning rate α(n) specified by count_to_weight_func.
+
+    If `count_to_weight_func' always returns 1, this behaves the same
+    way as `Dynamic'.
+
+    Fields:
+    values_map -- mapping from X to its approximated value
+    counts_map -- how many times a given X has been updated
+    count_to_weight_func -- function for how much to weigh an update
+      to X based on the number of times that X has been updated
+
+    '''
+
+    values_map: Mapping[X, float] = field(default_factory=lambda: {})
+    counts_map: Mapping[X, int] = field(default_factory=lambda: {})
+    count_to_weight_func: Callable[[int], float] = \
+        field(default_factory=lambda: lambda n: 1.0 / n)
 
     def evaluate(self, x_values_seq: Iterable[X]) -> np.ndarray:
+        '''Evaluate the approximation at each given X.
+
+        If an X has not been seen before, will return 0.0.
+        '''
         return np.array([self.values_map[x] for x in x_values_seq])
 
-    def update(
-        self,
-        xy_vals_seq: Iterable[Tuple[X, float]]
-    ) -> Tabular[X]:
-        new_values_map: Dict[X, float] = self.values_map.copy()
-        new_counts_map: Dict[X, int] = self.counts_map.copy()
+    def update(self, xy_vals_seq: Iterable[Tuple[X, float]]) -> Tabular[X]:
+        '''Update the approximation with the given points.
+
+        Each X keeps a count n of how many times it was updated, and
+        each subsequent update is discounted by
+        count_to_weight_func(n), which defines our learning rate.
+
+        '''
+        values_map: Dict[X, float] = dict(self.values_map)
+        counts_map: Dict[X, int] = dict(self.counts_map)
+
         for x, y in xy_vals_seq:
-            new_counts_map[x] += 1
-            weight: float = self.count_to_weight_func(new_counts_map[x])
-            new_values_map[x] += weight * (y - new_values_map[x])
+            counts_map[x] = counts_map.get(x, 0) + 1
+            weight: float = self.count_to_weight_func(counts_map[x])
+            values_map[x] = weight * y + (1 - weight) * values_map.get(x, 0.)
+
         return replace(
             self,
-            values_map=new_values_map,
-            counts_map=new_counts_map
+            values_map=values_map,
+            counts_map=counts_map
         )
 
     def solve(
@@ -167,16 +226,16 @@ class Tabular(FunctionApprox[X]):
         xy_vals_seq: Iterable[Tuple[X, float]],
         error_tolerance: Optional[float] = None
     ) -> Tabular[X]:
-        new_values_map: Dict[X, float] = defaultdict(float)
-        new_counts_map: Dict[X, int] = defaultdict(int)
+        values_map: Dict[X, float] = {}
+        counts_map: Dict[X, int] = {}
         for x, y in xy_vals_seq:
-            new_counts_map[x] += 1
-            weight: float = self.count_to_weight_func(new_counts_map[x])
-            new_values_map[x] += weight * (y - new_values_map[x])
+            counts_map[x] = counts_map.get(x, 0) + 1
+            weight: float = self.count_to_weight_func(counts_map[x])
+            values_map[x] = weight * y + (1 - weight) * values_map.get(x, 0.)
         return replace(
             self,
-            values_map=new_values_map,
-            counts_map=new_counts_map
+            values_map=values_map,
+            counts_map=counts_map
         )
 
     def within(self, other: FunctionApprox[X], tolerance: float) -> bool:
@@ -184,8 +243,8 @@ class Tabular(FunctionApprox[X]):
             return\
                 all(abs(self.values_map[s] - other.values_map[s]) <= tolerance
                     for s in self.values_map)
-        else:
-            return False
+
+        return False
 
 
 @dataclass(frozen=True)
@@ -235,8 +294,8 @@ class BSplineApprox(FunctionApprox[X]):
                 np.all(np.abs(self.knots - other.knots) <= tolerance).item() \
                 and \
                 np.all(np.abs(self.coeffs - other.coeffs) <= tolerance).item()
-        else:
-            return False
+
+        return False
 
 
 @dataclass(frozen=True)
@@ -340,8 +399,8 @@ class LinearFunctionApprox(FunctionApprox[X]):
     def within(self, other: FunctionApprox[X], tolerance: float) -> bool:
         if isinstance(other, LinearFunctionApprox):
             return self.weights.within(other.weights, tolerance)
-        else:
-            return False
+
+        return False
 
     def regularized_loss_gradient(
         self,
@@ -494,7 +553,7 @@ class DNNApprox(FunctionApprox[X]):
         xy_vals_seq: Iterable[Tuple[X, float]]
     ) -> Sequence[np.ndarray]:
         """
-        :param xy_vals_seq: list of pairs of n (x, y) points
+        :param pairs: list of pairs of n (x, y) points
         :return: list (of length L+1) of |O_l| x |I_l| 2-D array,
                  i.e., same as the type of self.weights.weights
         This function computes the gradient (with respect to weights) of
@@ -537,7 +596,7 @@ class DNNApprox(FunctionApprox[X]):
         xy_vals_seq: Iterable[Tuple[X, float]]
     ) -> Sequence[np.ndarray]:
         """
-        :param xy_vals_seq: list of pairs of n (x, y) points
+        :param pairs: list of pairs of n (x, y) points
         :return: list (of length L+1) of |O_l| x |I_l| 2-D array,
                  i.e., same as the type of self.weights.weights
         This function computes the regularized gradient (with respect to
