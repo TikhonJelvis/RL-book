@@ -140,7 +140,7 @@ class MarkovDecisionProcess(ABC, Generic[S, A]):
                 self,
                 state: S
             ) -> Optional[Distribution[Tuple[S, float]]]:
-                actions = policy.act(state)
+                actions: Optional[Distribution[A]] = policy.act(state)
 
                 if actions is None:
                     return None
