@@ -22,6 +22,7 @@ class MarkovProcess(ABC, Generic[S]):
         '''Given a state of the process, returns a distribution of
         the next states.  Returning None means we are in a terminal state.
         '''
+        pass
 
     def is_terminal(self, state: S) -> bool:
         '''Return whether the given state is a terminal state.
@@ -168,6 +169,7 @@ class MarkovRewardProcess(MarkovProcess[S]):
         and reward from transitioning between the states.
 
         '''
+        pass
 
     def simulate_reward(
         self,
