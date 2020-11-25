@@ -224,25 +224,18 @@ $$\mathcal{R}_T^{\pi}(s,s') = \sum_{a\in \mathcal{A}} \pi(s,a) \cdot \mathcal{R}
 
 $$\mathcal{R}^{\pi}(s) = \sum_{a\in \mathcal{A}} \pi(s,a) \cdot \mathcal{R}(s,a)$$
 
-So any time we talk about an MDP evaluated with a fixed policy, you should know that we are effectively talking about the implied MRP. This insight is now going to be key in the design of our code to represent Markov Decision Processes. We create an abstract class called `MarkovDecisionProcess` with two `@abstractmethod`s - `step` and `actions`. The `step` method is key: it is meant to specify the distribution of pairs of next state and reward, given a state and action. The `actions` method's interface specifies that it takes as input a `state: S` and produces as output an `Iterable[A]` to represent the set of actions allowable for the input `state` (since the set of actions can be potentially infinite, in which case we'd have to return an `Iterator[A]`, the return type is fairly generic, i.e., `Iterable[A]`). Finally, we have the `apply_policy` method that takes as input a `policy: Policy[S, A]` and returns a `MarkovRewardProcess`. Within the `apply_policy` method, we construct a `class RewardProcess` that implements the `@abstractmethod transition_reward` of `MarkovRewardProcess`. `transition_reward` takes as input a `state: S`, creates `actions: Distribution[A]` by applying the given `policy` on `state`, and finally invokes the `apply` method on `actions` using the `@abstractmethod step`. The entire body of this abstract class `MarkovDecisionProcess` is shown below:
+So any time we talk about an MDP evaluated with a fixed policy, you should know that we are effectively talking about the implied MRP. This insight is now going to be key in the design of our code to represent Markov Decision Processes.
+
+We create an abstract class called `MarkovDecisionProcess` (code shown below) with two `@abstractmethod`s - `step` and `actions`. The `step` method is key: it is meant to specify the distribution of pairs of next state and reward, given a state and action. The `actions` method's interface specifies that it takes as input a `state: S` and produces as output an `Iterable[A]` to represent the set of actions allowable for the input `state` (since the set of actions can be potentially infinite, in which case we'd have to return an `Iterator[A]`, the return type is fairly generic, i.e., `Iterable[A]`).
+
+The `apply_policy` method takes as input a `policy: Policy[S, A]` and returns a `MarkovRewardProcess` representing the implied MRP. Let's understand the code in `apply_policy`: First, we construct a `class RewardProcess` that implements the `@abstractmethod transition_reward` of `MarkovRewardProcess`. `transition_reward` takes as input a `state: S`, creates `actions: Optional[Distribution[A]]` by applying the given `policy` on `state`, and finally uses the `apply` method of `Distribution` to transform `actions: Distribution[A]` into a `Distribution[Tuple[S, float]]` (distribution of (next state, reward) pairs) using the `@abstractmethod step`.
+
+Finally, the `is_terminal` method takes as input a `state: S` and returns a `bool` signifying whether `state` is a terminal state or not. Since the `actions` method can returns the set of actions in the form of any `Iterable` type, the only way to check if it's an empty `Iterable` is by turning it into an `Iterator`, and checking if the `next` invocation on the `Iterator` triggers `StopIteration` (in which case, it would be an empty `Iterable`).
 
 ```python
+from rl.distribution import Distribution
+
 class MarkovDecisionProcess(ABC, Generic[S, A]):
-    def apply_policy(self, policy: Policy[S, A]) -> MarkovRewardProcess[S]:
-        mdp = self
-
-        class RewardProcess(MarkovRewardProcess[S]):
-            def transition_reward(
-                    self,
-                    state: S
-            ) -> Optional[Distribution[Tuple[S, float]]]:
-                actions = policy.act(state)
-                if actions is None:
-                    return None
-
-                return actions.apply(lambda a: mdp.step(state, a))
-
-        return RewardProcess()        
 
     @abstractmethod
     def actions(self, state: S) -> Iterable[A]:
@@ -255,6 +248,29 @@ class MarkovDecisionProcess(ABC, Generic[S, A]):
         action: A
     ) -> Optional[Distribution[Tuple[S, float]]]:
         pass
+
+    def apply_policy(self, policy: Policy[S, A]) -> MarkovRewardProcess[S]:
+        mdp = self
+
+        class RewardProcess(MarkovRewardProcess[S]):
+            def transition_reward(
+                self,
+                state: S
+            ) -> Optional[Distribution[Tuple[S, float]]]:
+                actions: Optional[Distribution[A]] = policy.act(state)
+                if actions is None:
+                    return None
+
+                return actions.apply(lambda a: mdp.step(state, a))
+
+        return RewardProcess()        
+
+    def is_terminal(self, state: S) -> bool:
+        try:
+            next(iter(self.actions(state)))
+            return False
+        except StopIteration:
+            return True
 ```
 
 The above code for `Policy`, `Always` and `MarkovDecisionProcess` is in the file [rl/markov_decision_process.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/markov_decision_process.py).   
@@ -325,7 +341,7 @@ ActionMapping = Mapping[A, StateReward[S]]
 StateActionMapping = Mapping[S, Optional[ActionMapping[A, S]]]
 ```
 
-The constructor (``__init__`` method) of `FiniteMarkovDecisionProcess` takes as input `mapping: StateActionMapping[S, A]` that represents the complete structure of the Finite MDP - it maps each non-terminal state to an action map (maps each terminal state to `None`), and it maps each action in each action map to a finite probability distribution of pairs of next state and reward (essentially the structure of the $\mathcal{P}_R$ function). Along with the attribute `mapping`, we also have an attribute `non_terminal_states: Sequence[S]` that is an ordered sequence of non-terminal states. Now let's consider the implementation of the abstract method `step` of `MarkovDecisionProcess`. It takes as input a `state: S` and an `action: A`. `self.mapping[state][action]` gives us an object of type `FiniteDistribution[Tuple[S, float]]` which represents a finite probability distribution of pairs of next state and reward, which is exactly what we want to return. On the other hand, if `self.mapping[state]` is `None` (meaning it's a terminal state), then we simply return `None`.  This satisfies the responsibility of `FiniteMarkovDecisionProcess` in terms of implementing the `@abstractmethod step` of the abstract class `MarkovDecisionProcess`. The other `@abstractmethod` to implement is the `actions` method which produces an `Iterable` on the allowed actions $\mathcal{A}(s)$ for a given $s\in \mathcal{S}$ by invoking `self.mapping[state].keys()` (it returns an empty iterable for non-terminal states). Finally, `__repr__` method pretty-prints `self.mapping`.
+The constructor (``__init__`` method) of `FiniteMarkovDecisionProcess` takes as input `mapping: StateActionMapping[S, A]` that represents the complete structure of the Finite MDP - it maps each non-terminal state to an action map (maps each terminal state to `None`), and it maps each action in each action map to a finite probability distribution of pairs of next state and reward (essentially the structure of the $\mathcal{P}_R$ function). Along with the attribute `mapping`, we also have an attribute `non_terminal_states: Sequence[S]` that is an ordered sequence of non-terminal states. Now let's consider the implementation of the abstract method `step` of `MarkovDecisionProcess`. It takes as input a `state: S` and an `action: A`. `self.mapping[state][action]` gives us an object of type `FiniteDistribution[Tuple[S, float]]` which represents a finite probability distribution of pairs of next state and reward, which is exactly what we want to return. On the other hand, if `self.mapping[state]` is `None` (meaning it's a terminal state), then we simply return `None`.  This satisfies the responsibility of `FiniteMarkovDecisionProcess` in terms of implementing the `@abstractmethod step` of the abstract class `MarkovDecisionProcess`. The other `@abstractmethod` to implement is the `actions` method which produces an `Iterable` on the allowed actions $\mathcal{A}(s)$ for a given $s\in \mathcal{S}$ by invoking `self.mapping[state].keys()` (it returns an empty iterable for non-terminal states). The `action_mapping` and `states` methods are quite straightforward. Finally, `__repr__` method pretty-prints `self.mapping`.
 
 ```python
 from rl.distribution import SampledDistribution
@@ -358,17 +374,22 @@ class FiniteMarkovDecisionProcess(MarkovDecisionProcess[S, A]):
         action_map: Optional[ActionMapping[A, S]] = self.mapping[state]
         if action_map is None:
             return None
-        else:
-            return action_map[action]
+        return action_map[action]
 
     def actions(self, state: S) -> Iterable[A]:
         actions = self.mapping[state]
         return iter([]) if actions is None else actions.keys()
+
+    def action_mapping(self, state: S) -> Optional[ActionMapping[A, S]]:
+        return self.mapping[state]
+
+    def states(self) -> Iterable[S]:
+        return self.mapping.keys()
 ```
 
 Now that we've implemented a finite MDP, let's implement a finite policy that maps each non-terminal state to a probability distribution over a finite set of actions (and maps each terminal state to `None`). So we create a concrete class `FinitePolicy` that implements the interface of the abstract class `Policy` (specifically implements the `@abstractmethod act`). The input to the constructor (`__init__` method) is `policy_map: Mapping[S, Optional[FiniteDistribution[A]]]` since this type captures the structure of the $\pi: \mathcal{N} \times \mathcal{A} \rightarrow [0, 1]$ function in the curried form:
 $$\mathcal{N} \rightarrow (\mathcal{A} \rightarrow [0, 1])$$
-for the case of finite $\mathcal{S}$ and finite $\mathcal{A}$. The `act` method is straightforward. We also implement a `__repr__` method for pretty-printing of `self.policy_map`.
+for the case of finite $\mathcal{S}$ and finite $\mathcal{A}$. The `act` method and `states` method are straightforward. We also implement a `__repr__` method for pretty-printing of `self.policy_map`.
 
 ```python
 class FinitePolicy(Policy[S, A]):
@@ -393,6 +414,9 @@ class FinitePolicy(Policy[S, A]):
 
     def act(self, state: S) -> Optional[FiniteDistribution[A]]:
         return self.policy_map[state]
+
+    def states(self) -> Iterable[S]:
+        return self.policy_map.keys()
 ```   
 
 Armed with a `FinitePolicy` class, we can now write a method `apply_finite_policy` in `FiniteMarkovDecisionProcess` that takes as input a `policy: FinitePolicy[S, A]` and returns a `FiniteMarkovRewardProcess[S]` by processing the finite structures of both of the MDP and the Policy, and producing a finite structure of the implied MRP.      

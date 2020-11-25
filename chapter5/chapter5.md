@@ -73,7 +73,7 @@ When concrete classes implementing `FunctionApprox` write the `solve` method in 
 
 Any concrete class that implement this abstract class `FunctionApprox` will need to implement these four `abstractmethod`s of `FunctionApprox`, based on the specific assumptions that the concrete class makes for $f$. 
 
-Next, we write some useful methods that the concrete classes implementing `FunctionApprox` can inherit and utilize. Firstly, we write a method called `iterate_updates` that takes as input a stream (`Iterator`) of `Iterable` of $(x,y)$ pairs, and performs a series of incremental updates to the parameters $w$ (each using the `update` method), with each `update` done for each `Iterable` of $(x,y)$ pairs in the input stream `xy_seq: Iterator[Iterable[Tuple[X, float]]]`. `iterate_updates` returns an `Iterator[FunctionApprox[X]]` representing the successively updated `FunctionApprox` instances as a consequence of the repeated invocations to `update`. Note the use of the standard Python function `itertools.acccumulate` to accomplish this. The `rmse` method will be useful in writing the `solve` method  in terms of the `update` method.
+Next, we write some useful methods that the concrete classes implementing `FunctionApprox` can inherit and utilize. Firstly, we write a method called `iterate_updates` that takes as input a stream (`Iterator`) of `Iterable` of $(x,y)$ pairs, and performs a series of incremental updates to the parameters $w$ (each using the `update` method), with each `update` done for each `Iterable` of $(x,y)$ pairs in the input stream `xy_seq: Iterator[Iterable[Tuple[X, float]]]`. `iterate_updates` returns an `Iterator[FunctionApprox[X]]` representing the successively updated `FunctionApprox` instances as a consequence of the repeated invocations to `update`. Note the use of the standard Python function `itertools.acccumulate` to accomplish this. 
 
 ```python
 import itertools
@@ -93,9 +93,9 @@ Next, we write a method called `rmse` to calculate the Root-Mean-Squared-Error o
 ```python
     def rmse(
         self,
-        xy_seq: Iterable[Tuple[X, float]]
+        xy_vals_seq: Iterable[Tuple[X, float]]
     ) -> float:
-        x_seq, y_seq = zip(*xy_seq)
+        x_seq, y_seq = zip(*xy_vals_seq)
         errors: np.ndarray = self.evaluate(x_seq) - np.array(y_seq)
         return np.sqrt(np.mean(errors * errors))
 ```
@@ -851,36 +851,32 @@ So now let us write the code for `@dataclass Tabular` as an implementation of th
 The `evaluate`, `update`, `solve` and `within` methods are now self-explanatory.
 
 ```python
-from collections import defaultdict
 from dataclasses import field
 
 @dataclass(frozen=True)
 class Tabular(FunctionApprox[X]):
 
-    values_map: Mapping[X, float] =\
-        field(default_factory=lambda: defaultdict(float))
-    counts_map: Mapping[X, int] =\
-        field(default_factory=lambda: defaultdict(int))
-    count_to_weight_func: Callable[[int], float] =\
+    values_map: Mapping[X, float] = field(default_factory=lambda: {})
+    counts_map: Mapping[X, int] = field(default_factory=lambda: {})
+    count_to_weight_func: Callable[[int], float] = \
         field(default_factory=lambda: lambda n: 1. / n)
 
     def evaluate(self, x_values_seq: Iterable[X]) -> np.ndarray:
         return np.array([self.values_map[x] for x in x_values_seq])
 
-    def update(
-        self,
-        xy_vals_seq: Iterable[Tuple[X, float]]
-    ) -> Tabular[X]:
-        new_values_map: Dict[X, float] = self.values_map.copy()
-        new_counts_map: Dict[X, int] = self.counts_map.copy()
+    def update(self, xy_vals_seq: Iterable[Tuple[X, float]]) -> Tabular[X]:
+        values_map: Dict[X, float] = dict(self.values_map)
+        counts_map: Dict[X, int] = dict(self.counts_map)
+
         for x, y in xy_vals_seq:
-            new_counts_map[x] += 1
-            weight: float = self.count_to_weight_func(new_counts_map[x])
-            new_values_map[x] += weight * (y - new_values_map[x])
+            counts_map[x] = counts_map.get(x, 0) + 1
+            weight: float = self.count_to_weight_func(counts_map[x])
+            values_map[x] = weight * y + (1 - weight) * values_map.get(x, 0.)
+
         return replace(
             self,
-            values_map=new_values_map,
-            counts_map=new_counts_map
+            values_map=values_map,
+            counts_map=counts_map
         )
 
     def solve(
@@ -888,16 +884,16 @@ class Tabular(FunctionApprox[X]):
         xy_vals_seq: Iterable[Tuple[X, float]],
         error_tolerance: Optional[float] = None
     ) -> Tabular[X]:
-        new_values_map: Dict[X, float] = defaultdict(float)
-        new_counts_map: Dict[X, int] = defaultdict(int)
+        values_map: Dict[X, float] = {}
+        counts_map: Dict[X, int] = {}
         for x, y in xy_vals_seq:
-            new_counts_map[x] += 1
-            weight: float = self.count_to_weight_func(new_counts_map[x])
-            new_values_map[x] += weight * (y - new_values_map[x])
+            counts_map[x] = counts_map.get(x, 0) + 1
+            weight: float = self.count_to_weight_func(counts_map[x])
+            values_map[x] = weight * y + (1 - weight) * values_map.get(x, 0.)
         return replace(
             self,
-            values_map=new_values_map,
-            counts_map=new_counts_map
+            values_map=values_map,
+            counts_map=counts_map
         )
 
     def within(self, other: FunctionApprox[X], tolerance: float) -> bool:
@@ -905,8 +901,8 @@ class Tabular(FunctionApprox[X]):
             return\
                 all(abs(self.values_map[s] - other.values_map[s]) <= tolerance
                     for s in self.values_map)
-        else:
-            return False
+
+        return False
 ```
    
 Note that in the tabular Dynamic Programming algorithms, the set of finite states take the role of $\mathcal{X}$ and the Value Function for a given state $x=s$ takes the role of the "predicted" $y$-value associated with $x$. We also note that in the Dynamic Programming algorithms, in each iteration of sweeping through all the states, the Value Function for a state $x=s$ is set to the current $y$ value (not the average of all $y$-values seen so far). The current $y$-value is simply the right-hand-side of the Bellmen Equation corresponding to the Dynamic Programmming algorithm. Consequently, for tabular Dynamic Programming, we'd need to set `count_to_weight_func` to be the function `lambda _: 1` (this is because a weight of 1 for the current $y$-value sets `values_map[x]` equal to the current $y$-value). Later, when we get to Reinforcement Learning algorithms, we will be averaging all the Returns observed for a given state. If we choose to do a plain average (equal importance for all $y$-values see so far, associated with a given $x$), then we'd need to set `count_to_weights_func` to be the function `lambda n: 1. / n`. Note that this also means tabular RL is a special case of RL with linear function approximation by setting a feature function $\phi_i(\cdot)$ for each $x_i$ as: $\phi_i(x) = 1$ for $x=x_i$ and $\phi_(x) = 0$ for each $x \neq x_i$ (i.e., $\phi_i(x)$ is the indicator function for $x_i$, and the $\bm{\Phi}$ matrix is the identity matrix). This also means that the `count_to_weights_func` plays the role of the learning rate function (as a function of the number of iterations in stochastic gradient descent). Please do bear this in mind when we get to tabular RL.

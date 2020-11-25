@@ -306,9 +306,9 @@ class MarkovProcess(ABC, Generic[S]):
             yield state
             next_states = self.transition(state)
             if next_states is None:
-                break
-            else:
-                state = next_states.sample()
+                return
+
+            state = next_states.sample()
 ```
 
 ## Stock Price Examples modeled as Markov Processes
@@ -400,7 +400,7 @@ It is common to view this as a directed graph, as depicted in Figure \ref{fig:we
 ![Weather Markov Process \label{fig:weather_mp}](./chapter2/weather_mp.png "Weather Markov Process")
 </div>
 
-Now we are ready to write the code for the `FiniteMarkovProcess` class. The `__init__` method (constructor) takes as argument a `transition_map: Transition[S]` as we had described above. Along with the attribute `transition_map`, we also have an attribute `non_terminal_states: Sequence[S]` that is an ordered sequence of the non-terminal states. We implement the `transition` method by simply returning the `Optional[FiniteDistribution]` the given `state: S` maps to in the attribute `self.transition_map: Transition[S]`. Note that along with the `transition` method, we have implemented the `__repr__` method for a well-formatted display of `self.transition_map`.
+Now we are ready to write the code for the `FiniteMarkovProcess` class. The `__init__` method (constructor) takes as argument a `transition_map: Transition[S]` as we had described above. Along with the attribute `transition_map`, we also have an attribute `non_terminal_states: Sequence[S]` that is an ordered sequence of the non-terminal states. We implement the `transition` method by simply returning the `Optional[FiniteDistribution]` the given `state: S` maps to in the attribute `self.transition_map: Transition[S]`. Note that along with the `transition` method, we have implemented the `__repr__` method for a well-formatted display of `self.transition_map` and a method `states` that returns an `Iterable` enumerating the set of finite states in the `FiniteMarkovProcess`.
 
 ```python
 class FiniteMarkovProcess(MarkovProcess[S]):
@@ -428,6 +428,9 @@ class FiniteMarkovProcess(MarkovProcess[S]):
 
     def transition(self, state: S) -> Optional[FiniteDistribution[S]]:
         return self.transition_map[state]
+
+    def states(self) -> Iterable[S]:
+        return self.transition_map.keys()
 ```
 
 The above code is in the file [rl/markov_process.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/markov_process.py).
@@ -673,9 +676,9 @@ class MarkovRewardProcess(MarkovProcess[S]):
             yield state, reward
             next_distribution = self.transition_reward(state)
             if next_distribution is None:
-                break
-            else:
-                state, reward = next_distribution.sample()
+                return
+
+            state, reward = next_distribution.sample()
 ```
 
 So the idea is that if someone wants to model a Markov Reward Process, they'd simply have to create a concrete class that implements the interface of the abstract class `MarkovRewardProcess` (specifically implement the `@abstractmethod transition_reward`). But note that the `@abstractmethod transition` of `MarkovProcess` also needs to be implemented to make the whole thing concrete. However, we don't have to implement it in the concrete class implementing the interface of `MarkovRewardProcess` - in fact, we can implement it in the `MarkovRewardProcess` class itself by tapping the method `transition_reward`. Here's the code for the `transition` method in `MarkovRewardProcess`:
@@ -985,7 +988,6 @@ Let us write some code to implement the calculation of Equation \eqref{eq:mrp_be
             np.eye(len(self.non_terminal_states)) -
             gamma * self.get_transition_matrix()
         ).dot(self.reward_function_vec)
-
 ```
 
 Invoking this `get_value_function_vec` method on `SimpleInventoryMRPFinite` for the simple case of capacity $C=2$, poisson mean $\lambda = 1.0$, holding cost $h=1.0$, stockout cost $p=10.0$, and discount factor $\gamma=0.9$ yields the following result:
