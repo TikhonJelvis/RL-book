@@ -488,7 +488,7 @@ class DNNApprox(FunctionApprox[X]):
             inputs: Sequence[int] = [len(feature_functions)] + \
                 [n + (1 if dnn_spec.bias else 0)
                  for i, n in enumerate(dnn_spec.neurons)]
-            outputs: Sequence[int] = dnn_spec.neurons + [1]
+            outputs: Sequence[int] = list(dnn_spec.neurons) + [1]
             wts = [Weights.create(
                 adam_gradient,
                 np.random.randn(output, inp) / np.sqrt(inp)
