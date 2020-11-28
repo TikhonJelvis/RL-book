@@ -148,7 +148,9 @@ class TestRewardMarkovProcess(unittest.TestCase):
             10
         ))
 
-        self.assertTrue(all(isinstance(outcome, bool) for outcome, _ in trace))
+        self.assertTrue(
+            all(isinstance(step.next_state, bool) for step in trace)
+        )
 
-        cumulative_reward = sum(reward for _, reward in trace)
+        cumulative_reward = sum(step.reward for step in trace)
         self.assertTrue(0 <= cumulative_reward <= 10)

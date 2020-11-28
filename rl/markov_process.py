@@ -1,10 +1,13 @@
+from __future__ import annotations
+
 from abc import ABC, abstractmethod
-import graphviz
-from typing import (Dict, Iterable, Generic, Sequence, Tuple, Mapping,
-                    Optional, TypeVar)
 from collections import defaultdict
+from dataclasses import dataclass
+import graphviz
 import numpy as np
 from pprint import pprint
+from typing import (Dict, Iterable, Generic, Sequence, Tuple,
+                    Mapping, Optional, TypeVar)
 
 from rl.distribution import (Categorical, Distribution, FiniteDistribution,
                              SampledDistribution)
@@ -22,7 +25,6 @@ class MarkovProcess(ABC, Generic[S]):
         '''Given a state of the process, returns a distribution of
         the next states.  Returning None means we are in a terminal state.
         '''
-        pass
 
     def is_terminal(self, state: S) -> bool:
         '''Return whether the given state is a terminal state.
@@ -64,7 +66,6 @@ class MarkovProcess(ABC, Generic[S]):
         '''
         while True:
             yield self.simulate(start_state_distribution)
-
 
 
 class FiniteMarkovProcess(MarkovProcess[S]):
@@ -145,6 +146,29 @@ class FiniteMarkovProcess(MarkovProcess[S]):
 
 
 # Reward processes
+@dataclass(frozen=True)
+class TransitionStep(Generic[S]):
+    state: S
+    next_state: S
+    reward: float
+
+    def add_return(self, γ: float, return_: float) -> ReturnStep[S]:
+        '''Given a γ and the return from 'next_state', this annotates the
+        transition with a return for 'state'.
+
+        '''
+        return ReturnStep(
+            self.state,
+            self.next_state,
+            self.reward,
+            return_=self.reward + γ * return_
+        )
+
+
+@dataclass(frozen=True)
+class ReturnStep(TransitionStep[S]):
+    return_: float
+
 
 class MarkovRewardProcess(MarkovProcess[S]):
     def transition(self, state: S) -> Optional[Distribution[S]]:
@@ -155,12 +179,12 @@ class MarkovRewardProcess(MarkovProcess[S]):
         distribution = self.transition_reward(state)
         if distribution is None:
             return None
-        else:
-            def next_state(distribution=distribution):
-                next_s, _ = distribution.sample()
-                return next_s
 
-            return SampledDistribution(next_state)
+        def next_state(distribution=distribution):
+            next_s, _ = distribution.sample()
+            return next_s
+
+        return SampledDistribution(next_state)
 
     @abstractmethod
     def transition_reward(self, state: S)\
@@ -169,12 +193,11 @@ class MarkovRewardProcess(MarkovProcess[S]):
         and reward from transitioning between the states.
 
         '''
-        pass
 
     def simulate_reward(
         self,
         start_state_distribution: Distribution[S]
-    ) -> Iterable[Tuple[S, float]]:
+    ) -> Iterable[TransitionStep[S]]:
         '''Simulate the MRP, yielding the new state and reward for each
         transition.
 
@@ -186,23 +209,26 @@ class MarkovRewardProcess(MarkovProcess[S]):
         reward: float = 0.
 
         while True:
-            yield state, reward
             next_distribution = self.transition_reward(state)
             if next_distribution is None:
                 return
 
-            state, reward = next_distribution.sample()
+            next_state, reward = next_distribution.sample()
+            yield TransitionStep(state, next_state, reward)
+
+            state = next_state
 
     def reward_traces(
             self,
             start_state_distribution: Distribution[S]
-    ) -> Iterable[Iterable[Tuple[S, float]]]:
+    ) -> Iterable[Iterable[TransitionStep[S]]]:
         '''Yield simulation traces (the output of `simulate_reward'), sampling
         a start state from the given distribution each time.
 
         '''
         while True:
             yield self.simulate_reward(start_state_distribution)
+
 
 StateReward = FiniteDistribution[Tuple[S, float]]
 RewardTransition = Mapping[S, Optional[StateReward[S]]]

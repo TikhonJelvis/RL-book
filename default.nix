@@ -54,7 +54,7 @@ let
   system-packages =
     if pkgs.stdenv.isDarwin
     then [ python pkgs.fswatch ]
-    else [ pythonWithPackages ];
+    else [ pythonWithPackages pkgs.python-language-server ];
 in
 pkgs.stdenv.mkDerivation {
   name = "RL-book";

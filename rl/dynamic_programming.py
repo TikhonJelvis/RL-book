@@ -40,8 +40,8 @@ def almost_equal_np_arrays(
     v2: np.ndarray,
     tolerance: float = DEFAULT_TOLERANCE
 ) -> bool:
-    '''Return whether the two value functions as np.ndarray are within the given
-    tolerance of each other.
+    '''Return whether the two value functions as np.ndarray are within the
+    given tolerance of each other.
 
     '''
     return max(abs(v1 - v2)) < tolerance

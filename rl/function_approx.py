@@ -25,6 +25,7 @@ class FunctionApprox(ABC, Generic[X]):
     additional (X, ℝ) points.
 
     '''
+    Self = TypeVar('Self', bound='FunctionApprox[X]')
 
     @abstractmethod
     def evaluate(self, x_values_seq: Iterable[X]) -> np.ndarray:
@@ -32,22 +33,20 @@ class FunctionApprox(ABC, Generic[X]):
         x_values_seq (with the probability distribution
         function of y|x estimated as FunctionApprox)
         '''
-        pass
 
     def __call__(self, x_value: X) -> float:
         return self.evaluate([x_value]).item()
 
     @abstractmethod
     def update(
-        self,
+        self: Self,
         xy_vals_seq: Iterable[Tuple[X, float]]
-    ) -> FunctionApprox[X]:
+    ) -> Self:
 
         '''Update the internal parameters of the FunctionApprox
         based on incremental data provided in the form of (x,y)
         pairs as a xy_vals_seq data structure
         '''
-        pass
 
     @abstractmethod
     def solve(
@@ -64,14 +63,12 @@ class FunctionApprox(ABC, Generic[X]):
         some methods involve a direct solve for the fit that don't
         require an error_tolerance)
         '''
-        pass
 
     @abstractmethod
     def within(self, other: FunctionApprox[X], tolerance: float) -> bool:
         '''Is this function approximation within a given tolerance of
         another function approximation of the same type?
         '''
-        pass
 
     def argmax(self, xs: Iterable[X]) -> X:
         '''Return the input X that maximizes the function being approximated.
@@ -94,9 +91,9 @@ class FunctionApprox(ABC, Generic[X]):
         return np.sqrt(np.mean(errors * errors))
 
     def iterate_updates(
-        self,
+        self: Self,
         xy_seq_stream: Iterator[Iterable[Tuple[X, float]]]
-    ) -> Iterator[FunctionApprox[X]]:
+    ) -> Iterator[Self]:
         '''Given a stream (Iterator) of data sets of (x,y) pairs,
         perform a series of incremental updates to the internal
         parameters (using update method), with each internal
@@ -105,7 +102,8 @@ class FunctionApprox(ABC, Generic[X]):
         '''
         return itertools.accumulate(
             xy_seq_stream,
-            lambda fa, xy: fa.update(xy), initial=self
+            lambda fa, xy: fa.update(xy),
+            initial=self
         )
 
 

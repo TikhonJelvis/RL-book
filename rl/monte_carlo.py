@@ -3,14 +3,14 @@ Markov Decision Processes.
 
 '''
 
-from typing import Iterator, Tuple, TypeVar
+from typing import Iterable, Iterator, Tuple, TypeVar
 
 from rl.distribution import Distribution
 from rl.function_approx import FunctionApprox
-import rl.iterate as iterate
 import rl.markov_decision_process as markov_decision_process
 from rl.markov_decision_process import (MarkovRewardProcess,
                                         MarkovDecisionProcess)
+from rl.returns import returns
 
 S = TypeVar('S')
 A = TypeVar('A')
@@ -43,7 +43,8 @@ def evaluate_mrp(
     v = approx_0
 
     for trace in mrp.reward_traces(states):
-        v = v.update(list(iterate.returns(trace, γ, tolerance)))
+        steps = returns(trace, γ, tolerance)
+        v = v.update((step.state, step.return_) for step in steps)
         yield v
 
 
@@ -78,10 +79,11 @@ def evaluate_mdp(
     p = markov_decision_process.policy_from_q(q, mdp)
 
     while True:
-        trace = mdp.simulate_actions(states, p)
+        trace: Iterable[markov_decision_process.TransitionStep[S, A]] =\
+            mdp.simulate_actions(states, p)
         q = q.update(
-            [((trace.state, trace.action), trace.reward)
-             for trace in markov_decision_process.returns(trace, γ, tolerance)]
+            ((step.state, step.action), step.return_)
+            for step in returns(trace, γ, tolerance)
         )
         p = markov_decision_process.policy_from_q(q, mdp, ϵ)
         yield q

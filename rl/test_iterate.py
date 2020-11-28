@@ -1,7 +1,7 @@
 import itertools
 import unittest
 
-from rl.iterate import (iterate, last, converge, converged, returns)
+from rl.iterate import (iterate, last, converge, converged)
 
 
 class TestIterate(unittest.TestCase):
