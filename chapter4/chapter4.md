@@ -869,7 +869,7 @@ Then, the Bellman Policy Equation can be written as:
 
 \begin{equation}
 \begin{split}
-V^{\pi}_t(s_t) = \sum_{s_{t+1} \in \mathcal{S}_{t+1}} \sum_{r \in \mathbb{R}} & (\mathcal{P}_R^{\pi_t})_t(s_t, a_t, r, s_{t+1}) \cdot (r + \gamma \cdot W^{\pi}_{t+1}(s_{t+1})) \\
+V^{\pi}_t(s_t) = \sum_{s_{t+1} \in \mathcal{S}_{t+1}} \sum_{r \in \mathbb{R}} & (\mathcal{P}_R^{\pi_t})_t(s_t, r, s_{t+1}) \cdot (r + \gamma \cdot W^{\pi}_{t+1}(s_{t+1})) \\
 & \text{ for all } t = 0, 1, \ldots, T-1, s_t \in \mathcal{N}_t
 \end{split}
 \label{eq:bellman_policy_equation_finite_horizon}
