@@ -295,43 +295,152 @@ Imagine the following problem: You are a trader in a stock and your boss has ins
 
 Unsurprisingly, we can model this problem as a Market Decision Process control problem where the actions at each time step (each hour, in this case) are the number of shares sold at the time step and the rewards are the Utility of sales proceeds at each time step. To keep things simple and intuitive, we shall model *Price Impact* of Market Orders in terms of their effect on the *Bid Price* (rather than in terms of their effect on the entire OB). In other words, we won't be modeling the entire OB Price Dynamics, just the Bid Price Dynamics. We shall refer to the OB activity of an MO immediately "eating into the Buy LOs" (and hence, potentially transacting at prices lower than the best price) as the *Temporary* Price Impact. As mentioned earlier, this is followed by subsequent replenishment of both Buy and Sell LOs on the OB (stabilizing the OB) - we refer to any eventual (end of the hour) lowering of the Bid Price (relative to the Bid Price before the MO was submitted) as the *Permanent* Price Impact. Modeling the temporary and permanent Price Impacts separately helps us in deciding on the optimal actions (optimal shares to be sold at the start of each hour).
 
-Now we develop some formalism to describe this problem precisely. As mentioned earlier, we make a number of simplifying assumptions in modeling the OB Dynamics for ease of articulation (without diluting the most important concepts). We index the discrete time steps by $t= 0, 1, \ldots, T$.  We denote $P_t$ as the Bid Price at the start of time step $t$ and $N$ as the number of shares sold at time step $t$. We denote the number of shares remaining to be sold at the start of time step $t$ as $R_t$. Therefore,
-$$R_t = N - \sum_{i=0}^{t-1}N_i \text{ for all } 0 \leq t < T$$
+Now we develop some formalism to describe this problem precisely. As mentioned earlier, we make a number of simplifying assumptions in modeling the OB Dynamics for ease of articulation (without diluting the most important concepts). We index discrete time by $t= 0, 1, \ldots, T$.  We denote $P_t$ as the Bid Price at the start of time step $t$ (for all $t = 0, 1, \ldots, T$) and $N_t$ as the number of shares sold at time step $t$ for all $t = 0, 1, \ldots, T-1$. We denote the number of shares remaining to be sold at the start of time step $t$ as $R_t$ for all $t = 0, 1, \ldots, T$. Therefore,
+$$R_t = N - \sum_{i=0}^{t-1}N_i \text{ for all } t = 0, 1, \ldots, T$$
 Note that:
 
 $$R_0 = N$$
-$$R_{t+1} = R_t - N_t \text{ for all } 0 \leq t < T$$
+$$R_{t+1} = R_t - N_t \text{ for all } t = 0, 1, \ldots, T-1$$
+
+Also note that we need to sell everything by time $t=T$ and so:
+
 $$N_{T-1} = R_{T-1} \Rightarrow R_T = 0$$
 
-The model of Bid Price Dynamics is given by:
-$$P_{t+1} = f_t(P_t, N_t, \epsilon_t) \text{ for all } 0 \leq t < T$$
-where $f_t(\cdot)$ is an arbitrary function incorporating:
+The model of Bid Price Dynamics from one time step to the next is given by:
+$$P_{t+1} = f_t(P_t, N_t, \epsilon_t) \text{ for all } t = 0, 1, \ldots, T-1$$
+where $f_t$ is an arbitrary function incorporating:
 
 * The Permanent Price Impact of selling $N_t$ shares.
 * The Price-Impact-independent market-movement of the Bid Price from time $t$ to time $t+1$.
 * Noise $\epsilon_t$, a source of randomness in Bid Price movements.
 
-The Proceeds from the sale at time step $t$ is defined as:
+The Proceeds from the sale at time step $t$, for all $t = 0, 1, \ldots, T-1$, is defined as:
 $$N_t \cdot Q_t = N_t \cdot (P_t - g_t(P_t, N_t))$$
-where $g_t(\cdot)$ is a function modeling the Temporary Price Impact (i.e., the MO "eating into" the Buy LOs on the OB and hence, moving the Bid Price). Lastly, we denote the Utility (of Sales Proceeds) function as $U(\cdot)$.
+where $g_t$ is a function modeling the Temporary Price Impact (i.e., the $N_t$ MO "eating into" the Buy LOs on the OB). $Q_t$ should be interpreted as the average Buy LO price transacted against by the $N_t$ MO at time $t$.
 
-As mentioned previously, solving for the optimal number of shares to be sold at each time step can be modeled as a finite-horizon Markov Decision Process, which we describe below in terms of the order of MDP activity at each time step $0 \leq t < T$ (the MDP horizon is time $T$ meaning all states at time $T$ are terminal states). We follow the notational style of finite-horizon MDPs that should now be familiar from previous chapters.
+Lastly, we denote the Utility (of Sales Proceeds) function as $U(\cdot)$.
 
-Order of Events at time step $t$ for all $0 \leq t < T$:
+As mentioned previously, solving for the optimal number of shares to be sold at each time step can be modeled as a discrete-time finite-horizon Markov Decision Process, which we describe below in terms of the order of MDP activity at each time step $t = 0, 1, \ldots, T-1$ (the MDP horizon is time $T$ meaning all states at time $T$ are terminal states). We follow the notational style of finite-horizon MDPs that should now be familiar from previous chapters.
+
+Order of Events at time step $t$ for all $t = 0, 1, \ldots, T-1$:
 
 * Observe *State* $s_t := (P_t, R_t) \in \mathcal{S}_t$
-* Perform *Action* $a_t := N_t \in mathcal{A}_t$
+* Perform *Action* $a_t := N_t \in \mathcal{A}_t$
 * Receive *Reward* $r_{t+1} := U(N_t \cdot Q_t) = U(N_t \cdot (P_t - g_t(P_t, N_t)))$
-* Experience Price Dynamics $P_{t+1} = f_t(P_t, N_t, \epsilon_t)$ and set $R_{t+1} = R_t - N_t$ so as to obtain the nest state $s_{t+1} \in \mathcal{S}_{t+1}$.
+* Experience Price Dynamics $P_{t+1} = f_t(P_t, N_t, \epsilon_t)$ and set $R_{t+1} = R_t - N_t$ so as to obtain the next state $s_{t+1} = (P_{t+1}, R_{t+1}) \in \mathcal{S}_{t+1}$.
 
-The goal is to find the Optimal Policy $\pi^*_t((P_t, R_t)) = N_t$ that maximizes:
+Note that we have intentionally not specified the types of $\mathcal{S}_t$ and $\mathcal{A}_t$ as the types will be customized to the nuances/constraints of the specific Optimal Order Execution problem we'd be solving. Be default, we shall assume that $P_t \in \mathbb{R}^+$ and $N_t, R_t \in \mathbb{Z}_{\geq 0}$ (as these represent realistic trading situations), although we do consider special cases later in the chapter where $P_t, R_t \in \mathbb{R}$ (for analytical tractability).
+
+The goal is to find the Optimal Policy $\pi^* = (\pi^*_0, \pi^*_1, \ldots, \pi^*_{T-1})$ (defined as $\pi^*_t((P_t, R_t)) = N^*_t$ that maximizes:
 $$\mathbb{E}[\sum_{t=0}^{T-1} \gamma^t \cdot U(N_t \cdot Q_t)]$$
 where $\gamma$ is the discount factor to account for the fact that future utility of sales proceeds can be modeled to be less valuable than today's.
 
+### Simple Linear Price Impact Model with no Risk-Aversion
 
-## Simple Linear Impact Model with no Risk-Aversion
-## Incorporating Risk-Aversion and Real-World Considerations
+Now we consider a special case of the above-described MDP - a simple linear Price Impact model with no risk-aversion. Furthermore, for analytical tractability, we assume $N, N_t, P_t$ are all continuous-valued (i.e., taking values $\in \mathbb{R}$).
+
+We assume simple linear price dynamics as follows:
+
+$$P_{t+1} = f_t(P_t, N_t, \epsilon) = P_t - \alpha \cdot N_t + \epsilon_t$$
+
+where $\alpha \in \mathbb{R}$ and $\epsilon_t$ for all $t=0, 1, \ldots, T-1$ are independent and identically distributed (i.i.d.) with $\mathbb{E}[\epsilon_t|N_t, P_t] = 0$. Therefore, the Permanent Price Impact is $\alpha \cdot N_t$. 
+
+As for the temporary price impact, we know that $g_t$ needs to be a monotonically non-decreasing function of $N_t$. We assume a simple linear form for $g_t$ as follows:
+
+$$g_t(P_t, N_t) = \beta \cdot N_t \text{ for all } t = 0, 1, \ldots, T-1$$
+
+for some constant $\beta \in \mathbb{R}_{\geq 0}$. So, $Q_t = P_t - \beta N_t$. As mentioned above, we assume no risk-aversion, i.e., the Utility function $U(\cdot)$ is assumed to be the identity function. Also, we assume that the MDP discount factor $\gamma = 1$.
+
+Note that all of these assumptions are far too simplistic and hence, an unrealistic model of the real-world, but starting with this simple model helps build good intuition and enables us to develop more realistic models by incrementally adding complexity/nuances from this simple base model.
+
+As ever, in order to solve the Control problem, we define the Optimal Value Function and invoke the Bellman Optimality Equation. We shall use the standard notation for discrete-time finite-horizon MDPs that we are now very familiar with.
+
+Denote the Value Function for policy $\pi$ at time $t$ (for all $t = 0, 1, \ldots T-1$) as:
+
+$$V^{\pi}_t((P_t, R_t)) = \mathbb{E}_{\pi}[\sum_{i=0}^{T-1} N_i \cdot (P_i - \beta \cdot N_i)|(t,P_t,R_t)]$$
+
+Denote the Optimal Value Function at time $t$ (for all $t= 0, 1, \ldots, T-1$) as:
+
+$$V^*_t((P_t,R_t)) = \max_{\pi} V^{\pi}_t((P_t,R_t))$$
+
+The Optimal Value Function satisfies the finite-horizon Bellman Optimality Equation for all $t = 0, 1, \ldots, T-2$, as follows:
+$$V^*_t((P_t,R_t)) = \max_{N_t} \{ N_t \cdot (P_t - \beta \cdot N_t)  + \mathbb{E}[V^*_{t+1}((P_{t+1}, R_{t+1}))] \}$$
+and
+
+$$V^*_{T-1}((P_{T-1},R_{T-1})) = N_{T-1} \cdot (P_{T-1} - \beta \cdot N_{T-1})) = R_{T-1} \cdot (P_{T-1} - \beta \cdot R_{T-1})$$
+
+From the above, we can infer:
+
+$$V^*_{T-2}((P_{T-2}, R_{T-2})) = \max_{N_{T-2}} \{ N_{T-2} \cdot (P_{T-2} - \beta \cdot N_{T-2})  + \mathbb{E}[R_{T-1} \cdot (P_{T-1} - \beta \cdot R_{T-1})] \}$$
+$$=\max_{N_{T-2}} \{ N_{T-2} \cdot (P_{T-2} - \beta \cdot N_{T-2})  + \mathbb{E}[(R_{T-2} - N_{T-2})(P_{T-1} - \beta \cdot (R_{T-2} - N_{T-2})) \}$$
+$$=\max_{N_{T-2}} \{ N_{T-2} \cdot (P_{T-2} - \beta \cdot N_{T-2})  + (R_{T-2} - N_{T-2}) \cdot (P_{T-2} - \alpha \cdot N_{T-2} - \beta \cdot (R_{T-2} - N_{T-2})) \}$$
+This simplifies to:
+\begin{equation}
+V^*_{T-2}((P_{T-2}, R_{T-2})) = \max_{N_{T-2}} \{ R_{T-2} \cdot P_{T-2} - \beta \cdot R_{T-2}^2 + (\alpha - 2 \beta) (N_{T-2}^2 - N_{T-2} \cdot R_{T-2}) \}
+\label{eq:optimal-exercise-linear-model-recursive}
+\end{equation}
+
+For the case $\alpha \geq 2\beta$, noting that $N_{T-2} \leq R_{T-2}$, we have the trivial solution:
+$$N^*_{T-2} = 0 \text{ or } N^*_{T-2} = R_{T-2}$$
+
+Substituting either of these two values for $N^*_{T-2}$ in the right-hand-side of Equation \eqref{eq:optimal-exercise-linear-model-recursive} gives:
+
+$$V^*_{T-2}((P_{T-2}, R_{T-2})) =  R_{T-2} \cdot (P_{T-2} - \beta \cdot R_{T-2})$$
+
+Continuing backwards in time in this manner (for the case $\alpha \geq 2\beta$) gives:
+
+$$N^*_t = 0 \text{ or } N^*_t = R_t \text{ for all } t = 0, 1, \ldots, T-1$$
+$$V^*_t((P_t, R_t)) = R_t \cdot (P_t - \beta \cdot R_t) \text{ for all } t = 0, 1, \ldots, T-1$$
+So the solution for the case $\alpha \geq 2\beta$ is to sell all $N$ shares at any one of the time steps $t = 0, 1, \ldots, T-1$ (and none in the other time steps), and the Optimal Expected Total Sale Proceeds is $N \cdot (P_0 - \beta \cdot N)$
+
+For the case $\alpha < 2\beta$, differentiating the term inside the $\max$ in Equation \eqref{eq:optimal-exercise-linear-model-recursive} with respect to $N_{T-2}$, and setting it to 0 gives:
+$$(\alpha - 2\beta) \cdot (2N^*_{T-2} - R_{T-2}) = 0 \Rightarrow N^*_{T-2} = \frac {R_{T-2}} 2$$
+Substituting this solution for $N^*_{T-2}$ in Equation \eqref{eq:optimal-exercise-linear-model-recursive} gives:
+
+$$V^*_{T-2}((P_{T-2}, R_{T-2})) =  R_{T-2} \cdot P_{T-2} - R_{T-2}^2 \cdot (\frac {\alpha + 2\beta} 4)$$
+
+Continuing backwards in time in this manner gives:
+
+$$N^*_t = \frac {R_t} {T-t} \text{ for all } t = 0, 1, \ldots, T-1$$
+$$V^*_t((P_t, R_t)) = R_t \cdot P_t - \frac {R_t^2} 2 \cdot (\frac {2\beta + \alpha \cdot (T-t-1)} {T-t}) \text{ for all } t = 0, 1, \ldots, T-1$$
+
+Rolling forward in time, we see that $N^*_t = \frac N T$, i.e., splitting the $N$ shares uniformly across the $T$ time steps. Hence, the Optimal Policy is a constant deterministic function (i.e., independent of the *State*).  Note that a uniform split makes intuitive sense because Price Impact and Market Movement are both linear and additive, and don't interact. This optimization is essentially equivalent to minimizing $\sum_{t=1}^T N_t^2$ with the constraint: $\sum_{t=1}^T N_t = N$. The Optimal Expected Total Sales Proceeds is equal to:
+
+$$N \cdot P_0 - \frac {N^2} 2 \cdot (\alpha + \frac {2\beta - \alpha} T)$$
+
+*Implementation Shortfall* is the technical term used to refer to the reduction in Total Sales Proceeds relative to the maximum possible sales proceeds ($=N\cdot P_0$). So, in this simple linear model, the Implementation Shortfall from Price Impact is $\frac {N^2} 2 \cdot (\alpha + \frac {2\beta - \alpha} T)$. Note that the Implementation Shortfall is non-zero even if one had infinite time available ($T\rightarrow \infty$) for the case of $\alpha > 0$. If Price Impact were purely temporary ($\alpha = 0$, i.e., Price fully snapped back), then the Implementation Shortfall is zero if one had infinite time available.
+
+[This paper by Bertsimas and Lo on Optimal Order Execution](http://alo.mit.edu/wp-content/uploads/2015/06/Optimal-Control-of-Execution-Costs.pdf) considered a special case of the simple Linear Impact model we sketched above. Specifically, they assumed no risk-aversion (Utility function is identity function) and assumed that the Permanent Price Impact parameter $\alpha$ is equal to the Temporary Price Impact Parameter $\beta$. In the same paper, Bertsimas and Lo then extended this Linear Impact Model to include dependence on a serially-correlated variable $X_t$ as follows:
+$$P_{t+1} = P_t - (\beta \cdot N_t + \theta \cdot X_t) + \epsilon_t$$
+$$X_{t+1} = \rho \cdot X_t + \eta_t$$
+$$Q_t = P_t - (\beta \cdot N_t + \theta \cdot X_t)$$
+where $\epsilon_t$ and $\eta_t$ are each independent and identically distributed for all $t = 0, 1, \ldots, T-1$,  $\epsilon_t$ and $\eta_t$ are also mutually independent, and each has mean zero. $X_t$ can be thought of as a market factor affecting $P_t$ linearly. Applying the finite-horizon Bellman Optimality Equation on the Optimal Value Function (and the same backward-recursive approach as before) yields:
+$$N^*_t = \frac {R_t} {T-t} + h(t, \beta, \theta, \rho) \cdot X_t$$
+$$V^*_t((P_t,R_t,X_t)) = R_t \cdot P_t - (\text{quadratic in } (R_t, X_t) + \text{ constant})$$
+Essentially, the serial-correlation predictability ($\rho \neq 0$) alters the uniform-split strategy.
+
+In the same paper, Bertsimas and Lo presented a more realistic model called *Linear-Percentage Temporary* (abbreviated as LPT) Price Impact model, whose salient features include:
+
+* Geometric random walk: consistent with real data, and avoids non-positive prices.
+* Fractional Price Impact $\frac {g_t(P_t,N_t)} {P_t}$ doesn't depend on $P_t$ (this is validated by real data).
+* Purely Temporary Price Impact, i.e., the price $P_t$ snaps back after the Temporary Price Impact (no Permanent effect of Market Orders on future prices). 
+
+The specific model is:
+
+$$P_{t+1} = P_t \cdot e^{Z_t}$$
+$$X_{t+1} = \rho \cdot X_t + \eta_t$$
+$$Q_t = P_t \cdot (1 - \beta \cdot N_t - \theta \cdot X_t)$$
+where $Z_t$ is a random variable with mean $\mu_Z$ and variance $\sigma^2_Z$. With the same derivation methodology as before, we get the solution:
+$$N_t^* = c^{(1)}_t + c^{(2)}_t R_t + c^{(3)}_t X_t $$
+$$V^*_t((P_t,R_t,X_t)) = e^{\mu_Z + \frac {\sigma_Z^2} 2} \cdot P_t \cdot (c^{(4)}_t + c^{(5)}_t R_t + c^{(6)}_t X_t + c^{(7)}_t R_t^2 + c^{(8)}_t X_t^2 + c^{(9)}_t R_t X_t)$$
+where $c^{(k)}_t, 1 \leq k \leq 9$, are independent of $P_t, R_t, X_t$
+
+### Incorporating Risk-Aversion and Real-World Considerations
+
 ## Optimal Market-Making
-## Avellaneda-Stoikov Continuous-Time Formulation
-## Solving the Avellaneda-Stoikov Formulation
-## Real-World Market-Making
+
+### Avellaneda-Stoikov Continuous-Time Formulation
+### Solving the Avellaneda-Stoikov Formulation
+### Real-World Market-Making
+
+## Key Takeaways from this Chapter
