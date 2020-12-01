@@ -509,7 +509,7 @@ class AssetAllocDiscrete:
 
         return AssetAllocMDP()
 
-    def get_qvf_func_approx(self, _: int) -> DNNApprox[Tuple[float, float]]:
+    def get_qvf_func_approx(self) -> DNNApprox[Tuple[float, float]]:
         adam_gradient: AdamGradient = AdamGradient(
             learning_rate=0.1,
             decay1=0.9,
@@ -522,13 +522,13 @@ class AssetAllocDiscrete:
         )
 
     def get_states_distribution(self, t: int) -> SampledDistribution[float]:
-        distr: Distribution[float] = self.risky_return_distributions[t]
-        rate: float = self.riskless_returns[t]
         actions_distr: Choose[float] = self.uniform_actions()
 
         def states_sampler_func() -> float:
             wealth: float = self.initial_wealth_distribution.sample()
             for i in range(t):
+                distr: Distribution[float] = self.risky_return_distributions[i]
+                rate: float = self.riskless_returns[i]
                 alloc: float = actions_distr.sample()
                 wealth = alloc * (1 + distr.sample()) + \
                     (wealth - alloc) * (1 + rate)
@@ -538,18 +538,19 @@ class AssetAllocDiscrete:
 
     def backward_induction_qvf(self) -> \
             Iterator[DNNApprox[Tuple[float, float]]]:
+        init_fa: DNNApprox[Tuple[float, float]] = self.get_qvf_func_approx()
         mdp_f0_mu_triples: Sequence[Tuple[
             MarkovDecisionProcess[float, float],
             DNNApprox[Tuple[float, float]],
             SampledDistribution[float]
         ]] = [(
             self.get_mdp(i),
-            self.get_qvf_func_approx(i),
+            init_fa,
             self.get_states_distribution(i)
         ) for i in range(self.time_steps())]
 
         num_state_samples: int = 300
-        error_tolerance: float = 1e-5
+        error_tolerance: float = 1e-6
 
         return back_opt_qvf(
             mdp_f0_mu_triples=mdp_f0_mu_triples,
@@ -668,25 +669,25 @@ Time 0
 
 Opt Risky Allocation = 1.200, Opt Val = -0.225
 Optimal Weights below:
-array([[ 0.14388547,  1.30426621,  0.07020555, -0.02897226]])
+array([[ 0.13318188,  1.31299678,  0.07327264, -0.03000281]])
 
 Time 1
 
 Opt Risky Allocation = 1.300, Opt Val = -0.257
 Optimal Weights below:
-array([[ 0.08908685,  1.22551413,  0.06950822, -0.02662882]])
+array([[ 0.08912411,  1.22479503,  0.07002802, -0.02645654]])
 
 Time 2
 
 Opt Risky Allocation = 1.400, Opt Val = -0.291
 Optimal Weights below:
-array([[ 0.0354461 ,  1.14584814,  0.0755796 , -0.02669776]])
+array([[ 0.03772409,  1.144612  ,  0.07373166, -0.02566819]])
 
 Time 3
 
 Opt Risky Allocation = 1.500, Opt Val = -0.328
 Optimal Weights below:
-array([[ 0.00696443,  1.07012365,  0.04865833, -0.01574355]])
+array([[ 0.00126822,  1.0700996 ,  0.05798272, -0.01924149]])
 ```
 
 Now let's compare these results against the closed-form solution.
