@@ -335,6 +335,143 @@ The goal is to find the Optimal Policy $\pi^* = (\pi^*_0, \pi^*_1, \ldots, \pi^*
 $$\mathbb{E}[\sum_{t=0}^{T-1} \gamma^t \cdot U(N_t \cdot Q_t)]$$
 where $\gamma$ is the discount factor to account for the fact that future utility of sales proceeds can be modeled to be less valuable than today's.
 
+Now let us write some code to solve this MDP. We write a class `OptimalOrderExecution` which models a fairly generic MDP for Optimal Order Execution as described above, and solves the Control problem with Approximate Value Iteration using the backward induction algorithm that we implemented in Chapter [-@sec:funcapprox-chapter]. Let us start by taking a look at the attributes (inputs) to `OptimalOrderExecution`:
+
+* `shares` refers to the total number of shares $N$ to be sold over $T$ time steps.
+* `time_steps` refers to the number of time steps $T$.
+* `avg_exec_price_diff` refers to the time-sequenced functions $g_t$ that return the reduction in the average price obtained by the Market Order at time t due to eating into the Buy LOs. $g_t$ takes as input the type `PriceAndShares` that represents a pair of `price: float` and `shares: int` (in this case, the `price` is $P_t$ and the `shares` is the MO size $N_t$ at time $t$). As explained earlier, the sales proceeds at time $t$ is: $N_t \cdot (P_t - g_t(P_t, N_t))$.
+* `price_dynamics` refers to the time-sequenced functions $f_t$ that represent the price dynamics: $P_{t+1} \sim f_t(P_t, N_t)$. $f_t$ outputs a probability distribution of prices for $P_{t+1}$.
+* `utility_func` refers to the Utility of Sales Proceeds function, incorporating any risk-aversion.
+* `discount_factor` refers to the discount factor $\gamma$.
+* `func_approx` refers to the `FunctionApprox` type to be used to approximate the Value Function for each time step.
+* `initial_price_distribution` refers to the probability distribution of prices $P_0$ at time 0, which is used to generate the samples of states at each of the time steps (needed in the approximate backward induction algorithm).
+
+```python
+@dataclass(frozen=True)
+class PriceAndShares:
+    price: float
+    shares: int
+
+@dataclass(frozen=True)
+class OptimalOrderExecution:
+    shares: int
+    time_steps: int
+    avg_exec_price_diff: Sequence[Callable[[PriceAndShares], float]]
+    price_dynamics: Sequence[Callable[[PriceAndShares], Distribution[float]]]
+    utility_func: Callable[[float], float]
+    discount_factor: float
+    func_approx: FunctionApprox[PriceAndShares]
+    initial_price_distribution: Distribution[float]
+```
+
+The two key things we need to perform the backward induction are:
+
+* A method `get_mdp` that given a time step $t$, produces the `MarkovDecisionProcess` object representing the transitions from time $t$ to time $t+1$. The class `OptimalExecutionMDP` within `get_mdp` implements the abstract methods `step` and `action` of the abstract class `MarkovDecisionProcess`. The code should be fairly self-explanatory - just a couple of things to point out here. Firstly, the input `p_r: PriceAndShares` to the `step` method represents the state $(P_t, R_t)$ at time $t$, and the variable `p_s: PriceAndDShares` represents the pair of $(P_t, N_t)$, which serves as input to `avg_exec_price_diff` and `price_dynamics` (function attributes of `OptimalOrderExecution`). Secondly, note that the `actions` method returns an `Iterator` on a single `int` at time $t = T-1$ because of the constraint $N_{T-1} = R_{T-1}$.
+* A method `get_states_distribution` that given a time step $t$, produces the probability distribution of states $(P_t, R_t)$ at time $t$ (of type `SampledDistribution[PriceAndShares]`). The code here is fairly similar to the `get_states_distribiution` method of `AssetAllocDiscrete` in Chapter [-@sec:portfolio-chapter] (essentially, walking forward from time 0 to time $t$ by sampling from the state-transition probability distribution and also sampling from uniform choices over all actions at each time step).
+
+```
+    def get_mdp(self, t: int) -> MarkovDecisionProcess[PriceAndShares, int]:
+        utility_f: Callable[[float], float] = self.utility_func
+        price_diff: Sequence[Callable[[PriceAndShares], float]] = \
+            self.avg_exec_price_diff
+        dynamics: Sequence[Callable[[PriceAndShares], Distribution[float]]] = \
+            self.price_dynamics
+        steps: int = self.time_steps
+
+        class OptimalExecutionMDP(MarkovDecisionProcess[PriceAndShares, int]):
+
+            def step(
+                self,
+                p_r: PriceAndShares,
+                sell: int
+            ) -> SampledDistribution[Tuple[PriceAndShares, float]]:
+
+                def sr_sampler_func(
+                    p_r=p_r,
+                    sell=sell
+                ) -> Tuple[PriceAndShares, float]:
+                    p_s: PriceAndShares = PriceAndShares(
+                        price=p_r.price,
+                        shares=sell
+                    )
+                    next_price: float = dynamics[t](p_s).sample()
+                    next_rem: int = p_r.shares - sell
+                    next_state: PriceAndShares = PriceAndShares(
+                        price=next_price,
+                        shares=next_rem
+                    )
+                    reward: float = utility_f(
+                        sell * (p_r.price - price_diff[t](p_s))
+                    )
+                    return (next_state, reward)
+
+                return SampledDistribution(
+                    sampler=sr_sampler_func,
+                    expectation_samples=100
+                )
+
+            def actions(self, p_s: PriceAndShares) -> Iterator[int]:
+                if t == steps - 1:
+                    return iter([p_s.shares])
+                else:
+                    return iter(range(p_s.shares + 1))
+
+        return OptimalExecutionMDP()
+
+    def get_states_distribution(self, t: int) -> \
+            SampledDistribution[PriceAndShares]:
+
+        def states_sampler_func() -> PriceAndShares:
+            price: float = self.initial_price_distribution.sample()
+            rem: int = self.shares
+            for i in range(t):
+                sell: int = Choose(set(range(rem + 1))).sample()
+                price = self.price_dynamics[i](PriceAndShares(
+                    price=price,
+                    shares=rem
+                )).sample()
+                rem -= sell
+            return PriceAndShares(
+                price=price,
+                shares=rem
+            )
+
+        return SampledDistribution(states_sampler_func)
+```
+
+Finally, we produce the Optimal Value Function and Optimal Policy for each time step with the following method `backward_induction_vf_and_pi`: 
+
+```
+from rl.approximate_dynamic_programming import back_opt_vf_and_policy
+
+    def backward_induction_vf_and_pi(
+        self
+    ) -> Iterator[Tuple[FunctionApprox[PriceAndShares],
+                        Policy[PriceAndShares, int]]]:
+
+        mdp_f0_mu_triples: Sequence[Tuple[
+            MarkovDecisionProcess[PriceAndShares, int],
+            FunctionApprox[PriceAndShares],
+            SampledDistribution[PriceAndShares]
+        ]] = [(
+            self.get_mdp(i),
+            self.func_approx,
+            self.get_states_distribution(i)
+        ) for i in range(self.time_steps)]
+
+        num_state_samples: int = 10000
+        error_tolerance: float = 1e-6
+
+        return back_opt_vf_and_policy(
+            mdp_f0_mu_triples=mdp_f0_mu_triples,
+            gamma=self.discount_factor,
+            num_state_samples=num_state_samples,
+            error_tolerance=error_tolerance
+        )
+```
+
+The above code is in the file [rl/chapter9/optimal_order_execution.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/chapter9/optimal_order_execution.py). We encourage you to create a few different instances of `OptimalOrderExecution` by varying it's inputs (try different temporary and permanent price impact function, different utility functions, impose a few constraints etc.). Note the above code has been written with an educational motivation rather than an efficient-computation motivation, the convergence of the backward induction ADP algorithm is going to be slow. How do we know the above code is correct? Well, we need to create a simple special case that yields a closed-form solution that we can compare the Optimal Value Function and Optimal Policy produced by `OptimalOrderExecution` against. This will be the subject of the following subsection.
+
 ### Simple Linear Price Impact Model with no Risk-Aversion
 
 Now we consider a special case of the above-described MDP - a simple linear Price Impact model with no risk-aversion. Furthermore, for analytical tractability, we assume $N, N_t, P_t$ are all continuous-valued (i.e., taking values $\in \mathbb{R}$).
@@ -410,6 +547,166 @@ $$N \cdot P_0 - \frac {N^2} 2 \cdot (\alpha + \frac {2\beta - \alpha} T)$$
 
 *Implementation Shortfall* is the technical term used to refer to the reduction in Total Sales Proceeds relative to the maximum possible sales proceeds ($=N\cdot P_0$). So, in this simple linear model, the Implementation Shortfall from Price Impact is $\frac {N^2} 2 \cdot (\alpha + \frac {2\beta - \alpha} T)$. Note that the Implementation Shortfall is non-zero even if one had infinite time available ($T\rightarrow \infty$) for the case of $\alpha > 0$. If Price Impact were purely temporary ($\alpha = 0$, i.e., Price fully snapped back), then the Implementation Shortfall is zero if one had infinite time available.
 
+So now let's customize the class `OptimalOrderExecution` to this simple linear price impact model, and compare the Optimal Value Function and Optimal Policy produced by `OptimalOrderExecution` against the above-derived closed-form solutions. We write code below to create an instance of `OptimalOrderExecution` with time steps $T=5$, total number of shares to be sold $N = 100$, linear temporary price impact with $\alpha = 0.03$, linear permanent price impact with $\beta = 0.03$, utility function as the identity function (no risk-aversion), and discount factor $\gamma = 1$. We set the standard deviation for the price dynamics probability distribution to 0 to speed up the calculation. Since we know the closed-form solution for the Optimal Value Function, we provide some assistance to `OptimalOrderExecution` by setting up a linear function approximation with two features: $P_t \cdot R_t$ and $R_t^2$. The task of `OptimalOrderExecution` is to infer the correct coefficients of these features for each time step. If the coefficients match that of the closed-form solution, it provides a great degree of confidence that our code is working correctly.
+
+```
+num_shares: int = 100
+num_time_steps: int = 5
+alpha: float = 0.03
+beta: float = 0.05
+init_price_mean: float = 100.0
+init_price_stdev: float = 10.0
+
+price_diff = [lambda p_s: beta * p_s.shares for _ in range(num_time_steps)]
+dynamics = [lambda p_s: Gaussian(
+    mu=p_s.price - alpha * p_s.shares,
+    sigma=0.
+) for _ in range(num_time_steps)]
+ffs = [
+    lambda p_s: p_s.price * p_s.shares,
+    lambda p_s: float(p_s.shares * p_s.shares)
+]
+fa: FunctionApprox = LinearFunctionApprox.create(feature_functions=ffs)
+init_price_distrib: Gaussian = Gaussian(
+    mu=init_price_mean,
+    sigma=init_price_stdev
+)
+
+ooe: OptimalOrderExecution = OptimalOrderExecution(
+    shares=num_shares,
+    time_steps=num_time_steps,
+    avg_exec_price_diff=price_diff,
+    price_dynamics=dynamics,
+    utility_func=lambda x: x,
+    discount_factor=1,
+    func_approx=fa,
+    initial_price_distribution=init_price_distrib
+)
+it_vf: Iterator[Tuple[FunctionApprox[PriceAndShares],
+                      Policy[PriceAndShares, int]]] = \
+    ooe.backward_induction_vf_and_pi()
+```
+
+Next we evaluate this Optimal Value Function and Optimal Policy on a particular state for all time steps, and compare that against the closed-form solution. The state we use for evaluation is as follows:
+
+```
+state: PriceAndShares = PriceAndShares(
+    price=init_price_mean,
+    shares=num_shares
+)
+```
+
+The code to evaluate the obtained Optimal Value Function and Optimal Policy on the above state is as follows:
+
+```
+for t, (v, p) in enumerate(it_vf):
+    print(f"Time {t:d}")
+    print()
+    opt_sale: int = p.act(state).value
+    val: float = v.evaluate([state])[0]
+    print(f"Optimal Sales = {opt_sale:d}, Opt Val = {val:.3f}")
+    print()
+    print("Optimal Weights below:")
+    print(v.weights.weights)
+    print()
+```
+
+With 100,000 state samples for each time step and only 10 state transition samples (since the standard deviation of $\epsilon$ is set to be very small), this prints the following:
+
+```
+Time 0
+
+Optimal Sales = 20, Opt Val = 9779.976
+
+Optimal Weights below:
+[ 0.99999476 -0.02199715]
+
+Time 1
+
+Optimal Sales = 20, Opt Val = 9762.479
+
+Optimal Weights below:
+[ 0.99999345 -0.02374559]
+
+Time 2
+
+Optimal Sales = 20, Opt Val = 9733.324
+
+Optimal Weights below:
+[ 0.99999333 -0.02666096]
+
+Time 3
+
+Optimal Sales = 20, Opt Val = 9675.014
+
+Optimal Weights below:
+[ 0.99999314 -0.03249176]
+
+Time 4
+
+Optimal Sales = 20, Opt Val = 9500.000
+
+Optimal Weights below:
+[ 1.   -0.05]
+```
+
+Now let's compare these results against the closed-form solution.
+
+```
+for t in range(num_time_steps):
+    print(f"Time {t:d}")
+    print()
+    left: int = num_time_steps - t
+    opt_sale: float = num_shares / num_time_steps
+    wt1: float = 1
+    wt2: float = -(2 * beta + alpha * (left - 1)) / (2 * left)
+    val: float = wt1 * state.price * state.shares + \
+        wt2 * state.shares * state.shares
+
+    print(f"Optimal Sales = {opt_sale:.3f}, Opt Val = {val:.3f}")
+    print(f"Weight1 = {wt1:.3f}")
+    print(f"Weight2 = {wt2:.3f}")
+    print()
+```
+
+This prints the following:
+
+```
+Time 0
+
+Optimal Sales = 20.000, Opt Val = 9780.000
+Weight1 = 1.000
+Weight2 = -0.022
+
+Time 1
+
+Optimal Sales = 20.000, Opt Val = 9762.500
+Weight1 = 1.000
+Weight2 = -0.024
+
+Time 2
+
+Optimal Sales = 20.000, Opt Val = 9733.333
+Weight1 = 1.000
+Weight2 = -0.027
+
+Time 3
+
+Optimal Sales = 20.000, Opt Val = 9675.000
+Weight1 = 1.000
+Weight2 = -0.033
+
+Time 4
+
+Optimal Sales = 20.000, Opt Val = 9500.000
+Weight1 = 1.000
+Weight2 = -0.050
+```
+
+We need to point out here that the general case of optimal order execution involving modeling of the entire Order Book's dynamics will need to deal with a large state space. This means the ADP algorithm will suffer from the curse of dimensionality, which means we will need to employ RL algorithms. 
+
+### Paper by Bertsimas and Lo on Optimal Order Execution
+
 [This paper by Bertsimas and Lo on Optimal Order Execution](http://alo.mit.edu/wp-content/uploads/2015/06/Optimal-Control-of-Execution-Costs.pdf) considered a special case of the simple Linear Impact model we sketched above. Specifically, they assumed no risk-aversion (Utility function is identity function) and assumed that the Permanent Price Impact parameter $\alpha$ is equal to the Temporary Price Impact Parameter $\beta$. In the same paper, Bertsimas and Lo then extended this Linear Impact Model to include dependence on a serially-correlated variable $X_t$ as follows:
 $$P_{t+1} = P_t - (\beta \cdot N_t + \theta \cdot X_t) + \epsilon_t$$
 $$X_{t+1} = \rho \cdot X_t + \eta_t$$
@@ -435,12 +732,449 @@ $$N_t^* = c^{(1)}_t + c^{(2)}_t R_t + c^{(3)}_t X_t $$
 $$V^*_t((P_t,R_t,X_t)) = e^{\mu_Z + \frac {\sigma_Z^2} 2} \cdot P_t \cdot (c^{(4)}_t + c^{(5)}_t R_t + c^{(6)}_t X_t + c^{(7)}_t R_t^2 + c^{(8)}_t X_t^2 + c^{(9)}_t R_t X_t)$$
 where $c^{(k)}_t, 1 \leq k \leq 9$, are independent of $P_t, R_t, X_t$
 
+As an exercise, we recommend implementing the above (LPT) model by customizing `OptimalOrderExecution` to compare the obtained Optimal Value Function and Optimal Policy against the closed-form solution (you can find the exact expressions for the $c^{(k)}_t$ coefficients in the Bertsimas and Lo paper).
+
 ### Incorporating Risk-Aversion and Real-World Considerations
+
+Bertsimas and Lo ignored risk-aversion for the purpose of analytical tractability. Although there was value in obtaining closed-form solutions, ignoring risk-aversion makes their model unrealistic. We have discussed in detail in Chapter [-@sec:utility-theory-chapter] about the fact that traders are wary of the risk of uncertain revenues and would be willing to trade some expected revenues for lower variance of revenues. This calls for incorporating risk-aversion in the maximization objective. [Almgren and Chriss wrote a seminal paper](https://www.math.nyu.edu/faculty/chriss/optliq_f.pdf) where they work in this Risk-Aversion framework. They consider our simple linear price impact model and incorporate risk-aversion by maximizing $E[Y] - \lambda \cdot Var[Y]$ where $Y$ is the total (uncertain) sales proceeds $\sum_{t=0}^{T-1} N_t \cdot Q_t$ and $\lambda$ controls the degree of risk-aversion. The incorporation of risk-aversion affects the time-trajectory of $N_t^*$. Clearly, if $\lambda = 0$, we get the usual uniform-split strategy: $N_t^* = \frac N T$. The other extreme assumption is to minimize $Var[Y]$ which yields: $N_0^* = N$ (sell everything immediately because the only thing we want to avoid is uncertainty of sales proceeds). In their paper, Almgren and Chriss go on to derive the *Efficient Frontier* (analogous to the Efficient Frontier Portfolio theory we outline in Appendix [-@sec:portfoliotheory-appendix]). They also derive solutions for specific utility functions.
+
+To model a real-world trading situation, the first step is to start with the MDP we described earlier with an appropriate model for the price dynamics $f_t(\cdot)$ and the temporary price impact $g_t(\cdot)$ (incorporating potential non-stationarity, non-linear price dynamics and non-linear impact). The `OptimalOrderExecution` class we wrote above allows us to incorporate all of the above. We can also model various real-world "frictions" such as discrete prices, discrete number of shares, constraints on prices and number of shares, as well as trading fees. To make the model truer to reality and more sophisticated, we can introduce various market factors in the *State* which would invariably lead to bloating of the State Space. We would also need to capture *Cross-Asset Market Impact*. As a further step, we could represent the entire Order Book (or a compact summary of the size/shape of the Order book) as part of the state, which leads to further bloating of the state space. All of this makes ADP infeasible and one would need to employ Reinforcement Learning algorithms. More importantly, we'd need to write a realistic Order Book Dynamics simulator capturing all of the above real-world considerations that an RL algorithm can use. There are a lot of practical and technical details involved in writing a real-world simulator and we won't be covering those details in this book. It suffices for here to say that the simulator would essentially be a sampling model that has learnt the Order Book Dynamics from market data (supervised learning of the Order Book Dynamics). Using such a simulator and with a deep learning-based function approximation of the Value Function, we can solve a practical Optimal Order Execution problem with Reinforcement Learning. We refer you to a couple of papers for further reading on this:
+
+* [Paper by Nevmyvaka, Feng, Kearns in 2006](https://www.cis.upenn.edu/~mkearns/papers/rlexec.pdf)
+* [Paper by Vyetrenko and Xu in 2019](https://arxiv.org/pdf/1906.02312.pdf)
+
+Designing real-world simulators for Order Book Dynamics and using Reinforcement Learning for Optimal Order Execution is an exciting area for future research as well as engineering design. We hope this section has provided sufficient foundations for you to dig into this topic further.
 
 ## Optimal Market-Making
 
+Now we move on to the second problem of this chapter involving trading on an Order Book - the problem of Optimal Market-Making. A market-maker is a company/individual which/who regularly quotes bid and ask prices in a financial asset (which, without loss of generality, we will refer to as a "stock"). The market-maker typically holds some inventory in the stock, always looking to buy at their quoted bid price and sell at their quoted ask price, thus looking to make money of their *bid-ask spread*. The business of a market-maker is similar to that of a car dealer who maintains an inventory of cars and who will offer purchase and sales prices, looking to make a profit of the price spread and ensuring that the inventory of cars doesn't get too big. In this section, we consider the business of a market-maker who quotes their bid prices by submitting Buy LOs on an OB and quotes their ask prices by submitting Sell LOs on the OB. Market-makers are known as *liquidity providers* in the market because they make shares of the stock available for trading on the OB (both on the buy side and sell side). In general, anyone who submits LOs can be thought of as a market liquidity provider. Likewise, anyone who submits MOs can be thought of as a market *liquidity taker* (because an MO takes shares out of the volume that was made available for trading on the OB).
+
+There is typically fairly complex interplay between liquidity providers (including market-makers) and liquidity takers. Modeling OB dynamics is about modeling this complex interplay, predicting arrivals of MOs and LOs, in response to market events and in response to observed activity on the OB. In this section, we view the OB from the perspective of a single market-maker who aims to make money with Buy/Sell LOs of appropriate bid-ask spread and with appropriate volume of shares (specified in their submitted LOs). The market-maker is likely to be successful if she can do a good job of forecasting OB Dynamics and dynamically adjusting her Buy/Sell LOs on the OB. The goal of the market-maker is to maximize their *Utility of Gains* at the end of a suitable horizon of time. 
+
+The core intuition in the decision of how to set the price and shares in the market-maker's Buy and Sell LOs is as follows: If the market-maker's bid-ask spread is too narrow, they will have more frequent transactions but smaller gains per  transaction (more likelihood of their LOs being transacted against by an MO or an opposite-side LO). On the other hand, if the market-maker's bid-ask spread is too wide, they will have less frequent transactions but larger gains per transaction (less likelihood of their LOs being transacted against by an MO or an opposite-side LO). Also of great importance is the fact that a market-maker needs to carefully manage potentially large inventory buildup (either on the long side or the short side) so as to avoid scenarios of consequent unfavorable forced liquidation upon reaching the horizon time. Inventory buildup can occur if the market participants consistently transact against mostly one side of the market-maker's submitted LOs. With this high-level intuition, let us make these concepts of market-making precise. We start by developing some notation to help articulate the problem of Optimal Market-Making clearly. We will re-use some of the notation and terminology we had developed for the problem of Optimal Order Execution. As ever, for ease of exposition, we will simplify the setting for the Optimal Market-Making problem. 
+
+Assume there are a finite number of time steps indexed by $t= 0, 1, \ldots, T$. Assume the market-maker always shows a bid price and ask price (at each time $t$) along with the associated bid shares and ask shares on the OB. Also assume, for ease of exposition, that the market-maker can add or remove bid/ask shares from the OB *costlessly*. We use the following notation:
+
+* Denote $W_t \in \mathbb{R}$ as the market-maker's trading PnL at time $t$.
+* Denote $I_t \in \mathbb{Z}$ as the market-maker's inventory of shares at time $t$ (assume $I_0 = 0$). Note that the inventory can be positive or negative (negative means the market-maker is short a certain number of shares).
+* Denote $S_t \in \mathbb{R}^+$ as the OB Mid Price at time $t$ (assume a stochastic process for $S_t$).
+* Denote $P_t^{(b)} \in \mathbb{R}^+$ as the market-maker's Bid Price as time $t$.
+* Denote $N_t^{(b)} \in \mathbb{Z}^+$ as the market-maker's Bid Shares at time $t$.
+* Denote $P_t^{(a)} \in \mathbb{R}^+$ as the market-maker's Ask Price at time $t$.
+* Denote $N_t^{(a)} \in \mathbb{Z}^+$ as the market-maker's Ask Shares at time $t$.
+* We refer to $\delta_t^{(b)} = S_t - P_t^{(b)}$ as the market-maker's Bid Spread (relative to OB Mid).
+* We refer to $\delta_t^{(a)} = P_t^{(a)} - S_t$ as the market-maker's Ask Spread (relative to OB Mid).
+* We refer to $\delta_t^{(b)} + \delta_t^{(a)} = P_t^{(a)} - P_t^{(b)}$ as the market-maker's Bid-Ask Spread.
+* Random variable $X_t^{(b)} \in \mathbb{Z}_{\geq 0}$ refers to the total number of market-maker's Bid Shares that have been transacted against (by MOs or by Sell LOs) up to time $t$ ($X_t^{(b)}$ is often refered to as the cumulative "hits" up to time $t$, as in "the market-maker's buy offer has been *hit*").
+* Random variable $X_t^{(a)} \in \mathbb{Z}_{\geq 0}$ refers to the total number of market-maker's Ask Shares that have been transacted against (by MOs or by Buy LOs) up to time $t$ ($X_t^{(a)}$ is often refered to as the cumulative "lifts" up to time $t$, as in "the market-maker's sell offer has been *lifted*").
+
+With this notation in place, we can write the PnL balance equation for all $t= 0, 1, \ldots, T-1$ as follows:
+
+\begin{equation}
+W_{t+1} = W_t + P_t^{(a)} \cdot (X_{t+1}^{(a)} - X_t^{(a)}) - P_t^{(b)} \cdot (X_{t+1}^{(b)} - X_t^{(b)})
+\label{eq:market-making-pnl-balance}
+\end{equation}
+
+Note that since the inventory $I_0$ at time 0 is equal to 0, the inventory $I_t$ at time $t$ is given by the equation:
+$$I_t = X_t^{(b)} - X_t^{(a)}$$
+
+The market-maker's goal is to maximize (for an appropriately shaped concave utility function $U(\cdot)$) the sum of the PnL at time $T$ and the value of the inventory of shares held at time $T$, i.e., we maximize:
+
+$$\mathbb{E}[U(W_T + I_T \cdot S_T)]$$
+
+As we alluded to earlier, this problem can be cast as a discrete-time finite-horizon Markov Decision Process (with discount factor $\gamma = 1$). Following the usual notation of discrete-time finite-horizon MDPs, the order of activity for the MDP at each time step $t = 0, 1, \ldots, T-1$ is as follows:
+
+* Observe *State* $(S_t, W_t, I_t) \in \mathcal{S}_t$.
+* Perform *Action* $(P_t^{(b)}, N_t^{(b)}, P_t^{(a)}, N_t^{(a)}) \in \mathcal{A}_t$.
+* Random number of bid shares hit at time step $t$ (this is equal to $X_{t+1}^{(b)} - X_t^{(b)}$).
+* Random number of ask shares lifted at time step $t$ (this is equal to $X_{t+1}^{(a)} - X_t^{(a)}$), 
+* Update of $W_t$ to $W_{t+1}$.
+* Update of $I_t$ to $I_{t+1}$.
+* Stochastic evolution of $S_t$ to $S_{t+1}$.
+* Receive *Reward* $R_{t+1}$, where
+$$
+R_{t+1} :=
+\begin{cases}
+0 & \text{ for }1 \leq t+1 \leq T-1 \\
+U(W_T + I_T \cdot S_T) & \text{ for } t+1 = T \\
+\end{cases}
+$$
+
+The goal is to find an *Optimal Policy* $\pi^* = (\pi^*_0, \pi^*_1, \ldots, \pi^*_{T-1})$, where
+$$\pi^*_t((S_t, W_t, I_t)) = (P_t^{(b)}, N_t^{(b)}, P_t^{(a)}, N_t^{(a)})$$
+that maximizes:
+$$\mathbb{E}[\sum_{t=1}^T R_t] = \mathbb{E}[R_T] = U(W_T + I_T \cdot S_T)$$
+
 ### Avellaneda-Stoikov Continuous-Time Formulation
+
+[The landmark paper by Avellaneda and Stoikov in 2006](https://www.math.nyu.edu/faculty/avellane/HighFrequencyTrading.pdf) formulated this optimal market-making problem in it's continuous-time version. Their formulation lent itself to analytical tractability and they came up with a simple, clean and intuitive solution. In the subsection, we go over their formulation and in the next subsection, we show the derivation of their solution. We adapt our discrete-time notation above to their continuous-time setting.
+
+$[(X_t^{(b)} | 0 \leq t < T]$ and $[X_t^{(a)} | 0 \leq t < T]$ are assumed to be *Poisson processes* with the means of the hit and lift rates at time $t$ equal to $\lambda_t^{(b)}$ and $\lambda_t^{(a)}$ respectively. Hence, we can write the following:
+
+$$dX_t^{(b)} \sim Poisson(\lambda_t^{(b)} \cdot dt)$$
+$$dX_t^{(a)} \sim Poisson(\lambda_t^{(a)} \cdot dt)$$
+$$\lambda_t^{(b)} = f^{(b)}(\delta_t^{(b)})$$
+$$\lambda_t^{(a)} = f^{(a)}(\delta_t^{(a)})$$
+
+for decreasing functions $f^{(b)}(\cdot)$ and $f^{(a)}(\cdot)$.
+
+$$dW_t = P_t^{(a)} \cdot dX_t^{(a)} - P_t^{(b)} \cdot dX_t^{(b)}$$
+$$I_t = X_t^{(b)} - X_t^{(a)} \text{ (note: } I_0 = 0 \text{)}$$
+
+Since infinitesimal Poisson random variables $dX_t^{(b)}$ (shares hit in time interval from $t$ to $t + dt$) and $dX_t^{(a)}$ (shares lifted in time interval from $t$ to $t + dt$) are Bernoulli random variables (shares hit/lifted within time interval of duration $dt$ will be 0 or 1), $N_t^{(b)}$ and $N_t^{(a)}$ (number of shares in the submitted LOs for the infinitesimal time interval from $t$ to $t + dt$) can be assumed to be 1.
+
+This simplifies the *Action* at time $t$ to be just the pair:
+
+$$(\delta_t^{(b)}, \delta_t^{(a)})$$
+
+OB Mid Price Dynamics is assumed to be scaled brownian motion:
+
+$$dS_t = \sigma \cdot dz_t$$
+
+for some $\sigma \in \mathbb{R}^+$.
+
+The Utility function is assumed to be: $U(x) = -e^{-\gamma x}$ where $\gamma > 0$ is the coefficient of risk-aversion (this Utility function is essentially the CARA Utility function devoid of associated constants).
+
 ### Solving the Avellaneda-Stoikov Formulation
+
+We can express this continuous-time formulation as a Hamilton-Jacobi-Bellman (HJB) formulation (note: for reference, the general HJB formulation is covered in Appendix [-@sec:hjb-appendix]).
+
+We denote the Optimal Value function as $V^*(t, S_t, W_t, I_t)$.
+
+$$V^*(t, S_t, W_t, I_t) = \max_{\delta_t^{(b)}, \delta_t^{(a)}} \mathbb{E}[-e^{-\gamma \cdot (W_T + I_T \cdot S_T)}]$$
+$V^*(t, S_t, W_t, I_t)$ satisfies a recursive formulation for $0 \leq t < t_1 < T$ as follows:
+$$V^*(t, S_t, W_t, I_t) = \max_{\delta_t^{(b)}, \delta_t^{(a)}} \mathbb{E}[V^*(t_1, S_{t_1}, W_{t_1}, I_{t_1})]$$
+Rewriting in stochastic differential form, we have the HJB Equation:
+$$\max_{\delta_t^{(b)}, \delta_t^{(a)}} \mathbb{E}[dV^*(t, S_t, W_t, I_t)] = 0 \mbox{ for } t < T$$
+$$V^*(T, S_T, W_T, I_T) = -e^{-\gamma \cdot (W_T + I_T \cdot S_T)}$$
+
+An infinitesimal change $dV^*$ to $V^*(t, S_t, W_t, I_t)$ is comprised of 3 components:
+
+* Due to pure movement in time (dependence of $V^*$ on $t$).
+* Due to randomness in OB Mid-Price (dependence of $V^*$ on $S_t$).
+* Due to randomness in hitting/lifting the market-maker's Bid/Ask (dependence of $V^*$ on $\lambda_t^{(b)}$ and $\lambda_t^{(a)}$). Note that the probability of being hit in interval from $t$ to $t+dt$ is $\lambda_t^{(b)} \cdot dt$ and probability of being lifted in interval from $t$ to $t+dt$ is $\lambda_t^{(a)} \cdot dt$, upon which the PnL $W_t$ changes appropriately and the inventory $I_t$ increments/decrements by 1.
+
+With this, we can expand $dV^*(t, S_t, W_t, I_t)$ and rewrite HJB as:
+
+\begin{equation*}
+\begin{split}
+\max_{\delta_t^{(b)}, \delta_t^{(a)}} \{ & \pdv{V^*}{t} \cdot dt + \mathbb{E}[\sigma \cdot \pdv{V^*}{S_t} \cdot dz_t + \frac {\sigma^2} 2 \cdot \pdv[2]{V^*}{S_t} \cdot (dz_t)^2] \\
+& + \lambda_t^{(b)} \cdot dt \cdot V^*(t, S_t, W_t - S_t + \delta_t^{(b)}, I_t + 1) \\
+& + \lambda_t^{(a)} \cdot dt \cdot V^*(t, S_t, W_t + S_t + \delta_t^{(a)}, I_t - 1)  \\
+& + (1 - \lambda_t^{(b)} \cdot dt - \lambda_t^{(a)} \cdot dt) \cdot V^*(t, S_t, W_t, I_t) \\
+&  - V^*(t, S_t, W_t, I_t) \} = 0
+\end{split}
+\end{equation*}
+
+Next, we want to convert the HJB Equation to a Partial Differential Equation (PDE). We can simplify the above HJB equation with a few observations:
+
+* $\mathbb{E}[dz_t] = 0$.
+* $\mathbb{E}[(dz_t)^2] = dt$.
+* Organize the terms involving $\lambda_t^{(b)}$ and $\lambda_t^{(a)}$ better with some algebra.
+* Divide throughout by $dt$.
+
+\begin{equation*}
+\begin{split}
+\max_{\delta_t^{(b)}, \delta_t^{(a)}} \{ & \pdv{V^*}{t} + \frac {\sigma^2} 2 \cdot \pdv[2]{V^*}{S_t} \\
+& + \lambda_t^{(b)} \cdot (V^*(t, S_t, W_t - S_t + \delta_t^{(b)}, I_t + 1) - V^*(t, S_t, W_t, I_t)) \\
+& + \lambda_t^{(a)} \cdot (V^*(t, S_t, W_t + S_t + \delta_t^{(a)}, I_t - 1) - V^*(t, S_t, W_t, I_t)) \} = 0
+\end{split}
+\end{equation*}
+
+Next, note that $\lambda_t^{(b)} = f^{(b)}(\delta_t^{(b)})$ and  $\lambda_t^{(a)} = f^{(a)}(\delta_t^{(a)})$, and apply the $\max$ only on the relevant terms:
+
+\begin{equation*}
+\begin{split}
+& \pdv{V^*}{t} + \frac {\sigma^2} 2 \cdot \pdv[2]{V^*}{S_t} \\
+& + \max_{\delta_t^{(b)}}  \{ f^{(b)}(\delta_t^{(b)}) \cdot (V^*(t, S_t, W_t - S_t + \delta_t^{(b)}, I_t + 1) - V^*(t, S_t, W_t, I_t)) \} \\
+& + \max_{\delta_t^{(a)}} \{ f^{(a)}(\delta_t^{(a)}) \cdot (V^*(t, S_t, W_t + S_t + \delta_t^{(a)}, I_t - 1) - V^*(t, S_t, W_t, I_t)) \} = 0
+\end{split}
+\end{equation*}
+
+This combines with the boundary condition:
+$$V^*(T, S_T, W_T, I_T) = -e^{-\gamma \cdot (W_T + I_T \cdot S_T)}$$
+
+Next, we make an "educated guess" for the functional form of $V^*(t,S_t,W_t,I_t)$:
+
+\begin{equation}
+V^*(t,S_t,W_t,I_t) = -e^{-\gamma \cdot (W_t + \theta(t,S_t,I_t))} \label{eq:thetaform}
+\end{equation}
+
+to reduce the problem to a Partial Differential Equation (PDE) in terms of $\theta(t,S_t,I_t)$. Substituting this guessed functional form into the above PDE for $V^*(t,S_t,W_t,I_t)$ gives:
+
+\begin{equation*}
+\begin{split}
+& \pdv{\theta}{t} + \frac {\sigma^2} {2} \cdot (\pdv[2]{\theta}{S_t} - \gamma \cdot (\pdv{\theta}{S_t})^2) \\
+& + \max_{\delta_t^{(b)}} \{ \frac {f^{(b)}(\delta_t^{(b)})} {\gamma} \cdot (1 - e^{-\gamma \cdot (\delta_t^{(b)} - S_t + \theta(t,S_t,I_t + 1) - \theta(t,S_t,I_t))}) \} \\
+& + \max_{\delta_t^{(a)}} \{ \frac {f^{(a)}(\delta_t^{(a)})} {\gamma} \cdot (1 - e^{-\gamma \cdot (\delta_t^{(a)} + S_t + \theta(t,S_t,I_t - 1) - \theta(t,S_t,I_t))}) \} = 0
+\end{split}
+\end{equation*}
+The boundary condition is:
+$$\theta(T,S_T,I_T) = I_T \cdot S_T$$
+
+It turns out that $\theta(t,S_t,I_t + 1) - \theta(t,S_t,I_t)$ and $\theta(t,S_t,I_t) - \theta(t,S_t,I_t - 1)$ are equal to financially meaningful quantities known as *Indifference Bid and Ask Prices*.
+
+Indifference Bid Price $Q^{(b)}(t,S_t,I_t)$ is defined as follows:
+
+\begin{equation}
+V^*(t,S_t,W_t - Q^{(b)}(t,S_t,I_t),I_t+1) = V^*(t,S_t,W_t,I_t) \label{eq:indiffbid}
+\end{equation}
+
+$Q^{(b)}(t,S_t,I_t)$ is the price to buy a single share with a *guarantee of immediate purchase* that results in the Optimum Expected Utility staying unchanged.
+
+Likewise, Indifference Ask Price $Q^{(a)}(t,S_t,I_t)$ is defined as follows:
+
+\begin{equation}
+V^*(t,S_t,W_t + Q^{(a)}(t,S_t,I_t),I_t-1) = V^*(t,S_t,W_t,I_t) \label{eq:indiffask}
+\end{equation}
+
+$Q^{(a)}(t,S_t,I_t)$ is the price to sell a single share with *guarantee of immediate sale* that results in the Optimum Expected Utility staying unchanged.
+
+For convenience, we abbreviate $Q^{(b)}(t,S_t,I_t)$ as $Q_t^{(b)}$ and $Q^{(a)}(t,S_t,I_t)$ as $Q_t^{(a)}$. Next, we express $V^*(t,S_t,W_t - Q_t^{(b)},I_t+1) = V^*(t,S_t,W_t,I_t)$ in terms of $\theta$:
+
+$$-e^{-\gamma \cdot (W_t - Q_t^{(b)} + \theta(t,S_t,I_t+1))} = -e^{-\gamma \cdot (W_t + \theta(t,S_t,I_t))}$$
+
+\begin{equation}
+\Rightarrow Q_t^{(b)} = \theta(t,S_t,I_t + 1) - \theta(t,S_t,I_t) \label{eq:indiffbidtheta}
+\end{equation}
+
+Likewise for $Q_t^{(a)}$, we get:
+
+\begin{equation}
+Q_t^{(a)} = \theta(t,S_t,I_t) - \theta(t,S_t,I_t - 1) \label{eq:indiffasktheta}
+\end{equation}
+
+Using Equations \eqref{eq:indiffbidtheta} and \eqref{eq:indiffasktheta}, bring $Q_t^{(b)}$ and $Q_t^{(a)}$ in the PDE for $\theta$:
+
+$$\pdv{\theta}{t} + \frac {\sigma^2} {2} \cdot (\pdv[2]{\theta}{S_t} - \gamma \cdot (\pdv{\theta}{S_t})^2) + \max_{\delta_t^{(b)}} g(\delta_t^{(b)}) + \max_{\delta_t^{(a)}} h(\delta_t^{(b)}) = 0$$
+$$ \mbox{ where } g(\delta_t^{(b)}) = \frac {f^{(b)}(\delta_t^{(b)})} {\gamma} \cdot (1 - e^{-\gamma \cdot (\delta_t^{(b)} - S_t + Q_t^{(b)})})$$
+$$ \mbox{ and } h(\delta_t^{(a)}) =  \frac {f^{(a)}(\delta_t^{(a)})} {\gamma} \cdot (1 - e^{-\gamma \cdot (\delta_t^{(a)} + S_t - Q_t^{(a)})})$$
+
+To maximize $g(\delta_t^{(b)})$, differentiate $g$ with respect to $\delta_t^{(b)}$ and set to 0:
+$$e^{-\gamma \cdot ({\delta_t^{(b)}}^* - S_t + Q_t^{(b)})} \cdot (\gamma \cdot f^{(b)}({\delta_t^{(b)}}^*) - \pdv{f^{(b)}}{\delta_t^{(b)}}()({\delta_t^{(b)}}^*)) + \pdv{f^{(b)}}{\delta_t^{(b)}}()({\delta_t^{(b)}}^*) = 0$$
+
+\begin{equation}
+\Rightarrow {\delta_t^{(b)}}^* = S_t - {P_t^{(b)}}^* = S_t - Q_t^{(b)} + \frac 1 {\gamma} \cdot \log{(1 - \gamma \cdot \frac {f^{(b)}({\delta_t^{(b)}}^*)} {\pdv{f^{(b)}}{\delta_t^{(b)}}()({\delta_t^{(b)}}^*)})} \label{eq:bidspread}
+\end{equation}
+
+To maximize $h(\delta_t^{(a)})$, differentiate $h$ with respect to $\delta_t^{(a)}$ and set to 0:
+$$e^{-\gamma \cdot ({\delta_t^{(a)}}^* + S_t - Q_t^{(a)})} \cdot (\gamma \cdot f^{(a)}({\delta_t^{(a)}}^*) - \pdv{f^{(a)}}{\delta_t^{(a)}}()({\delta_t^{(a)}}^*)) + \pdv{f^{(a)}}{\delta_t^{(a)}}()({\delta_t^{(a)}}^*) = 0$$
+
+\begin{equation}
+\Rightarrow {\delta_t^{(a)}}^* = {P_t^{(a)}}^* - S_t = Q_t^{(a)} - S_t + \frac 1 {\gamma} \cdot \log{(1 - \gamma \cdot \frac {f^{(a)}({\delta_t^{(a)}}^*)} {\pdv{f^{(a)}}{\delta_t^{(a)}}()({\delta_t^{(a)}}^*)})} \label{eq:askspread}
+\end{equation}
+
+Equations \eqref{eq:bidspread} and \eqref{eq:askspread} are implicit equations for ${\delta_t^{(b)}}^*$ and ${\delta_t^{(a)}}^*$ respectively.
+
+Now let us write the PDE in terms of the Optimal Bid and Ask Spreads:
+\begin{equation}
+\begin{split}
+& \pdv{\theta}{t} + \frac {\sigma^2} {2} \cdot (\pdv[2]{\theta}{S_t} - \gamma \cdot (\pdv{\theta}{S_t})^2) \\
+& + \frac {f^{(b)}({\delta_t^{(b)}}^*)} {\gamma} \cdot (1 - e^{-\gamma \cdot ({\delta_t^{(b)}}^* - S_t + \theta(t,S_t,I_t + 1) - \theta(t,S_t,I_t))}) \\
+& + \frac {f^{(a)}({\delta_t^{(a)}}^*)} {\gamma} \cdot (1 - e^{-\gamma \cdot ({\delta_t^{(a)}}^* + S_t + \theta(t,S_t,I_t - 1) - \theta(t,S_t,I_t))}) = 0 \\
+& \mbox{ with boundary condition: } \theta(T,S_T,I_T) = I_T \cdot S_T
+\end{split}
+\label{eq:pde}
+\end{equation}
+
+How do we go about solving this? Here are the steps:
+
+* First we solve PDE \eqref{eq:pde} for $\theta$ in terms of ${\delta_t^{(b)}}^*$ and ${\delta_t^{(a)}}^*$. In general, this would be a numerical PDE solution.
+* Using Equations \eqref{eq:indiffbidtheta} and \eqref{eq:indiffasktheta}, and using the above-obtained $\theta$ in terms of ${\delta_t^{(b)}}^*$ and ${\delta_t^{(a)}}^*$, we get $Q_t^{(b)}$ and $Q_t^{(a)}$ in terms of ${\delta_t^{(b)}}^*$ and ${\delta_t^{(a)}}^*$.
+* Then we substitute the above-obtained $Q_t^{(b)}$ and $Q_t^{(a)}$ (in terms of ${\delta_t^{(b)}}^*$ and ${\delta_t^{(a)}}^*$) in Equations \eqref{eq:bidspread} and \eqref{eq:askspread}.
+* Finally, we solve the implicit equations for ${\delta_t^{(b)}}^*$ and ${\delta_t^{(a)}}^*$ (in general, numerically).
+
+This completes the (numerical) solution to the Avellandea-Stoikov continuous-time formulation for the Optimal Market-Making problem. Having been through all the heavy equations above, let's now spend some time on building intuition.
+
+Define the *Indifference Mid Price* $Q_t^{(m)} = \frac {Q_t^{(b)} + Q_t^{(a)}} {2}$. To develop intuition for Indifference Prices, consider a simple case where the market-maker doesn't supply any bids or asks after time $t$. This means the trading PnL $W_T$ at time $T$ must be the same as the trading PnL at time $t$ and the inventory $I_T$ at time $T$ must be the same as the inventory $I_t$ at time $t$. This implies:
+$$V^*(t,S_t,W_t,I_t) = \mathbb{E}[-e^{-\gamma \cdot (W_t + I_t \cdot S_T)}]$$
+The diffusion $dS_t = \sigma \cdot dz_t$ implies that $S_T \sim \mathcal{N}(S_t, \sigma^2 \cdot (T-t))$, and hence:
+$$V^*(t,S_t,W_t,I_t) = -e^{-\gamma \cdot (W_t + I_t \cdot S_t - \frac {\gamma \cdot I_t^2 \cdot \sigma^2 \cdot (T-t)} {2})}$$
+Hence,
+$$V^*(t,S_t,W_t-Q_t^{(b)},I_t+1) = -e^{-\gamma \cdot (W_t - Q_t^{(b)} + (I_t - 1) \cdot S_t - \frac {\gamma \cdot I_t^2 \cdot \sigma^2 \cdot (T-t)} {2})}$$
+But from Equation \eqref{eq:indiffbid}, we know that:
+$$V^*(t,S_t,W_t,I_t) = V^*(t,S_t,W_t-Q_t^{(b)},I_t+1)$$
+Therefore,
+$$-e^{-\gamma \cdot (W_t + I_t \cdot S_t - \frac {\gamma \cdot I_t^2 \cdot \sigma^2 \cdot (T-t)} {2})} = -e^{-\gamma \cdot (W_t - Q_t^{(b)} + (I_t - 1) \cdot S_t - \frac {\gamma \cdot (I_t - 1)^2 \cdot \sigma^2 \cdot (T-t)} {2})}$$
+This implies:
+$$Q_t^{(b)} = S_t - (2I_t+1) \cdot \frac {\gamma \cdot \sigma^2 \cdot (T-t)} {2}$$
+Likewise, we can derive:
+$$Q_t^{(a)} = S_t - (2I_t-1) \cdot \frac {\gamma \cdot \sigma^2 \cdot (T-t)} {2}$$
+The formulas for the Indifference Mid Price and the Indifference Bid-Ask Price Spread are as follows:
+$$Q_t^{(m)} = S_t - I_t \cdot \gamma \cdot \sigma^2 \cdot (T-t)$$
+$$Q_t^{(a)} - Q_t^{(b)} = \gamma \cdot \sigma^2 \cdot (T-t)$$
+
+These results for the simple case of no-market-making-after-time-$t$ serve as approximations for our problem of optimal market-making. Think of $Q_t^{(m)}$ as a *pseudo mid price*, an adjustment to the OB mid price $S_t$ that takes into account the magnitude and sign of $I_t$. If the market-maker is long inventory ($I_t > 0$), then $Q_t^{(m)} < S_t$, which makes intuitive sense since the market-maker is interested in reducing her risk of inventory buildup and so, would be be more inclined to sell than buy, leading her to offer bid and ask prices whose average is lower than the OB mid price $S_t$. Likewise, if the market-maker is short inventory ($I_t < 0$), then $Q_t^{(m)} > S_t$ indicating inclination to buy rather than sell.
+
+Armed with this intuition, we come back to optimal market-making, observing from Equations \eqref{eq:bidspread} and \eqref{eq:askspread}:
+$${P_t^{(b)}}^* < Q_t^{(b)} < Q_t^{(m)} < Q_t^{(a)} < {P_t^{(a)}}^*$$
+Visualize this ascending sequence of prices $[{P_t^{(b)}}^*, Q_t^{(b)}, Q_t^{(m)}, Q_t^{(a)}, {P_t^{(a)}}^*]$ as jointly sliding up/down (relative to OB mid price $S_t$) as a function of the inventory $I_t$'s magnitude and sign, and perceive ${P_t^{(b)}}^*, {P_t^{(a)}}^*$ in terms of their spreads to the "pseudo mid price" $Q_t^{(m)}$:
+
+$$Q_t^{(b)} - {P_t^{(m)}}^* = \frac {Q_t^{(b)} + Q_t^{(a)}} 2 + \frac 1 {\gamma} \cdot \log{(1 - \gamma \cdot \frac {f^{(b)}({\delta_t^{(b)}}^*)} {\pdv{f^{(b)}}{\delta_t^{(b)}}()({\delta_t^{(b)}}^*)})}$$
+$${P_t^{(a)}}^* - Q_t^{(m)} = \frac {Q_t^{(b)} + Q_t^{(a)}} 2 + \frac 1 {\gamma} \cdot \log{(1 - \gamma \cdot \frac {f^{(a)}({\delta_t^{(a)}}^*)} {\pdv{f^{(a)}}{\delta_t^{(a)}}()({\delta_t^{(a)}}^*)})}$$
+
+### Analytical Approximation to the Solution to Avellaneda-Stoikov Formulation
+
+The PDE \eqref{eq:pde} we derived above for $\theta$ and the associated implicit Equations \eqref{eq:bidspread} and \eqref{eq:askspread} for ${\delta_t^{(b)}}^*, {\delta_t^{(a)}}^*$ are messy. So we make some assumptions, simplify, and derive analytical approximations. We start by assuming a fairly standard functional form for $f^{(b)}$ and $f^{(a)}$:
+$$f^{(b)}(\delta) = f^{(a)}(\delta) = c \cdot e^{-k \cdot \delta}$$
+This reduces Equations \eqref{eq:bidspread} and \eqref{eq:askspread} to:
+
+\begin{equation}
+{\delta_t^{(b)}}^* = S_t - Q_t^{(b)} + \frac 1 {\gamma} \cdot \log{(1 + \frac {\gamma} {k})} \label{eq:bidspreadsimple}
+\end{equation}
+
+\begin{equation}
+{\delta_t^{(a)}}^* = Q_t^{(a)} - S_t + \frac 1 {\gamma} \cdot \log{(1 + \frac {\gamma} {k})} \label{eq:askspreadsimple}
+\end{equation}
+
+which means ${P_t^{(b)}}^*$ and ${P_t^{(a)}}^*$ are equidistant from $Q_t^{(m)}$. Substituting these simplified ${\delta_t^{(b)}}^*, {\delta_t^{(a)}}^*$ in Equation \eqref{eq:pde} reduces the PDE to:
+
+\begin{equation}
+\begin{split}
+& \pdv{\theta}{t} + \frac {\sigma^2} {2} \cdot (\pdv[2]{\theta}{S_t} - \gamma \cdot (\pdv{\theta}{S_t})^2) + \frac {c} {k + \gamma} \cdot (e^{-k\cdot {\delta_t^{(b)}}^*} + e^{-k \cdot {\delta_t^{(a)}}^*}) = 0 \\
+& \mbox{ with boundary condition } \theta(T,S_T,I_T) = I_T \cdot S_T \label{eq:pdesimple1}
+\end{split}
+\end{equation}
+
+Note that this PDE \eqref{eq:pdesimple1} involves ${\delta_t^{(b)}}^*$ and ${\delta_t^{(a)}}^*$. However, Equations \eqref{eq:bidspreadsimple}, \eqref{eq:askspreadsimple}, \eqref{eq:indiffbidtheta} and \eqref{eq:indiffasktheta} enable expressing ${\delta_t^{(b)}}^*$ and ${\delta_t^{(a)}}^*$ in terms of $\theta(t,S_t,I_t-1), \theta(t,S_t,I_t)$ and $\theta(t,S_t,I_t+1)$. This would give us a PDE just in terms of $\theta$. Solving that PDE for $\theta$ would give us not only $V^*(t,S_t,W_t,I_t)$ but also ${\delta_t^{(b)}}^*$ and ${\delta_t^{(a)}}^*$ (using Equations \eqref{eq:bidspreadsimple}, \eqref{eq:askspreadsimple}, \eqref{eq:indiffbidtheta} and \eqref{eq:indiffasktheta}). To solve the PDE, we need to make a couple of approximations.
+
+First we make a linear approximation for $e^{-k\cdot {\delta_t^{(b)}}^*}$ and $e^{-k \cdot {\delta_t^{(a)}}^*}$ in PDE \eqref{eq:pdesimple1} as follows:
+
+\begin{equation}
+\pdv{\theta}{t} + \frac {\sigma^2} {2} \cdot (\pdv[2]{\theta}{S_t} - \gamma \cdot  (\pdv{\theta}{S_t})^2) + \frac {c} {k + \gamma} \cdot (1 - k\cdot {\delta_t^{(b)}}^* + 1 - k \cdot {\delta_t^{(a)}}^*) = 0 \label{eq:pdesimple2}
+\end{equation}
+
+Combining the Equations \eqref{eq:bidspreadsimple}, \eqref{eq:askspreadsimple}, \eqref{eq:indiffbidtheta} and \eqref{eq:indiffasktheta} gives us:
+$${\delta_t^{(b)}}^* + {\delta_t^{(a)}}^* = \frac 2 {\gamma} \cdot \log{(1 + \frac {\gamma} {k})} + 2 \theta(t,S_t,I_t) - \theta(t,S_t,I_t+1) - \theta(t,S_t,I_t-1)$$
+
+With this expression for ${\delta_t^{(b)}}^* + {\delta_t^{(a)}}^*$, PDE \eqref{eq:pdesimple2} takes the form:
+
+\begin{equation}
+\begin{split}
+\pdv{\theta}{t} + \frac {\sigma^2} {2} \cdot & (\pdv[2]{\theta}{S_t} - \gamma \cdot (\pdv{\theta}{S_t})^2) + \frac {c} {k + \gamma} \cdot (2 - \frac {2k} {\gamma} \cdot \log{(1 + \frac {\gamma} {k})} \\
+& -k \cdot (2 \theta(t,S_t,I_t) - \theta(t,S_t,I_t+1) - \theta(t,S_t,I_t-1)))=0
+\end{split}
+\label{eq:pdesimple3}
+\end{equation}
+
+To solve PDE \eqref{eq:pdesimple3}, we consider the following asymptotic expansion of $\theta$ in $I_t$:
+$$\theta(t,S_t,I_t) = \sum_{n=0}^\infty \frac {I_t^n} {n!} \cdot \theta^{(n)}(t,S_t)$$
+So we need to determine the functions $\theta^{(n)}(t,S_t)$ for all $n = 0, 1, 2, \ldots$
+
+For tractability, we approximate this expansion to the first 3 terms:
+$$\theta(t,S_t,I_t) \approx \theta^{(0)}(t,S_t) + I_t \cdot \theta^{(1)}(t,S_t) + \frac {I_t^2} {2} \cdot \theta^{(2)}(t,S_t)$$
+
+We note that the Optimal Value Function $V^*$ can depend on $S_t$ only through the current *Value of the Inventory* (i.e., through $I_t \cdot S_t$), i.e., it cannot depend on $S_t$ in any other way.  This means $V^*(t,S_t,W_t,0) = -e^{-\gamma(W_t + \theta^{(0)}(t,S_t))}$ is independent of $S_t$. This means $\theta^{(0)}(t,S_t)$ is independent of $S_t$
+. So, we can write it as simply $\theta^{(0)}(t)$, meaning $\pdv{\theta^{(0)}}{S_t}$ and $\pdv[2]{\theta^{(0)}}{S_t}$ are equal to 0. Therefore, we can write the approximate expansion for $\theta(t,S_t,I_t)$ as:
+
+\begin{equation}
+\theta(t,S_t,I_t) = \theta^{(0)}(t) + I_t \cdot \theta^{(1)}(t,S_t) + \frac {I_t^2} {2} \cdot \theta^{(2)}(t,S_t) \label{eq:thetaapprox}
+\end{equation}
+
+Substituting this approximation Equation \eqref{eq:thetaapprox} for $\theta(t,S_t,I_t)$ in PDE \eqref{eq:pdesimple3}, we get:
+
+\begin{equation}
+\begin{split}
+& \pdv{\theta^{(0)}}{t} + I_t \cdot \pdv{\theta^{(1)}}{t} + \frac {I_t^2} 2 \cdot \pdv{\theta^{(2)}}{t} + \frac {\sigma^2} 2 \cdot (I_t \cdot \pdv[2]{\theta^{(1)}}{S_t} + \frac {I_t^2} 2 \cdot \pdv[2]{\theta^{(2)}}{S_t}) \\
+& - \frac {\gamma \sigma^2} 2 \cdot (I_t \cdot \pdv{\theta^{(1)}}{S_t} + \frac {I_t^2} 2 \cdot \pdv{\theta^{(2)}}{S_t})^2 + \frac c {k + \gamma} \cdot (2 - \frac {2k} {\gamma} \cdot \log{(1 + \frac {\gamma} k)} + k \cdot \theta^{(2)}) = 0 \\
+& \mbox{ with boundary condition: } \\
+& \theta^{(0)}(T) + I_T \cdot \theta^{(1)}(T,S_T) + \frac {I_T^2} 2 \cdot \theta^{(2)}(T,S_T) = I_T \cdot S_T  \label{eq:pdeapprox}
+\end{split}
+\end{equation}
+
+We will separately collect terms involving specific powers of $I_t$, each yielding a separate PDE:
+
+* Terms devoid of $I_t$ (i.e., $I_t^0$)
+* Terms involving $I_t$ (i.e., $I_t^1$)
+* Terms involving $I_t^2$
+
+We start by collecting terms involving $I_t$
+
+\begin{equation*}
+\pdv{\theta^{(1)}}{t} + \frac {\sigma^2} 2 \cdot \pdv[2]{\theta^{(1)}}{S_t} = 0 \mbox{ with boundary condition } \theta^{(1)}(T,S_T) = S_T
+\end{equation*}
+
+The solution to this PDE is:
+
+\begin{equation}
+\theta^{(1)}(t,S_t) = S_t \label{eq:pdesolve1}
+\end{equation}
+
+Next, we collect terms involving $I_t^2$
+
+\begin{equation*}
+\pdv{\theta^{(2)}}{t} + \frac {\sigma^2} 2 \cdot \pdv[2]{\theta^{(2)}}{S_t} - \gamma \cdot \sigma^2 \cdot (\pdv{\theta^{(1)}} {S_t})^2 = 0 \mbox{ with boundary } \theta^{(2)}(T,S_T) = 0
+\end{equation*}
+
+Noting that $\theta^{(1)}(t,S_t) = S_t$, we solve this PDE as:
+
+\begin{equation}
+\theta^{(2)}(t,S_t) = -\gamma \cdot \sigma^2 \cdot (T-t) \label{eq:pdesolve2}
+\end{equation}
+
+Finally, we collect the terms devoid of $I_t$
+
+\begin{equation*}
+\pdv{\theta^{(0)}}{t} + \frac c {k + \gamma} \cdot (2 - \frac {2k} {\gamma} \cdot \log{(1 + \frac {\gamma} k)} + k \cdot \theta^{(2)}) = 0 \mbox{ with boundary } \theta^{(0)}(T) = 0
+\end{equation*}
+
+Noting that $\theta^{(2)}(t,S_t) = -\gamma \sigma^2 \cdot (T-t)$, we solve as:
+
+\begin{equation}
+\theta^{(0)}(t) = \frac c {k + \gamma} \cdot ((2 - \frac {2k} {\gamma} \cdot \log{(1 + \frac {\gamma} k)}) \cdot (T-t) - \frac {k \gamma \sigma^2} 2 \cdot (T-t)^2) \label{eq:pdesolve3}
+\end{equation}
+
+This completes the PDE solution for $\theta(t,S_t,I_t)$ and hence, for $V^*(t,S_t,W_t,I_t)$. Lastly, we derive formulas for $Q_t^{(b)}, Q_t^{(a)}, Q_t^{(m)}, {\delta_t^{(b)}}^*, {\delta_t^{(a)}}^*$.
+
+Using Equations \eqref{eq:indiffbidtheta} and \eqref{eq:indiffasktheta}, we get:
+
+\begin{equation}
+Q_t^{(b)} = \theta^{(1)}(t,S_t) + (2I_t+1)\cdot \theta^{(2)}(t,S_t) = S_t - (2I_t + 1) \cdot \frac {\gamma \cdot \sigma^2 \cdot (T-t)} {2} \label{eq:indiffbidsolve}
+\end{equation}
+
+\begin{equation}
+Q_t^{(a)} = \theta^{(1)}(t,S_t) + (2I_t-1) \cdot \theta^{(2)}(t,S_t) =  S_t - (2I_t - 1) \cdot \frac {\gamma \cdot \sigma^2 \cdot (T-t)} {2} \label{eq:indiffasksolve}
+\end{equation}
+
+Using equations  \eqref{eq:bidspreadsimple} and \eqref{eq:askspreadsimple}, we get:
+
+\begin{equation}
+{\delta_t^{(b)}}^* =  \frac {(2I_t+1) \cdot \gamma \cdot \sigma^2 \cdot (T-t)} {2} + \frac 1 {\gamma} \cdot \log{(1 + \frac {\gamma} k)} \label{eq: bidspreadsolve}
+\end{equation}
+
+\begin{equation}
+{\delta_t^{(a)}}^*  = \frac {(1-2I_t) \cdot \gamma \cdot \sigma^2 \cdot (T-t)} {2} + \frac 1 {\gamma} \cdot \log{(1 + \frac {\gamma} k)} \label{eq: askspreadsolve}
+\end{equation}
+
+\begin{equation}
+\mbox{Optimal Bid-Ask Spread } {\delta_t^{(b)}}^* + {\delta_t^{(a)}}^* = \gamma \cdot \sigma^2 \cdot (T-t) + \frac 2 {\gamma}\cdot \log{(1 + \frac {\gamma} k)} \label{eq:bidaskspreadsolve}
+\end{equation}
+
+\begin{equation}
+\mbox{Optimal Pseudo-Mid } Q_t^{(m)} = \frac {Q_t^{(b)} + Q_t^{(a)}} 2 = \frac {{P_t^{(b)}}^* + {P_t^{(a)}}^*} 2 = S_t - I_t \cdot \gamma \cdot \sigma^2 \cdot (T-t) \label{eq:indiffmidsolve}
+\end{equation}
+
+Now let's get back to developing intuition. Think of $Q_t^{(m)}$ as *inventory-risk-adjusted* mid-price (adjustment to $S_t$). If the market-maker is long inventory ($I_t > 0$), $Q_t^{(m)} < S_t$ indicating inclination to sell rather than buy, and if market-maker is short inventory, $Q_t^{(m)} > S_t$ indicating inclination to buy rather than sell. Think of $[{P_t^{(b)}}^*, {P_t^{(a)}}^*]$ as "centered" at $Q_t^{(m)}$ (rather than at $S_t$), i.e., the interval $[{P_t^{(b)}}^*, {P_t^{(a)}}^*]$ will move up/down in tandem with $Q_t^{(m)}$ moving up/down (as a function of inventory $I_t$).  Note from Equation \eqref{eq:bidaskspreadsolve} that the Optimal Bid-Ask Spread ${P_t^{(a)}}^* - {P_t^{(b)}}^*$ is independent of inventory $I_t$. 
+
+A useful view is:
+$${P_t^{(b)}}^* < Q_t^{(b)} < Q_t^{(m)} < Q_t^{(a)} < {P_t^{(a)}}^*$$
+with the spreads as follows:
+$$\mbox{ Outer Spreads } {P_t^{(a)}}^* - Q_t^{(a)} = Q_t^{(b)}  - {P_t^{(b)}}^* = \frac 1 {\gamma} \cdot \log{(1 + \frac {\gamma} k)}$$
+$$\mbox{ Inner Spreads } Q_t^{(a)} - Q_t^{(m)} = Q_t^{(m)} - Q_t^{(b)} = \frac {\gamma \cdot \sigma^2 \cdot (T-t)} 2$$
+
+This completes the analytical approximation to the solution of the Avellaneda-Stoikov continuous-time formulation of the Optimal Market-Making problem. 
+
 ### Real-World Market-Making
 
+Note that while the Avellaneda-Stoikov continuous-time formulation and solution is elegant and intuitive, it is far from a real-world model. Real-world OB dynamics are non-stationary, non-linear and far more complex. Furthermore, there are all kinds of real-world frictions we need to capture, such as discrete time, discrete prices/number of shares in a bid/ask submitted by the market-maker, various constraints on prices and number of shares in the bid/ask, and fees to be paid by the market-maker. Moreover, we need to capture various market factors in the *State* and in the OB Dynamics. This invariably leads to the *Curse of Dimensionality* and *Curse of Modeling*. This takes us down the same path that we've now got all too familiar with - Reinforcement Learning algorithms. This means we need a simulator that captures all of the above factors, features and frictions. Such a simulator is basically a *Market-Data-learnt Sampling Model* of OB Dynamics. We won't be covering the details of how to build such a simulator as that is outside the scope of this book (a topic under the umbrella of supervised learning of market patterns and behaviors). Using this simulator and neural-networks-based function approximation of the Value Function (and/or of the Policy function), we can leverage the power of RL algorithms (to be covered in the following chapters) to solve the problem of optimal market-making in practice. There are a number of papers written on how to build practical and useful market simulators and using Reinforcement Learning for Optimal Market-Making. We refer you to two such papers here:
+
+* [2018 paper from University of Liverpool](https://arxiv.org/pdf/1804.04216.pdf)
+* [2019 paper from J.P.Morgan Research](https://arxiv.org/pdf/1911.05892.pdf)
+
+This topic of development of models for OB Dynamics and RL algorithms for practical market-making is an exciting area for future research as well as engineering design. We hope this section has provided sufficient foundations for you to dig into this topic further.
+
 ## Key Takeaways from this Chapter
+
+* Foundations of Order Book, Limit Orders, Market Orders, Price Impact of large Market Orders, and complexity of Order Book Dynamics.
+* Casting the Optimal Order Execution problem as a Markov Decision Process, developing intuition by deriving closed-form solutions for highly simplified assumptions (eg: Bertsimas-Lo and Almgren-Chriss formulations), developing a deeper understanding by implementing a backward-induction ADP algorithm, and then moving on to develop RL algorithms (and associated market simulator) to solve this problem in a real-world setting to overcome the Curse of Dimensionality and Curse of Modeling.
+* Casting the Optimal Market-Making problem as a Markov Decision Process, developing intuition by deriving closed-form solutions for highly simplified assumptions (eg: Avellaneda-Stoikov formulation), developing a deeper understanding by implementing a backward-induction ADP algorithm, and then moving on to develop RL algorithms (and associated market simulator) to solve this problem in a real-world setting to overcome the Curse of Dimensionality and Curse of Modeling.
