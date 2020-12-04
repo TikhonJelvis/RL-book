@@ -304,6 +304,14 @@ class AdamGradient:
     decay1: float
     decay2: float
 
+    @staticmethod
+    def default_settings() -> AdamGradient:
+        return AdamGradient(
+            learning_rate=0.001,
+            decay1=0.9,
+            decay2=0.999
+        )
+
 
 @dataclass(frozen=True)
 class Weights:
@@ -315,8 +323,8 @@ class Weights:
 
     @staticmethod
     def create(
-        adam_gradient: AdamGradient,
         weights: np.ndarray,
+        adam_gradient: AdamGradient = AdamGradient.default_settings(),
         adam_cache1: Optional[np.ndarray] = None,
         adam_cache2: Optional[np.ndarray] = None
     ) -> Weights:
@@ -370,7 +378,7 @@ class LinearFunctionApprox(FunctionApprox[X]):
     @staticmethod
     def create(
         feature_functions: Sequence[Callable[[X], float]],
-        adam_gradient: AdamGradient,
+        adam_gradient: AdamGradient = AdamGradient.default_settings(),
         regularization_coeff: float = 0.,
         weights: Optional[Weights] = None,
         direct_solve: bool = True
@@ -480,7 +488,7 @@ class DNNApprox(FunctionApprox[X]):
     def create(
         feature_functions: Sequence[Callable[[X], float]],
         dnn_spec: DNNSpec,
-        adam_gradient: AdamGradient,
+        adam_gradient: AdamGradient = AdamGradient.default_settings(),
         regularization_coeff: float = 0.,
         weights: Optional[Sequence[Weights]] = None
     ) -> DNNApprox[X]:
@@ -488,7 +496,7 @@ class DNNApprox(FunctionApprox[X]):
             inputs: Sequence[int] = [len(feature_functions)] + \
                 [n + (1 if dnn_spec.bias else 0)
                  for i, n in enumerate(dnn_spec.neurons)]
-            outputs: Sequence[int] = dnn_spec.neurons + [1]
+            outputs: Sequence[int] = list(dnn_spec.neurons) + [1]
             wts = [Weights.create(
                 adam_gradient,
                 np.random.randn(output, inp) / np.sqrt(inp)

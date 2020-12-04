@@ -824,7 +824,7 @@ is given by:
 $$
 \mathcal{P}_R((t, s_t), a_t, r, (t', s_{t'})) =
 \begin{cases}
-(\mathcal{P}_R)_t(s_t, a_t, r, s_{t'}) & \text{ if } t' = t + 1 and s_{t'} \in \mathcal{S}_{t'} \\
+(\mathcal{P}_R)_t(s_t, a_t, r, s_{t'}) & \text{ if } t' = t + 1 \text{ and } s_{t'} \in \mathcal{S}_{t'} \\
 0 & \text{ otherwise }
 \end{cases}
 $$
@@ -851,23 +851,25 @@ $$\pi_t: \mathcal{N}_t \times \mathcal{A}_t \rightarrow [0, 1]$$
 
 are the separate policies for each of the time steps $t = 0, 1, \ldots, T-1$
 
+So essentially we interpret $\pi$ as being composed of the sequence $(\pi_0, \pi_1, \ldots, \pi_{T-1})$.
+
 Consequently, the Value Function for a given policy $\pi$ (equivalently, the Value Function for the $\pi$-implied MRP)
 
 $$V^{\pi}: \mathcal{N} \rightarrow \mathbb{R}$$
 
 can be conveniently represented in terms of a sequence of Value Functions
 
-$$V^{\pi_t}_t: \mathcal{N}_t \rightarrow \mathbb{R}$$
+$$V^{\pi}_t: \mathcal{N}_t \rightarrow \mathbb{R}$$
 
 for each of time steps $t = 0, 1, \ldots, T-1$, defined as:
 
-$$V^{\pi}((t, s_t)) = V^{\pi_t}_t(s_t) \text{ for all } t = 0, 1, \ldots, T-1, s_t \in \mathcal{N}_t$$
+$$V^{\pi}((t, s_t)) = V^{\pi}_t(s_t) \text{ for all } t = 0, 1, \ldots, T-1, s_t \in \mathcal{N}_t$$
 
 Then, the Bellman Policy Equation can be written as:
 
 \begin{equation}
 \begin{split}
-V^{\pi_t}_t(s_t) = \sum_{s_{t+1} \in \mathcal{S}_{t+1}} \sum_{r \in \mathbb{R}} & (\mathcal{P}_R^{\pi_t})_t(s_t, a_t, r, s_{t+1}) \cdot (r + \gamma \cdot W^{\pi_{t+1}}_{t+1}(s_{t+1})) \\
+V^{\pi}_t(s_t) = \sum_{s_{t+1} \in \mathcal{S}_{t+1}} \sum_{r \in \mathbb{R}} & (\mathcal{P}_R^{\pi_t})_t(s_t, r, s_{t+1}) \cdot (r + \gamma \cdot W^{\pi}_{t+1}(s_{t+1})) \\
 & \text{ for all } t = 0, 1, \ldots, T-1, s_t \in \mathcal{N}_t
 \end{split}
 \label{eq:bellman_policy_equation_finite_horizon}
@@ -876,9 +878,9 @@ V^{\pi_t}_t(s_t) = \sum_{s_{t+1} \in \mathcal{S}_{t+1}} \sum_{r \in \mathbb{R}} 
 where
 
 $$
-W^{\pi_t}_t(s_t) = 
+W^{\pi}_t(s_t) = 
 \begin{cases}
-V^{\pi_t}_t(s_t) & \text{ if } s_t \in \mathcal{N}_t \\
+V^{\pi}_t(s_t) & \text{ if } s_t \in \mathcal{N}_t \\
 0 & \text{ if } s_t \in \mathcal{T}_t
 \end{cases}
 $$
@@ -887,7 +889,7 @@ for all $t = 1, 2, \ldots, T$ and where $(\mathcal{P}_R^{\pi_t})_t: \mathcal{N}_
 
 $$(\mathcal{P}_R^{\pi_t})_t(s_t, r, s_{t+1}) = \sum_{a_t \in \mathcal{A}_t} \pi_t(s_t, a_t) \cdot (\mathcal{P}_R)_t(s_t, a_t, r, s_{t+1}) \text{ for all } t = 0, 1, \ldots, T-1$$
 
-So for a Finite MDP, this yields a simple algorithm to calculate $V^{\pi_t}_t$ for all $t$ by simply decrementing down from $t=T-1$ to $t=0$ and using Equation \eqref{eq:bellman_policy_equation_finite_horizon} to calculate $V^{\pi_t}_t$ for all $t = 0, 1, \ldots, T-1$ from the known values of $W^{\pi_{t+1}}_{t+1}$ (since we are decrementing in time index $t$).
+So for a Finite MDP, this yields a simple algorithm to calculate $V^{\pi}_t$ for all $t$ by simply decrementing down from $t=T-1$ to $t=0$ and using Equation \eqref{eq:bellman_policy_equation_finite_horizon} to calculate $V^{\pi}_t$ for all $t = 0, 1, \ldots, T-1$ from the known values of $W^{\pi}_{t+1}$ (since we are decrementing in time index $t$).
 
 This algorithm is the adaptation of Policy Evaluation to the finite horizon case with this simple technique of "stepping back in time" (known as *Backward Induction*). Let's write some code to implement this algorithm. We are given a MDP over the augmented (finite) state space `WithTime[S]`, and a policy $\pi$ (also over the augmented state space `WithTime[S]`). So, we can use the method `apply_finite_policy` in `FiniteMarkovDecisionProcess[WithTime[S], A]` to obtain the $\pi$-implied MRP of type `FiniteMarkovRewardProcess[WithTime[S]]`. Our first task to to "unwrap" the state-reward probability transition function $\mathcal{P}_R^{\pi}$ of this $\pi$-implied MRP into a time-indexed sequenced of state-reward probability transition functions $(\mathcal{P}_R^{\pi_t})_t, t = 0, 1, \ldots, T-1$. This is accomplished by the following function `unwrap_finite_horizon_MRP` (`itertools.groupby` groups the augmented states by their time step, and the function `without_time` strips the time step from the augmented states when placing the states in $(\mathcal{P}_R^{\pi_t})_t$, i.e., `Sequence[RewardTransition[S]]`).
 
@@ -918,7 +920,7 @@ def unwrap_finite_horizon_MRP(
              )][:-1]
 ```
 
-Now that we have the state-reward transition functions $(\mathcal{P}_R^{\pi_t})_t$ arranged in the form of a `Sequence[RewardTransition[S]]`, we are ready to perform backward induction to calculate $V^{\pi_t}_t$. The following function `evaluate` accomplishes it with a straightforward use of Equation \eqref{eq:bellman_policy_equation_finite_horizon}, as described above.
+Now that we have the state-reward transition functions $(\mathcal{P}_R^{\pi_t})_t$ arranged in the form of a `Sequence[RewardTransition[S]]`, we are ready to perform backward induction to calculate $V^{\pi}_t$. The following function `evaluate` accomplishes it with a straightforward use of Equation \eqref{eq:bellman_policy_equation_finite_horizon}, as described above.
 
 ```python
 def evaluate(
@@ -1134,7 +1136,7 @@ Now let's write two methods for this class:
         return optimal_vf_and_policy(unwrap_finite_horizon_MDP(self.mdp), 1.)
 ```
 
-Noe let's create a simple instance of `ClearancePricingMDP` for $M = 12, T = 8$ and 4 price choices: "Full Price", "30% Off", "50% Off", "70% Off" with respective mean daily demand of $0.5, 1.0, 1.5, 2.5$.
+Now let's create a simple instance of `ClearancePricingMDP` for $M = 12, T = 8$ and 4 price choices: "Full Price", "30% Off", "50% Off", "70% Off" with respective mean daily demand of $0.5, 1.0, 1.5, 2.5$.
 
 ```python
 ii = 12
@@ -1147,7 +1149,7 @@ cp: ClearancePricingMDP = ClearancePricingMDP(
 )
 ```
 
-Now let us calculate it's Value Function for a stationary policy that chooses "Full Price" if inventory is less than 2, otherwise "30% Off" if inventory is less than 5, otherwise "50% Off" if inventory is less than 8, otherwise "70% Off". Since we have a stationary policy, we can represent it as a single-step policy and combine it with the single-step MDP we had created above (attribute `single_step_mdp`) to create a `single_step_mrp: FiniteMarkovRewardProcess[int]`. Then we use the function `finite_horizon_mrp` (from file [rl/finite_horizon.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/finite_horizon.py)) to create the entire (augmented state) MRP of type `FiniteMarkovRewardProcess[WithTime[int]]`. Finally, we unwrap this MRP into a sequence of state-reward transition probability functions and perform backward induction to calculate the Value Function for this stationary policy. Running the following code tells us that $V^{\pi_0}_0(12)$ is about $4.91$ (assuming full price is $1$), which is the Expected Revenue one would obtain over 8 days, starting with an inventory of 12, and executing this stationary policy (under the assumed demand distributions as a function of the price choices).
+Now let us calculate it's Value Function for a stationary policy that chooses "Full Price" if inventory is less than 2, otherwise "30% Off" if inventory is less than 5, otherwise "50% Off" if inventory is less than 8, otherwise "70% Off". Since we have a stationary policy, we can represent it as a single-step policy and combine it with the single-step MDP we had created above (attribute `single_step_mdp`) to create a `single_step_mrp: FiniteMarkovRewardProcess[int]`. Then we use the function `finite_horizon_mrp` (from file [rl/finite_horizon.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/finite_horizon.py)) to create the entire (augmented state) MRP of type `FiniteMarkovRewardProcess[WithTime[int]]`. Finally, we unwrap this MRP into a sequence of state-reward transition probability functions and perform backward induction to calculate the Value Function for this stationary policy. Running the following code tells us that $V^{\pi}_0(12)$ is about $4.91$ (assuming full price is $1$), which is the Expected Revenue one would obtain over 8 days, starting with an inventory of 12, and executing this stationary policy (under the assumed demand distributions as a function of the price choices).
 
 ```python
 def policy_func(x: int) -> int:

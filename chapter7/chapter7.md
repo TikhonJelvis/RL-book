@@ -295,7 +295,7 @@ Figure \ref{fig:merton-solution-wealth-trajectory} shows the time-trajectory of 
 
 ## A Discrete-Time Asset-Allocation Example {#sec:discrete-asset-alloc}
 
-In this section, we cover a discrete-time version of the problem that lends itself to analytical tractability, much like Merton's Portfolio Problem in continuous-time. We are given wealth $W_0$ at time 0. At each of discrete time steps labeled $t = 0, 1, \ldots, T-1$, we are allowed to allocate the wealth $W_t$ at time $t$ to a portfolio of a risky asset and a riskless asset in an unconstrained manner with no transaction costs. The risky asset yields a random return $\sim N(\mu, \sigma^2)$ over each single time step (for a given $\mu \in \mathbb{R}$ and a given $\sigma \in \mathbb{R}^+$). The riskless asset yields a constant return denoted by $r$ over each single time step (for a given $r \in \mathbb{R}$).  We assume that there is no consumption of wealth at any time $t < T$, and that we liquidate and consume the wealth $W_T$ at time $t$. So our goal is simply to maximize the Expected Utility of Wealth at the final time step $t=T$ by dynamically allocating $x_t \in \mathbb{R}$ in the risky asset and the remaining $W_t - x_t$ in the riskless asset for each $t = 0, 1, \ldots, T-1$. Assume the single-time-step discount factor is $\gamma$ and that the Utility of Wealth at the final time step $t=T$ is given by the following CARA function:
+In this section, we cover a discrete-time version of the problem that lends itself to analytical tractability, much like Merton's Portfolio Problem in continuous-time. We are given wealth $W_0$ at time 0. At each of discrete time steps labeled $t = 0, 1, \ldots, T-1$, we are allowed to allocate the wealth $W_t$ at time $t$ to a portfolio of a risky asset and a riskless asset in an unconstrained manner with no transaction costs. The risky asset yields a random return $\sim \mathcal{N}(\mu, \sigma^2)$ over each single time step (for a given $\mu \in \mathbb{R}$ and a given $\sigma \in \mathbb{R}^+$). The riskless asset yields a constant return denoted by $r$ over each single time step (for a given $r \in \mathbb{R}$).  We assume that there is no consumption of wealth at any time $t < T$, and that we liquidate and consume the wealth $W_T$ at time $t$. So our goal is simply to maximize the Expected Utility of Wealth at the final time step $t=T$ by dynamically allocating $x_t \in \mathbb{R}$ in the risky asset and the remaining $W_t - x_t$ in the riskless asset for each $t = 0, 1, \ldots, T-1$. Assume the single-time-step discount factor is $\gamma$ and that the Utility of Wealth at the final time step $t=T$ is given by the following CARA function:
 
 $$U(W_T) = \frac {1 - e^{-a W_T}} {a} \text{ for some fixed } a \neq 0$$
 
@@ -309,42 +309,53 @@ Since $\gamma^{T-t}$ and $a$ are constants, this is equivalent to maximizing, fo
 \mathbb{E}[\frac {- e^{-a W_T}} a | (t, W_t)] \label{eq:asset-alloc-discrete-objective}
 \end{equation}
 
-We formulate this problem as a *Continuous States* and *Continuous Actions* MDP by specifying it's *State Transitions*, *Rewards* and *Discount Factor* precisely. The problem then is to find the Optimal Policy.
+We formulate this problem as a *Continuous States* and *Continuous Actions* discrete-time finite-horizon MDP by specifying it's *State Transitions*, *Rewards* and *Discount Factor* precisely. The problem then is to solve the MDP's Control problem to find the Optimal Policy.
 
-*State* will be represented as $(t, W_t)$. Our decision (*Action*) at any time step $t = 0, 1, \ldots, T-1$ is represented by the quantity of investment in the risky asset ($=x_t$). Hence, the quantity of investment in the riskless asset at time $t$ will be $W_t - x_t$. We shall use the notation of Finite-Horizon Dynamic Programming that was covered in Section [-@sec:finite-horizon-section] in Chapter [-@sec:dp-chapter]. Specifically, we represent the policy and value function (including the optimal policy and optimal value function) as a sequence of policies/value functions indexed by time (with each of those policies/value functions taking as argument only the Wealth $W_t$ and not time $t$). Therefore, we represent the policy $\pi$ as the time-indexed sequence of functions $\pi_t$, and express it as $\pi_t(W_t) = x_t$.
+The terminal time for the finite-horizon MDP is $T$ and hence, all the states at time $t=T$ are terminal states. We shall follow the notation of finite-horizon MDPs that we had covered in Section [-@sec:finite-horizon-section] of Chapter [-@sec:dp-chapter]. The *State* $s_t \in \mathcal{S}_t$ at any time step $t = 0, 1, \ldots, T$ consists of the wealth $W_t$. The decision (*Action*) $a_t \in \mathcal{A}_t$ at any time step $t = 0, 1, \ldots, T-1$ is the quantity of investment in the risky asset ($=x_t$). Hence, the quantity of investment in the riskless asset at time $t$ will be $W_t - x_t$. A deterministic policy at time $t$ (for all $t = 0, 1, \ldots T-1$) is denoted as $\pi_t$, and hence, we write: $\pi_t(W_t) = x_t$. Likewise, an optimal deterministic policy at time $t$ (for all $t = 0, 1, \ldots, T-1$) is denoted as $\pi^*_t$, and hence, we write: $\pi^*_t(W_t) = x^*_t$.
 
-Denote the random variable for the single-time-step return of the risky asset at time $t$ as $S_t \sim N(\mu, \sigma^2)$. So,
+Denote the random variable for the single-time-step return of the risky asset from time $t$ to time $t+1$ as $Y_t \sim \mathcal{N}(\mu, \sigma^2)$ for all $t = 0, 1, \ldots T-1$. So,
 
-$$W_{t+1} = x_t \cdot (1 + S_t) + (W_t - x_t) \cdot (1 + r) = x_t \cdot (S_t - r) + W_t \cdot (1 + r)$$
+\begin{equation}
+W_{t+1} = x_t \cdot (1 + Y_t) + (W_t - x_t) \cdot (1 + r) = x_t \cdot (Y_t - r) + W_t \cdot (1 + r)
+\label{eq:asset-alloc-discrete-wealth-recursive}
+\end{equation}
 
-The *Reward* is 0 for all $t = 0, 1, \ldots, T-1$. As a result of the simplified objective \eqref{eq:asset-alloc-discrete-objective} above, we treat the *Reward* at the terminal time step $t=T$ as:
+for all $t = 0, 1, \ldots, T-1$.
+
+The MDP *Reward* is 0 for all $t = 0, 1, \ldots, T-1$. As a result of the simplified objective \eqref{eq:asset-alloc-discrete-objective} above, the MDP *Reward* for $t=T$ is the following random quantity (conditional on state $W_{T-1}$ and action $x_{T-1}$):
 
 $$\frac {- e^{-a W_T}} {a}$$
 
-and we set the MDP discount factor to be $\gamma = 1$ (again, because of the simplified objective \eqref{eq:asset-alloc-discrete-objective} above).
+We set the MDP discount factor to be $\gamma = 1$ (again, because of the simplified objective \eqref{eq:asset-alloc-discrete-objective} above).
 
-We denote the Value Function at time $t$ (for all $t = 0, 1, \ldots, T$) for a given policy $\pi = (\pi_0, \pi_1, \ldots, \pi_{T-1})$ as:
+We denote the Value Function at time $t$ (for all $t = 0, 1, \ldots, T-1$) for a given policy $\pi = (\pi_0, \pi_1, \ldots, \pi_{T-1})$ as:
 $$V^{\pi}_t(W_t) = \mathbb{E}_{\pi}[\frac {- e^{-a W_T}} a | (t, W_t)]$$
-We denote the Optimal Value Function at time $t$ (for all $t=0, 1, \ldots, T$) as:
+We denote the Optimal Value Function at time $t$ (for all $t=0, 1, \ldots, T-1$) as:
 $$V^*_t(W_t) = \max_{\pi} V^{\pi}_t(W_t) = \max_{\pi} \{ \mathbb{E}_{\pi}[\frac {- e^{-a W_T}} a | (t, W_t)] \}$$
 
 The Bellman Optimality Equation is:
 
-$$V^*_t(W_t) = \max_{x_t} Q^*_t(W_t, x_t) = \max_{x_t} \{\mathbb{E}_{S_t \sim N(\mu, \sigma^2)}[V^*_{t+1}(W_{t+1})]\}$$
+$$V^*_t(W_t) = \max_{x_t} Q^*_t(W_t, x_t) = \max_{x_t} \{\mathbb{E}_{Y_t \sim \mathcal{N}(\mu, \sigma^2)}[V^*_{t+1}(W_{t+1})]\}$$
 
-where $Q^*_t$ is the Optimal Action-Value Function at time $t$ (for all $t=0, 1, \ldots, T-1$).
+for all $t=0, 1, \ldots, T-2$, and
+
+$$V^*_{T-1}(W_{T-1}) = \max_{x_{T-1}} Q^*_{T-1}(W_{T-1}, x_{T-1}) = \max_{x_{T-1}} \{ \mathbb{E}_{Y_{T-1} \sim \mathcal{N}(\mu, \sigma^2)}[\frac {- e^{-a W_T}} a] \}$$
+
+where $Q^*_t$ is the Optimal Action-Value Function at time $t$ for all $t=0, 1, \ldots, T-1$.
 
 We make an educated guess for the functional form of the Optimal Value Function as:
 
 \begin{equation}
 V^*_t(W_t) = - b_t \cdot e^{-c_t \cdot W_t} \label{eq:v-star-functional-discrete}
 \end{equation}
-where $b_t, c_t$ are independent of the wealth $W_t$ for all $t=0, 1, \ldots, T$. Next, we express the Bellman Optimality Equation using this functional form for the Optimal Value Function:
+where $b_t, c_t$ are independent of the wealth $W_t$ for all $t=0, 1, \ldots, T-1$. Next, we express the Bellman Optimality Equation using this functional form for the Optimal Value Function:
 
-$$V^*_t(W_t) = \max_{x_t} \{ \mathbb{E}_{S_t \sim N(\mu, \sigma^2)} [-b_{t+1} \cdot e^{-c_{t+1} \cdot (x_t \cdot (S_t - r) + W_t \cdot (1+r))}] \}$$
+$$V^*_t(W_t) = \max_{x_t} \{ \mathbb{E}_{Y_t \sim \mathcal{N}(\mu, \sigma^2)} [-b_{t+1} \cdot e^{-c_{t+1} \cdot (x_t \cdot (Y_t - r) + W_t \cdot (1+r))}] \}$$
+
+Using Equation \eqref{eq:asset-alloc-discrete-wealth-recursive}, we can write this as:
 
 \begin{equation}
-\Rightarrow V^*_t(W_t) = \max_{x_t} \{-b_{t+1} \cdot e^{-c_{t+1} \cdot (1 + r) \cdot W_t - c_{t+1} \cdot (\mu - r) \cdot x_t + c^2_{t+1} \cdot \frac {\sigma^2} {2} \cdot x_t^2} \} \label{eq:bellman-optimality-asset-alloc-discrete}
+V^*_t(W_t) = \max_{x_t} \{-b_{t+1} \cdot e^{-c_{t+1} \cdot (1 + r) \cdot W_t - c_{t+1} \cdot (\mu - r) \cdot x_t + c^2_{t+1} \cdot \frac {\sigma^2} {2} \cdot x_t^2} \} \label{eq:bellman-optimality-asset-alloc-discrete}
 \end{equation}
 
 Since $V^*_t(W_t) = \max_{x_t} Q^*_t(W_t, x_t)$, from Equation \eqref{eq:bellman-optimality-asset-alloc-discrete}, we can infer the functional form for $Q^*_t(W_t, x_t)$ in terms of $b_{t+1}$ and $c_{t+1}$:
@@ -373,15 +384,23 @@ we can write the following recursive equations for $b_t$ and $c_t$:
 $$b_t = b_{t+1} \cdot e^{- \frac {(\mu -r)^2} {2 \sigma^2}}$$
 $$c_t = c_{t+1} \cdot (1 + r)$$
 
-We know $b_T$ and $c_T$ from the knowledge of the MDP *Reward* at $t=T$ (Utility of Terminal Wealth), which will enable us to unroll the above recursions for $b_T$ and $c_T$.
+We can calculate $b_{T-1}$ and $c_{T-1}$ from the knowledge of the MDP *Reward* $\frac {- e^{-a W_T}} a$ (Utility of Terminal Wealth) at time $t=T$, which will enable us to unroll the above recursions for $b_t$ and $c_t$ for all $t = 0, 1, \ldots, T-2$.
 
-$$V^*_T(W_T) = \frac {- e^{-a W_T}} a =  - b_T \cdot e^{-c_T \cdot W_T}$$
+$$V^*_{T-1}(W_{T-1}) = \max_{x_{T-1}} \{ \mathbb{E}_{Y_{T-1} \sim \mathcal{N}(\mu, \sigma^2)}[\frac {- e^{-a W_T}} a] \}$$
+
+From Equation \eqref{eq:asset-alloc-discrete-wealth-recursive}, we can write this as:
+
+$$V^*_{T-1}(W_{T-1}) = \max_{x_{T-1}} \{ \mathbb{E}_{Y_{T-1} \sim \mathcal{N}(\mu, \sigma^2)}[\frac {- e^{-a (x_{T-1}\cdot (Y_{T-1} - r) + W_{T-1} \cdot (1 + r))}} a] \}$$
+
+Using the result in Equation \eqref{eq:normmgfminvalue} in Appendix [-@sec:mgf-appendix], we can write this as:
+
+$$V^*_{T-1}(W_{T-1}) = \frac {-e^{-\frac {(\mu - r)^2} {2 \sigma^2} - a \cdot (1 + r) \cdot W_{T-1}}} a$$
 
 Therefore,
-$$b_T = \frac {1} a$$
-$$c_T = a$$
+$$b_{T-1} = \frac {e^{- \frac {(\mu - r)^2} {2 \sigma^2}}} a$$
+$$c_{T-1} = a \cdot (1 + r)$$
 
-Now we can unroll the above recursions for $b_t$ and $c_t$:
+Now we can unroll the above recursions for $b_t$ and $c_t$ for all $t = 0, 1, \ldots T-2$ as:
 
 $$b_t = \frac {e^{- \frac {(\mu - r)^2 \cdot (T-t)} {2 \sigma^2}}} a$$
 $$c_t = a \cdot (1+ r)^{T-t}$$
@@ -390,17 +409,19 @@ Substituting the solution for $c_{t+1}$ in Equation \eqref{eq:pi-star-functional
 \begin{equation}
 \pi^*_t(W_t) = x^*_t = \frac {\mu - r} {\sigma^2 \cdot a \cdot (1+ r)^{T-t-1}} \label{eq:pi-star-solution-discrete}
 \end{equation}
-
+for all $t = 0, 1, \ldots, T-1$. Note that the optimal action at time step $t$ (for all $t = 0, 1, \ldots, T-1$) does not depend on the state $W_t$ at time $t$ (it only depends on the time $t$). Hence, the optimal policy $\pi^*_t(\cdot)$ for a fixed time $t$ is a constant deterministic policy function.
 
 Substituting the solutions for $b_t$ and $c_t$ in Equation \eqref{eq:v-star-functional-discrete} gives us the solution for the Optimal Value Function:
 \begin{equation}
 V^*_t(W_t) = \frac {- e^{- \frac {(\mu - r)^2 (T-t)} {2 \sigma^2}}} a \cdot e^{- a (1+ r)^{T-t} \cdot W_t} \label{eq:v-star-solution-discrete}
 \end{equation}
+for all $t = 0, 1, \ldots, T-1$.
 
 Substituting the solutions for $b_{t+1}$ and $c_{t+1}$ in Equation \eqref{eq:q-star-functional-discrete} gives us the solution for the Optimal Action-Value Function:
 \begin{equation}
 Q^*_t(W_t, x_t) = \frac {- e^{- \frac {(\mu - r)^2 (T-t-1)} {2 \sigma^2}}} a \cdot e^{- a (1+r)^{T-t} \cdot W_t - a (\mu - r) (1+r)^{T-t-1} \cdot x_t + \frac {(a\sigma (1+r)^{T-t-1})^2} 2 \cdot x_t^2} \label{eq:q-star-solution-discrete}
 \end{equation}
+for all $t = 0, 1, \ldots, T-1$.
 
 ## Porting to Real-World
 
@@ -488,7 +509,7 @@ class AssetAllocDiscrete:
 
         return AssetAllocMDP()
 
-    def get_qvf_func_approx(self, _: int) -> DNNApprox[Tuple[float, float]]:
+    def get_qvf_func_approx(self) -> DNNApprox[Tuple[float, float]]:
         adam_gradient: AdamGradient = AdamGradient(
             learning_rate=0.1,
             decay1=0.9,
@@ -501,13 +522,13 @@ class AssetAllocDiscrete:
         )
 
     def get_states_distribution(self, t: int) -> SampledDistribution[float]:
-        distr: Distribution[float] = self.risky_return_distributions[t]
-        rate: float = self.riskless_returns[t]
         actions_distr: Choose[float] = self.uniform_actions()
 
         def states_sampler_func() -> float:
             wealth: float = self.initial_wealth_distribution.sample()
             for i in range(t):
+                distr: Distribution[float] = self.risky_return_distributions[i]
+                rate: float = self.riskless_returns[i]
                 alloc: float = actions_distr.sample()
                 wealth = alloc * (1 + distr.sample()) + \
                     (wealth - alloc) * (1 + rate)
@@ -517,18 +538,19 @@ class AssetAllocDiscrete:
 
     def backward_induction_qvf(self) -> \
             Iterator[DNNApprox[Tuple[float, float]]]:
+        init_fa: DNNApprox[Tuple[float, float]] = self.get_qvf_func_approx()
         mdp_f0_mu_triples: Sequence[Tuple[
             MarkovDecisionProcess[float, float],
             DNNApprox[Tuple[float, float]],
             SampledDistribution[float]
         ]] = [(
             self.get_mdp(i),
-            self.get_qvf_func_approx(i),
+            init_fa,
             self.get_states_distribution(i)
         ) for i in range(self.time_steps())]
 
         num_state_samples: int = 300
-        error_tolerance: float = 1e-5
+        error_tolerance: float = 1e-6
 
         return back_opt_qvf(
             mdp_f0_mu_triples=mdp_f0_mu_triples,
@@ -647,25 +669,25 @@ Time 0
 
 Opt Risky Allocation = 1.200, Opt Val = -0.225
 Optimal Weights below:
-array([[ 0.14388547,  1.30426621,  0.07020555, -0.02897226]])
+array([[ 0.13318188,  1.31299678,  0.07327264, -0.03000281]])
 
 Time 1
 
 Opt Risky Allocation = 1.300, Opt Val = -0.257
 Optimal Weights below:
-array([[ 0.08908685,  1.22551413,  0.06950822, -0.02662882]])
+array([[ 0.08912411,  1.22479503,  0.07002802, -0.02645654]])
 
 Time 2
 
 Opt Risky Allocation = 1.400, Opt Val = -0.291
 Optimal Weights below:
-array([[ 0.0354461 ,  1.14584814,  0.0755796 , -0.02669776]])
+array([[ 0.03772409,  1.144612  ,  0.07373166, -0.02566819]])
 
 Time 3
 
 Opt Risky Allocation = 1.500, Opt Val = -0.328
 Optimal Weights below:
-array([[ 0.00696443,  1.07012365,  0.04865833, -0.01574355]])
+array([[ 0.00126822,  1.0700996 ,  0.05798272, -0.01924149]])
 ```
 
 Now let's compare these results against the closed-form solution.
@@ -730,7 +752,6 @@ x_t^2 Weight = -0.020
 ```
 
 As mentioned previously, this serves as a good test for the correctness of the implementation of `AssetAllocDiscrete`.   
-
 We need to point out here that the general case of dynamic asset allocation and consumption for a large number of risky assets will involve a continuously-valued action space of high dimension. This means ADP algorithms will have challenges in performing the $\max/\argmax$ calculation across this large and continuous action space. Even many of the RL algorithms find it challenging to deal with very large action spaces. Sometimes we can take advantage of the specifics of the control problem to overcome this challenge. But in a general setting, these large/continuous action space require special types of RL algorithms that are well suited to tackle such action spaces. One such class of RL algorithms is Policy Gradient Algorithms that we shall learn in Chapter [-@sec:policy-gradient-chapter].
 
 ## Key Takeaways from this Chapter
