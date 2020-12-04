@@ -752,7 +752,6 @@ x_t^2 Weight = -0.020
 ```
 
 As mentioned previously, this serves as a good test for the correctness of the implementation of `AssetAllocDiscrete`.   
-
 We need to point out here that the general case of dynamic asset allocation and consumption for a large number of risky assets will involve a continuously-valued action space of high dimension. This means ADP algorithms will have challenges in performing the $\max/\argmax$ calculation across this large and continuous action space. Even many of the RL algorithms find it challenging to deal with very large action spaces. Sometimes we can take advantage of the specifics of the control problem to overcome this challenge. But in a general setting, these large/continuous action space require special types of RL algorithms that are well suited to tackle such action spaces. One such class of RL algorithms is Policy Gradient Algorithms that we shall learn in Chapter [-@sec:policy-gradient-chapter].
 
 ## Key Takeaways from this Chapter
