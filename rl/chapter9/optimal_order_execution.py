@@ -14,6 +14,34 @@ class PriceAndShares:
 
 @dataclass(frozen=True)
 class OptimalOrderExecution:
+    '''
+    shares refers to the total number of shares N to be sold over
+    T time steps.
+
+    time_steps refers to the number of time steps T.
+
+    avg_exec_price_diff refers to the time-sequenced functions g_t
+    that gives the average reduction in the price obtained by the
+    Market Order at time t due to eating into the Buy LOs. g_t is
+    a function of PriceAndShares that represents the pair of Price P_t
+    and MO size N_t. Sales Proceeds = N_t*(P_t - g_t(P_t, N_t)).
+
+    price_dynamics refers to the time-sequenced functions f_t that
+    represents the price dynamics: P_{t+1} ~ f_t(P_t, N_t). f_t
+    outputs a distribution of prices.
+
+    utility_func refers to the Utility of Sales proceeds function,
+    incorporating any risk-aversion.
+
+    discount_factor refers to the discount factor gamma.
+
+    func_approx refers to the FunctionApprox required to approximate
+    the Value Function for each time step.
+
+    initial_price_distribution refers to the distribution of prices
+    at time 0 (needed to generate the samples of states at each time step,
+    needed in the approximate backward induction algorithm).
+    '''
     shares: int
     time_steps: int
     avg_exec_price_diff: Sequence[Callable[[PriceAndShares], float]]
@@ -65,7 +93,7 @@ class OptimalOrderExecution:
 
                 return SampledDistribution(
                     sampler=sr_sampler_func,
-                    expectation_samples=1
+                    expectation_samples=100
                 )
 
             def actions(self, p_s: PriceAndShares) -> Iterator[int]:
@@ -128,7 +156,7 @@ if __name__ == '__main__':
 
     init_price_mean: float = 100.0
     init_price_stdev: float = 10.0
-    num_shares: int = 500
+    num_shares: int = 100
     num_time_steps: int = 5
     alpha: float = 0.03
     beta: float = 0.05
@@ -136,7 +164,7 @@ if __name__ == '__main__':
     price_diff = [lambda p_s: beta * p_s.shares for _ in range(num_time_steps)]
     dynamics = [lambda p_s: Gaussian(
         μ=p_s.price - alpha * p_s.shares,
-        σ=0.0
+        σ=0.
     ) for _ in range(num_time_steps)]
     ffs = [
         lambda p_s: p_s.price * p_s.shares,
