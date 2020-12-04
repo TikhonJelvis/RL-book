@@ -65,7 +65,7 @@ class AssetAllocDiscrete:
 
         return AssetAllocMDP()
 
-    def get_qvf_func_approx(self, _: int) -> DNNApprox[Tuple[float, float]]:
+    def get_qvf_func_approx(self) -> DNNApprox[Tuple[float, float]]:
 
         adam_gradient: AdamGradient = AdamGradient(
             learning_rate=0.1,
@@ -80,13 +80,13 @@ class AssetAllocDiscrete:
 
     def get_states_distribution(self, t: int) -> SampledDistribution[float]:
 
-        distr: Distribution[float] = self.risky_return_distributions[t]
-        rate: float = self.riskless_returns[t]
         actions_distr: Choose[float] = self.uniform_actions()
 
         def states_sampler_func() -> float:
             wealth: float = self.initial_wealth_distribution.sample()
             for i in range(t):
+                distr: Distribution[float] = self.risky_return_distributions[i]
+                rate: float = self.riskless_returns[i]
                 alloc: float = actions_distr.sample()
                 wealth = alloc * (1 + distr.sample()) + \
                     (wealth - alloc) * (1 + rate)
@@ -97,18 +97,20 @@ class AssetAllocDiscrete:
     def backward_induction_qvf(self) -> \
             Iterator[DNNApprox[Tuple[float, float]]]:
 
+        init_fa: DNNApprox[Tuple[float, float]] = self.get_qvf_func_approx()
+
         mdp_f0_mu_triples: Sequence[Tuple[
             MarkovDecisionProcess[float, float],
             DNNApprox[Tuple[float, float]],
             SampledDistribution[float]
         ]] = [(
             self.get_mdp(i),
-            self.get_qvf_func_approx(i),
+            init_fa,
             self.get_states_distribution(i)
         ) for i in range(self.time_steps())]
 
         num_state_samples: int = 300
-        error_tolerance: float = 1e-5
+        error_tolerance: float = 1e-6
 
         return back_opt_qvf(
             mdp_f0_mu_triples=mdp_f0_mu_triples,
@@ -119,7 +121,6 @@ class AssetAllocDiscrete:
 
     def get_vf_func_approx(
         self,
-        t: int,
         ff: Sequence[Callable[[float], float]]
     ) -> DNNApprox[float]:
 
@@ -139,13 +140,15 @@ class AssetAllocDiscrete:
         ff: Sequence[Callable[[float], float]]
     ) -> Iterator[Tuple[DNNApprox[float], Policy[float, float]]]:
 
+        init_fa: DNNApprox[float] = self.get_vf_func_approx(ff)
+
         mdp_f0_mu_triples: Sequence[Tuple[
             MarkovDecisionProcess[float, float],
             DNNApprox[float],
             SampledDistribution[float]
         ]] = [(
             self.get_mdp(i),
-            self.get_vf_func_approx(i, ff),
+            init_fa,
             self.get_states_distribution(i)
         ) for i in range(self.time_steps())]
 
