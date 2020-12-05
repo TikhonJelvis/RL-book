@@ -1,1 +1,1 @@
-## Design Paradigms for Applied Mathematics implementations in Python {#sec:python}
+## Design Paradigms for Applied Mathematics implementations in Python {#sec:python .unnumbered}
