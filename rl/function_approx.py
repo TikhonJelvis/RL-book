@@ -25,7 +25,6 @@ class FunctionApprox(ABC, Generic[X]):
     additional (X, ℝ) points.
 
     '''
-    Self = TypeVar('Self', bound='FunctionApprox[X]')
 
     @abstractmethod
     def evaluate(self, x_values_seq: Iterable[X]) -> np.ndarray:
@@ -39,9 +38,9 @@ class FunctionApprox(ABC, Generic[X]):
 
     @abstractmethod
     def update(
-        self: Self,
+        self,
         xy_vals_seq: Iterable[Tuple[X, float]]
-    ) -> Self:
+    ) -> FunctionApprox[X]:
 
         '''Update the internal parameters of the FunctionApprox
         based on incremental data provided in the form of (x,y)
@@ -91,9 +90,9 @@ class FunctionApprox(ABC, Generic[X]):
         return np.sqrt(np.mean(errors * errors))
 
     def iterate_updates(
-        self: Self,
+        self,
         xy_seq_stream: Iterator[Iterable[Tuple[X, float]]]
-    ) -> Iterator[Self]:
+    ) -> Iterator[FunctionApprox[X]]:
         '''Given a stream (Iterator) of data sets of (x,y) pairs,
         perform a series of incremental updates to the internal
         parameters (using update method), with each internal
