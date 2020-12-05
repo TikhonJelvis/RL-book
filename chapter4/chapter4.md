@@ -1,13 +1,13 @@
-# Dynamic Programming Algorithms {#sec:dp-chapter}
+## Dynamic Programming Algorithms {#sec:dp-chapter}
 
 As a reminder, much of this book is about algorithms to solve the MDP Control problem, i.e., to compute the Optimal Value Function (and an associated Optimal Policy). We will also cover algorithms for the MDP Prediction problem, i.e., to compute the Value Function when the agent executes a fixed policy $\pi$ (which, as we know from Chapter [-@sec:mdp-chapter], is the same as the $\pi$-implied MRP problem). Our typical approach will be to first cover algorithms to solve the Prediction problem before covering algorithms to solve the Control problem - not just because Prediction is a key component in solving the Control problem, but also because it helps understand the key aspects of the techniques employed in the Control algorithm in the simpler setting of Prediction.
 
-## Planning versus Learning
+### Planning versus Learning
 
 In this book, we shall look at Planning and Control from the lens of AI (and we'll specifically use the terminology of AI). We shall distinguish between algorithms that don't have a model of the MDP environment (no access to the $\mathcal{P}_R$ function) versus algorithms that do have a model of the MDP environment (meaning $\mathcal{P}_R$ is available to us either in terms of explicit probability distribution representations or available to us just as a sampling model). The former (algorithms without access to a model) are known as *Learning Algorithms* to reflect the fact that the agent will need to interact with the real-world environment (eg: a robot learning to navigate in an actual forest) and learn the Value Function from streams of data (states encountered,  actions taken, rewards observed) it receives through environment interactions. The latter (algorithms with access to a model) are known as *Planning Algorithms* to reflect the fact that the agent requires no real-world environment interaction and in fact, projects (with the help of the model) probabilistic scenarios of future states/rewards for various choices of actions, and solves for the requisite Value Function with appropriate probabilistic reasoning of the projected outcomes. In both Learning and Planning, the Bellman Equation will be the fundamental concept driving the algorithms but the details of the algorithms will typically make them appear fairly different. We will only focus on Planning algorithms in this chapter, and in fact, will only focus on a subclass of Planning algorithms known as Dynamic Programming. 
 
 
-## Usage of the term *Dynamic Programming*
+### Usage of the term *Dynamic Programming*
 
 Unfortunately, the term Dynamic Programming tends to be used by different fields in somewhat different ways. So it pays to clarify the history and the current usage of the term. The term *Dynamic Programming* was coined by Richard Bellman himself. Here is the rather interesting story told by Bellman about how and why he coined the term.
 
@@ -24,7 +24,7 @@ So, you can see that the term Dynamic Programming was not just an algorithm in i
 
 This is the setting of the class `FiniteMarkovDecisionProcess` we had covered in Chapter [-@sec:mdp-chapter]. In this setting, Dynamic Programming algorithms solve the Prediction and Control problems *exactly* (meaning the computed Value Function converges to the true Value Function as the algorithm iterations keep increasing). There are variants of Dynamic Programming algorithms known as Asynchronous Dynamic Programming algorithms, Approximate Dynamic Programming algorithms etc. But without such qualifications, when we use just the term Dynamic Programming, we will be refering to the "classical" iterative algorithms (that we will soon describe) for the above-mentioned setting of the `FiniteMarkovDecisionProcess` class to solve MDP Prediction and Control *exactly*. Even though these classical Dynamical Programming algorithms don't scale to large state/action spaces, they are extremely vital to develop one's core understanding of the key concepts in the more advanced algorithms that will enable us to scale (i.e., the Reinforcement Learning algorithms that we shall introduce in later chapters).
 
-## Solving the Value Function as a *Fixed-Point*
+### Solving the Value Function as a *Fixed-Point*
 
 We cover 3 Dynamic Programming algorithms. Each of the 3 algorithms is founded on the Bellman Equations we had covered in Chapter [-@sec:mdp-chapter]. Each of the 3 algorithms is an iterative algorithm where the computed Value Function converges to the true Value Function as the number of iterations approaches infinity. Each of the 3 algorithms is based on the concept of *Fixed-Point* and updating the computed Value Function towards the Fixed-Point (which in this case, is the true Value Function). Fixed-Point is actually a fairly generic and important concept in the broader fields of Pure as well as Applied Mathematics (also important in Theoretical Computer Science), and we believe understanding Fixed-Point theory has many benefits beyond the needs of the subject of this book. Of more relevance is the fact that the Fixed-Point view of Dynamic Programming is the best way to understand Dynamic Programming. We shall not only cover the theory of Dynamic Programming through the Fixed-Point perspective, but we shall also implement Dynamic Programming algorithms in our code based on the Fixed-Point concept. So this section will be a short primer on general Fixed-Point Theory (and implementation in code) before we get to the 3 Dynamic Programming algorithms.
 
@@ -165,7 +165,7 @@ This prints a trace with the index of the stream and the value at that index as 
 
 We encourage you to try other starting values (other than the one we have above: $x_0 = 0.0$) and see the trace. We also encourage you to identify other function $f$ which are contractions in an appropriate metric. The above fixed-point code is in the file [rl/iterate.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/iterate.py). In this file, you will find two more functions `last` and `converged` to produce the final value of the given iterator when it's values converge according to the `done` function.
 
-## Bellman Policy Operator and Policy Evaluation Algorithm
+### Bellman Policy Operator and Policy Evaluation Algorithm
 
 Our first Dynamic Programming algorithm is called *Policy Evaluation*. The Policy Evaluation algorithm solves the problem of calculating the Value Function of a Finite MDP evaluated with a fixed policy $\pi$ (i.e., the Prediction problem for finite MDPs). We know that this is equivalent to calculating the Value Function of the $\pi$-implied Finite MRP. To avoid notation confusion, note that a superscript of $\pi$ for a symbol means it refers to notation for the $\pi$-implied MRP. The precise specification of the Prediction problem is as follows:
 
@@ -264,7 +264,7 @@ The code should be fairly self-explanatory. Since the Policy Evaluation problem 
 
 If the number of non-terminal states of a given MRP is $m$, then the running time of each iteration is $O(m^2)$. Note though that to construct an MRP from a given MDP and a given policy, we have to perform $O(m^2\cdot k)$ operations, where $k = |\mathcal{A}|$.
 
-## Greedy Policy
+### Greedy Policy
 
 We had said earlier that we will be presenting 3 Dynamic Programming Algorithms. The first (Policy Evaluation), as we saw in the previous section, solves the MDP Prediction problem. The other two (that will present in the next two sections) solve the MDP Control problem. This section is a stepping stone from *Prediction* to *Control*. In this section, we define a function that is motivated by the idea of *improving a value function/improving a policy* with a "greedy" technique. Formally, the *Greedy Policy Function*
 
@@ -322,7 +322,7 @@ As you can see above, we loop through all the non-terminal states that serve as 
 
 The word "Greedy" is a reference to the term "Greedy Algorithm", which means an algorithm that takes heuristic steps guided by locally-optimal choices in the hope of moving towards a global optimum. Here, the reference to *Greedy Policy* means if we have a policy $\pi$ and its corresponding Value Function $\bvpi$ (obtained say using Policy Evaluation algorithm), then applying the Greedy Policy function $G$ on $\bvpi$ gives us a deterministic policy $\pi_D': \mathcal{N} \rightarrow \mathcal{A}$ that is hopefully "better" than $\pi$ in the sense that $\bm{V}^{\pi_D'}$ is "greater" than $\bvpi$. We shall now make this statement precise and show how to use the *Greedy Policy Function* to perform *Policy Improvement*.
 
-## Policy Improvement
+### Policy Improvement
 
 Terms such a "better" or "improvement" refer to either Value Functions or to Policies (in the latter case, to Value Functions of an MDP evaluated with the policies). So what does it mean to say a Value Function $X: \mathcal{N} \rightarrow \mathbb{R}$ is "better" than a Value Function $Y: \mathcal{N} \rightarrow \mathbb{R}$? Here's the answer:
 
@@ -393,7 +393,7 @@ The way to understand the above proof is to think in terms of how each stage of 
 
 The Policy Improvement Theorem yields our first Dynamic Programming algorithm to solve the MDP Control problem - known as *Policy Iteration*
 
-## Policy Iteration Algorithm
+### Policy Iteration Algorithm
 
 The Policy Improvement algorithm above showed us how to start with the Value Function $\bvpi$ (for a policy $\pi$), perform a greedy policy improvement to create a policy $\pi_D' = G(\bvpi)$, and then perform Policy Evaluation (with policy $\pi_D'$) with starting Value Function $\bvpi$, resulting in the Value Function $\bm{V}^{\pi_D'}$ that is an improvement over the Value Function $\bvpi$ we started with. Now note that we can do the same process again to go from $\pi_D'$ and $\bm{V}^{\pi_D'}$ to an improved policy $\pi_D''$ and associated improved Value Function $\bm{V}^{\pi_D''}$. And we can keep going in this way to create further improved policies and associated Value Functions, until there is no further improvement. This methodology of performing Policy Improvement together with Policy Evaluation using the improved policy, in an iterative manner (depicted in Figure \ref{fig:policy_iteration_loop}), is known as the Policy Iteration algorithm (shown below).
 
@@ -471,7 +471,7 @@ def policy_iteration_result(
 
 If the number of non-terminal states of a given MDP is $m$ and the number of actions ($|\mathcal{A}|$) is $k$, then the running time of Policy Improvement is $O(m^2\cdot k)$ and we've already seen before that each iteration of Policy Evaluation is $O(m^2\cdot k)$.
 
-## Bellman Optimality Operator and Value Iteration Algorithm
+### Bellman Optimality Operator and Value Iteration Algorithm
 
 By making a small tweak to the definition of Greedy Policy Function in Equation \eqref{eq:greedy_policy_function1} (changing the $\argmax$ to $\max$), we define the *Bellman Optimality Operator*
 
@@ -577,7 +577,7 @@ We stop the algorithm when $d(\bm{V_i}, \bm{V_{i+1}}) = \max_{s \in \mathcal{N}}
 It pays to emphasize that Banach Fixed-Point Theorem not only assures convergence to the unique solution $\bvs$ (no matter what Value Function $\bm{V_0}$ we start the algorithm with), it also assures a reasonable speed of convergence (dependent on the choice of starting Value Function $\bm{V_0}$ and the choice of $\gamma$).
 
 
-## Optimal Policy from Optimal Value Function
+### Optimal Policy from Optimal Value Function
 
 Note that the Policy Iteration algorithm produces a policy together with a Value Function in each iteration. So, in the end, when we converge to the Optimal Value Function $\bm{V_j} = \bvs$ in iteration $j$, the Policy Iteration algorithm has a deterministic policy $\pi_j$ associated with $\bm{V_j}$ such that:
 $$\bm{V_j} = \bm{V}^{\pi_j} = \bvs$$
@@ -643,7 +643,7 @@ If the number of non-terminal states of a given MDP is $m$ and the number of act
 
 We encourage you to play with the above implementations of Policy Evaluation, Policy Iteration and Value Iteration (code in the file [rl/dynamic_programming.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/dynamic_programming.py)) by running it on MDPs/Policies of your choice, and observing the traces of the algorithms.
 
-## Revisiting the Simple Inventory Example
+### Revisiting the Simple Inventory Example
 
 Let's revisit the simple inventory example. We shall consider the version with a space capacity since we want an example of a `FiniteMarkovDecisionProcess`. It will help us test our code for Policy Evaluation, Policy Iteration and Value Iteration. More importantly, it will help us identify the mathematical structure of the optimal policy of ordering for this store inventory problem. So let's take another look at the code we wrote in Chapter [-@sec:mdp-chapter] to set up an instance of a `SimpleInventoryMDPCap` and a `FinitePolicy` (that we can use for Policy Evaluation).
 
@@ -735,7 +735,7 @@ print(opt_policy_vi)
 
 You'll see the output from Value Iteration matches the output produced from Policy Iteration - this is a good validation of our code correctness. We encourage you to play around with `user_capacity`, `user_poisson_lambda`, `user_holding_cost`, `user_stockout_cost` and `user_gamma`(code in `__main__` in [rl/chapter3/simple_inventory_mdp_cap.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/chapter3/simple_inventory_mdp_cap.py)). As a valuable exercise, using this code, discover the mathematical structure of the Optimal Policy as a function of the above inputs.
 
-## Generalized Policy Iteration
+### Generalized Policy Iteration
 
 In this section, we dig into the structure of the Policy Iteration algorithm and show how this structure can be generalized. Let us start by looking at a 2-dimensional layout of how the Value Functions progress in Policy Iteration from the starting Value Function $\bm{V_0}$ to the final Value Function $\bvs$.
 
@@ -773,7 +773,7 @@ So the greedy policy improvement step is unchanged, but Policy Evaluation is red
 
 We would go so far as to say that the Bellman Equations and the concept of Generalized Policy Iteration are the two most important concepts to internalize in the study of Reinforcement Learning, and we highly encourage you to think along the lines of these two ideas when we present several algorithms later in this book. The importance of the concept of Generalize Policy Iteration (GPI) might not be fully visible to you yet, but we hope that GPI will be your mantra by the time you finish this book. For now, let's just note the key takeaway regarding GPI - it is any algorithm to solve MDP control that alternates between *some form of* value evaluation for a policy and *some form of* policy improvement. We will bring up GPI several times later in this book.
 
-## Aysnchronous Dynamic Programming
+### Aysnchronous Dynamic Programming
 
 The classical Dynamic Programming algorithms we have described in this chapter are qualified as *Synchronous* Dynamic Programming algorithms. The word *synchronous* refers to two things:
 
@@ -792,7 +792,7 @@ Another form of Asynchronous Dynamic Programming worth mentioning here is *Real-
 
 Finally, we need to highlight that often special types of structures of MDPs can benefit from specific customizations of Dynamic Programming algorithms (typically, Asynchronous). One such specialization is when each states is encountered not more than once in each random sequence of state occurrences when an agent plays out an MDP, and when all such random sequences of the MDP terminate. This structure can be conceptualized as a [Directed Acylic Graph](https://en.wikipedia.org/wiki/Directed_acyclic_graph) wherein each non-terminal node in the Directed Acyclic Graph (DAG) represents a pair of non-terminal state and action, and each terminal node in the DAG represents a terminal state (the graph edges represent probabilistic transitions of the MDP). In this specialization, the MDP Prediction and Control problems can be solved in a fairly simple manner - by walking backwards on the DAG from the terminal nodes and setting the Value Function of visited states (in the backward DAG walk) using the Bellman Optimality Equation (for Control) or Bellman Policy Equation (for Prediction). Here we don't need the "iterate to convergence" approach of Policy Evaluation or Policy Iteration or Value Iteration. Rather, all these Dynamic Programming algorithms essentially reduce to a simple back-propagation of the Value Function on the DAG. This means, states are visited (and their Value Functions set) in the order determined by the reverse sequence of a [Topological Sort](https://en.wikipedia.org/wiki/Topological_sorting) on the DAG. We shall make this DAG back-propagation Dynamic Programming algorithm clear for a special DAG structure - Finite-Horizon MDPs - where all random sequences of the MDP terminate after a fixed number of time steps. This special case of Finite-Horizon MDPs is fairly common in Financial Applications and so, we cover it in detail in the next section.
 
-## Finite-Horizon Dynamic Programming: Backward Induction {#sec:finite-horizon-section}
+### Finite-Horizon Dynamic Programming: Backward Induction {#sec:finite-horizon-section}
 
 In Finite-Horizon MDPs, each sequence terminates within a fixed finite number of time steps, that we shall denote as $T$. So, all states at time-step $T$ are terminal states and some states before time-step $T$ could be terminal states. For all $t = 0, 1, \ldots, T$, denote the set of states for time step $t$ as $\mathcal{S}_t$, the set of terminal states for time step $t$ as $\mathcal{T}_t$ and the set of non-terminal states for time step $t$ as $\mathcal{N}_t = \mathcal{S}_t - \mathcal{T}_t$ (note: $\mathcal{N}_T = \emptyset$). As mentioned previously, in these type of non-stationary situations, we augment each state to include the index of the time step so that the augmented state at time step $t$ is $(t, s_t)$ for $s_t \in \mathcal{S}_t$. The entire MDP's (augmented) state space $\mathcal{S}$ is:
 
@@ -824,7 +824,7 @@ is given by:
 $$
 \mathcal{P}_R((t, s_t), a_t, r, (t', s_{t'})) =
 \begin{cases}
-(\mathcal{P}_R)_t(s_t, a_t, r, s_{t'}) & \text{ if } t' = t + 1 and s_{t'} \in \mathcal{S}_{t'} \\
+(\mathcal{P}_R)_t(s_t, a_t, r, s_{t'}) & \text{ if } t' = t + 1 \text{ and } s_{t'} \in \mathcal{S}_{t'} \\
 0 & \text{ otherwise }
 \end{cases}
 $$
@@ -851,23 +851,25 @@ $$\pi_t: \mathcal{N}_t \times \mathcal{A}_t \rightarrow [0, 1]$$
 
 are the separate policies for each of the time steps $t = 0, 1, \ldots, T-1$
 
+So essentially we interpret $\pi$ as being composed of the sequence $(\pi_0, \pi_1, \ldots, \pi_{T-1})$.
+
 Consequently, the Value Function for a given policy $\pi$ (equivalently, the Value Function for the $\pi$-implied MRP)
 
 $$V^{\pi}: \mathcal{N} \rightarrow \mathbb{R}$$
 
 can be conveniently represented in terms of a sequence of Value Functions
 
-$$V^{\pi_t}_t: \mathcal{N}_t \rightarrow \mathbb{R}$$
+$$V^{\pi}_t: \mathcal{N}_t \rightarrow \mathbb{R}$$
 
 for each of time steps $t = 0, 1, \ldots, T-1$, defined as:
 
-$$V^{\pi}((t, s_t)) = V^{\pi_t}_t(s_t) \text{ for all } t = 0, 1, \ldots, T-1, s_t \in \mathcal{N}_t$$
+$$V^{\pi}((t, s_t)) = V^{\pi}_t(s_t) \text{ for all } t = 0, 1, \ldots, T-1, s_t \in \mathcal{N}_t$$
 
 Then, the Bellman Policy Equation can be written as:
 
 \begin{equation}
 \begin{split}
-V^{\pi_t}_t(s_t) = \sum_{s_{t+1} \in \mathcal{S}_{t+1}} \sum_{r \in \mathbb{R}} & (\mathcal{P}_R^{\pi_t})_t(s_t, a_t, r, s_{t+1}) \cdot (r + \gamma \cdot W^{\pi_{t+1}}_{t+1}(s_{t+1})) \\
+V^{\pi}_t(s_t) = \sum_{s_{t+1} \in \mathcal{S}_{t+1}} \sum_{r \in \mathbb{R}} & (\mathcal{P}_R^{\pi_t})_t(s_t, r, s_{t+1}) \cdot (r + \gamma \cdot W^{\pi}_{t+1}(s_{t+1})) \\
 & \text{ for all } t = 0, 1, \ldots, T-1, s_t \in \mathcal{N}_t
 \end{split}
 \label{eq:bellman_policy_equation_finite_horizon}
@@ -876,9 +878,9 @@ V^{\pi_t}_t(s_t) = \sum_{s_{t+1} \in \mathcal{S}_{t+1}} \sum_{r \in \mathbb{R}} 
 where
 
 $$
-W^{\pi_t}_t(s_t) = 
+W^{\pi}_t(s_t) = 
 \begin{cases}
-V^{\pi_t}_t(s_t) & \text{ if } s_t \in \mathcal{N}_t \\
+V^{\pi}_t(s_t) & \text{ if } s_t \in \mathcal{N}_t \\
 0 & \text{ if } s_t \in \mathcal{T}_t
 \end{cases}
 $$
@@ -887,7 +889,7 @@ for all $t = 1, 2, \ldots, T$ and where $(\mathcal{P}_R^{\pi_t})_t: \mathcal{N}_
 
 $$(\mathcal{P}_R^{\pi_t})_t(s_t, r, s_{t+1}) = \sum_{a_t \in \mathcal{A}_t} \pi_t(s_t, a_t) \cdot (\mathcal{P}_R)_t(s_t, a_t, r, s_{t+1}) \text{ for all } t = 0, 1, \ldots, T-1$$
 
-So for a Finite MDP, this yields a simple algorithm to calculate $V^{\pi_t}_t$ for all $t$ by simply decrementing down from $t=T-1$ to $t=0$ and using Equation \eqref{eq:bellman_policy_equation_finite_horizon} to calculate $V^{\pi_t}_t$ for all $t = 0, 1, \ldots, T-1$ from the known values of $W^{\pi_{t+1}}_{t+1}$ (since we are decrementing in time index $t$).
+So for a Finite MDP, this yields a simple algorithm to calculate $V^{\pi}_t$ for all $t$ by simply decrementing down from $t=T-1$ to $t=0$ and using Equation \eqref{eq:bellman_policy_equation_finite_horizon} to calculate $V^{\pi}_t$ for all $t = 0, 1, \ldots, T-1$ from the known values of $W^{\pi}_{t+1}$ (since we are decrementing in time index $t$).
 
 This algorithm is the adaptation of Policy Evaluation to the finite horizon case with this simple technique of "stepping back in time" (known as *Backward Induction*). Let's write some code to implement this algorithm. We are given a MDP over the augmented (finite) state space `WithTime[S]`, and a policy $\pi$ (also over the augmented state space `WithTime[S]`). So, we can use the method `apply_finite_policy` in `FiniteMarkovDecisionProcess[WithTime[S], A]` to obtain the $\pi$-implied MRP of type `FiniteMarkovRewardProcess[WithTime[S]]`. Our first task to to "unwrap" the state-reward probability transition function $\mathcal{P}_R^{\pi}$ of this $\pi$-implied MRP into a time-indexed sequenced of state-reward probability transition functions $(\mathcal{P}_R^{\pi_t})_t, t = 0, 1, \ldots, T-1$. This is accomplished by the following function `unwrap_finite_horizon_MRP` (`itertools.groupby` groups the augmented states by their time step, and the function `without_time` strips the time step from the augmented states when placing the states in $(\mathcal{P}_R^{\pi_t})_t$, i.e., `Sequence[RewardTransition[S]]`).
 
@@ -918,7 +920,7 @@ def unwrap_finite_horizon_MRP(
              )][:-1]
 ```
 
-Now that we have the state-reward transition functions $(\mathcal{P}_R^{\pi_t})_t$ arranged in the form of a `Sequence[RewardTransition[S]]`, we are ready to perform backward induction to calculate $V^{\pi_t}_t$. The following function `evaluate` accomplishes it with a straightforward use of Equation \eqref{eq:bellman_policy_equation_finite_horizon}, as described above.
+Now that we have the state-reward transition functions $(\mathcal{P}_R^{\pi_t})_t$ arranged in the form of a `Sequence[RewardTransition[S]]`, we are ready to perform backward induction to calculate $V^{\pi}_t$. The following function `evaluate` accomplishes it with a straightforward use of Equation \eqref{eq:bellman_policy_equation_finite_horizon}, as described above.
 
 ```python
 def evaluate(
@@ -1050,7 +1052,7 @@ If $|\mathcal{N}_t|$ is $O(m)$ for all $t$ and $|\mathcal{A}_t|$ is $O(k)$, then
 
 Note that these algorithms for finite-horizon finite MDPs do not require any "iterations to convergence" like we had for regular Policy Evaluation and Value Iteration. Rather, in these algorithms we simply walk back in time and immediately obtain the Value Function for each time step from the next time step's Value Function (which is already known since we walk back in time). This technique of "backpropagation of Value Function" goes by the name of *Backward Induction* algorithms, and is quite commonplace in many Financial applications (as we shall see later in this book). The above Backward Induction code is in the file [rl/finite_horizon.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/finite_horizon.py).
 
-## Dynamic Pricing for End-of-Life/End-of-Season of a Product
+### Dynamic Pricing for End-of-Life/End-of-Season of a Product
 
 Now we consider a rather important business application - Dynamic Pricing. We consider the problem of Dynamic Pricing for the case of products that reach their end of life or at the end of a season after which we don't want to carry the product anymore. We need to adjust the prices up and down dynamically depending on how much inventory of the product you have, how many days to go for end-of-life/end-of-season, and your expectations of customer demand as a function of price adjustments. To make things concrete, assume you own a super-market and you are $T$ days away from Halloween. You have just received $M$ Halloween masks from your supplier. You want to dynamically set the selling price of the Halloween masks at the start of each day in a manner that maximizes your *Expected Total Sales Revenue* for Halloween masks from today until Halloween (assume no one will buy Halloween masks after Halloween). 
 
@@ -1134,7 +1136,7 @@ Now let's write two methods for this class:
         return optimal_vf_and_policy(unwrap_finite_horizon_MDP(self.mdp), 1.)
 ```
 
-Noe let's create a simple instance of `ClearancePricingMDP` for $M = 12, T = 8$ and 4 price choices: "Full Price", "30% Off", "50% Off", "70% Off" with respective mean daily demand of $0.5, 1.0, 1.5, 2.5$.
+Now let's create a simple instance of `ClearancePricingMDP` for $M = 12, T = 8$ and 4 price choices: "Full Price", "30% Off", "50% Off", "70% Off" with respective mean daily demand of $0.5, 1.0, 1.5, 2.5$.
 
 ```python
 ii = 12
@@ -1147,7 +1149,7 @@ cp: ClearancePricingMDP = ClearancePricingMDP(
 )
 ```
 
-Now let us calculate it's Value Function for a stationary policy that chooses "Full Price" if inventory is less than 2, otherwise "30% Off" if inventory is less than 5, otherwise "50% Off" if inventory is less than 8, otherwise "70% Off". Since we have a stationary policy, we can represent it as a single-step policy and combine it with the single-step MDP we had created above (attribute `single_step_mdp`) to create a `single_step_mrp: FiniteMarkovRewardProcess[int]`. Then we use the function `finite_horizon_mrp` (from file [rl/finite_horizon.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/finite_horizon.py)) to create the entire (augmented state) MRP of type `FiniteMarkovRewardProcess[WithTime[int]]`. Finally, we unwrap this MRP into a sequence of state-reward transition probability functions and perform backward induction to calculate the Value Function for this stationary policy. Running the following code tells us that $V^{\pi_0}_0(12)$ is about $4.91$ (assuming full price is $1$), which is the Expected Revenue one would obtain over 8 days, starting with an inventory of 12, and executing this stationary policy (under the assumed demand distributions as a function of the price choices).
+Now let us calculate it's Value Function for a stationary policy that chooses "Full Price" if inventory is less than 2, otherwise "30% Off" if inventory is less than 5, otherwise "50% Off" if inventory is less than 8, otherwise "70% Off". Since we have a stationary policy, we can represent it as a single-step policy and combine it with the single-step MDP we had created above (attribute `single_step_mdp`) to create a `single_step_mrp: FiniteMarkovRewardProcess[int]`. Then we use the function `finite_horizon_mrp` (from file [rl/finite_horizon.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/finite_horizon.py)) to create the entire (augmented state) MRP of type `FiniteMarkovRewardProcess[WithTime[int]]`. Finally, we unwrap this MRP into a sequence of state-reward transition probability functions and perform backward induction to calculate the Value Function for this stationary policy. Running the following code tells us that $V^{\pi}_0(12)$ is about $4.91$ (assuming full price is $1$), which is the Expected Revenue one would obtain over 8 days, starting with an inventory of 12, and executing this stationary policy (under the assumed demand distributions as a function of the price choices).
 
 ```python
 def policy_func(x: int) -> int:
@@ -1189,12 +1191,12 @@ plt.show()
 Figure \ref{fig:optimal_policy_heatmap} shows us the image produced by the above code. The color *Yellow* is "Full Price", the color *Blue* is "30% Off" and the color *Purple* is "50% Off".  This tells us that on day 0, the Optimal Price is "30% Off" (corresponding to State 12, i.e., for starting inventory $M = I_0 = 12$). However, if the starting inventory $I_0$ were less than 7, then the Optimal Price is "Full Price". This makes intuitive sense because the lower the inventory, the less inclination we'd have to cut prices.  We see that the thresholds for price cuts shift as time progresses (as we move horizontally in the figure). For instance, on Day 5, we set "Full Price" only if inventory has dropped below 3 (this would happen if we had a good degree of sales on the first 5 days), we set "30% Off" if inventory is 3 or 4 or 5, and we set "50% Off" if inventory is greater than 5. So even if we sold 6 units in the first 5 days, we'd offer "50% Off" because we have only 3 days remaining now and 6 units of inventory left. This makes intuitive sense. We see that the thresholds shift even further as we move to Days 6 and 7. We encourage you to play with this simple application of Dynamic Pricing by changing $M, T, N, [(P_i, \lambda_i) | 1 \leq i \leq N]$ and studying how the Optimal Value Function changes and more importantly, studying the thresholds of inventory (under optimality) for various choices of prices and how these thresholds vary as time progresses. 
 
 
-## Extensions to Non-Tabular Algorithms
+### Extensions to Non-Tabular Algorithms
 
 Finite MDP algorithms covered in this chapter are called "tabular" algorithms. The word "tabular" (for "table") refers to the fact that the MDP is specified in the form of a finite data structure and the Value Function is also represented as a finite "table" of non-terminal states and values. These tabular algorithms typically make a sweep through all non-terminal states in each iteration to update the value function. This is in contrast to algorithms for large state spaces or infinite state spaces where we need some function approximation for the value function. The good news is that we can modify each of these tabular algorithms such that instead of sweeping through all the non-terminal states at each step, we simply sample an appropriate subset of non-terminal states, update the Value Function for those states (with the same Bellman Operator calculations as for the case of tabular), and then create a function approximation for the Value Function using just the updated values for the sample of non-terminal states. The important point is that the fundamental structure of the algorithms and the fundamental principles (Fixed-Point and Bellman Operators) are still the same when we extend from these tabular algorithms to function approximation-based algorithms. In Chapter [-@sec:funcapprox-chapter], we cover extensions of these Dynamic Programming algorithms from tabular methods to function approximation methods. We call these algorithms *Approximate Dynamic Programming*.
 
 
-## Summary of Key Learnings from this Chapter
+### Summary of Key Learnings from this Chapter
 
 Before we end this chapter, we'd like to highlight the three highly important concepts we learnt in this chapter:
 

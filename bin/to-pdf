@@ -1,17 +1,19 @@
 #!/usr/bin/env bash
 
+book=0
+
 if [[ $# -eq 0 ]]
 then
-    args=(chapter*/chapter*.md appendix*/appendix*.md)
-else
-    args="$@"
+    book=1
 fi
 
-if [[ $# -eq 1 ]]
+if [[ $book == 1 ]]
 then
-    out="${1%.*}.pdf"
-else
+    args=(chapter*/chapter*.md appendix*/appendix*.md)
     out="book.pdf"
+else
+    args="$@"
+    out="${1%.*}.pdf"
 fi
 
 for path in "${args[@]}"
@@ -19,16 +21,16 @@ do
     names+=("${path%.*}.md")
 done
 
-if [[ $# -eq 1 ]]
+if [[ $book == 1 ]]
 then
-    echo "Converting ${names[@]} to $out"
-else
     echo "Combining"
     for path in "${names[@]}"
     do
         echo $path
     done
     echo "into $out"
+else
+    echo "Converting ${names[@]} to $out"
 fi
 
 pandoc -t pdf \
@@ -37,5 +39,6 @@ pandoc -t pdf \
        -M chapters \
        --pdf-engine=xelatex \
        --template templates/latex.template \
-       --top-level-division=chapter \
+       --top-level-division=part \
+       $( (( book == 1 )) && printf %s '--toc' ) \
        "${names[@]}"
