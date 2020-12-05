@@ -1,6 +1,4 @@
-# Planning Algorithms
-
-## Overview {#sec:overview}
+## Overview {#sec:overview .unnumbered}
 
 ### Learning Reinforcement Learning {#sec:learning-rl}
 
