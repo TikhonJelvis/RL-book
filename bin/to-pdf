@@ -37,6 +37,8 @@ pandoc -t pdf \
        -o "$out" \
        -F pandoc-crossref \
        -M chapters \
+       -M title='Foundations of Reinforcement Learning with Applications in Finance' \
+       -M author='Ashwin Rao, Tikhon Jelvis' \
        --pdf-engine=xelatex \
        --template templates/latex.template \
        --top-level-division=part \

@@ -1,3 +1,5 @@
+# Processes and Planning Algorithms
+
 ## Markov Processes {#sec:mrp-chapter}
 
 This book is about "Sequential Decisioning under Sequential Uncertainty". In this chapter, we will ignore the "sequential decisioning" aspect and focus just on the "sequential uncertainty" aspect.
