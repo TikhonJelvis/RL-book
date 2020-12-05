@@ -1,8 +1,8 @@
-# Black-Scholes Equation and it's Solution for Call/Put Options {#sec:black-scholes-appendix}
+## Black-Scholes Equation and it's Solution for Call/Put Options {#sec:black-scholes-appendix}
 
 In this Appendix, we sketch the derivation of the much-celebrated Black-Scholes equation and it's solution for Call and Put Options. As is the norm in the Appendices in this book, we will compromise on some of the rigor and emphasize the intuition to develop basic familiarity with concepts in continuous-time derivatives pricing and hedging.
 
-## Assumptions
+### Assumptions
 The Black-Scholes Model is about pricing and hedging of a derivative on a single underlying asset (henceforth, simply known as "underlying"). The model makes several simplifying assumptions for analytical convenience. Here are the assumptions:
 
 * The underlying (whose price we denote as $S_t$ as time $t$) follows a special case of the lognormal process we covered in [-@sec:lognormal-process-section] of Appendix [-@sec:stochasticcalculus-appendix], where the drift $\mu(t)$ is a constant (call it $\mu \in \mathbb{R}$) and the dispersion $\sigma(t)$ is also a constant (call it $\sigma \in \mathbb{R}^+$):
@@ -16,7 +16,7 @@ This process is often refered to as *Geometric Brownian Motion* to reflect the f
 $$dR_t = r \cdot R_t \cdot dt$$
 * Assume that we can trade in any real-number quantity in the underlying as well as in the riskless asset, in continuous-time, without any transaction costs (i.e., the typical "frictionless" market assumption).
 
-## Derivation of the Black-Scholes Equation
+### Derivation of the Black-Scholes Equation
 
 We denote the price of the derivative at any time $t$ for any price $S_t$ of the underlying as $V(t, S_t)$. Thus, $V(T, S_T)$ is equal to the payoff $f(S_T)$. Applying Ito's Lemma on $V(t, S_t)$ (see Equation \eqref{eq:itos-lemma} in Appendix [-@sec:stochasticcalculus-overview]), we get:
 
@@ -70,7 +70,7 @@ A few key points to note here:
 2. The infinitesimal change in the portfolio value ($=d\Pi_t$) incorporates only the infinitesimal changes in the prices of the underlying and the derivative, and not the changes in the units held in the underlying and the derivative (meaning the portfolio is assumed to be self-financing). The portfolio composition does change continuously though since the units held in the underlying at time $t$ needs to be $\pdv{V}{S_t}$, which in general would change as time evolves and as the price $S_t$ of the underlying changes. Note that $-\pdv{V}{S_t}$ represents the hedge units in the underlying at any time $t$ for any underlying price $S_t$, which nullifies the risk of changes to the derivative price $V(t, S_t)$.
 3. The drift $\mu$ of the underlying price movement (interpreted as expected annual rate of return of the underlying) does not appear in the Black-Scholes Equation and hence, the price of any derivative will be independent of the expected rate of return of the underlying. Note though the prominent appearance of $\sigma$ (refered to as the underlying volatility) and the riskless rate of return $r$ in the Black-Scholes equation.
 
-## Solution of the Black-Scholes Equation for Call/Put Options
+### Solution of the Black-Scholes Equation for Call/Put Options
 
 The Black–Scholes PDE can be solved numerically using standard methods such as finite-differences. It turns out we can solve this PDE as an exact formula (closed-form solution) for the case of European call and put options, whose payoff functions are $\max(S_T-K, 0)$ and $\max(K-S_T, 0)$ respectively, where $K$ is the option strike. We shall denote the call and put option prices at time $t$ for underlying price of $S_t$ as $C(t, S_t)$  and $P(t, S_t)$ respectively (as specializations of $V(t, S_t)$). We derive the solution below for call option pricing, with put option pricing derived similarly. Note that we could simply use the put-call parity: $C(t, S_t) - P(t, S_t) = S_t - K$ to obtain the put option price from the call option price. The put-call parity holds because buying a call option and selling a put option is a combined payoff of $S_T - K$ - this means owning the underlying and borrowing $K\cdot e^{-rT}$, which at any time $t$ would be valued at $S_t - K \cdot e^{-r\cdot (T-t)}$.
 

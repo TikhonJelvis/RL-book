@@ -1,4 +1,4 @@
-# Dynamic Asset-Allocation and Consumption {#sec:portfolio-chapter}
+## Dynamic Asset-Allocation and Consumption {#sec:portfolio-chapter}
 
 This chapter covers the first of five financial applications of Stochastic Control covered in this book. This financial application deals with the topic of investment management for not just a financial company, but more broadly for any corporation or for any individual. The nuances for specific companies and individuals can vary considerably but what is common across these entities is the need to:
 
@@ -8,7 +8,7 @@ This chapter covers the first of five financial applications of Stochastic Contr
 
 Thus, this problem constitutes the dual and dynamic decisioning of asset-allocation and consumption. To gain an intuitive understanding of the challenge of this dual dynamic decisioning problem, let us consider this problem from the perspective of personal finance in a simplified setting.
 
-## Optimization of Personal Finance
+### Optimization of Personal Finance
 
 Personal Finances can be very simple for some people (earn a monthly salary, spend the entire salary) and can be very complicated for some other people (eg: those who own multiple businesses in multiple countries and have complex assets and liabilities). Here we shall consider a situation that is relatively simple but includes sufficient nuances to give you a flavor for the aspects of the general problem of dynamic asset-allocation and consumption. Let's say your personal finances consist of the following aspects:
 
@@ -28,7 +28,7 @@ The above description has hopefully given you a flavor of the dual and dynamic d
 
 Since our goal here was to simply do a rough and informal sketch, the above coverage of the MDP is very hazy but we hope you get a sense for what the MDP might look like. Now we are ready to take a simple special case of this MDP which does away with many of the real-world frictions and complexities, yet retains the key features (in particular, the dual dynamic decisioning aspect). This simple special case was the subject of [Merton's Portfolio Problem](https://en.wikipedia.org/wiki/Merton%27s_portfolio_problem) which he formulated and solved in 1969 in a landmark paper. A key feature of his formulation was that time is continuous and so, *state* (based on asset prices) evolves as a stochastic process, and actions (asset-allocation and consumption) are made continuously. We cover the important parts of his paper in the next section. Note that our coverage below requires some familiarity with Stochastic Calculus (covered in Appendix [-@sec:stochasticcalculus-appendix]) and with the Hamilton-Jacobi-Bellman Equation (covered in Appendix [-@sec:hjb-appendix]), which is the continuous-time analog of Bellman's Optimality Equation.
 
-## Merton's Portfolio Problem and Solution
+### Merton's Portfolio Problem and Solution
 
 Now we describe Merton's Portfolio problem and derive its analytical solution, which is one of the most elegant solutions in Mathematical Economics. The solution structure will provide tremendous intuition for how the asset-allocation and consumption decisions depend on not just the state variables but also on the problem inputs.
 
@@ -196,7 +196,7 @@ V^*(t, W_t) =
 Note that $f(t) > 0$ for all $0 \leq t < T$ (for all $\nu$) ensures $W_t, c^*_t > 0, \pdv[2]{V^*}{W_t} < 0$. This ensures the constraints $W_t > 0$ and $c_t \geq 0$ are satisfied and the second-order conditions for $\Phi$ are also satisfied.
 A very important lesson in solving Merton's Portfolio problem is the fact that the HJB Formulation is key and that this solution approach provides a template for similar continuous-time stochastic control problems.
 
-## Developing Intuition for the Solution to Merton's Portfolio Problem
+### Developing Intuition for the Solution to Merton's Portfolio Problem
 
 The solution for $\pi^*(t, W_t)$ and $c^*(t, W_t)$ are surprisingly simple. $\pi^*(t, W_t)$ is a constant, i.e., it is independent of both of the state variables $t$ and $W_t$. This means that no matter what wealth we carry and no matter how close we are to the end of the horizon (i.e., no matter what our age is), we should invest the same fraction of our wealth in the risky asset (likewise for the case of $n$ risky assets). The simplifying assumptions in Merton's Portfolio problem statement did play a part in the simplicity of the solution, but the fact that $\pi^*(t, W_t)$ is a constant is still rather surprising. The simplicity of the solution means that asset allocation is straightforward - we just need to keep re-balancing to maintain this constant fraction of our wealth in the risky asset. We expect our wealth to grow over time and so, the capital in the risky asset would also grow proportionately.
 
@@ -293,7 +293,7 @@ Figure \ref{fig:merton-solution-wealth-trajectory} shows the time-trajectory of 
 ![Expected Wealth Time-Trajectory \label{fig:merton-solution-wealth-trajectory}](./chapter7/wealth_trajectory.png "Expected Wealth Time-Trajectory")
 </div>
 
-## A Discrete-Time Asset-Allocation Example {#sec:discrete-asset-alloc}
+### A Discrete-Time Asset-Allocation Example {#sec:discrete-asset-alloc}
 
 In this section, we cover a discrete-time version of the problem that lends itself to analytical tractability, much like Merton's Portfolio Problem in continuous-time. We are given wealth $W_0$ at time 0. At each of discrete time steps labeled $t = 0, 1, \ldots, T-1$, we are allowed to allocate the wealth $W_t$ at time $t$ to a portfolio of a risky asset and a riskless asset in an unconstrained manner with no transaction costs. The risky asset yields a random return $\sim N(\mu, \sigma^2)$ over each single time step (for a given $\mu \in \mathbb{R}$ and a given $\sigma \in \mathbb{R}^+$). The riskless asset yields a constant return denoted by $r$ over each single time step (for a given $r \in \mathbb{R}$).  We assume that there is no consumption of wealth at any time $t < T$, and that we liquidate and consume the wealth $W_T$ at time $t$. So our goal is simply to maximize the Expected Utility of Wealth at the final time step $t=T$ by dynamically allocating $x_t \in \mathbb{R}$ in the risky asset and the remaining $W_t - x_t$ in the riskless asset for each $t = 0, 1, \ldots, T-1$. Assume the single-time-step discount factor is $\gamma$ and that the Utility of Wealth at the final time step $t=T$ is given by the following CARA function:
 
@@ -402,7 +402,7 @@ Substituting the solutions for $b_{t+1}$ and $c_{t+1}$ in Equation \eqref{eq:q-s
 Q^*_t(W_t, x_t) = \frac {- e^{- \frac {(\mu - r)^2 (T-t-1)} {2 \sigma^2}}} a \cdot e^{- a (1+r)^{T-t} \cdot W_t - a (\mu - r) (1+r)^{T-t-1} \cdot x_t + \frac {(a\sigma (1+r)^{T-t-1})^2} 2 \cdot x_t^2} \label{eq:q-star-solution-discrete}
 \end{equation}
 
-## Porting to Real-World
+### Porting to Real-World
 
 We have covered a continuous-time setting  and a discrete-time setting with simplifying assumptions that provide analytical tractability. The specific simplifying assumptions that enabled analytical tractability were:
 
@@ -733,7 +733,7 @@ As mentioned previously, this serves as a good test for the correctness of the i
 
 We need to point out here that the general case of dynamic asset allocation and consumption for a large number of risky assets will involve a continuously-valued action space of high dimension. This means ADP algorithms will have challenges in performing the $\max/\argmax$ calculation across this large and continuous action space. Even many of the RL algorithms find it challenging to deal with very large action spaces. Sometimes we can take advantage of the specifics of the control problem to overcome this challenge. But in a general setting, these large/continuous action space require special types of RL algorithms that are well suited to tackle such action spaces. One such class of RL algorithms is Policy Gradient Algorithms that we shall learn in Chapter [-@sec:policy-gradient-chapter].
 
-## Key Takeaways from this Chapter
+### Key Takeaways from this Chapter
 
 * A fundamental problem in Mathematical Finance is that of jointly deciding on A) optimal investment allocation (among risky and riskless investment assets) and B) optimal consumption, over a finite horizon. Merton, in his landmark paper from 1969, provided an elegant closed-form solution under assumptions of continuous-time, normal distribution of returns on the assets, CRRA utility, and frictionless transactions.
 * In a more general setting of the above problem, we need to model it as an MDP. If the MDP is not too large and if the asset return distributions are known, we can employ finite-horizon ADP algorithms to solve it. However, in typical real-world situations, the action space can be quite large and the asset return distributions are unknown. This points to RL, and specifically RL algorithms that are well suited to tackle large action spaces (such as Policy Gradient Algorithms).

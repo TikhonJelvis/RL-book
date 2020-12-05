@@ -1,6 +1,8 @@
-# Utility Theory {#sec:utility-theory-chapter}
+# Modeling Financial Applications
 
-## Introduction to the Concept of Utility
+## Utility Theory {#sec:utility-theory-chapter}
+
+### Introduction to the Concept of Utility
 
 This chapter marks the beginning of Section II, where we cover a set of financial applications that can be solved with Dynamic Programming or Reinforcement Learning Algorithms. A fundamental feature of many financial applications cast as Stochastic Control problems is that the *Rewards* of the modeled MDP are Utility functions in order to capture the tradeoff between financial returns and risk. So this chapter is dedicated to the topic of *Financial Utility*. We begin with developing an understanding of what *Utility* means from a broad Economic perspective, then zoom into the concept of Utility from a financial/monetary perspective, and finally show how Utility functions can be designed to capture individual preferences of "risk-taking-inclination" when it comes to specific financial applications.
 
@@ -8,7 +10,7 @@ This chapter marks the beginning of Section II, where we cover a set of financia
 
 We won't go any further on this topic of abstract Utility, but we hope the above example provides the basic intuition for the broad notion of Utility in Economics as preferences over choices by assigning a numerical value for each choice. Instead, we focus on a narrow notion of *Utility of Money* because money is what we care about when it comes to financial applications. However, Utility of Money is not so straightforward because different people respond to different levels of money in different ways. Moreover, in many financial applications, Utility functions help us determine the treadeoff between financial return and risk, and this involves (challenging) assessments of the likelihood of various outcomes. The next section develops the intuition on these concepts.
 
-## A Simple Financial Example
+### A Simple Financial Example
 
 To warm up to the concepts associated with Financial Utility Theory, let's start with a simple financial example. Consider a casino game where your financial gain/loss is based on the outcome of tossing a fair coin (HEAD or TAIL outcomes). Let's say you will be paid \$1000 if the coin shows HEAD on the toss, and let's say you would be required to pay \$500 if the coin shows TAIL on the toss. Now the question is: How much would you be willing to pay upfront to play this game?  Your first instinct might be to say: "I'd pay \$250 upfront to play this game because that's my expected payoff, based on the probability of the outcomes" ($250 = 0.5(1000) + 0.5(-500)$). But after you think about it carefully, you might alter your answer to be: "I'd pay a little less than \$250". When pressed for why the fair upfront cost for playing the game should be less than \$250, you might say: "I need to be compensated for taking the risk". 
 
@@ -20,7 +22,7 @@ Thus we see that each individual's asymmetry in utility assignment to different 
 
 A quick note before we get into the mathematical framework - you might be thinking that a typical casino would actually charge you a bit more than \$250 upfront for playing the above game (because the casino needs to make a profit, on an expected basis), and people are indeed willing to pay this amount at a typical casino. So what about the risk-aversion we talked about earlier? The crucial point here is that people who play at casinos are looking for entertainment and excitement emanating purely from the psychological aspects of experiencing risk. They are willing to pay money for this entertainment and excitement, and this payment is separate from the cost of pure financial utility that we described above. So if people knew that the true odds of pure-chance games of the type we described above and if people did not care for entertainment and excitement value of risk-taking in these games, focusing purely on financial utility, then what they'd be willing to pay upfront to play such a game will be based on the type of calculations we outlined above (meaning for the example we described, they'd typically pay less than \$250 upfront to play the game).
 
-## The Shape of the Utility function
+### The Shape of the Utility function
 
 We seek a "valuation formula" for the amount we'd pay upfront to sign-up for situations like the simple example above, where we have uncertain outcomes with varying payoffs for the outcomes. Intuitively, we see that the amount we'd pay:
 
@@ -43,7 +45,7 @@ Now let's examine the concave nature of the Utility function for financial outco
 
 The expected winning in Situation 1 is \$10,000 and the expected winning in Situation 2 is \$1,000,000 (i.e., 10 times more than Situation 1). If you analyzed this naively as winning expectation maximization, you'd choose Situation 2. But most people would choose Situation 1. The reason for this is that the Utility of a billion dollars is nowhere close to 1000 times the utility of a million dollars (except for some very wealth people perhaps). In fact, the ratio of Utility of a billion dollars to Utility of a million dollars might be more like 10. So, the choice of Situation 1 over Situation 2 is usually quite clear - it's about Utility expectation maximization. So if the Utility of 0 dollars is 0 units, the Utility of a million dollars is say 1000 units, and the Utility of a billion dollars is say 10000 units (i.e., 10 times that of a million dollars), then we see that the Utility of financial gains is a fairly concave function.
 
-## Calculating the Risk-Premium 
+### Calculating the Risk-Premium 
 
 Note that the concave nature of the $U(\cdot)$ function implies that:
 
@@ -119,7 +121,7 @@ Note that Linear Utility function $U(x) = a + b x$ implies *Risk-Neutrality* (i.
 * Constant Absolute Risk-Aversion (CARA)
 * Constant Relative Risk-Aversion (CRRA)
 
-## Constant Absolute Risk-Aversion (CARA)
+### Constant Absolute Risk-Aversion (CARA)
 
 Consider the Utility function $U: \mathbb{R} \rightarrow \mathbb{R}$, parameterized by $a \in \mathbb{R}$,  defined as:
 $$
@@ -164,7 +166,7 @@ $$\text{Absolute Risk Premium } \pi_A = \mu - x_{CE} =  \frac {a \sigma^2} 2$$
 
 For optimization problems where we need to choose across probability distributions where $\sigma^2$ is a function of $\mu$, we seek the distribution that maximizes $x_{CE} = \mu - \frac {a \sigma^2} 2$. This clearly illustrates the concept of "risk-adjusted-return" because $\mu$ serves as the "return" and the risk-adjustment $\frac {a \sigma^2} 2$ is proportional to the product of risk-aversion $a$ and risk (i.e., variance in outcomes) $\sigma^2$.
 
-## A Portfolio Application of CARA
+### A Portfolio Application of CARA
 
 Let's say we are given \$1 to invest and hold for a horizon of 1 year. Let's say our portfolio investment choices are:
 
@@ -189,7 +191,7 @@ This is a concave function of $\pi$ and so, taking it's derivative with respect 
 
 $$\pi^* = \frac {\mu - r} {a \sigma^2}$$
 
-## Constant Relative Risk-Aversion (CRRA)
+### Constant Relative Risk-Aversion (CRRA)
 
 Consider the Utility function $U: \mathbb{R}^+ \rightarrow \mathbb{R}$, parameterized by $\gamma \in \mathbb{R}$,  defined as:
 $$
@@ -234,7 +236,7 @@ $$\text{Relative Risk Premium } \pi_R = 1 - \frac {x_{CE}} {\bar{x}} =  1 - e^{-
 
 For optimization problems where we need to choose across probability distributions where $\sigma^2$ is a function of $\mu$, we seek the distribution that maximizes $\log(x_{CE}) = \mu + \frac {\sigma^2} 2 (1 - \gamma)$. Just like in the case of CARA, this clearly illustrates the concept of "risk-adjusted-return" because $\mu + \frac {\sigma^2} 2$ serves as the "return" and the risk-adjustment $\frac {\gamma \sigma^2} 2$ is proportional to the product of risk-aversion $\gamma$ and risk (i.e., variance in outcomes) $\sigma^2$.
 
-## A Portfolio Application of CRRA
+### A Portfolio Application of CRRA
 
 This application of CRRA is a special case of [Merton's Portfolio Problem](https://en.wikipedia.org/wiki/Merton%27s_portfolio_problem) that we shall cover in its full generality in Chapter [-@sec:optimal-asset-allocation]. This section requires us to have some basic familiarity with Stochastic Calculus (covered in Appendix [-@sec:stochasticcalculus-appendix]), specifically Ito Processes and Ito's Lemma. Here we consider the single-decision version of the  problem where our portfolio investment choices are:
 
@@ -286,7 +288,7 @@ This is a concave function of $\pi$ and so, taking it's derivative with respect 
 
 $$\pi^* = \frac {\mu - r} {\gamma \sigma^2}$$
 
-## Key Takeaways from this Chapter
+### Key Takeaways from this Chapter
 
 * An individual's financial risk-aversion is represented by the concave nature of the individual's Utility as a function of financial outcomes.
 * Risk-Premium (compensation an individual seeks for taking financial risk) is roughly proportional to the individual's financial risk-aversion and the measure of uncertainty in financial outcomes.

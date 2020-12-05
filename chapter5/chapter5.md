@@ -1,4 +1,4 @@
-# Function Approximation and Approximate Dynamic Programming {#sec:funcapprox-chapter}
+## Function Approximation and Approximate Dynamic Programming {#sec:funcapprox-chapter}
 
 In Chapter [-@sec:dp-chapter], we covered Dynamic Programming algorithms where the MDP is specified in the form of a finite data structure and the Value Function is represented as a finite "table" of states and values. These Dynamic Programming algorithms swept through all states in each iteration to update the value function. But when the state space is large (as is the case in real-world applications), these Dynamic Programming algorithm won't work because:
 
@@ -9,7 +9,7 @@ Hence, when the state space is very large, we need to resort to approximation of
 
 So, in this chapter, we do a quick review of function approximation, write some code for a couple for a couple of standard function approximation methods, and then utilize these function approximation methods to develop Approximate Dynamic Programming algorithms (in particular, Approximate Policy Evaluation, Approximate Value Iteration and Approximate Backward Induction). Since you are reading this book, it's highly likely that you are already familiar with the simple and standard function approximation methods such as linear function approximation and function approximation using neural networks supervised learning. So we shall go through the background on linear function approximation and neural networks supervised learning in a quick and terse manner, with the goal of developing some code for these methods that we can use not just for the ADP algorithms for this chapter, but also for RL algorithms later in the book. Note also that apart from approximation of Value Functions $\mathcal{N} \rightarrow \mathbb{R}$, these function approximation methods can also be used for approximation of Stochastic Policies $\mathcal{N} \times \mathcal{A} \rightarrow [0, 1]$ in Policy-based RL algorithms.
 
-## Function Approximation
+### Function Approximation
 
 In this section, we describe function approximation in a fairly generic setting (not specific to approximation of Value Functions or Policies). We denote the predictor variable as $x$, belonging to an arbitrary domain denoted $\mathcal{X}$ and the response variable as $y \in \mathbb{R}$. We treat $x$ and $y$ as unknown random variables and our goal is to estimate the probability distribution function $f$ of the conditional random variable $y|x$ from data provided in the form of a sequence of $(x,y)$ pairs. We shall consider parameterized functions $f$ with the parameters denoted as $w$. The exact data type of $w$ will depend on the specific form of function approximation. We denote the estimated probability of $y$ conditional on $x$ as $f(x; w)(y)$. Assume we are given data in the form of a sequence of $n$ $(x,y)$ pairs, as follows:
 $$[(x_i, y_i)|1 \leq i \leq n]$$
@@ -111,7 +111,7 @@ The above code for `FunctionApprox` is in the file [rl/function_approx.py](https
 
 Now we are ready to cover a concrete but simple function approximation - the case of linear function approximation. 
 
-## Linear Function Approximation
+### Linear Function Approximation
 
 We define a sequence of feature functions
 $$\phi_j: \mathcal{X} \rightarrow \mathbb{R} \text{ for each } j = 1, 2, \ldots, m$$
@@ -350,7 +350,7 @@ import rl.iterate import iterate
 
 The above code is in the file [rl/function_approx.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/function_approx.py).
 
-## Neural Network Function Approximation
+### Neural Network Function Approximation
 
 Now we generalize the linear function approximation to accommodate non-linear functions with a simple deep neural network, specifically a feed-forward fully-connected neural network. We work with the same notation $\bm{\phi}(\cdot) = (\phi_1(\cdot), \phi_2(\cdot), \ldots, \phi_m(\cdot))$ for feature functions that we covered for the case of linear function approximation. Assume we have $L$ hidden layers in the neural network. Layers numbered $l = 0, 1, \ldots, L - 1$ carry the hidden layer neurons and layer $l = L$ carries the output layer neurons.
 
@@ -830,7 +830,7 @@ The plot of `linear_model_rmse_seq` and `dnn_model_rmse_seq` is shown in Figure 
 ![SGD Convergence \label{fig:sgd_convergence}](./chapter5/rmse.png "SGD Convergence")
 </div>
 
-## Tabular as a form of `FunctionApprox`
+### Tabular as a form of `FunctionApprox`
 
 Now we consider a simple case where we have a fixed and finite set of $x$-values $\mathcal{X} = \{x_1, x_2, \ldots, x_n\}$, and any data set of $(x,y)$ made available to us needs to have it's $x$-values from within this finite set $\mathcal{X}$. The prediction $\mathbb{E}[y|x]$ for each $x \in \mathcal{X}$ needs to be calculated only from the $y$-values associated with this $x$ within the data set of $(x,y)$ pairs. In other words, the $y$-values in the data associated with other $x$ should not influence the prediction for $x$. Since we'd like the prediction for $x$ to be $\mathbb{E}[y|x]$, it would make sense for the prediction for a given $x$ to be the average of all the $y$-values associated with $x$ within the data set of $(x,y)$ pairs seen so far. This simple case is refered to as *Tabular* because we can store all $x \in \mathcal{X}$ together with their corresponding predictions $\mathbb{E}[y|x]$ in a finite data structure (loosely refered to as a "table").
 
@@ -911,7 +911,7 @@ Again, we want to emphasize that tabular algorithms are just a special case of a
 
 Now we are ready to write algorithms for Approximate Dynamic Programming (ADP).
 
-## Approximate Policy Evaluation
+### Approximate Policy Evaluation
 
 The first ADP algorithm we cover is Approximate Policy Evaluation, i.e., evaluating the Value Function for a Markov Reward Process (MRP). Approximate Policy Evaluation is fundamentally the same as Tabular Policy Evaluation in terms of repeatedly applying the Bellman Policy Operator $\bm{B^}\pi$ on the Value Function $V: \mathcal{N} \rightarrow \mathbb{R}$. However, unlike Tabular Policy Evaluation algorithm, the Value Function $V(\cdot)$ is set up and updated as an instance of `FunctionApprox` rather than as a table of values for the non-terminal states. This is because unlike Tabular Policy Evaluation which operates on an instance of a `FiniteMarkovRewardProcess`, Approximate Policy Evaluation algorithm operates on an instance of `MarkovRewardProcess`. So we do not have an enumeration of states of the MRP and we do not have the transition probabilities of the MRP. This is typical in many real-world problems where the state space is either very large or is continuous-valued, and the transitions could be too many or could be continuous-valued transitions. So, here's what we do to overcome these challenges:
 
@@ -949,7 +949,7 @@ def evaluate_mrp(
     return iterate(update, approx_0)
 ```
 
-## Approximate Value Iteration
+### Approximate Value Iteration
 
 Now that we've understood and coded Approximate Policy Evaluation (to solve the Prediction problem), we can extend the same concepts to Approximate Value Iteration (to solve the Control problem). The code below in `value_iteration` is almost the same as the code above in `evaluate_mrp`, except that instead of a `MarkovRewardProcess` at each time step, here we have a `MarkovDecisionProcess` at each time step, and instead of the Bellman Policy Operator update, here we have the Bellman Optimality Operator update. Therefore, in the Value Function update, we maximize the $Q$-value function (over all actions $a$) for each non-terminal state $s$. Also, similar to `evaluate_mrp`, `value_iteration` produces an `Iterator` on `FunctionApprox` instances, and the code that calls `value_iteration` can decide when/how to terminate the iterations of Approximate Value Iteration.
 
@@ -983,7 +983,7 @@ def value_iteration(
 
 ```
 
-## Finite-Horizon Approximate Policy Evaluation
+### Finite-Horizon Approximate Policy Evaluation
 
 Next, we move on to Approximate Policy Evaluation in a finite-horizon setting, meaning we will perform Approximate Policy Evaluation with a backward induction algorithm, much like how we did backward induction for finite-horizon Tabular Policy Evaluation. We will of course make the same types of adaptations from Tabular to Approximate as we did in the functions `evaluate_mrp` and `value_iteration` above.
 
@@ -1029,7 +1029,7 @@ def backward_evaluate(
     return reversed(v)
 ```
 
-## Finite-Horizon Approximate Value Iteration
+### Finite-Horizon Approximate Value Iteration
 
 Now that we've understood and coded finite-horizon Approximate Policy Evaluation (to solve the finite-horizon Prediction problem), we can extend the same concepts to finite-horizon Approximate Value Iteration (to solve the finite-horizon Control problem). The code below in `back_opt_vf_and_policy` is almost the same as the code above in `backward_evaluate`, except that instead of a `MarkovRewardProcess`, here we have a `MarkovDecisionProcess`. For each non-terminal time step, we maximize the $Q$-value function (over all actions $a$) for each non-terminal state $s$. `back_opt_vf_and_policy` returns an Iterator over pairs of `FunctionApprox` and `Policy` objects (representing the Optimal Value Function and the Optimal Policy respectively), from time step 0 to the horizon time step.
 
@@ -1082,7 +1082,7 @@ def back_opt_vf_and_policy(
     return reversed(vp)
 ```
 
-## Finite-Horizon Approximate Q-Value Iteration {#sec:bi-approx-q-value-iteration}
+### Finite-Horizon Approximate Q-Value Iteration {#sec:bi-approx-q-value-iteration}
 
 The above code for Finite-Horizon Approximate Value Iteration extends the Finite-Horizon Backward Induction Value Iteration algorithm of Chapter [-@sec:dp-chapter] by treating the Value Function as a function approximation instead of an exact tabular representation. However, there is an alternative (and arguably simpler and more effective) way to solve the Finite-Horizon Control problem - we can perform backward induction on the optimal Action-Value (Q-value) function instead of the optimal (State-)Value Function. The key advantage of working with the optimal Action Value function is that it has all the information necessary to extract the optimal State-Value function and the optimal Policy (since we just need to perform a $\max/\argmax$ over all the actions for any non-terminal state). This contrasts with the case of working with the optimal State-Value function which requires us to also avail of the transition probabilities, rewards and discount factor in order to extract the optimal policy. Performing backward induction on the optimal Q-value function means that knowledge of the optimal Q-value function for a given time step $t$ immediately gives us the optimal State-Value function and the optimal policy for the same time step $t$. This contrasts with performing backward induction on the optimal State-Value function - knowledge of the optimal State-Value function for a given time step $t$ cannot give us the optimal policy for the same time step $t$ (for that, we need the optimal State-Value function for time step $t+1$ and furthermore, we also need the $t$ to $t+1$ state/reward transition probabilities).
 
@@ -1134,7 +1134,7 @@ We should also point out here that working with the optimal Q-value function (ra
 
 All of the above code for Approximate Dynamic Programming (ADP) algorithms is in the file [rl/approximate_dynamic_programming.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/approximate_dynamic_programming.py). We encourage you to create instances of `MarkovRewardProcess` and `MarkovDecisionProcess` (including finite-horizon instances) and play with the above ADP code with different choices of function approximations, non-terminal state sampling distributions, and number of samples. A simple but valuable exercise is to reproduce the tabular versions of these algorithms by using the `Tabular` implementation of `FunctionApprox` (note: the `count_to_weights_func` would need to be lambda _: 1.) in the above ADP functions.
 
-## How to Construct the Non-Terminal States Distribution
+### How to Construct the Non-Terminal States Distribution
 
 Each of the above ADP algorithms takes as input probability distribution(s) of non-terminal states. You may be wondering how one constructs the probability distribution of non-terminal states so you can feed it as input to any of these ADP algorithm. There is no simple, crisp answer to this. But we will provide some general pointers in this section on how to construct the probability distribution of non-terminal states.
 
@@ -1144,7 +1144,7 @@ Next, we consider the backward induction ADP algorithms for finite-horizon MDPs/
 
 We will write some code in Chapter [-@sec:portfolio-chapter] to create a `SampledDistribution` of non-terminal states for each time step of a finite-horizon problem by stitching together samples of state transitions at each time step. If you are curious about this now, you can [take a peek at the code](https://github.com/TikhonJelvis/RL-book/blob/master/rl/chapter7/asset_alloc_discrete.py).
 
-## Key Takeaways from this Chapter
+### Key Takeaways from this Chapter
 
 * The Function Approximation interface involves two key methods - A) updating the parameters of the Function Approximation based on training data available from each iteration of a data stream, and B) evaluating the expectation of the response variable whose conditional probability distribution is modeled by the Function Approximation. Linear Function Approximation and Deep Neural Network Function Approximation are the two main Function Approximations we've implemented and will be using in the rest of the book.
 * Tabular is a special type of Function Approximation, and Tabular RL is a special case of linear function approximation with feature functions as indicator functions for each of the states.
