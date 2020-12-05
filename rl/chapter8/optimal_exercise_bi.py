@@ -5,7 +5,6 @@ from scipy.stats import norm
 from rl.distribution import SampledDistribution
 from rl.markov_decision_process import MarkovDecisionProcess, Policy
 from rl.function_approx import FunctionApprox, LinearFunctionApprox
-from rl.function_approx import AdamGradient
 from rl.approximate_dynamic_programming import back_opt_vf_and_policy
 from numpy.polynomial.laguerre import lagval
 
@@ -105,14 +104,8 @@ class OptimalExerciseBI:
         features: Sequence[Callable[[StateType], float]],
         reg_coeff: float
     ) -> LinearFunctionApprox[StateType]:
-        ag: AdamGradient = AdamGradient(
-            learning_rate=0.1,
-            decay1=0.9,
-            decay2=0.999
-        )
         return LinearFunctionApprox.create(
             feature_functions=features,
-            adam_gradient=ag,
             regularization_coeff=reg_coeff,
             direct_solve=True
         )

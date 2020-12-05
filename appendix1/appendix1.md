@@ -105,9 +105,10 @@ $$f_{x\sim \mathcal{N}(\mu, \sigma^2)}''(t) = ((\mu + \sigma^2t)^2 + \sigma^2)\c
 which confirms that $t^*$ is a minima.
 
 Substituting $t=t^*$ in $f_{x\sim \mathcal{N}(\mu, \sigma^2)}(t) = e^{\mu t + \frac {\sigma^2 t^2} 2}$ yields:
-\begin{equation*}
+\begin{equation}
 \min_{t\in \mathbb{R}} f_{x\sim \mathcal{N}(\mu, \sigma^2)}(t) = e^{\mu t^* + \frac {\sigma^2 {t^*}^2} 2} = e^{\frac {-\mu^2} {2\sigma^2}}
-\end{equation*}
+\label{eq:normmgfminvalue}
+\end{equation}
 
 #### Minimizing the MGF when $x$ is a symmetric binary distribution
 

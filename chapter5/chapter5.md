@@ -150,7 +150,7 @@ $$\bm{w}_{t+1} = \bm{w}_t - \alpha_t \cdot \mathcal{G}_{(x_t, y_t)}(\bm{w}_t)$$
 
 where $\alpha_t$ is the learning rate for the gradient descent at time $t$. To facilitate numerical convergence, we require $\alpha_t$ to be an appropriate function of time $t$. There are a number of numerical algorithms to achieve the appropriate time-trajectory of $\alpha_t$. We shall go with one such numerical algorithm - [ADAM](https://en.wikipedia.org/wiki/Stochastic_gradient_descent#Adam), which we shall use not just for linear function approximation but also for the deep neural network function approximation. Before we write code for linear function approximation, we need to write some helper code to implement the ADAM gradient descent algorithm.
 
-We create an `@dataclass Weights` to represent and update the weights (i.e., internal parameters) of a function approximation. The `Weights` dataclass has 5 attributes: `adam_gradient` that captures the ADAM parameters, including the base learning rate and the decay parameter, `time` that represents how many times the weights have been updated, `weights` that represents the weight parameters of the function approximation as a numpy array (1-D array for linear function approximation and 2-D array for each layer of deep neural network function approximation), and the two ADAM cache parameters. The `@staticmethod create` serves as a factory method to create a new instance of the `Weights` dataclass. The `update` method of this `Weights` dataclass produces an updated instance of the `Weights` dataclass that represents the updated weight parameters together with the incremented `time` and the updated ADAM cache parameters. We will follow a programming design pattern wherein we don't update anything in-place - rather, we create a new object with updated values (using the `dataclasses.replace` function). This ensures we don't get unexpected/undesirable updates in-place, which are typically the cause of bugs in numerical code. Finally, we write the `within` method which will be required to implement the `within` method in the linear function approximation class as well as in the deep neural network function approximation class.
+We create an `@dataclass Weights` to represent and update the weights (i.e., internal parameters) of a function approximation. The `Weights` dataclass has 5 attributes: `adam_gradient` that captures the ADAM parameters, including the base learning rate and the decay parameters, `time` that represents how many times the weights have been updated, `weights` that represents the weight parameters of the function approximation as a numpy array (1-D array for linear function approximation and 2-D array for each layer of deep neural network function approximation), and the two ADAM cache parameters. The `@staticmethod create` serves as a factory method to create a new instance of the `Weights` dataclass. The `update` method of this `Weights` dataclass produces an updated instance of the `Weights` dataclass that represents the updated weight parameters together with the incremented `time` and the updated ADAM cache parameters. We will follow a programming design pattern wherein we don't update anything in-place - rather, we create a new object with updated values (using the `dataclasses.replace` function). This ensures we don't get unexpected/undesirable updates in-place, which are typically the cause of bugs in numerical code. Finally, we write the `within` method which will be required to implement the `within` method in the linear function approximation class as well as in the deep neural network function approximation class.
 
 ```python
 SMALL_NUM = 1e-6
@@ -161,6 +161,14 @@ class AdamGradient:
     learning_rate: float
     decay1: float
     decay2: float
+
+    @staticmethod
+    def default_settings() -> AdamGradient:
+        return AdamGradient(
+            learning_rate=0.001,
+            decay1=0.9,
+            decay2=0.999
+        )
 
 
 @dataclass(frozen=True)
@@ -173,7 +181,7 @@ class Weights:
 
     @staticmethod
     def create(
-        adam_gradient: AdamGradient,
+        adam_gradient: AdamGradient = AdamGradient.default_settings(),
         weights: np.ndarray,
         adam_cache1: Optional[np.ndarray] = None,
         adam_cache2: Optional[np.ndarray] = None
@@ -234,7 +242,7 @@ class LinearFunctionApprox(FunctionApprox[X]):
     @staticmethod
     def create(
         feature_functions: Sequence[Callable[[X], float]],
-        adam_gradient: AdamGradient,
+        adam_gradient: AdamGradient = AdamGradient.default_settings(),
         regularization_coeff: float = 0.,
         weights: Optional[Weights] = None,
         direct_solve: bool = True
@@ -566,7 +574,7 @@ class DNNApprox(FunctionApprox[X]):
     def create(
         feature_functions: Sequence[Callable[[X], float]],
         dnn_spec: DNNSpec,
-        adam_gradient: AdamGradient,
+        adam_gradient: AdamGradient = AdamGradient.default_settings(),
         regularization_coeff: float = 0.,
         weights: Optional[Sequence[Weights]] = None
     ) -> DNNApprox[X]:
