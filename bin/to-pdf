@@ -39,6 +39,6 @@ pandoc -t pdf \
        -M chapters \
        --pdf-engine=xelatex \
        --template templates/latex.template \
-       --top-level-division=chapter \
+       --top-level-division=part \
        $( (( book == 1 )) && printf %s '--toc' ) \
        "${names[@]}"
