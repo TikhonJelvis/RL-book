@@ -6,11 +6,12 @@ state space.
 '''
 
 from typing import Iterator, Mapping, Tuple, TypeVar, Sequence, List
-from rl.function_approx import FunctionApprox
-from rl.iterate import iterate
 from operator import itemgetter
 import numpy as np
+
 from rl.distribution import Distribution, Constant
+from rl.function_approx import FunctionApprox
+from rl.iterate import iterate
 from rl.markov_process import (FiniteMarkovRewardProcess, MarkovRewardProcess,
                                RewardTransition)
 from rl.markov_decision_process import (FiniteMarkovDecisionProcess, Policy,

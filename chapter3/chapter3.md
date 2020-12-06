@@ -230,10 +230,19 @@ We create an abstract class called `MarkovDecisionProcess` (code shown below) wi
 
 The `apply_policy` method takes as input a `policy: Policy[S, A]` and returns a `MarkovRewardProcess` representing the implied MRP. Let's understand the code in `apply_policy`: First, we construct a `class RewardProcess` that implements the `@abstractmethod transition_reward` of `MarkovRewardProcess`. `transition_reward` takes as input a `state: S`, creates `actions: Optional[Distribution[A]]` by applying the given `policy` on `state`, and finally uses the `apply` method of `Distribution` to transform `actions: Distribution[A]` into a `Distribution[Tuple[S, float]]` (distribution of (next state, reward) pairs) using the `@abstractmethod step`.
 
-Finally, the `is_terminal` method takes as input a `state: S` and returns a `bool` signifying whether `state` is a terminal state or not. Since the `actions` method can returns the set of actions in the form of any `Iterable` type, the only way to check if it's an empty `Iterable` is by turning it into an `Iterator`, and checking if the `next` invocation on the `Iterator` triggers `StopIteration` (in which case, it would be an empty `Iterable`).
+The `is_terminal` method takes as input a `state: S` and returns a `bool` signifying whether `state` is a terminal state or not. Since the `actions` method can returns the set of actions in the form of any `Iterable` type, the only way to check if it's an empty `Iterable` is by turning it into an `Iterator`, and checking if the `next` invocation on the `Iterator` triggers `StopIteration` (in which case, it would be an empty `Iterable`).
+
+We also write the `simulate_actions` method that is analogous to the `simulate_reward` method we had written for `MarkovRewardProcess` for generating a simulation trace. In this case, each step in the simulation trace involves sampling an action from the given `policy` and then sampling the pair of next state and reward, given the `state` and sampled `action`. Each generated `TransitionStep` object consists of the 4-tuple: (state, action, next state, reward). Here's the actual code:
 
 ```python
 from rl.distribution import Distribution
+
+@dataclass(frozen=True)
+class TransitionStep(Generic[S, A]):
+    state: S
+    action: A
+    next_state: S
+    reward: float
 
 class MarkovDecisionProcess(ABC, Generic[S, A]):
 
@@ -271,6 +280,28 @@ class MarkovDecisionProcess(ABC, Generic[S, A]):
             return False
         except StopIteration:
             return True
+
+    def simulate_actions(
+            self,
+            start_states: Distribution[S],
+            policy: Policy[S, A]
+    ) -> Iterable[TransitionStep[S, A]]:
+        state: S = start_states.sample()
+        reward: float = 0
+
+        while True:
+            action_distribution = policy.act(state)
+            if action_distribution is None:
+                return
+
+            action = action_distribution.sample()
+            next_distribution = self.step(state, action)
+            if next_distribution is None:
+                return
+
+            next_state, reward = next_distribution.sample()
+            yield TransitionStep(state, action, next_state, reward)
+            state = next_state
 ```
 
 The above code for `Policy`, `Always` and `MarkovDecisionProcess` is in the file [rl/markov_decision_process.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/markov_decision_process.py).   

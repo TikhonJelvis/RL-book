@@ -1,8 +1,5 @@
 '''Finding fixed points of functions using iterators.'''
-import functools
-import itertools
-import math
-from typing import (Callable, Iterable, Iterator, Optional, Tuple, TypeVar)
+from typing import (Callable, Iterator, Optional, TypeVar)
 
 X = TypeVar('X')
 
@@ -79,56 +76,3 @@ def converged(values: Iterator[X],
         raise ValueError("converged called on an empty iterator")
 
     return result
-
-
-def discount_tolerance(stream: Iterator[X], γ: float, tolerance: float):
-    '''Stop the iterator after n steps where γⁿ ≤ tolerance if γ < 1.
-
-    Arguments:
-      stream -- the iterator we're capping
-      γ -- discount factor
-      tolerance -- a small value that determines when we stop iterating
-
-    Returns:
-      Stream that stops once γⁿ ≤ tolerance if γ < 1, otherwise
-      returns the stream unchanged.
-
-    '''
-    if γ < 1:
-        max_steps = round(math.log(tolerance) / math.log(γ))
-        return itertools.islice(stream, max_steps)
-
-    return stream
-
-
-# TODO: Unify with mdp.returns (using a protocol)?
-def returns(
-        rewards: Iterable[Tuple[X, float]],
-        γ: float = 1,
-        tolerance: float = 1e-6
-) -> Iterator[Tuple[X, float]]:
-    '''Given an iterator of states and rewards, calculate the return of
-    the first N states.
-
-    Arguments:
-    rewards -- instantaneous rewards
-    γ -- the discount factor (0 < γ ≤ 1), default: 1
-    n_states -- how many states to calculate the return for, default: 1
-
-    '''
-    # Ensure that this logic works correctly whether rewards is an
-    # iterator or an iterable (ie a list).
-    rewards = discount_tolerance(iter(rewards), γ, tolerance)
-    *initial, (last_s, last_r) = list(rewards)
-
-    def accum(r_acc, r):
-        return r_acc + γ * r
-    final_return = functools.reduce(accum, (r for _, r in rewards), 0.0)
-
-    def update(acc, point):
-        _, return_ = acc
-        s, reward = point
-
-        return (s, reward + γ * return_)
-    return itertools.accumulate(reversed(initial), update,
-                                initial=(last_s, last_r + γ * final_return))

@@ -657,9 +657,17 @@ The subsection on *Start States* we had covered for Markov Processes naturally a
 
 If all random sequences of states in a Markov Reward Process terminate, we refer to it as *episodic* sequences (otherwise, we refer to it as *continuing* sequences). 
 
-Let's write some code that captures this formalism. We create a derived *abstract* class `MarkovRewardProcess` that inherits from the abstract class `MarkovProcess`. Analogous to `MarkovProcess`'s `@abstractmethod transition` (that represents $\mathcal{P}$), `MarkovRewardProcess` has an `@abstractmethod transition_reward` that represents $\mathcal{P}_R$. Note that the return type of `transition_reward` is `Optional[Distribution[Tuple[S, float]]]` which means it returns `None` for a terminal `state: S` and it returns `Distribution[Tuple[S, float]]` for a non-terminal `state: S`, representing the probability distribution of (next state, reward) pairs transitioned to. Also, analogous to `MarkovProcess`'s `simulate` method, `MarkovRewardProcess` has the method `simulate_reward` which returns an `Iterable` of `Tuple[S, float]`, i.e., a stream of (state, reward) pairs. Here's the actual code:
+Let's write some code that captures this formalism. We create a derived *abstract* class `MarkovRewardProcess` that inherits from the abstract class `MarkovProcess`. Analogous to `MarkovProcess`'s `@abstractmethod transition` (that represents $\mathcal{P}$), `MarkovRewardProcess` has an `@abstractmethod transition_reward` that represents $\mathcal{P}_R$. Note that the return type of `transition_reward` is `Optional[Distribution[Tuple[S, float]]]` which means it returns `None` for a terminal `state: S` and it returns `Distribution[Tuple[S, float]]` for a non-terminal `state: S`, representing the probability distribution of (next state, reward) pairs transitioned to.
+
+Also, analogous to `MarkovProcess`'s `simulate` method, `MarkovRewardProcess` has the method `simulate_reward` which generates a stream of `TransitionStep` objects. Each `TransitionStep` object consists of a 3-tuple: (state, next state, reward) representing the sampled transitions from the states visited in the generated simulation trace. Here's the actual code:
 
 ```python
+@dataclass(frozen=True)
+class TransitionStep(Generic[S]):
+    state: S
+    next_state: S
+    reward: float
+
 class MarkovRewardProcess(MarkovProcess[S]):
 
     @abstractmethod
@@ -670,17 +678,19 @@ class MarkovRewardProcess(MarkovProcess[S]):
     def simulate_reward(
         self,
         start_state_distribution: Distribution[S]
-    ) -> Iterable[Tuple[S, float]]:
+    ) -> Iterable[TransitionStep[S]]:
         state: S = start_state_distribution.sample()
         reward: float = 0.
 
         while True:
-            yield state, reward
             next_distribution = self.transition_reward(state)
             if next_distribution is None:
                 return
 
-            state, reward = next_distribution.sample()
+            next_state, reward = next_distribution.sample()
+            yield TransitionStep(state, next_state, reward)
+
+            state = next_state
 ```
 
 So the idea is that if someone wants to model a Markov Reward Process, they'd simply have to create a concrete class that implements the interface of the abstract class `MarkovRewardProcess` (specifically implement the `@abstractmethod transition_reward`). But note that the `@abstractmethod transition` of `MarkovProcess` also needs to be implemented to make the whole thing concrete. However, we don't have to implement it in the concrete class implementing the interface of `MarkovRewardProcess` - in fact, we can implement it in the `MarkovRewardProcess` class itself by tapping the method `transition_reward`. Here's the code for the `transition` method in `MarkovRewardProcess`:
@@ -692,12 +702,12 @@ from rl.distribution import SampledDistribution
         distribution = self.transition_reward(state)
         if distribution is None:
             return None
-        else:
-            def next_state(distribution=distribution):
-                next_s, _ = distribution.sample()
-                return next_s
 
-            return SampledDistribution(next_state)
+        def next_state(distribution=distribution):
+            next_s, _ = distribution.sample()
+            return next_s
+
+        return SampledDistribution(next_state)
 ```
 
 Note that since the `transition_reward` method is abstract in `MarkovRewardProcess`, the only thing the `transition` method can do is tap the `sample` method of the abstract `Distribution` object produced by `transition_reward` and return a `SampledDistribution`. The full code for the `MarkovRewardProcess` class shown above is in the file [rl/markov_process.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/markov_process.py).

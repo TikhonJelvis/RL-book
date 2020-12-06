@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Tuple, Sequence, Iterator
+from typing import Tuple, Iterator
 import itertools
 import numpy as np
 from scipy.stats import poisson
@@ -64,15 +64,16 @@ class SimpleInventoryMDPNoCap(MarkovDecisionProcess[InventoryState, int]):
         high_fractile: int = int(poisson(self.poisson_lambda).ppf(0.98))
         start: InventoryState = random.choice(
             [InventoryState(i, 0) for i in range(high_fractile + 1)])
+
         for _ in range(num_traces):
-            sr_pairs: Sequence[Tuple[InventoryState, float]] =\
-                list(itertools.islice(
-                    impl_mrp.simulate_reward(Constant(start)),
-                    time_steps + 1
-                ))
-            for i, (_, reward) in enumerate(sr_pairs[1:]):
-                if reward < -self.holding_cost * sr_pairs[i][0].on_hand:
+            steps = itertools.islice(
+                impl_mrp.simulate_reward(Constant(start)),
+                time_steps
+            )
+            for step in steps:
+                if step.reward < -self.holding_cost * step.next_state.on_hand:
                     count += 1
+
         return float(count) / (time_steps * num_traces)
 
 

@@ -3,15 +3,15 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from collections import defaultdict
 from dataclasses import dataclass
-import itertools
 from typing import (DefaultDict, Dict, Iterable, Generic, Mapping,
                     Tuple, Sequence, TypeVar, Optional)
 from rl.distribution import (Bernoulli, Constant, Categorical, Choose,
                              Distribution, FiniteDistribution)
-from rl.function_approx import FunctionApprox
-import rl.iterate as iterate
+from rl.function_approx import (FunctionApprox)
+
 from rl.markov_process import (
-    FiniteMarkovRewardProcess, MarkovRewardProcess, StateReward)
+    FiniteMarkovRewardProcess, MarkovRewardProcess, StateReward
+)
 
 A = TypeVar('A')
 S = TypeVar('S')
@@ -68,7 +68,7 @@ class FinitePolicy(Policy[S, A]):
 
 
 @dataclass(frozen=True)
-class Transition(Generic[S, A]):
+class TransitionStep(Generic[S, A]):
     '''A single step in the simulation of an MDP, containing:
 
     state -- the state we start from
@@ -81,12 +81,12 @@ class Transition(Generic[S, A]):
     next_state: S
     reward: float
 
-    def add_return(self, γ: float, return_: float) -> ReturnTransition[S, A]:
+    def add_return(self, γ: float, return_: float) -> ReturnStep[S, A]:
         '''Given a γ and the return from 'next_state', this annotates the
         transition with a return for 'state'.
 
         '''
-        return ReturnTransition(
+        return ReturnStep(
             self.state,
             self.action,
             self.next_state,
@@ -96,39 +96,12 @@ class Transition(Generic[S, A]):
 
 
 @dataclass(frozen=True)
-class ReturnTransition(Transition[S, A]):
+class ReturnStep(TransitionStep[S, A]):
     '''A Transition that also contains the total *return* for its starting
     state.
 
     '''
     return_: float
-
-
-def returns(
-        trace: Iterable[Transition[S, A]],
-        γ: float,
-        tolerance: float = 1e-6
-) -> Iterable[ReturnTransition[S, A]]:
-    '''Given an iterator of transitions, annotate each transition with the
-    total return from that state onwards.
-
-    Arguments:
-    rewards -- transitions with instantaneous rewards
-    γ -- the discount factor (0 < γ ≤ 1). If γ is 1 and the MDP does
-    not always hit a terminal state, this function could loop forever.
-    tolerance -- a small value—we stop iterating once γᵏ ≤ tolerance
-
-    '''
-    trace = iterate.discount_tolerance(iter(trace), γ, tolerance)
-
-    *transitions, last_transition = list(trace)
-    return_transitions = itertools.accumulate(
-        reversed(transitions),
-        func=lambda next, curr: curr.add_return(γ, next.return_),
-        initial=last_transition.add_return(γ, 0)
-    )
-
-    return reversed(list(return_transitions))
 
 
 class MarkovDecisionProcess(ABC, Generic[S, A]):
@@ -183,9 +156,10 @@ class MarkovDecisionProcess(ABC, Generic[S, A]):
             self,
             start_states: Distribution[S],
             policy: Policy[S, A]
-    ) -> Iterable[Transition[S, A]]:
-        '''Simulate this MDP with the given policy, yielding the actions taken
-        at each step.
+    ) -> Iterable[TransitionStep[S, A]]:
+        '''Simulate this MDP with the given policy, yielding the
+        sequence of (states, action, next state, reward) 4-tuples
+        encountered in the simulation trace.
 
         '''
         state: S = start_states.sample()
@@ -202,14 +176,14 @@ class MarkovDecisionProcess(ABC, Generic[S, A]):
                 return
 
             next_state, reward = next_distribution.sample()
-            yield Transition(state, action, next_state, reward)
+            yield TransitionStep(state, action, next_state, reward)
             state = next_state
 
     def action_traces(
             self,
             start_states: Distribution[S],
             policy: Policy[S, A]
-    ) -> Iterable[Iterable[Transition[S, A]]]:
+    ) -> Iterable[Iterable[TransitionStep[S, A]]]:
         '''Yield an infinite number of traces as returned by
         simulate_actions.
 
