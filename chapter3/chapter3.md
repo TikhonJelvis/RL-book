@@ -592,6 +592,8 @@ The above code is in the file [rl/chapter3/simple_inventory_mdp_cap.py](https://
 Now we are ready to talk about the Value Function for an MDP evaluated with a fixed policy $\pi$ (also known as the MDP *Prediction* problem). The term *Prediction* refers to the fact that this problem is about forecasting the expected future return when the agent follows a specific policy. Just like in the case of MRP, we define the Return $G_t$ at time step $t$ for an MDP as:
 $$G_t = \sum_{i=t+1}^{\infty} \gamma^{i-t-1} \cdot R_i = R_{t+1} + \gamma \cdot R_{t+2} + \gamma^2 \cdot R_{t+3} + \ldots$$
 
+We use the above definition of *Return* even for a terminating sequence (say terminating at $t=T$, i.e., $S_T \in \mathcal{T}$), by treating $R_i = 0$ for all $i > T$.
+
 The Value Function for an MDP evaluated with a fixed policy $\pi$
 $$V^{\pi}: \mathcal{N} \rightarrow \mathbb{R}$$
 is defined as:
