@@ -44,6 +44,8 @@ def td_0(
         )
 
         for step in episode:
-            diff = v.evaluate([step.next_state]) - v.evaluate([step.state])
-            v = v.update([(step.state, step.reward + γ * diff)])
+            v = v.update([(
+                step.state,
+                step.reward + γ * v.evaluate([step.next_state])[0]
+            )])
             yield v
