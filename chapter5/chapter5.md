@@ -871,7 +871,7 @@ class Tabular(FunctionApprox[X]):
         field(default_factory=lambda: lambda n: 1. / n)
 
     def evaluate(self, x_values_seq: Iterable[X]) -> np.ndarray:
-        return np.array([self.values_map[x] for x in x_values_seq])
+        return np.array([self.values_map.get(x, 0.) for x in x_values_seq])
 
     def update(self, xy_vals_seq: Iterable[Tuple[X, float]]) -> Tabular[X]:
         values_map: Dict[X, float] = dict(self.values_map)

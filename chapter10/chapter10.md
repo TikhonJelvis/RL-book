@@ -132,10 +132,35 @@ def returns(
     return return_steps
 ```   
 
+It is common to assume that the probability distribution of returns conditional on a state is a normal distribution with mean given by a function approximation for the Value Function that we denote as $V(s; \bm{w})$ where $s$ is a state for which the function approximation is being evaluated and $\bm{w}$ is the set of parameters in the function approximation (eg: the weights in a neural network). Then, the loss function for supervised learning of the Value Function is the sum of squares of differences between observed returns and the Value Function estimate from the function approximation. For a state $S_t$ visited at time $t$ in an episode and the associated episode return $G_t$, the contribution to the loss function is:
+
+\begin{equation}
+\mathcal{L}_{(S_t,G_t)}(\bm{w}) = \frac 1 2 \cdot (V(S_t;\bm{w}) - G_t)^2
+\label{eq:mc-funcapprox-loss-function}
+\end{equation}
+
+It's gradient with respect to $\bm{w}$ is:
+
+$$\nabla_{\bm{w}} \mathcal{L}_{(S_t,G_t)}(\bm{w}) = (V(S_t;\bm{w}) - G_t) \cdot \nabla_{\bm{w}} V(S_t;\bm{w})$$
+
+We know that the change in the parameters (adjustment to the parameters) is equal to the negative of the gradient scaled by the learning rate (let's denote the learning rate as $\alpha$). Then the change in parameters is:
+
+\begin{equation}
+\Delta \bm{w} = \alpha \cdot (G_t - V(S_t;\bm{w})) \cdot \nabla_{\bm{w}} V(S_t;\bm{w})
+\label{eq:mc-funcapprox-params-adj}
+\end{equation}
+
+This is a standard formula for change in parameters in response to incoming data for supervised learning when the response variable has a conditional normal distribution. But it's useful to see this formula in an intuitive manner for this specialization of supervised learning to Reinforcement Learning parameter updates. We should interpret the change in parameters $\Delta \bm{w}$ as the product of three conceptual entities:
+
+* *Learning Rate* $\alpha$
+* *Prediction Error* of the conditional expected return $V(S_t;\bm{w})$ relative to the observed return $G_t$
+* *Estimate Gradient* of the conditional expected return $V(S_t;\bm{w})$ with respect to the parameters $\bm{w}$
+
+This interpretation of the change in parameters as the product of these three conceptual entities: (Learning rate, Prediction Error, Estimate Gradient) is important as this will be a repeated pattern in many of the RL algorithms we will cover.
 
 Now we consider a simple case of Monte-Carlo Prediction where the MRP consists of a finite state space with the non-terminal states $\mathcal{N} = \{s_1, s_2, \ldots, s_m\}$. In this case, we represent the Value Function of the MRP in a data structure (dictionary) of (state, expected return) pairs. This is known as "Tabular" Monte-Carlo (more generally as Tabular RL to reflect the fact that we represent the calculated Value Function in a "table", i.e., dictionary). Note that in this case, Monte-Carlo Prediction reduces to a very simple calculation wherein for each state, we simply maintain the average of the episode returns obtained from that state (averaged across episodes), and the average is updated in an incremental manner. Recall from Section [-@sec:tabular-funcapprox-section] of Chapter [-@sec:funcapprox-chapter] that this is exactly what's done in the `Tabular` class (in file [rl/func_approx.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/func_approx.py)). We also recall from Section[-@sec:tabular-funcapprox-section] of Chapter [-@sec:funcapprox-chapter] that `Tabular` implements the interface of the abstract class `FunctionApprox` and so, we can perform Tabular Monte-Carlo Prediction by passing a `Tabular` instance as the `approx0: FunctionApprox` argument to the `evaluate_mrp` function above. The implementation of the `update` method in Tabular is exactly as we desire: it performs an incremental averaging of the episode returns obtained from each state (over a stream of episodes). 
 
-Let us denote $V_n(s_i)$ as the estimate of the Value Function for a state $s_i$ after the $n$-th occurrence of the state $s_i$ (when doing Tabular Monte-Carlo Prediction) and let $Y^{(1)}_i, Y^{(2)}_i, \ldots, Y^{(n)}_i$ be the episode returns associated with the $n$ occurrences of state $s_i$. Let us denote `count_to_weights_func` by $f$, Then, the `Tabular` update at the $n$-th occurrence of state $s_i$ (with it's associated return $Y^{(n)}_i$) is as follows:
+Let us denote $V_n(s_i)$ as the estimate of the Value Function for a state $s_i$ after the $n$-th occurrence of the state $s_i$ (when doing Tabular Monte-Carlo Prediction) and let $Y^{(1)}_i, Y^{(2)}_i, \ldots, Y^{(n)}_i$ be the episode returns associated with the $n$ occurrences of state $s_i$. Let us denote `count_to_weight_func` by $f$, Then, the `Tabular` update at the $n$-th occurrence of state $s_i$ (with it's associated return $Y^{(n)}_i$) is as follows:
 
 \begin{equation}
 V_n(s_i) = (1 - f(n)) \cdot V_{n-1}(s_i) + f(n) \cdot Y^{(n)}_i = V_{n-1}(s_i) + f(n) \cdot (Y^{(n)}_i - V_{n-1}(s_i))
@@ -158,7 +183,7 @@ V_n(s_i) = & f(n) \cdot Y^{(n)}_i + (1 - f(n)) \cdot f(n-1) \cdot Y^{(n-1)}_i + 
 & + (1-f(n)) \cdot (1-f(n-1)) \cdots (1-f(2)) \cdot f(1) \cdot Y^{(1)}_i \label{eq:tabular-mc-estimate}
 \end{align}
 
-In the case of the default setting of `count_to_weights_func` as $f(n) = \frac 1 n$, we get:
+In the case of the default setting of `count_to_weight_func` as $f(n) = \frac 1 n$, we get:
 
 \begin{equation}
 V_n(s_i) = \frac 1 n \cdot Y^{(n)}_i + \frac {n-1} n\cdot \frac 1 {n-1} \cdot Y^{(n-1)}_i + \ldots + \frac {n-1} n \cdot \frac {n-2} {n-1} \cdots \frac 1 2 \cdot \frac 1 1 \cdot Y^{(1)}_i = \frac {\sum_{k=1}^n Y^{(k)}_i} n
@@ -169,13 +194,13 @@ which is an equally-weighted average of the episode returns from the state.
 
 Note that the `Tabular` class as an implementation of the abstract class `FunctionApprox` is not just a software design happenstance - there is a formal mathematical specialization here that is vital to recognize. This tabular representation is actually a special case of linear function approximation by setting a feature function $\phi_i(\cdot)$ for each $x_i$ as: $\phi_i(x) = 1$ for $x=x_i$ and $\phi_(x) = 0$ for each $x \neq x_i$ (i.e., $\phi_i(x)$ is the indicator function for $x_i$, and the $\bm{\Phi}$ matrix we had refered to in Chapter [-@sec:funcapprox-chapter] reduces to the identity matrix). In using `Tabular` for Monte-Carlo Prediction, the feature functions are the indicator functions for each of the non-terminal states and the linear-approximation parameters $w_i$ are the Value Function estimates for the corresponding non-terminal states.
 
-With this understanding, we can view Tabular RL as a special case of RL with Linear Function Approximation. Moreover, the `count_to_weights_func` attribute of `Tabular` plays the role of the learning rate (as a function of the number of iterations in stochastic gradient descent). This becomes clear if we write Equation \eqref{eq:tabular-mc-update} in terms of parameter updates: write $V_n(s_i)$ as parameter value $w^{(n)}_i$ to denote the $n$-th update to parameter $w_i$ corresponding to state $s_i$, and write $f(n)$ as learning rate $\alpha_n$ for the $n$-th update to $w_i$.
+With this understanding, we can view Tabular RL as a special case of RL with Linear Function Approximation. Moreover, the `count_to_weight_func` attribute of `Tabular` plays the role of the learning rate (as a function of the number of iterations in stochastic gradient descent). This becomes clear if we write Equation \eqref{eq:tabular-mc-update} in terms of parameter updates: write $V_n(s_i)$ as parameter value $w^{(n)}_i$ to denote the $n$-th update to parameter $w_i$ corresponding to state $s_i$, and write $f(n)$ as learning rate $\alpha_n$ for the $n$-th update to $w_i$.
 
 $$w^{(n)}_i = w^{(n-1)}_i + \alpha_n \cdot (Y^{(n)}_i - w^{(n-1)}_i)$$
 
-So, the change in parameter $w_i$ for state $s_i$ is $\alpha_n$ times $Y^{(n)}_i - w^{(n-1)}_i$. We observe that $Y^{(n)}_i - w^{(n-1)}_i$ represents the gradient of the loss function for the data point $(s_i, Y^{(n)}_i)$ in the case of linear function approximation with features as indicator variables (for each state). This is because the loss function for the data point $(s_i, Y^{(n)}_i)$ is $\frac 1 2 \cdot (Y^{(n)}_i - \sum_{j=1}^m \phi_j(s_i) \cdot w_j)^2$ which reduces to $\frac 1 2 \cdot (Y^{(n)}_i - w^{(n-1)}_i)^2$, whose gradient in the direction of $w_i$ is $Y^{(n)}_i - w^{(n-1)}_i$ and 0 in the other directions (for $j \neq i$). So we see that `Tabular` updates are basically a special case of `LinearFunctionApprox` updates if we set the features to be indicator functions for each of the states (with `count_to_weights_func` playing the role of the learning rate).
+So, the change in parameter $w_i$ for state $s_i$ is $\alpha_n$ times $Y^{(n)}_i - w^{(n-1)}_i$. We observe that $Y^{(n)}_i - w^{(n-1)}_i$ represents the gradient of the loss function for the data point $(s_i, Y^{(n)}_i)$ in the case of linear function approximation with features as indicator variables (for each state). This is because the loss function for the data point $(s_i, Y^{(n)}_i)$ is $\frac 1 2 \cdot (Y^{(n)}_i - \sum_{j=1}^m \phi_j(s_i) \cdot w_j)^2$ which reduces to $\frac 1 2 \cdot (Y^{(n)}_i - w^{(n-1)}_i)^2$, whose gradient in the direction of $w_i$ is $Y^{(n)}_i - w^{(n-1)}_i$ and 0 in the other directions (for $j \neq i$). So we see that `Tabular` updates are basically a special case of `LinearFunctionApprox` updates if we set the features to be indicator functions for each of the states (with `count_to_weight_func` playing the role of the learning rate).
 
-Now that you recognize that `count_to_weights_func` essentially plays the role of the learning rate and governs the importance given to the latest episode return relative to past episode returns, we want to point out that real-world situations are non-stationary in the sense that the environment typically evolves over a period of time and so, RL algorithms have to appropriately adapt to the changing environment. The way to adapt effectively is to have an element of "forgetfulness" of the past because if one learns about the distant past far too strongly in a changing environment, our predictions (and eventually control) would not be effective. So, how does an RL algorithm "forget"? Well, one can "forget" through an appropriate time-decay of the weights when averaging episode returns. If we set a constant learning rate $\alpha$ (in `Tabular`, this would correspond to `count_to_weights_func=lambda _: alpha`), we'd obtain "forgetfulness" with lower weights for old data points and higher weights for recent data points. This is because with a constant learning rate $\alpha$, Equation \eqref{eq:tabular-mc-estimate} reduces to:
+Now that you recognize that `count_to_weight_func` essentially plays the role of the learning rate and governs the importance given to the latest episode return relative to past episode returns, we want to point out that real-world situations are non-stationary in the sense that the environment typically evolves over a period of time and so, RL algorithms have to appropriately adapt to the changing environment. The way to adapt effectively is to have an element of "forgetfulness" of the past because if one learns about the distant past far too strongly in a changing environment, our predictions (and eventually control) would not be effective. So, how does an RL algorithm "forget"? Well, one can "forget" through an appropriate time-decay of the weights when averaging episode returns. If we set a constant learning rate $\alpha$ (in `Tabular`, this would correspond to `count_to_weight_func=lambda _: alpha`), we'd obtain "forgetfulness" with lower weights for old data points and higher weights for recent data points. This is because with a constant learning rate $\alpha$, Equation \eqref{eq:tabular-mc-estimate} reduces to:
 
 \begin{align*}
 V_n(s_i) & = \alpha \cdot Y^{(n)}_i + (1 - \alpha) \cdot \alpha \cdot Y^{(n-1)}_i + \ldots + (1-\alpha)^{n-1} \cdot \alpha \cdot Y^{(1)}_i \\
@@ -258,6 +283,71 @@ This prints the following:
  InventoryState(on_hand=1, on_order=1): -29.343}
 ```   
      
-We see that the Value Function computed by Tabular Monte-Carlo Prediction with 100000 episodes is within 0.005 of the exact Value Function.     
+We see that the Value Function computed by Tabular Monte-Carlo Prediction with 100000 episodes is within 0.005 of the exact Value Function.
+
+This completes the coverage of our first RL Prediction algorithm: Monte-Carlo Prediction. This has the advantage of being a very simple and easy-to-understand algorithm but this algorithm is notoriously slow to converge to the correct Value Function and another disadvantage of Monte-Carlo is that it requires complete episodes. The next RL Prediction algorithm we cover (Temporal-Difference Prediction) overcomes these weaknesses.
      
-Chapter in Progress …      
+### Temporal-Difference (TD) Prediction
+
+To understand Temporal-Difference (TD) Prediction, we start with it's Tabular version as it is simple to understand (and then we can generalize to TD Prediction with Function Approximation). To understand Tabular TD prediction, we begin by taking another look at the Value Function update in Tabular Monte-Carlo (MC) Prediction.
+
+$$V(S_t) \leftarrow V(S_t) + \alpha \cdot (G_t - V(S_t))$$
+
+where $S_t$ is the state visited at time step $t$ in the current episode and $G_t$ is the episode return obtained from time step $t$ onwards, and $\alpha$ denotes the learning rate (based on `count_to_weight_func`). The key is moving from MC to TD is to take advantage of the recursive structure of the Value Function as given by the MRP Bellman Equation (Equation \eqref{eq:mrp_bellman_eqn}). Although we only have samples and not the transition probabilities, we can approximate $G_t$ as reward $R_{t+1}$ plus $\gamma$ times $V(S_{t+1}) where $R_{t+1}$ and $S_{t+1}$ are the pair of next reward and next state in the episode. The idea is to re-use (the technical term we use is *bootstrap*) the Value Function that is currently estimated. Clearly, this is a biased estimate of the Value Function meaning the update to the Value Function for $S_t$ will be biased. But the bias disadvantage is outweighed by the reduction in variance (which we will discuss ore about later), by the significant speedup in convergence (bootstrapping is our friend here), and by the fact that we don't actually need entire episodes (again, bootstrapping is our friend here). So, the update for Tabular TD Prediction is:
+
+$$V(S_t) \leftarrow V(S_t) + \alpha \cdot (R_{t+1} + \gamma \cdot V(S_{t+1}) - V(S_t))$$
+
+We refer to $R_{t+1} + \gamma \cdot V(S_{t+1})$ as the TD target and we refer to $\delta_t = R_{t+1} + \gamma \cdot V(S_{t+1}) - V(S_t))$ as the TD error. The TD error is the crucial quantity since it represents the "sample Bellman Error" and hence, the TD error can be used to move $V(S_t)$ appropriately (as shown in the above adjustment to $V(S_t)$) to bridge the TD error (on an expected basis).
+
+An important practical advantage of TD is that (unlike MC) we can use it in situations where we have incomplete episodes (happens often in real-world situations where experiments gets curtailed/disrupted) and also, we can use it in situations where there are no terminal states (known as *non-episodic* or *continuing* sequences). The other appealing thing about TD is that it is learning (updating Value Function) after each transition (we call it *continuous learning*) versus MC's learning at the end of episodes.
+
+Now that we understand how TD Prediction works for the Tabular case, let's consider TD Prediction with Function Approximation. Here, each time we transition from a state $S_t$ to state $S_{t+1}$ with reward $R_{t+1}$, we make an update to the parameters of the function approximation. To understand how the parameters of the function approximation will update, let's consider the loss function for TD. We start with the single-state loss function for MC (Equation \eqref{eq:mc-funcapprox-loss-function}) and simply replace $G_t$ with $R_{t+1} + \gamma \cdot V(S_{t+1}, \bm{w})$ as follows:
+
+\begin{equation}
+\mathcal{L}_{(S_t,S_{t+1},R_{t+1})}(\bm{w}) = \frac 1 2 \cdot (V(S_t;\bm{w}) - (R_{t+1} + \gamma \cdot V(S_{t+1}; \bm{w})))^2
+\label{eq:td-funcapprox-loss-function}
+\end{equation}
+
+Unlike MC, in the case of TD, we don't take the gradient of this loss function. Instead we "cheat" in the gradient calculation by ignoring the dependency of $V(S_{t+1}; \bm{w})$ on $\bm{w}$. This "gradient with cheating" calculation is known as *semi-gradient*. Specifically, we pretend that the only dependency of the loss function on $\bm{w}$ is through $V(S_t; \bm{w})$. Hence, the semi-gradient calculation results in the following formula for change in parameters $\bm{w}$:
+
+\begin{equation}
+\Delta \bm{w} = \alpha \cdot (R_{t+1} + \gamma \cdot V(S_{t+1};\bm{w}) - V(S_t;\bm{w})) \cdot \nabla_{\bm{w}} V(S_t;\bm{w})
+\label{eq:td-funcapprox-params-adj}
+\end{equation}
+
+This looks similar to the formula for parameters update in the case of MC (with $G_t$ replaced by $R_{t+1} + \gamma \cdot V(S_{t+1}; \bm{w}))$. Hence, this has the same structure as MC in terms of conceptualizing the change in parameters as the product of the following 3 entities:
+
+* *Learning Rate* $\alpha$
+* *TD Error* $R_{t+1} + \gamma \cdot V(S_{t+1}; \bm{w}) - V(S_t); \bm{w})$
+* *Estimate Gradient* of the conditional expected return $V(S_t;\bm{w})$ with respect to the parameters $\bm{w}$
+
+Now let's write some code to implement TD Prediction (with Function Approximation).
+
+```python
+def td_0(
+        mrp: MarkovRewardProcess[S],
+        states: Distribution[S],
+        approx_0: FunctionApprox[S],
+        γ: float,
+        episode_length: int
+) -> Iterator[FunctionApprox[S]]:
+    v = approx_0
+
+    while True:
+        episode = itertools.islice(
+            iter(mrp.simulate_reward(states)),
+            episode_length
+        )
+
+        for step in episode:
+            diff = v.evaluate([step.next_state]) - v.evaluate([step.state])
+            v = v.update([(step.state, step.reward + γ * diff)])
+            yield v
+```
+
+### TD versus MC
+
+We view TD as a significant innovation in AI in the sense that the TD technique is akin to how humans learn (versus MC). Let us illustrate this point with how a soccer player learns when playing soccer. Let's simplify the soccer game to a "sudden-death" soccer game, i.e., the game ends when a team scores a goal (goal-scoring team wins the game). The reward in such a soccer game is +1 for scoring (and winning), 0 if the opponent scores, and also 0 for the entire duration of the game. The soccer player who is learning has a state comprising of the player's position/velocity/posture etc., the other players' positions/velocity etc.. The actions of the soccer player are the physical movements of the soccer player, including the ways to dribble/kick the ball. If the soccer player were learning in an MC style (an episode is a particular soccer game), then the soccer player analyzes all possible states and actions during the game, assesses how the actions in each state affected the final outcome of the game. You can see how laborious and hard this correspondence can be, and you might even argue that it's impossible to link actions during the game to the game's outcome. In any case, you see that this is absolutely not how a soccer player would learn. Rather, a soccer player is continuously evaluating how her actions change the probability of scoring the goal (which is essentially the Value Function). If a pass to one's teammate did not result in a game but greatly increased the chances of scoring a goal (from the state following the pass), then the action of passing the ball to one's teammate in that state is a good action and is strengthened. So if that situation happens again in the game, the soccer player would likely make a similar pass and might result in a goal. That would be hailed by commentators as "success from continuous learning" on the part of the soccer player. This is essentially TD learning.
+
+
+
