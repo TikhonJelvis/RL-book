@@ -198,11 +198,8 @@ class MarkovRewardProcess(MarkovProcess[S]):
         self,
         start_state_distribution: Distribution[S]
     ) -> Iterable[TransitionStep[S]]:
-        '''Simulate the MRP, yielding the new state and reward for each
-        transition.
-
-        The trace starts with the start state and a reward of 0.
-
+        '''Simulate the MRP, yielding an Iterable of
+        (state, next state, reward) for each sampled transition.
         '''
 
         state: S = start_state_distribution.sample()
