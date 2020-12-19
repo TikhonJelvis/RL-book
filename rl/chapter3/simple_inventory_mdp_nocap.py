@@ -1,12 +1,12 @@
 from dataclasses import dataclass
-from typing import Tuple, Sequence, Iterator
+from typing import Tuple, Iterator
 import itertools
 import numpy as np
 from scipy.stats import poisson
 import random
 
 from rl.markov_decision_process import MarkovDecisionProcess
-from rl.markov_process import MarkovRewardProcess, TransitionStep
+from rl.markov_process import MarkovRewardProcess
 from rl.markov_decision_process import Policy
 from rl.distribution import Constant, SampledDistribution
 

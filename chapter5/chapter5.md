@@ -84,7 +84,8 @@ import itertools
     ) -> Iterator[FunctionApprox[X]]:
         return itertools.accumulate(
             xy_seq_stream,
-            lambda fa, xy: fa.update(xy), initial=self
+            lambda fa, xy: fa.update(xy),
+            initial=self
         )
 ```
 
@@ -584,8 +585,8 @@ class DNNApprox(FunctionApprox[X]):
                  for i, n in enumerate(dnn_spec.neurons)]
             outputs: Sequence[int] = dnn_spec.neurons + [1]
             wts = [Weights.create(
-                adam_gradient,
-                np.random.randn(output, inp) / np.sqrt(inp)
+                weights=np.random.randn(output, inp) / np.sqrt(inp),
+                adam_gradient=adam_gradient
             ) for inp, output in zip(inputs, outputs)]
         else:
             wts = weights
