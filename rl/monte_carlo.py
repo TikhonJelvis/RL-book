@@ -7,9 +7,9 @@ from typing import Iterable, Iterator, Tuple, TypeVar
 
 from rl.distribution import Distribution
 from rl.function_approx import FunctionApprox
+import rl.markov_process as mp
 import rl.markov_decision_process as markov_decision_process
-from rl.markov_decision_process import (MarkovRewardProcess,
-                                        MarkovDecisionProcess)
+from rl.markov_decision_process import (MarkovDecisionProcess)
 from rl.returns import returns
 
 S = TypeVar('S')
@@ -17,8 +17,7 @@ A = TypeVar('A')
 
 
 def evaluate_mrp(
-        mrp: MarkovRewardProcess[S],
-        states: Distribution[S],
+        traces: Iterable[Iterable[mp.TransitionStep[S]]],
         approx_0: FunctionApprox[S],
         γ: float,
         tolerance: float = 1e-6
@@ -30,8 +29,7 @@ def evaluate_mrp(
     function for the MRP after one additional epsiode.
 
     Arguments:
-      mrp -- the Markov Reward Process to evaluate
-      states -- distribution of states to start episodes from
+      traces -- an iterator of simulation traces from an MRP
       approx_0 -- initial approximation of value function
       γ -- discount rate (0 < γ ≤ 1), default: 1
       tolerance -- a small value—we stop iterating once γᵏ ≤ tolerance
@@ -40,12 +38,12 @@ def evaluate_mrp(
     function after each episode.
 
     '''
-    v = approx_0
+    episodes = (returns(trace, γ, tolerance) for trace in traces)
 
-    for trace in mrp.reward_traces(states):
-        steps = returns(trace, γ, tolerance)
-        v = v.update((step.state, step.return_) for step in steps)
-        yield v
+    return approx_0.iterate_updates(
+        ((step.state, step.return_) for step in episode)
+        for episode in episodes
+    )
 
 
 def evaluate_mdp(
