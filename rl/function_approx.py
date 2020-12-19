@@ -194,7 +194,7 @@ class Tabular(FunctionApprox[X]):
 
         If an X has not been seen before, will return 0.0.
         '''
-        return np.array([self.values_map[x] for x in x_values_seq])
+        return np.array([self.values_map.get(x, 0.) for x in x_values_seq])
 
     def update(self, xy_vals_seq: Iterable[Tuple[X, float]]) -> Tabular[X]:
         '''Update the approximation with the given points.
