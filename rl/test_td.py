@@ -10,7 +10,6 @@ from rl.markov_process import FiniteMarkovRewardProcess
 import rl.markov_process as mp
 from rl.markov_decision_process import FiniteMarkovDecisionProcess
 import rl.markov_decision_process as mdp
-import rl.td as td
 
 
 class FlipFlop(FiniteMarkovRewardProcess[bool]):
