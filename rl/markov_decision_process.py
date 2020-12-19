@@ -1,11 +1,17 @@
+from __future__ import annotations
+
 from abc import ABC, abstractmethod
 from collections import defaultdict
+from dataclasses import dataclass
 from typing import (DefaultDict, Dict, Iterable, Generic, Mapping,
                     Tuple, Sequence, TypeVar, Optional)
-from rl.distribution import (Constant, Categorical, Distribution,
-                             FiniteDistribution)
+from rl.distribution import (Bernoulli, Constant, Categorical, Choose,
+                             Distribution, FiniteDistribution)
+from rl.function_approx import (FunctionApprox)
+
 from rl.markov_process import (
-    FiniteMarkovRewardProcess, MarkovRewardProcess, StateReward)
+    FiniteMarkovRewardProcess, MarkovRewardProcess, StateReward
+)
 
 A = TypeVar('A')
 S = TypeVar('S')
@@ -61,6 +67,43 @@ class FinitePolicy(Policy[S, A]):
         return self.policy_map.keys()
 
 
+@dataclass(frozen=True)
+class TransitionStep(Generic[S, A]):
+    '''A single step in the simulation of an MDP, containing:
+
+    state -- the state we start from
+    action -- the action we took at that state
+    next_state -- the state we ended up in after the action
+    reward -- the instantaneous reward we got for this transition
+    '''
+    state: S
+    action: A
+    next_state: S
+    reward: float
+
+    def add_return(self, γ: float, return_: float) -> ReturnStep[S, A]:
+        '''Given a γ and the return from 'next_state', this annotates the
+        transition with a return for 'state'.
+
+        '''
+        return ReturnStep(
+            self.state,
+            self.action,
+            self.next_state,
+            self.reward,
+            return_=self.reward + γ * return_
+        )
+
+
+@dataclass(frozen=True)
+class ReturnStep(TransitionStep[S, A]):
+    '''A Transition that also contains the total *return* for its starting
+    state.
+
+    '''
+    return_: float
+
+
 class MarkovDecisionProcess(ABC, Generic[S, A]):
     def apply_policy(self, policy: Policy[S, A]) -> MarkovRewardProcess[S]:
         mdp = self
@@ -70,7 +113,7 @@ class MarkovDecisionProcess(ABC, Generic[S, A]):
                 self,
                 state: S
             ) -> Optional[Distribution[Tuple[S, float]]]:
-                actions = policy.act(state)
+                actions: Optional[Distribution[A]] = policy.act(state)
 
                 if actions is None:
                     return None
@@ -108,6 +151,78 @@ class MarkovDecisionProcess(ABC, Generic[S, A]):
         action: A
     ) -> Optional[Distribution[Tuple[S, float]]]:
         pass
+
+    def simulate_actions(
+            self,
+            start_states: Distribution[S],
+            policy: Policy[S, A]
+    ) -> Iterable[TransitionStep[S, A]]:
+        '''Simulate this MDP with the given policy, yielding the
+        sequence of (states, action, next state, reward) 4-tuples
+        encountered in the simulation trace.
+
+        '''
+        state: S = start_states.sample()
+        reward: float = 0
+
+        while True:
+            action_distribution = policy.act(state)
+            if action_distribution is None:
+                return
+
+            action = action_distribution.sample()
+            next_distribution = self.step(state, action)
+            if next_distribution is None:
+                return
+
+            next_state, reward = next_distribution.sample()
+            yield TransitionStep(state, action, next_state, reward)
+            state = next_state
+
+    def action_traces(
+            self,
+            start_states: Distribution[S],
+            policy: Policy[S, A]
+    ) -> Iterable[Iterable[TransitionStep[S, A]]]:
+        '''Yield an infinite number of traces as returned by
+        simulate_actions.
+
+        '''
+        while True:
+            yield self.simulate_actions(start_states, policy)
+
+
+def policy_from_q(
+        q: FunctionApprox[Tuple[S, A]],
+        mdp: MarkovDecisionProcess[S, A],
+        ϵ: float = 0.0
+) -> Policy[S, A]:
+    '''Return a policy that chooses the action that maximizes the reward
+    for each state in the given Q function.
+
+    Arguments:
+      q -- approximation of the Q function for the MDP
+      mdp -- the process for which we're generating a policy
+      ϵ -- the fraction of the actions where we explore rather
+      than following the optimal policy
+
+    Returns a policy based on the given Q function.
+
+    '''
+    explore = Bernoulli(ϵ)
+
+    class QPolicy(Policy[S, A]):
+        def act(self, s: S) -> Optional[Distribution[A]]:
+            if mdp.is_terminal(s):
+                return None
+
+            if explore.sample():
+                return Choose(set(mdp.actions(s)))
+
+            _, action = q.argmax((s, a) for a in mdp.actions(s))
+            return Constant(action)
+
+    return QPolicy()
 
 
 ActionMapping = Mapping[A, StateReward[S]]

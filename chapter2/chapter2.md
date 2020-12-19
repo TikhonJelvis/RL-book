@@ -1,12 +1,14 @@
-# Markov Processes {#sec:mrp-chapter}
+# Processes and Planning Algorithms
+
+## Markov Processes {#sec:mrp-chapter}
 
 This book is about "Sequential Decisioning under Sequential Uncertainty". In this chapter, we will ignore the "sequential decisioning" aspect and focus just on the "sequential uncertainty" aspect.
 
-## The Concept of *State* in a Process
+### The Concept of *State* in a Process
 
 For a gentle introduction to the concept of *State*, we start with an informal notion of the terms *Process* and *State* (this will be formalized later in this chapter). Informally, think of a Process as producing a sequence of random outcomes at discrete time steps that we'll index by a time variable $t = 0, 1, 2, \ldots$. The random outcomes produced by a process might be key financial/trading/business metrics one cares about, such as prices of financial derivatives or the value of a portfolio held by an investor. To understand and reason about the evolution of these random outcomes of a process, it is beneficial to focus on the internal representation of the process at each point in time $t$, that is fundamentally responsible for driving the outcomes produced by the process. We refer to this internal representation of the process at time $t$ as the (random) *state* of the process at time $t$ and denote it as $S_t$. Specifically, we are interested in the probability of the next state $S_{t+1}$, given the present state $S_t$ and the past states $S_0, S_1, \ldots, S_{t-1}$, i.e., $\mathbb{P}[S_{t+1}|S_t, S_{t-1}, \ldots, S_0]$. So to clarify, we distinguish between the internal representation (*state*) and the output (outcomes) of the Process. The *state* could be any data type - it could be something as simple as the daily closing price of a single stock, or it could be something quite elaborate like the number of shares of each publicly traded stock held by each bank in the U.S., as noted at the end of each week. 
 
-## Understanding Markov Property from Stock Price Examples
+### Understanding Markov Property from Stock Price Examples
 
 We will be learning about Markov Processes in this chapter and these processes have *States* that possess a property known as the *Markov Property*. So we will now learn about the *Markov Property of States*. Let us develop some intuition for this property with some examples of random evolution of stock prices over time. 
 
@@ -25,7 +27,7 @@ We can model the state $S_t = X_t$ and note that the probabilities of the next s
 $$\mathbb{P}[S_{t+1}|S_t, S_{t-1}, \ldots, S_0] = \mathbb{P}[S_{t+1}|S_t]\text{ for all } t \geq 0$$
 This is a highly desirable property since it helps make the mathematics of such processes much easier and the computations much more tractable. We call this the *Markov Property* of States, or simply that these are *Markov States*. 
 
- Let us now code this up. First, we will create a dataclass to represent the dynamics of this process. As you can see in the code below, the dataclass `Process1` contains two data members `level_param: int` and `alpha1: float = 0.25` to represent $L$ and $\alpha_1$ respectively. It contains the method `up_prob` to calculate $\mathbb{P}[X_{t+1} = X_t + 1]$ and the method `next_state`, which samples from a Bernoulli distribution (whose probability is obtained from the method `up_prob`) and creates the next state $S_{t+1}$ from the current state $S_t$. Also, note the nested dataclass `State` meant to represent the state of Process 1 (it's only data member `price: int` reflects the fact that the state consists of only the current price, which is an integer).
+ Let us now code this up. First, we will create a dataclass to represent the dynamics of this process. As you can see in the code below, the dataclass `Process1` contains two attributes `level_param: int` and `alpha1: float = 0.25` to represent $L$ and $\alpha_1$ respectively. It contains the method `up_prob` to calculate $\mathbb{P}[X_{t+1} = X_t + 1]$ and the method `next_state`, which samples from a Bernoulli distribution (whose probability is obtained from the method `up_prob`) and creates the next state $S_{t+1}$ from the current state $S_t$. Also, note the nested dataclass `State` meant to represent the state of Process 1 (it's only attribute `price: int` reflects the fact that the state consists of only the current price, which is an integer).
 
 
 ```python
@@ -236,7 +238,7 @@ As suggested for Process 1, you can plot graphs of simulation traces of the stoc
 
 Having developed the intuition for the Markov Property of States, we are now ready to formalize the notion of Markov Processes (some of the literature refers to Markov Processes as Markov Chains, but we will stick with the term Markov Processes).
 
-## Formal Definitions for Markov Processes
+### Formal Definitions for Markov Processes
 
 Our formal definitions in this book will be restricted to Discrete-Time Markov Processes, where time moves forward in discrete time steps $t=0, 1, 2, \ldots$. Also for ease of exposition, our formal definitions in this book will be restricted to state spaces that are [countable](https://en.wikipedia.org/wiki/Countable_set). A countable set can be either a finite set or an infinite set of the same cardinality as the set of natural numbers (uncountable sets are those with cardinality larger than the set of natural numbers, eg: the set of real numbers). This book will cover examples of continuous-time Markov Processes, where time is a continuous variable (this leads to stochastic calculus, which is the foundation of some of the ground-breaking work in Mathematical Finance). This book will also cover examples of state spaces that are uncountable. However, for ease of exposition, our definitions and development of the theory in this book will be restricted to discrete-time and countable state spaces. The definitions and theory can be analogously extended to continuous-time or to uncountable state spaces (we request you to self-adjust the definitions and theory accordingly when you encounter continuous-time or uncountable spaces in this book).
 
@@ -262,7 +264,7 @@ Note that this specification is devoid of the time index $t$ (hence, the term *S
 
 The classical definitions and theory of Markov Processes model "termination" with the idea of *Absorbing States*. A state $s$ is called an absorbing state if $\mathcal{P}(s,s) = 1$. This means, once we reach an absorbing state, we are "trapped" there, hence capturing the notion of "termination". So the classical definitions and theory of Markov Processes typically don't include an explicit specification of states as terminal and non-terminal. However, when we get to Markov Reward Processes and Markov Decision Processes (frameworks that are extensions of Markov Processes), we will need to explicitly specify states as terminal and non-terminal states, rather than model the notion of termination with absorbing states. So, for consistency in definitions and in the development of the theory, we are going with a framework where states in a Markov Process are explicitly specified as terminal or non-terminal states. We won't consider an absorbing state as a terminal state as the Markov Process keeps moving forward in time forever when it gets to an absorbing states. We will refer to $\mathcal{S} - \mathcal{T}$ as the set of Non-Terminal States $\mathcal{N}$ (and we will refer to a state in $\mathcal{N}$ as a non-terminal state). The sequence $S_0, S_1, S_2, \ldots$ terminates at time step $t=T$ if $S_T \in \mathcal{T}$.
 
-### Starting States
+#### Starting States
 
 Now it's natural to ask the question: How do we "start" the Markov Process (in the stock price examples, this was the notion of the start state)? More generally, we'd like to specify a probability distribution of start states so we can perform simulations and (let's say) compute the probability distribution of states at specific future time steps. While this is a relevant question, we'd like to separate the following two specifications:
 
@@ -273,7 +275,7 @@ We say that a Markov Process is fully specified by $\mathcal{P}$ in the sense th
 
  Thinking about the separation between specifying the rules of the game versus actually playing the game helps us understand the need to separate the notion of dynamics specification $\mathcal{P}$ (fundamental to the stationary character of the Markov Process) and the notion of starting distribution $\mu$ (required to perform simulation traces). Hence, the separation of concerns between $\mathcal{P}$ and $\mu$ is key to the conceptualization of Markov Processes. Likewise, we separate concerns in our code design as well, as evidenced by how we separated the ``next_state`` method in the Process dataclasses and the ``simulation`` function.
 
-### Terminal States
+#### Terminal States
 
 Games are examples of Markov Processes that terminate at specific states (based on rules for winning or losing the game). In general, in a Markov Process, termination might occur after a variable number of time steps (like in the games examples), or like we will see in many financial application examples, termination might occur after a fixed number of time steps, or like in the stock price examples we saw earlier, there is in fact no termination.
 
@@ -306,12 +308,12 @@ class MarkovProcess(ABC, Generic[S]):
             yield state
             next_states = self.transition(state)
             if next_states is None:
-                break
-            else:
-                state = next_states.sample()
+                return
+
+            state = next_states.sample()
 ```
 
-## Stock Price Examples modeled as Markov Processes
+### Stock Price Examples modeled as Markov Processes
 
 So if you have a mathematical specification of the transition probabilities of a Markov Process, all you need to do is to create a concrete class that implements the interface of the abstract class `MarkovProcess` (specifically by implementing the  `@abstractmethod transition`) in a manner that captures your mathematical specification of the transition probabilities. Let us write this for the case of Process 3 (the 3rd example of stock price transitions we covered in the previous section). We will name the concrete class as `StockPriceMP3` (note that it's a `@dataclass` for convenience and simplicity). Note that the generic state space `S` is now replaced with a specific state space represented by the type `@dataclass StateMP3`. The code should be self-explanatory since we implemented this process as a standalone in the previous section. Note the use of the `Categorical` distribution in the `transition` method to capture the 2-outcomes distribution of next states (for movements up or down).
 
@@ -373,7 +375,7 @@ def process3_price_traces(
 
 We leave it to you as an exercise to similarly implement Stock Price Processes 1 and 2 that we had covered in the previous section. The complete code along with the driver to set input parameters, run all 3 processes and create plots is in the file [rl/chapter2/stock_price_mp.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/chapter2/stock_price_mp.py). We encourage you to change the input parameters in `__main__` and get an intuitive feel for how the simulation results vary with the changes in parameters.
 
-## Finite Markov Processes
+### Finite Markov Processes
 
 Now let us consider Markov Processes with a finite state space. So we can represent the state space as $\mathcal{S} = \{s_1, s_2, \ldots, s_n\}$. Assume the set of non-terminal states $\mathcal{N}$ has $m\leq n$ states. Let us refer to Markov Processes with finite state spaces as Finite Markov Processes. Since Finite Markov Processes are a subclass of Markov Processes, it would make sense to create a concrete class `FiniteMarkovProcess` that implements the interface of the abstract class `MarkovProcess` (specifically implement the `@abstractmethod transition`). But first let's think about the data structure required to specify an instance of a `FiniteMarkovProcess` (i.e., the data structure we'd pass to the `__init__` method of `FiniteMarkovProcess`). One choice is a $m \times n$ 2D numpy array representation, i.e., matrix elements representing transition probabilities
 $$\mathcal{P} : \mathcal{N} \times \mathcal{S} \rightarrow [0, 1]$$
@@ -400,7 +402,7 @@ It is common to view this as a directed graph, as depicted in Figure \ref{fig:we
 ![Weather Markov Process \label{fig:weather_mp}](./chapter2/weather_mp.png "Weather Markov Process")
 </div>
 
-Now we are ready to write the code for the `FiniteMarkovProcess` class. The `__init__` method (constructor) takes as argument a `transition_map: Transition[S]` as we had described above. Along with the attribute `transition_map`, we also have an attribute `non_terminal_states: Sequence[S]` that is an ordered sequence of the non-terminal states. We implement the `transition` method by simply returning the `Optional[FiniteDistribution]` the given `state: S` maps to in the attribute `self.transition_map: Transition[S]`. Note that along with the `transition` method, we have implemented the `__repr__` method for a well-formatted display of `self.transition_map`.
+Now we are ready to write the code for the `FiniteMarkovProcess` class. The `__init__` method (constructor) takes as argument a `transition_map: Transition[S]` as we had described above. Along with the attribute `transition_map`, we also have an attribute `non_terminal_states: Sequence[S]` that is an ordered sequence of the non-terminal states. We implement the `transition` method by simply returning the `Optional[FiniteDistribution]` the given `state: S` maps to in the attribute `self.transition_map: Transition[S]`. Note that along with the `transition` method, we have implemented the `__repr__` method for a well-formatted display of `self.transition_map` and a method `states` that returns an `Iterable` enumerating the set of finite states in the `FiniteMarkovProcess`.
 
 ```python
 class FiniteMarkovProcess(MarkovProcess[S]):
@@ -428,11 +430,14 @@ class FiniteMarkovProcess(MarkovProcess[S]):
 
     def transition(self, state: S) -> Optional[FiniteDistribution[S]]:
         return self.transition_map[state]
+
+    def states(self) -> Iterable[S]:
+        return self.transition_map.keys()
 ```
 
 The above code is in the file [rl/markov_process.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/markov_process.py).
 
-## Simple Inventory Example
+### Simple Inventory Example
 
 To help conceptualize Finite Markov Processes, let us consider a simple example of changes in inventory at a store. Assume you are the store manager and that you are tasked with controlling the ordering of inventory from a supplier. Let us focus on the inventory of a particular type of bicycle. Assume that each day there is random (non-negative integer) demand for the bicycle with the probabilities of demand following a Poisson distribution (with Poisson parameter $\lambda \in \mathbb{R}_{\geq 0}$), i.e. demand $i$ for each $i = 0, 1, 2, \ldots$ occurs with probability
 $$f(i) = \frac {e^{-\lambda} \lambda^i} {i!}$$
@@ -552,7 +557,7 @@ We can perform a number of interesting experiments and calculations with this si
 
 There is a rich and interesting theory for Markov Processes. However, we will not get into this theory as our coverage of Markov Processes so far is a sufficient building block to take us to the incremental topics of Markov Reward Processes and Markov Decision Processes. However, before we move on, we'd like to show just a glimpse of the rich theory with the calculation of *Stationary Probabilities* and apply it to the case of the above simple inventory Markov Process.
 
-## Stationary Distribution of a Markov Process
+### Stationary Distribution of a Markov Process
 \begin{definition} 
  The {\em Stationary Distribution} of a (Stationary) Markov Process with state space $\mathcal{S} = \mathcal{N}$ and transition probability function $\mathcal{P}: \mathcal{N} \times \mathcal{N} \rightarrow [0, 1]$ is a probability distribution function $\pi: \mathcal{N} \rightarrow [0, 1]$ such that:
   $$\pi(s) = \sum_{s'\in \mathcal{N}} \pi(s) \cdot \mathcal{P}(s', s) \text{ for all } s \in \mathcal{N}$$
@@ -622,7 +627,7 @@ Let us summarize the 3 different representations we've covered:
 
 Now we are ready to move to our next topic of *Markov Reward Processes*. We'd like to finish this section by stating that the Markov Property owes its name to a mathematician from a century ago - [Andrey Markov](https://en.wikipedia.org/wiki/Andrey_Markov). Although the Markov Property seems like a simple enough concept, the concept has had profound implications on our ability to compute or reason with systems involving time-sequenced uncertainty in practice.
 
-## Formalism of Markov Reward Processes
+### Formalism of Markov Reward Processes
 
 As we've said earlier, the reason we covered Markov Processes is because we want to make our way to Markov Decision Processes (the framework for Reinforcement Learning algorithms) by adding incremental features to Markov Processes. Now we cover an intermediate framework between Markov Processes and Markov Decision Processes, known as Markov Reward Processes. We essentially just include the notion of a numerical *reward* to a Markov Process each time we transition from one state to the next. These rewards will be random, and all we need to do is to specify the probability distributions of these rewards as we make state transitions. 
 
@@ -652,9 +657,17 @@ The subsection on *Start States* we had covered for Markov Processes naturally a
 
 If all random sequences of states in a Markov Reward Process terminate, we refer to it as *episodic* sequences (otherwise, we refer to it as *continuing* sequences). 
 
-Let's write some code that captures this formalism. We create a derived *abstract* class `MarkovRewardProcess` that inherits from the abstract class `MarkovProcess`. Analogous to `MarkovProcess`'s `@abstractmethod transition` (that represents $\mathcal{P}$), `MarkovRewardProcess` has an `@abstractmethod transition_reward` that represents $\mathcal{P}_R$. Note that the return type of `transition_reward` is `Optional[Distribution[Tuple[S, float]]]` which means it returns `None` for a terminal `state: S` and it returns `Distribution[Tuple[S, float]]` for a non-terminal `state: S`, representing the probability distribution of (next state, reward) pairs transitioned to. Also, analogous to `MarkovProcess`'s `simulate` method, `MarkovRewardProcess` has the method `simulate_reward` which returns an `Iterable` of `Tuple[S, float]`, i.e., a stream of (state, reward) pairs. Here's the actual code:
+Let's write some code that captures this formalism. We create a derived *abstract* class `MarkovRewardProcess` that inherits from the abstract class `MarkovProcess`. Analogous to `MarkovProcess`'s `@abstractmethod transition` (that represents $\mathcal{P}$), `MarkovRewardProcess` has an `@abstractmethod transition_reward` that represents $\mathcal{P}_R$. Note that the return type of `transition_reward` is `Optional[Distribution[Tuple[S, float]]]` which means it returns `None` for a terminal `state: S` and it returns `Distribution[Tuple[S, float]]` for a non-terminal `state: S`, representing the probability distribution of (next state, reward) pairs transitioned to.
+
+Also, analogous to `MarkovProcess`'s `simulate` method, `MarkovRewardProcess` has the method `simulate_reward` which generates a stream of `TransitionStep` objects. Each `TransitionStep` object consists of a 3-tuple: (state, next state, reward) representing the sampled transitions from the states visited in the generated simulation trace. Here's the actual code:
 
 ```python
+@dataclass(frozen=True)
+class TransitionStep(Generic[S]):
+    state: S
+    next_state: S
+    reward: float
+
 class MarkovRewardProcess(MarkovProcess[S]):
 
     @abstractmethod
@@ -665,17 +678,19 @@ class MarkovRewardProcess(MarkovProcess[S]):
     def simulate_reward(
         self,
         start_state_distribution: Distribution[S]
-    ) -> Iterable[Tuple[S, float]]:
+    ) -> Iterable[TransitionStep[S]]:
         state: S = start_state_distribution.sample()
         reward: float = 0.
 
         while True:
-            yield state, reward
             next_distribution = self.transition_reward(state)
             if next_distribution is None:
-                break
-            else:
-                state, reward = next_distribution.sample()
+                return
+
+            next_state, reward = next_distribution.sample()
+            yield TransitionStep(state, next_state, reward)
+
+            state = next_state
 ```
 
 So the idea is that if someone wants to model a Markov Reward Process, they'd simply have to create a concrete class that implements the interface of the abstract class `MarkovRewardProcess` (specifically implement the `@abstractmethod transition_reward`). But note that the `@abstractmethod transition` of `MarkovProcess` also needs to be implemented to make the whole thing concrete. However, we don't have to implement it in the concrete class implementing the interface of `MarkovRewardProcess` - in fact, we can implement it in the `MarkovRewardProcess` class itself by tapping the method `transition_reward`. Here's the code for the `transition` method in `MarkovRewardProcess`:
@@ -687,12 +702,12 @@ from rl.distribution import SampledDistribution
         distribution = self.transition_reward(state)
         if distribution is None:
             return None
-        else:
-            def next_state(distribution=distribution):
-                next_s, _ = distribution.sample()
-                return next_s
 
-            return SampledDistribution(next_state)
+        def next_state(distribution=distribution):
+            next_s, _ = distribution.sample()
+            return next_s
+
+        return SampledDistribution(next_state)
 ```
 
 Note that since the `transition_reward` method is abstract in `MarkovRewardProcess`, the only thing the `transition` method can do is tap the `sample` method of the abstract `Distribution` object produced by `transition_reward` and return a `SampledDistribution`. The full code for the `MarkovRewardProcess` class shown above is in the file [rl/markov_process.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/markov_process.py).
@@ -715,7 +730,7 @@ $$\mathcal{R}(s) = \mathbb{E}[R_{t+1}|S_t=s] = \sum_{s' \in \mathcal{S}} \mathca
 
 We've created a bit of notational clutter here. So it would be a good idea for you to take a few minutes to pause, reflect and internalize the differences between $\mathcal{P}_R$, $\mathcal{P}$ (of the implicit Markov Process), $\mathcal{R}_T$ and $\mathcal{R}$. This notation will analogously re-appear when we learn about Markov Decision Processes in Chapter [-@sec:mdp-chapter]. Moreover, this notation will be used considerably in the rest of the book, so it pays to get comfortable with their semantics.
 
-## Simple Inventory Example as a Markov Reward Process
+### Simple Inventory Example as a Markov Reward Process
 
 Now we return to the simple inventory example and embellish it with a reward structure to turn it into a Markov Reward Process (business costs will be modeled as negative rewards). Let us assume that your store business incurs two types of costs:
 
@@ -793,7 +808,7 @@ class SimpleInventoryMRP(MarkovRewardProcess[InventoryState]):
 
 The above code can be found in the file [rl/chapter2/simple_inventory_mrp.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/chapter2/simple_inventory_mrp.py). We leave it as an exercise for you to use the `simulate_reward` method inherited by `SimpleInventoryMRP` to perform simulations and analyze the statistics produced from the simulation traces.
 
-## Finite Markov Reward Processes
+### Finite Markov Reward Processes
 
 Certain calculations for Markov Reward Processes can be performed easily if:
 
@@ -858,7 +873,7 @@ class FiniteMarkovRewardProcess(FiniteMarkovProcess[S],
 
 The above code for `FiniteMarkovRewardProcess` (and more) is in the file [rl/markov_process.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/markov_process.py).   
 
-## Simple Inventory Example as a Finite Markov Reward Process
+### Simple Inventory Example as a Finite Markov Reward Process
 
 Now we'd like to model the simple inventory example as a Finite Markov Reward Process so we can take advantage of the algorithms that apply to Finite Markov Reward Processes. As we've noted previously, our ordering policy ensures that in steady-state, the sum of On-Hand (denote as $\alpha$) and On-Order (denote as $\beta$) won't exceed the capacity $C$. So we will constrain the set of states such that this condition is satisfied: $0 \leq \alpha + \beta \leq C$ (i.e., finite number of states). Although the set of states is finite, there are an infinite number of pairs of next state and reward outcomes possible from any given current state. This is because there are an infinite set of possibilities of customer demand on any given day (resulting in infinite possibilities of stockout cost, i.e., negative reward, on any day). To qualify as a Finite Markov Reward Process, we'll need to model in a manner such that we have a finite set of pairs of next state and reward outcomes from a given current state. So what we'll do is that instead of considering $(S_{t+1}, R_{t+1})$ as the pair of next state and reward, we will model the pair of next state and reward to instead be $(S_{t+1}, \mathbb{E}[R_{t+1}|(S_t, S_{t+1})])$ (we know $\mathcal{P}_R$ due to the Poisson probabilities of customer demand, so we can actually calculate this conditional expectation of reward). So given a state $s$, the pairs of next state and reward would be: $(s', \mathcal{R}_T(s, s'))$ for all the $s'$ we transition to from $s$. Since the set of possible next states $s'$ are finite, these newly-modeled rewards associated with the transitions ($\mathcal{R}_T(s,s')$) are also finite and hence, the set of pairs of next state and reward from any current state are also finite. Note that this creative alteration of the reward definition is purely to reduce this Markov Reward Process into a Finite Markov Reward Process. Let's now work out the calculation of the reward transition function $\mathcal{R}_T$.
 
@@ -930,7 +945,7 @@ class SimpleInventoryMRPFinite(FiniteMarkovRewardProcess[InventoryState]):
 The above code is in the file [rl/chapter2/simple_inventory_mrp.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/chapter2/simple_inventory_mrp.py)). We encourage you to play with the inputs to `SimpleInventoryMRPFinite` in `__main__` and view the transition probabilities and rewards of the constructed Finite Markov Reward Process.
 
 
-## Value Function of a Markov Reward Process
+### Value Function of a Markov Reward Process
 
 Now we are ready to formally define the main problem involving Markov Reward Processes. As we've said earlier, we'd like to compute the "expected accumulated rewards" from any non-terminal state. However, if we simply add up the rewards in a simulation trace following time step $t$ as $\sum_{i=t+1}^{\infty} R_i = R_{t+1} + R_{t+2} + \ldots$, the sum would often diverge to infinity. This is where the discount factor $\gamma$ comes into play. We define the (random) *Return* $G_t$ as the "discounted accumulation of future rewards" following time step $t$. Formally,
 $$G_t = \sum_{i=t+1}^{\infty} \gamma^{i-t-1} \cdot R_i = R_{t+1} + \gamma \cdot R_{t+2} + \gamma^2 \cdot R_{t+3} + \ldots$$
@@ -985,7 +1000,6 @@ Let us write some code to implement the calculation of Equation \eqref{eq:mrp_be
             np.eye(len(self.non_terminal_states)) -
             gamma * self.get_transition_matrix()
         ).dot(self.reward_function_vec)
-
 ```
 
 Invoking this `get_value_function_vec` method on `SimpleInventoryMRPFinite` for the simple case of capacity $C=2$, poisson mean $\lambda = 1.0$, holding cost $h=1.0$, stockout cost $p=10.0$, and discount factor $\gamma=0.9$ yields the following result:
@@ -1014,7 +1028,7 @@ This tells us that On-Hand of 0 and On-Order of 2 has the highest expected rewar
 
 This computation for the Value Function works if the state space is not too large (matrix to be inverted has size equal to number of non-terminal states). When the state space is large, this direct matrix-inversion method doesn't work and we have to resort to numerical methods to solve the recursive Bellman equation. This is the topic of Dynamic Programming and Reinforcement Learning algorithms that we shall learn in this book. 
 
-## Summary of Key Learnings from this Chapter
+### Summary of Key Learnings from this Chapter
 
 Before we end this chapter, we'd like to highlight the two highly important concepts we learnt in this chapter:
 

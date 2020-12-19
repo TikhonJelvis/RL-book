@@ -1,8 +1,8 @@
-# Introduction to and Overview of Stochastic Calculus Basics {#sec:stochasticcalculus-appendix}
+## Introduction to and Overview of Stochastic Calculus Basics {#sec:stochasticcalculus-appendix}
 
 In this Appendix, we provide a quick introduction to the *Basics of Stochastic Calculus*. To be clear, Stochastic Calculus is a vast topic requiring an entire graduate-level course to develop a good understanding. We shall only be scratching the surface of Stochastic Calculus and even with the very basics of this subject, we will focus more on intuition than rigor, and familiarize you with just the most important results relevant to this book. For an adequate treatment of Stochastic Calculus relevant to Finance, we recommend Steven Shreve's two-volume discourse [Stochastic Calculus for Finance I](https://www.amazon.com/Stochastic-Calculus-Finance-Binomial-Springer/dp/0387249680) and [Stochastic Calculus for Finance II](https://www.amazon.com/Stochastic-Calculus-Finance-II-Continuous-Time/dp/144192311X). For a broader treatment of Stochastic Calculus, we recommend [Bernt Oksendal's book on Stochastic Differential Equations](https://www.amazon.com/Stochastic-Differential-Equations-Introduction-Applications/dp/3540047581). 
 
-## Simple Random Walk
+### Simple Random Walk
 
 The best way to get started with Stochastic Calculus is to first get familiar with key properties of a *simple random walk* viewed as a discrete-time, countable state-space, stationary Markov Process. The state space is the set of integers $\mathbb{Z}$. Denoting the random state at time $t$ as $Z_t$, the state transitions are defined in terms of the independent and identically distributed (i.i.d.) random variables $Y_t$ for all $t = 0, 1, \ldots$
 
@@ -33,7 +33,7 @@ $$[X]_t = \sum_{j=0}^t (X_{j+1} - X_j)^2$$
 
 Thus, for the simple random walk Markov Process $Z$, we have the succinct formula: $[Z]_t = t$ for all $t$ (i.e., this Quadratic Variation process is a deterministic process).
 
-## Brownian Motion as Scaled Random Walk
+### Brownian Motion as Scaled Random Walk
 
 Now let us take our simple random walk process $Z$, and simultaneously A) speed up time and B) scale down the size of the atomic increments $Y_t$. Specifically, define for any fixed positive integer $n$:
 
@@ -51,7 +51,7 @@ We denote $dz_t$ as the increment in $z$ over the infinitesimal time interval $[
 
 $$dz_t \sim \mathcal{N}(0, dt)$$
 
-## Continuous-Time Stochastic Processes
+### Continuous-Time Stochastic Processes
 
 Brownian motion $z$ was our first example of a continuous-time stochastic process. Now let us define a general continuous-time stochastic process, although for the sake of simplicity, we shall restrict ourselves to one-dimensional real-valued continuous-time stochastic processes.
 
@@ -68,7 +68,7 @@ As a two-variable function, if we fix $t$, then we get the random variable $X_t:
 
 Now let us come back to Brownian motion, viewed as a Stochastic Process.
 
-## Properties of Brownian Motion sample paths
+### Properties of Brownian Motion sample paths
 
 * Sample paths $z(\omega)$ of Brownian motion $z$ are continuous
 * Sample paths $z(\omega)$ are almost always non-differentiable, meaning:
@@ -93,7 +93,7 @@ where $z^{(1)}$ and $z^{(2)}$ are two different brownian motions with correlatio
 
 You should intuitively interpret the formula $(dz_t)^2 = dt$ (and it's generalization) as a deterministic statement, and in fact this statement is used as an algebraic convenience in Brownian motion-based stochastic calculus, forming the core of *Ito Isometry* and *Ito's Lemma* (which we cover shortly, but first we need to define the Ito Integral).
 
-## Ito Integral
+### Ito Integral
 
 We want to define a stochastic process $Y$ from a stochastic process $X$ as follows:
 
@@ -120,7 +120,7 @@ Likewise, the Quadratic Variance formula generalizes to:
 
 $$\int_S^T (X^{(1)}_t \cdot dz^{(1)}_t)(X^{(2)}_t \cdot dz^{(2)}_t) = \int_S^T X^{(1)}_t\cdot X^{(2)}_t \cdot \rho \cdot dt$$
 
-## Ito's Lemma {#sec:itos-lemma-section}
+### Ito's Lemma {#sec:itos-lemma-section}
 
 We can extend the above Ito Integral to an Ito process $Y$ as defined below:
 
@@ -162,7 +162,7 @@ where the symbol $\nabla$ represents the gradient of a function, the symbol $\De
 
 Next, we cover two common Ito processes, and use Ito's Lemma to solve the Stochastic Differential Equation represented by these Ito Processes:
 
-## A Lognormal Process {#sec:lognormal-process-section}
+### A Lognormal Process {#sec:lognormal-process-section}
 
 Consider a stochastic process $x$ described in the form of the following Ito process:
 
@@ -186,13 +186,13 @@ $$E[x_T|x_S] = x_S \cdot e^{\int_S^T \mu(t) \cdot dt}$$
 $$E[x_T^2|x_S] = x_S^2 \cdot e^{\int_S^T (2 \mu(t) + \sigma^2(t)) \cdot dt}$$
 $$Variance[x_T|x_S] = E[x_T^2|x_S] - (E[x_T|x_S])^2 = x_S^2 \cdot e^{\int_S^T 2 \mu(t) \cdot dt} \cdot (e^{\int_S^T \sigma^2(t) \cdot dt} - 1)$$
 
-The special case of $\mu(t) = \mu$ (constant) and $\sigma(t) = \sigma$ (constant) is a very common Ito process used all over Finance/Economics (for its simplicity, tractability as well as practicality), and is known as [Geometric Brownian Motion](https://en.wikipedia.org/wiki/Geometric_Brownian_motion) (to reflect the fact that the stochastic increment of the process $\mu \cdot x_t \cdot dz_t$ is multiplicative to the level of the process $x_t$). If we consider this special case, we get:
+The special case of $\mu(t) = \mu$ (constant) and $\sigma(t) = \sigma$ (constant) is a very common Ito process used all over Finance/Economics (for its simplicity, tractability as well as practicality), and is known as [Geometric Brownian Motion](https://en.wikipedia.org/wiki/Geometric_Brownian_motion),  to reflect the fact that the stochastic increment of the process ($\sigma \cdot x_t \cdot dz_t$) is multiplicative to the level of the process $x_t$. If we consider this special case, we get:
 
 $$y_T = \log(x_T) \sim \mathcal{N}(\log(x_S) + (\mu - \frac {\sigma^2} 2)(T-S), \sigma^2 (T-S))$$
 $$E[x_T|x_S] = x_S \cdot e^{\mu (T-S)}$$
 $$Variance[x_T|x_S] = x_S^2 \cdot e^{2 \mu (T-S)} \cdot (e^{\sigma^2 (T-S)} - 1)$$
 
-## A Mean-Reverting Process {#sec:mean-reverting-process-section}
+### A Mean-Reverting Process {#sec:mean-reverting-process-section}
 
 Now we consider a stochastic process $x$ described in the form of the following Ito process:
 

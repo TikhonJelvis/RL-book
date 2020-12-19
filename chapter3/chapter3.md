@@ -1,8 +1,8 @@
-# Markov Decision Processes {#sec:mdp-chapter}
+## Markov Decision Processes {#sec:mdp-chapter}
 
 We've said before that this book is about "sequential decisioning" under "sequential uncertainty". In Chapter [-@sec:mrp-chapter], we covered the "sequential uncertainty" aspect with the framework of Markov Processes, and we extended the framework to also incoporate the notion of uncertain "Reward" each time we make a state transition - we called this extended framework Markov Reward Processes. However, this framework had no notion of "sequential decisioning". In this chapter, we will further extend the framework of Markov Reward Processes to incorporate the notion of "sequential decisioning", formally known as Markov Decision Processes. Before we step into the formalism of Markov Decision Processes, let us develop some intuition and motivation for the need to have such a framework - to handle sequential decisioning. Let's do this by re-visiting the simple inventory example we covered in Chapter [-@sec:mrp-chapter].
 
-## Simple Inventory Example: How much to Order?
+### Simple Inventory Example: How much to Order?
 
 When we covered the simple inventory example in Chapter [-@sec:mrp-chapter] as a Markov Reward Process, the ordering policy was:
 
@@ -14,7 +14,7 @@ Assume that instead of bicycles, we want to control the inventory of a specific 
 
 To deal with the "decisioning" aspect, we will introduce the notion of *Action* to complement the previously introduced notions of *State* and *Reward*. In the inventory example, the order quantity is our *Action*. After observing the *State*, we choose from among a set of Actions (in this case, we choose from within the set $\{0, 1, \ldots, \max(C - (\alpha + \beta), 0)\}$). We note that the Action we take upon observing a state affects the next day's state. This is because the next day's On-Order is exactly equal to today's order quantity (i.e., today's action). This in turn might affect our next day's action since the action (order quantity) is typically a function of the state (On-Hand and On-Order inventory). Also note that the Action we take on a given day will influence the Rewards after a couple of days (i.e. after the order arrives). It may affect our holding cost adversely if we had ordered too much or it may affect our stockout cost adversely if we had ordered too little and then experienced high demand.
 
-## The Difficulty of Sequential Decisioning under Uncertainty
+### The Difficulty of Sequential Decisioning under Uncertainty
 
 This simple inventory example has given us a peek into the world of Markov Decision Processes, which in general, have two distinct (and inter-dependent) high-level features:
 
@@ -33,7 +33,7 @@ Using the language of AI, we say that at each time step $t$, the *Agent* (the al
 
 ![Markov Decision Process \label{fig:mdp_cycle}](./chapter3/mdp.png "Agent-Environment interaction in a Markov Decision Process")
 
-## Formal Definition of a Markov Decision Process
+### Formal Definition of a Markov Decision Process
 
 Similar to the definitions of Markov Processes and Markov Reward Processes, for ease of exposition, the definitions and theory of Markov Decision  Processes below will be for discrete-time, for countable state spaces and countable set of pairs of next state and reward transitions (with the knowledge that the definitions and theory are analogously extensible to continuous-time and uncountable spaces, which we shall indeed encounter later in this book). 
 
@@ -101,7 +101,7 @@ $$\mathcal{R}(s,a) = \mathbb{E}[R_{t+1}|(S_t=s, A_t=a)]$$
 
 $$= \sum_{s' \in \mathcal{S}} \mathcal{P}(s,a,s') \cdot \mathcal{R}_T(s,a,s') = \sum_{s'\in \mathcal{S}} \sum_{r\in\mathbb{R}} \mathcal{P}_R(s,a,r,s') \cdot r$$
 
-## Policy
+### Policy
 
 Having understood the dynamics of a Markov Decision Process, we now move on to the specification of the *Agent*'s actions as a function of the current state. In the general case, we assume that the Agent will perform a random action $A_t$, according to a probability distribution that is a function of the current state $S_t$. We refer to this function as a *Policy*. Formally, a *Policy* is a function
 
@@ -208,7 +208,7 @@ si_sp = SimpleInventoryStochasticPolicy(reorder_point_poisson_mean=5.2)
 
 We will revisit the simple inventory example in a bit after we cover the code for Markov Decision Processes, when we'll show how to simulate the Markov Decision Process for this simple inventory example, with the agent running a deterministic policy. But before we move on to the code design for Markov Decision Processes (to accompany the above implementation of Policies), we require an important insight linking Markov Decision Processes, Policies and Markov Reward Processes.
 
-## [Markov Decision Process, Policy] := Markov Reward Process
+### [Markov Decision Process, Policy] := Markov Reward Process
 
 This section has an important insight - that if we evaluate a Markov Decision Process (MDP) with a fixed policy $\pi$ (in general, with a fixed stochastic policy $\pi$), we get the Markov Reward Process (MRP) that is *implied* by the combination of the MDP and the policy $\pi$. Let's clarify this with notational precision. But first we need to point out that we have some notation clashes between MDP and MRP. We used $\mathcal{P}_R$ to denote the transition probability function of the MRP as well as to denote the state-reward transition probability function of the MDP. We used $\mathcal{P}$ to denote the transition probability function of the Markov Process implicit in the MRP as well as to denote the state transition probability function of the MDP. We used $\mathcal{R}_T$ to denote the reward transition function of the MRP as well as to denote the reward transition function of the MDP. We used $\mathcal{R}$ to denote the reward function of the MRP as well as to denote the reward function of the MDP. We can resolve these notation clashes by noting the arguments to $\mathcal{P}_R$, $\mathcal{P}, \mathcal{R}_T$ and $\mathcal{R}$, but to be extra-clear, we'll put a superscript of $\pi$ to each of the functions $\mathcal{P}_R$, $\mathcal{P}, \mathcal{R}_T$ and $\mathcal{R}$ of the $\pi$-implied MRP so as to distinguish between these functions for the MDP versus the $\pi$-implied MRP.
 
@@ -224,25 +224,27 @@ $$\mathcal{R}_T^{\pi}(s,s') = \sum_{a\in \mathcal{A}} \pi(s,a) \cdot \mathcal{R}
 
 $$\mathcal{R}^{\pi}(s) = \sum_{a\in \mathcal{A}} \pi(s,a) \cdot \mathcal{R}(s,a)$$
 
-So any time we talk about an MDP evaluated with a fixed policy, you should know that we are effectively talking about the implied MRP. This insight is now going to be key in the design of our code to represent Markov Decision Processes. We create an abstract class called `MarkovDecisionProcess` with two `@abstractmethod`s - `step` and `actions`. The `step` method is key: it is meant to specify the distribution of pairs of next state and reward, given a state and action. The `actions` method's interface specifies that it takes as input a `state: S` and produces as output an `Iterable[A]` to represent the set of actions allowable for the input `state` (since the set of actions can be potentially infinite, in which case we'd have to return an `Iterator[A]`, the return type is fairly generic, i.e., `Iterable[A]`). Finally, we have the `apply_policy` method that takes as input a `policy: Policy[S, A]` and returns a `MarkovRewardProcess`. Within the `apply_policy` method, we construct a `class RewardProcess` that implements the `@abstractmethod transition_reward` of `MarkovRewardProcess`. `transition_reward` takes as input a `state: S`, creates `actions: Distribution[A]` by applying the given `policy` on `state`, and finally invokes the `apply` method on `actions` using the `@abstractmethod step`. The entire body of this abstract class `MarkovDecisionProcess` is shown below:
+So any time we talk about an MDP evaluated with a fixed policy, you should know that we are effectively talking about the implied MRP. This insight is now going to be key in the design of our code to represent Markov Decision Processes.
+
+We create an abstract class called `MarkovDecisionProcess` (code shown below) with two `@abstractmethod`s - `step` and `actions`. The `step` method is key: it is meant to specify the distribution of pairs of next state and reward, given a state and action. The `actions` method's interface specifies that it takes as input a `state: S` and produces as output an `Iterable[A]` to represent the set of actions allowable for the input `state` (since the set of actions can be potentially infinite, in which case we'd have to return an `Iterator[A]`, the return type is fairly generic, i.e., `Iterable[A]`).
+
+The `apply_policy` method takes as input a `policy: Policy[S, A]` and returns a `MarkovRewardProcess` representing the implied MRP. Let's understand the code in `apply_policy`: First, we construct a `class RewardProcess` that implements the `@abstractmethod transition_reward` of `MarkovRewardProcess`. `transition_reward` takes as input a `state: S`, creates `actions: Optional[Distribution[A]]` by applying the given `policy` on `state`, and finally uses the `apply` method of `Distribution` to transform `actions: Distribution[A]` into a `Distribution[Tuple[S, float]]` (distribution of (next state, reward) pairs) using the `@abstractmethod step`.
+
+The `is_terminal` method takes as input a `state: S` and returns a `bool` signifying whether `state` is a terminal state or not. Since the `actions` method can returns the set of actions in the form of any `Iterable` type, the only way to check if it's an empty `Iterable` is by turning it into an `Iterator`, and checking if the `next` invocation on the `Iterator` triggers `StopIteration` (in which case, it would be an empty `Iterable`).
+
+We also write the `simulate_actions` method that is analogous to the `simulate_reward` method we had written for `MarkovRewardProcess` for generating a simulation trace. In this case, each step in the simulation trace involves sampling an action from the given `policy` and then sampling the pair of next state and reward, given the `state` and sampled `action`. Each generated `TransitionStep` object consists of the 4-tuple: (state, action, next state, reward). Here's the actual code:
 
 ```python
+from rl.distribution import Distribution
+
+@dataclass(frozen=True)
+class TransitionStep(Generic[S, A]):
+    state: S
+    action: A
+    next_state: S
+    reward: float
+
 class MarkovDecisionProcess(ABC, Generic[S, A]):
-    def apply_policy(self, policy: Policy[S, A]) -> MarkovRewardProcess[S]:
-        mdp = self
-
-        class RewardProcess(MarkovRewardProcess[S]):
-            def transition_reward(
-                    self,
-                    state: S
-            ) -> Optional[Distribution[Tuple[S, float]]]:
-                actions = policy.act(state)
-                if actions is None:
-                    return None
-
-                return actions.apply(lambda a: mdp.step(state, a))
-
-        return RewardProcess()        
 
     @abstractmethod
     def actions(self, state: S) -> Iterable[A]:
@@ -255,11 +257,56 @@ class MarkovDecisionProcess(ABC, Generic[S, A]):
         action: A
     ) -> Optional[Distribution[Tuple[S, float]]]:
         pass
+
+    def apply_policy(self, policy: Policy[S, A]) -> MarkovRewardProcess[S]:
+        mdp = self
+
+        class RewardProcess(MarkovRewardProcess[S]):
+            def transition_reward(
+                self,
+                state: S
+            ) -> Optional[Distribution[Tuple[S, float]]]:
+                actions: Optional[Distribution[A]] = policy.act(state)
+                if actions is None:
+                    return None
+
+                return actions.apply(lambda a: mdp.step(state, a))
+
+        return RewardProcess()        
+
+    def is_terminal(self, state: S) -> bool:
+        try:
+            next(iter(self.actions(state)))
+            return False
+        except StopIteration:
+            return True
+
+    def simulate_actions(
+            self,
+            start_states: Distribution[S],
+            policy: Policy[S, A]
+    ) -> Iterable[TransitionStep[S, A]]:
+        state: S = start_states.sample()
+        reward: float = 0
+
+        while True:
+            action_distribution = policy.act(state)
+            if action_distribution is None:
+                return
+
+            action = action_distribution.sample()
+            next_distribution = self.step(state, action)
+            if next_distribution is None:
+                return
+
+            next_state, reward = next_distribution.sample()
+            yield TransitionStep(state, action, next_state, reward)
+            state = next_state
 ```
 
 The above code for `Policy`, `Always` and `MarkovDecisionProcess` is in the file [rl/markov_decision_process.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/markov_decision_process.py).   
 
-## Simple Inventory Example with Unlimited Capacity (Infinite State/Action Space)
+### Simple Inventory Example with Unlimited Capacity (Infinite State/Action Space)
 
 Now we come back to our simple inventory example. Unlike previous situations of this example, here we will assume that there is no space capacity constraint on toothpaste. This means we have a choice of ordering any (unlimited) non-negative integer quantity of toothpaste units. Therefore, the action space is infinite. Also, since the order quantity shows up as On-Order the next day and as delivered inventory the day after the next day, the On-Hand and On-Order quantities are also unbounded. Hence, the state space is infinite. Due to the infinite state and action spaces, we won't be able to take advantage of the so-called "Tabular Dynamic Programming Algorithms" we will cover in Chapter [-@sec:dp-chapter] (algorithms that are meant for finite state and action spaces). There is still significant value in modeling infinite MDPs of this type because we can perform simulations (by sampling from an infinite space). Simulations are valuable not just to explore various properties and metrics relevant in the real-world problem modeled with an MDP, but simulations also enable us to design approximate algorithms to calculate Value Functions for given policies as well as Optimal Value Functions (which is the ultimate purpose of modeling MDPs).
 
@@ -307,7 +354,7 @@ class SimpleInventoryMDPNoCap(MarkovDecisionProcess[InventoryState, int]):
 
 We leave it to you as an exercise to run various simulations of the MRP implied by the deterministic and stochastic policy instances we had created earlier (the above code is in the file [rl/chapter3/simple_inventory_mdp_nocap.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/chapter3/simple_inventory_mdp_nocap.py)). See the method `fraction_of_days_oos` in this file as an example of a simulation to calculate the percentage of days when we'd be unable to satisfy some customer demand for toothpaste due to too little inventory at store-opening (naturally, the higher the re-order point in the policy, the lesser the percentage of days when we'd be Out-of-Stock). This kind of simulation exercise will help build intuition on the tradeoffs we have to make between having too little inventory versus having too much inventory (holding costs versus stockout costs) - essentially leading to our ultimate goal of determining the Optimal Policy (more on this later). 
 
-## Finite Markov Decision Processes
+### Finite Markov Decision Processes
 
 Certain calculations for Markov Decision Processes can be performed easily if:
 
@@ -325,7 +372,7 @@ ActionMapping = Mapping[A, StateReward[S]]
 StateActionMapping = Mapping[S, Optional[ActionMapping[A, S]]]
 ```
 
-The constructor (``__init__`` method) of `FiniteMarkovDecisionProcess` takes as input `mapping: StateActionMapping[S, A]` that represents the complete structure of the Finite MDP - it maps each non-terminal state to an action map (maps each terminal state to `None`), and it maps each action in each action map to a finite probability distribution of pairs of next state and reward (essentially the structure of the $\mathcal{P}_R$ function). Along with the attribute `mapping`, we also have an attribute `non_terminal_states: Sequence[S]` that is an ordered sequence of non-terminal states. Now let's consider the implementation of the abstract method `step` of `MarkovDecisionProcess`. It takes as input a `state: S` and an `action: A`. `self.mapping[state][action]` gives us an object of type `FiniteDistribution[Tuple[S, float]]` which represents a finite probability distribution of pairs of next state and reward, which is exactly what we want to return. On the other hand, if `self.mapping[state]` is `None` (meaning it's a terminal state), then we simply return `None`.  This satisfies the responsibility of `FiniteMarkovDecisionProcess` in terms of implementing the `@abstractmethod step` of the abstract class `MarkovDecisionProcess`. The other `@abstractmethod` to implement is the `actions` method which produces an `Iterable` on the allowed actions $\mathcal{A}(s)$ for a given $s\in \mathcal{S}$ by invoking `self.mapping[state].keys()` (it returns an empty iterable for non-terminal states). Finally, `__repr__` method pretty-prints `self.mapping`.
+The constructor (``__init__`` method) of `FiniteMarkovDecisionProcess` takes as input `mapping: StateActionMapping[S, A]` that represents the complete structure of the Finite MDP - it maps each non-terminal state to an action map (maps each terminal state to `None`), and it maps each action in each action map to a finite probability distribution of pairs of next state and reward (essentially the structure of the $\mathcal{P}_R$ function). Along with the attribute `mapping`, we also have an attribute `non_terminal_states: Sequence[S]` that is an ordered sequence of non-terminal states. Now let's consider the implementation of the abstract method `step` of `MarkovDecisionProcess`. It takes as input a `state: S` and an `action: A`. `self.mapping[state][action]` gives us an object of type `FiniteDistribution[Tuple[S, float]]` which represents a finite probability distribution of pairs of next state and reward, which is exactly what we want to return. On the other hand, if `self.mapping[state]` is `None` (meaning it's a terminal state), then we simply return `None`.  This satisfies the responsibility of `FiniteMarkovDecisionProcess` in terms of implementing the `@abstractmethod step` of the abstract class `MarkovDecisionProcess`. The other `@abstractmethod` to implement is the `actions` method which produces an `Iterable` on the allowed actions $\mathcal{A}(s)$ for a given $s\in \mathcal{S}$ by invoking `self.mapping[state].keys()` (it returns an empty iterable for non-terminal states). The `action_mapping` and `states` methods are quite straightforward. Finally, `__repr__` method pretty-prints `self.mapping`.
 
 ```python
 from rl.distribution import SampledDistribution
@@ -358,17 +405,22 @@ class FiniteMarkovDecisionProcess(MarkovDecisionProcess[S, A]):
         action_map: Optional[ActionMapping[A, S]] = self.mapping[state]
         if action_map is None:
             return None
-        else:
-            return action_map[action]
+        return action_map[action]
 
     def actions(self, state: S) -> Iterable[A]:
         actions = self.mapping[state]
         return iter([]) if actions is None else actions.keys()
+
+    def action_mapping(self, state: S) -> Optional[ActionMapping[A, S]]:
+        return self.mapping[state]
+
+    def states(self) -> Iterable[S]:
+        return self.mapping.keys()
 ```
 
 Now that we've implemented a finite MDP, let's implement a finite policy that maps each non-terminal state to a probability distribution over a finite set of actions (and maps each terminal state to `None`). So we create a concrete class `FinitePolicy` that implements the interface of the abstract class `Policy` (specifically implements the `@abstractmethod act`). The input to the constructor (`__init__` method) is `policy_map: Mapping[S, Optional[FiniteDistribution[A]]]` since this type captures the structure of the $\pi: \mathcal{N} \times \mathcal{A} \rightarrow [0, 1]$ function in the curried form:
 $$\mathcal{N} \rightarrow (\mathcal{A} \rightarrow [0, 1])$$
-for the case of finite $\mathcal{S}$ and finite $\mathcal{A}$. The `act` method is straightforward. We also implement a `__repr__` method for pretty-printing of `self.policy_map`.
+for the case of finite $\mathcal{S}$ and finite $\mathcal{A}$. The `act` method and `states` method are straightforward. We also implement a `__repr__` method for pretty-printing of `self.policy_map`.
 
 ```python
 class FinitePolicy(Policy[S, A]):
@@ -393,6 +445,9 @@ class FinitePolicy(Policy[S, A]):
 
     def act(self, state: S) -> Optional[FiniteDistribution[A]]:
         return self.policy_map[state]
+
+    def states(self) -> Iterable[S]:
+        return self.policy_map.keys()
 ```   
 
 Armed with a `FinitePolicy` class, we can now write a method `apply_finite_policy` in `FiniteMarkovDecisionProcess` that takes as input a `policy: FinitePolicy[S, A]` and returns a `FiniteMarkovRewardProcess[S]` by processing the finite structures of both of the MDP and the Policy, and producing a finite structure of the implied MRP.      
@@ -425,7 +480,7 @@ from rl.distribution import Categorical
 
 The above code for `FiniteMarkovRewardProcess` and `FinitePolicy` is in the file [rl/markov_decision_process.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/markov_decision_process.py).   
 
-## Simple Inventory Example as a Finite Markov Decision Process
+### Simple Inventory Example as a Finite Markov Decision Process
 
 Now we'd like to model the simple inventory example as a Finite Markov Decision Process so we can take advantage of the algorithms specifically for Finite Markov Decision Processes. To enable finite states and finite actions, we will re-introduce the constraint of space capacity $C$ and we will apply the restriction that the order quantity (action) cannot exceed $C - (\alpha + \beta)$ where $\alpha$ is the On-Hand component of the State and $\beta$ is the On-Order component of the State. Thus, the action space for any given state $(\alpha, \beta) \in \mathcal{S}$ is finite. Next, note that this ordering policy ensures that in steady-state, the sum of On-Hand and On-Order will not exceed the capacity $C$. So we will constrain the set of states to be the steady-state set of finite states
 $$\mathcal{S} = \{(\alpha, \beta): 0 \leq \alpha + \beta \leq C\}$$
@@ -532,7 +587,7 @@ implied_mrp: FiniteMarkovRewardProcess[InventoryState] =\
 
 The above code is in the file [rl/chapter3/simple_inventory_mdp_cap.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/chapter3/simple_inventory_mdp_cap.py). We encourage you to play with the inputs in `__main__`, produce the resultant implied MRP, and explore it's characteristics (such as it's Reward Function and it's Value Function).
 
-## MDP Value Function for a Fixed Policy
+### MDP Value Function for a Fixed Policy
 
 Now we are ready to talk about the Value Function for an MDP evaluated with a fixed policy $\pi$ (also known as the MDP *Prediction* problem). The term *Prediction* refers to the fact that this problem is about forecasting the expected future return when the agent follows a specific policy. Just like in the case of MRP, we define the Return $G_t$ at time step $t$ for an MDP as:
 $$G_t = \sum_{i=t+1}^{\infty} \gamma^{i-t-1} \cdot R_i = R_{t+1} + \gamma \cdot R_{t+2} + \gamma^2 \cdot R_{t+3} + \ldots$$
@@ -601,7 +656,7 @@ For the rest of the book, in these MDP transition figures, we shall always depic
 
 Note that for finite MDPs of state space not too large, we can solve the MDP Prediction problem (solving for $V^{\pi}$ and equivalently, $Q^{\pi}$) in a straightforward manner: Given a policy $\pi$, we can create the finite MRP implied by $\pi$, using the method `apply_policy` in `FiniteMarkovDecisionProcess`, then use the matrix-inversion method you learnt in Chapter [-@sec:mrp-chapter] to calculate the Value Function of the $\pi$-implied MRP. We know that the $\pi$-implied MRP's Value Function is the same as the State-Value Function $V^{\pi}$ of the MDP which can then be used to arrive at the Action-Value Function $Q^{\pi}$ of the MDP (using Equation \eqref{eq:mdp_bellman_policy_eqn_qv}). For large state spaces, we will need to use iterative/numerical methods (Dynamic Programming and Reinforcement Learning algorithms) to solve this Prediction problem (covered later in this book).
 
-## Optimal Value Function and Optimal Policies
+### Optimal Value Function and Optimal Policies
 
 Finally, we arrive at the main purpose of a Markov Decision Process - to identify a policy (or policies) that would yield the Optimal Value Function (i.e., the best possible *Expected Return* from each of the non-terminal states). We say that a Markov Decision Process is "solved" when we identify its Optimal Value Function (together with its associated Optimal Policy, i.e., a Policy that yields the Optimal Value Function). The problem of identifying the Optimal Value Function and its associated Optimal Policy/Policies is known as the MDP *Control* problem. The term *Control* refers to the fact that this problem involves steering the actions (by iterative modifications of the policy) to drive the Value Function towards Optimality. Formally, the Optimal Value Function
 
@@ -717,9 +772,9 @@ Finally, we prove by contradiction that $\pi_D^*$ is an Optimal Policy. So assum
 
 Equation \eqref{eq:mdp_optimal_policy} was a key construction in the above proof. In fact, Equation \eqref{eq:mdp_optimal_policy} will go hand-in-hand with the Bellman Optimality Equations in designing the various Dynamic Programming and Reinforcement Learning algorithms to solve the MDP Control problem (i.e., to solve for $V^*$, $Q^*$ and $\pi^*$). Lastly, it's important to note that unlike the Prediction problem which has a straightforward linear-algebra solution for small state spaces, the Control problem is non-linear and so, doesn't have an analogous straightforward linear-algebra solution. The simplest solutions for the Control problem (even for small state spaces) are the Dynamic Programming algorithms we will cover in Chapter [-@sec:dp-chapter].
 
-## Variants and Extensions of MDPs
+### Variants and Extensions of MDPs
 
-### Size of Spaces and Discrete versus Continuous
+#### Size of Spaces and Discrete versus Continuous
 
 Variants of MDPs can be organized by variations in the size and type of:
 
@@ -727,7 +782,7 @@ Variants of MDPs can be organized by variations in the size and type of:
 * Action Space
 * Time Steps
 
-#### State Space:
+##### State Space:
 
 The definitions we've provided for MRPs and MDPs were for countable (discrete) state spaces. As a special case, we considered finite state spaces since we have pretty straightforward algorithms for exact solution of Prediction and Control problems for finite MDPs (which we shall learn about in Chapter [-@sec:dp-chapter]). We emphasize finite MDPs because they will help you develop a sound understanding of the core concepts and make it easy to program the algorithms (known as "tabular" algorithms since we can represent the MDP in a "table", more specifically a Python data structure like `dict` or `numpy array`). However, these algorithms are practical only if the finite state space is not too large. Unfortunately, in many real-world problems, state spaces are either very large-finite or infinite (sometimes continuous-valued spaces). Large state spaces are unavoidable because phenomena in nature and metrics in business evolve in time due to a complex set of factors and often depend on history. To capture all these factors and to enable the Markov Property, we invariably end up with having to model large state spaces which suffer from two "curses":
 
@@ -747,14 +802,14 @@ Even after performing these modeling exercises in reducing the state space size,
 
 This combination of sampling from the state space, approximation of the Value Function (with deep neural networks), sampling state-reward transitions, and clever Reinforcement Learning algorithms goes a long way in breaking both the curse of dimensionality and curse of modeling. In fact, this combination is a common pattern in the broader field of Applied Mathematics to break these curses. The combination of Sampling and Function Approximation (particularly with the modern advances in Deep Learning) are likely to pave the way for future advances in the broader fields of Real-World AI and Applied Mathematics in general. We recognize that some of this discussion is a bit premature since we haven't even started teaching Reinforcement Learning yet. But we hope that this section provides some high-level perspective and connects the learnings from this chapter to the techniques/algorithms that will come later in this book. We will also remind you of this joint-importance of sampling and function approximation once we get started with Reinforcement Learning algorithms later in this book.
 
-#### Action Space:
+##### Action Space:
 
 Similar to state spaces, the definitions we've provided for MDPs were for countable (discrete) action spaces. As a special case, we considered finite action spaces (together with finite state spaces) since we have pretty straightforward algorithms for exact solution of Prediction and Control problems for finite MDPs. As mentioned above, in these algorithms, we represent the MDP in Python data structures like `dict` or `numpy array`. However, these finite-MDP algorithms are practical only if the state and action spaces are not too large. In many real-world problems, action spaces do end up as fairly large, either finite-large or infinite (sometimes continuous-valued action spaces). The large size of the action space affects algorithms for MDPs in a couple of ways:
 
 * Large action space makes the representation, estimation and evaluation of the policy $\pi$, of the Action-Value function for a policy $Q^{\pi}$ and of the Optimal Action-Value function $Q^*$ difficult. We have to resort to function approximation and sampling as ways to overcome the large size of the action space.
 * The Bellman Optimality Equation leads to a crucial calculation step in Dynamic Programming and Reinforcement Learning algorithms that involves identifying the action for each non-terminal state that maximizes the Action-Value Function $Q$. When the action space is large, we cannot afford to evaluate $Q$ for each action for an encountered state (as is done in simple tabular algorithms). Rather, we need to tap into an optimization algorithm to perform the maximization of $Q$ over the action space, for an encountered state. Separately, there is a special class of Reinforcement Learning algorithms called Policy Gradient Algorithms (that )we shall later learn about) that are particularly valuable for large action spaces (where other types of Reinforcement Learning algorithms are not efficient and often, simply not an option). However, these techniques to deal with large action spaces require care and attention as they have their own drawbacks (more on this later).
 
-#### Time Steps:
+##### Time Steps:
 
 The definitions we've provided for MRP and MDP were for discrete time steps. We distinguished discrete time steps as terminating time-steps (known as terminating or episodic MRPs/MDPs) or non-terminating time-steps (known as continuing MRPs/MDPs). We talked about how the choice of $\gamma$ matters in these cases ($\gamma = 1$ doesn't work for some continuing MDPs because reward accumulation can blow up to infinity). We won't cover it in this book, but there is an alternative formulation of the Value Function as expected average reward (instead of expected discounted accumulated reward) where we don't need to discount even for continuing MDPs. We had also mentioned earlier that an alternative to discrete time steps is continuous time steps, which is convenient for analytical tractability.
 
@@ -762,7 +817,7 @@ Sometimes, even if state space and action space components have discrete values 
 
 When all three of state space, action space and time steps are modeled as continuous, the Bellman Optimality Equation we covered in this chapter for countable spaces and discrete-time morphs into a differential calculus formulation and is known as the famous [*Hamilton-Jacobi-Bellman* (HJB) equation](https://en.wikipedia.org/wiki/Hamilton%E2%80%93Jacobi%E2%80%93Bellman_equation). The HJB Equation is commonly used to model and solve many problems in engineering, physics, economics and finance. We shall cover a couple of financial applications in this book that have elegant formulationsin terms of the HJB equation and equally elegant analytical solutions of the Optimal Value Function and Optimal Policy (tapping into stochastic calculus and differential equations).
 
-### Partially-Observable Markov Decision Processes (POMDPs)
+#### Partially-Observable Markov Decision Processes (POMDPs)
 
 You might have noticed in the definition of MDP that there are actually two different notions of state, which we collapsed into a single notion of state. These two notions of state are:
 
@@ -799,7 +854,7 @@ Let's consider a classic example of a card game such as Poker or Blackjack as a 
 
 The purpose of this subsection on POMDPs is to highlight that by default a lot of problems in the real-world are POMDPs and it can sometimes take quite a bit of domain-knowledge, modeling creativity and real-world experimentation to treat them as MDPs and make the solution to the modeled MDP successful in practice.
 
-## Summary of Key Learnings from this Chapter
+### Summary of Key Learnings from this Chapter
 
 * MDP Bellman Policy Equations
 * MDP Bellman Optimality Equations

@@ -1,4 +1,5 @@
-from typing import Callable, Iterator, TypeVar
+'''Finding fixed points of functions using iterators.'''
+from typing import (Callable, Iterator, Optional, TypeVar)
 
 X = TypeVar('X')
 
@@ -23,15 +24,18 @@ def iterate(step: Callable[[X], X], start: X) -> Iterator[X]:
         state = step(state)
 
 
-def last(values: Iterator[X]) -> X:
+def last(values: Iterator[X]) -> Optional[X]:
     '''Return the last value of the given iterator.
 
-    Raises an error if the iterator is empty.
+    Returns None if the iterator is empty.
 
     If the iterator does not end, this function will loop forever.
     '''
-    *_, last_element = values
-    return last_element
+    try:
+        *_, last_element = values
+        return last_element
+    except ValueError:
+        return None
 
 
 def converge(values: Iterator[X], done: Callable[[X, X], bool]) -> Iterator[X]:
@@ -43,18 +47,22 @@ def converge(values: Iterator[X], done: Callable[[X, X], bool]) -> Iterator[X]:
     Will loop forever if the input iterator doesn't end *or* converge.
 
     '''
-    a = next(values)
+    a = next(values, None)
+    if a is None:
+        return
+
     yield a
 
     for b in values:
         if done(a, b):
-            break
-        else:
-            a = b
-            yield b
+            return
+
+        a = b
+        yield b
 
 
-def converged(values: Iterator[X], done: Callable[[X, X], bool]) -> X:
+def converged(values: Iterator[X],
+              done: Callable[[X, X], bool]) -> X:
     '''Return the final value of the given iterator when its values
     converge according to the done function.
 
@@ -62,15 +70,9 @@ def converged(values: Iterator[X], done: Callable[[X, X], bool]) -> X:
 
     Will loop forever if the input iterator doesn't end *or* converge.
     '''
-    return last(converge(values, done))
+    result = last(converge(values, done))
 
+    if result is None:
+        raise ValueError("converged called on an empty iterator")
 
-if __name__ == '__main__':
-    import numpy as np
-    x = 0.0
-    values = converge(
-        iterate(lambda y: np.cos(y), x),
-        lambda a, b: np.abs(a - b) < 1e-3
-    )
-    for i, v in enumerate(values):
-        print(f"{i}: {v:.3f}")
+    return result

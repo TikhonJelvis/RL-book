@@ -1,6 +1,6 @@
 import numpy as np
 import operator
-from typing import Mapping, Iterator, TypeVar, Tuple, Dict, Sequence
+from typing import Mapping, Iterator, TypeVar, Tuple, Dict
 
 from rl.iterate import converged, iterate
 from rl.markov_decision_process import (FiniteMarkovDecisionProcess,
@@ -40,8 +40,8 @@ def almost_equal_np_arrays(
     v2: np.ndarray,
     tolerance: float = DEFAULT_TOLERANCE
 ) -> bool:
-    '''Return whether the two value functions as np.ndarray are within the given
-    tolerance of each other.
+    '''Return whether the two value functions as np.ndarray are within the
+    given tolerance of each other.
 
     '''
     return max(abs(v1 - v2)) < tolerance

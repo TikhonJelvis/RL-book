@@ -1,8 +1,8 @@
-# Portfolio Theory {#sec:portfoliotheory-appendix}
+## Portfolio Theory {#sec:portfoliotheory-appendix}
 
 In this Appendix, we provide a quick and terse introduction to *Portfolio Theory*. While this topic is not a direct pre-requisite for the topics we cover in the chapters, we believe one should have some familiarity with the risk versus reward considerations when constructing portfolios of financial assets, and know of the important results. To keep this Appendix brief, we will provide the minimal content required to understand the *essence* of the key concepts. We won't be doing rigorous proofs. We will also ignore details pertaining to edge-case/irregular-case conditions so as to focus on the core concepts.
 
-## Setting and Notation
+### Setting and Notation
 
 In this section, we go over the core setting of Portfolio Theory, along with the requisite notation.
 
@@ -16,14 +16,14 @@ where $1_n \in \mathbb{R}^n$ is a column vector comprising of all 1's.
 
 We shall drop the subscript $p$ in $X_p$ whenever the reference to portfolio $p$ is clear.
 
-## Portfolio Returns
+### Portfolio Returns
 
 * A single portfolio's mean return is $X^T \cdot R \in \mathbb{R}$
 * A single portfolio's variance of return is the quadratic form $X^T \cdot V \cdot X \in \mathbb{R}$
 * Covariance between portfolios $p$ and $q$ is the bilinear form $X_p^T \cdot V \cdot X_q \in \mathbb{R}$
 * Covariance of the $n$ assets with a single portfolio is the vector $V \cdot X \in\mathbb{R}^n$
 
-## Derivation of Efficient Frontier Curve
+### Derivation of Efficient Frontier Curve
 
 An asset which has no variance in terms of how it's value evolves in time is known as a risk-free asset.  The Efficient Frontier is defined for a world with no risk-free assets. The Efficient Frontier is the set of portfolios with minimum variance of return for each level of portfolio mean return (we refer to a portfolio in the Efficient Frontier as an *Efficient Portfolio*). Hence, to determine the Efficient Frontier, we solve for $X$ so as to minimize portfolio variance $X^T \cdot V \cdot X$ subject to constraints:
 $$X^T \cdot 1_n = 1$$
@@ -38,7 +38,7 @@ where
 * $c = 1_n^T \cdot V^{-1} \cdot 1_n$
 
 
-## Global Minimum Variance Portfolio (GMVP)
+### Global Minimum Variance Portfolio (GMVP)
 
 The global minimum variance portfolio (GMVP) is the portfolio at the tip of the efficient frontier parabola, i.e., the portfolio with the lowest possible variance among all portfolios on the Efficient Frontier. Here are the relevant characteristics for the GMVP:
 
@@ -48,14 +48,14 @@ The global minimum variance portfolio (GMVP) is the portfolio at the tip of the 
 
 GMVP is positively correlated with all portfolios and with all assets. GMVP's covariance with all portfolios and with all assets is a constant value equal to $\sigma_0^2 = \frac 1 c$ (which is also equal to its own variance).
 
-## Orthogonal Efficient Portfolios
+### Orthogonal Efficient Portfolios
 
 For every efficient portfolio $p$ (other than GMVP), there exists a unique orthogonal efficient portfolio $z$ (i.e. $Covariance(p,z) = 0$) with finite mean
 $$r_z = \frac {a - b r_p} {b - c r_p}$$
 
 $z$ always lies on the opposite side of $p$ on the (efficient frontier) parabola. If we treat the Efficient Frontier as a curve of mean (y-axis) versus variance (x-axis), the straight line from $p$ to GMVP intersects the mean axis (y-axis) at $r_z$. If we treat the Efficient Frontier as a curve of mean (y-axis) versus standard deviation (x-axis), the tangent to the efficient frontier at $p$ intersects the mean axis (y-axis) at $r_z$. Moreover, all portfolios on one side of the efficient frontier are positively correlated with each other.
 
-## Two-fund Theorem
+### Two-fund Theorem
 
 The $X$ vector (normalized investment quantities in assets) of any efficient portfolio is a linear combination of the $X$ vectors of two other efficient portfolios. Notationally,
 $$X_p = \alpha X_{p_1} + (1-\alpha) X_{p_2} \mbox{ for some scalar } \alpha$$
@@ -67,7 +67,7 @@ Varying $\alpha$ from $-\infty$ to $+\infty$ basically traces the entire efficie
 
 The orthogonal portfolio to SEP has mean $r_z = \frac {a - b \frac a b} {b - c \frac a b} = 0$
 
-## An example of the Efficient Frontier for 16 assets
+### An example of the Efficient Frontier for 16 assets
 
 Figure \ref{fig:efficient_frontier} shows a plot of the mean daily returns versus the standard deviation of daily returns collected over a 3-year period for 16 assets. The blue curve is the Efficient Frontier for these 16 assets. Note the special portfolios GMVP and SEP on the Efficient Frontier. This curve was generated from the code at [rl/appendix2/efficient_frontier.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/appendix2/efficient_frontier.py). We encourage you to play with different choices (and count) of assets, and to also experiment with different time ranges as well as to try weekly and monthly returns.
 
@@ -75,7 +75,7 @@ Figure \ref{fig:efficient_frontier} shows a plot of the mean daily returns versu
 ![Efficient Frontier for 16 Assets \label{fig:efficient_frontier}](./appendix2/EffFront.png "Efficient Frontier for 16 Assets")
 </div>
 
-## CAPM: Linearity of Covariance Vector w.r.t. Mean Returns
+### CAPM: Linearity of Covariance Vector w.r.t. Mean Returns
 
 **Important Theorem**: The covariance vector of individual assets with a portfolio (note: covariance vector $= V \cdot X \in \mathbb{R}^n$) can be expressed as an exact linear function of the individual assets' mean returns vector if and only if the portfolio is efficient. If the efficient portfolio is $p$ (and its orthogonal portfolio $z$), then:
 
@@ -85,7 +85,7 @@ where $\beta_p = \frac {V \cdot X_p} {\sigma_p^2} \in \mathbb{R}^n$ is the vecto
 
 The linearity of $\beta_p$ w.r.t. mean returns $R$ is famously known as the Capital Asset Pricing Model (CAPM).
 
-## Useful Corollaries of CAPM
+### Useful Corollaries of CAPM
 
 * If $p$ is SEP, $r_z = 0$ which would mean:
 $$R = r_p \beta_p = \frac {r_p} {\sigma_p^2} \cdot V \cdot X_p$$
@@ -94,13 +94,13 @@ $$R = r_p \beta_p = \frac {r_p} {\sigma_p^2} \cdot V \cdot X_p$$
 * Covariance $V \cdot X$ is also monotonic along the efficient frontier.
 * But $\beta$ is not monotonic, which means that for every individual asset, there is a unique pair of efficient portfolios that result in maximum and minimum $\beta$s for that asset.
 
-## Cross-Sectional Variance
+### Cross-Sectional Variance
 
 * The cross-sectional variance in $\beta$s (variance in $\beta$s across assets for a fixed efficient portfolio) is zero when the efficient portfolio is GMVP and is also zero when the efficient portfolio has infinite mean.
 * The cross-sectional variance in $\beta$s is maximum for the two efficient portfolios with means: $r_0 + \sigma_0^2 \sqrt{|A|}$ and $r_0 - \sigma_0^2 \sqrt{|A|}$ where $A$ is the 2 $\times$ 2 matrix consisting of $a,b,b,c$
 * These two portfolios lie symmetrically on opposite sides of the efficient frontier (their $\beta$s are equal and of opposite signs), and are the only two orthogonal efficient portfolios with the same variance ( $= 2 \sigma_0^2$)
 
-## Efficient Set with a Risk-Free Asset
+### Efficient Set with a Risk-Free Asset
 
 If we have a risk-free asset with return $r_F$, then $V$ is singular. So we first form the Efficient Frontier without the risk-free asset. The Efficient Set (including the risk-free asset) is defined as the tangent to this Efficient Frontier (without the risk-free asset) from the point $(0, r_F)$ when the Efficient Frontier is considered to be a curve of mean returns (y-axis) against standard deviation of returns (x-axis).
 
