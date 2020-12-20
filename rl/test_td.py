@@ -69,7 +69,7 @@ class TestEvaluate(unittest.TestCase):
             for s in v.values_map:
                 # Intentionally loose bound—otherwise test is too slow.
                 # Takes >1s on my machine otherwise.
-                self.assertLess(abs(v(s) - 170), 2.0)
+                self.assertLess(abs(v(s) - 170), 3.0)
         else:
             assert False
 
