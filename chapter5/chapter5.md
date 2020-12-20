@@ -879,7 +879,7 @@ class Tabular(FunctionApprox[X]):
 
         for x, y in xy_vals_seq:
             counts_map[x] = counts_map.get(x, 0) + 1
-            weight: float = self.count_to_weight_func(counts_map[x])
+            weight: float = self.count_to_weight_func(counts_map.get(x, 0))
             values_map[x] = weight * y + (1 - weight) * values_map.get(x, 0.)
 
         return replace(
@@ -897,7 +897,7 @@ class Tabular(FunctionApprox[X]):
         counts_map: Dict[X, int] = {}
         for x, y in xy_vals_seq:
             counts_map[x] = counts_map.get(x, 0) + 1
-            weight: float = self.count_to_weight_func(counts_map[x])
+            weight: float = self.count_to_weight_func(counts_map.get(x, 0))
             values_map[x] = weight * y + (1 - weight) * values_map.get(x, 0.)
         return replace(
             self,
