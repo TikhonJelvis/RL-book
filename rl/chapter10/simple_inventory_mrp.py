@@ -1,11 +1,12 @@
-from typing import Iterator
+from typing import Iterator, Iterable
+from itertools import islice, chain
 from rl.chapter2.simple_inventory_mrp import SimpleInventoryMRPFinite
 from rl.chapter2.simple_inventory_mrp import InventoryState
 from rl.function_approx import Tabular, FunctionApprox
 from rl.distribution import Choose
-from rl.monte_carlo import evaluate_mrp
-from rl.td import td_0
-from itertools import islice
+from rl.markov_process import TransitionStep
+import rl.monte_carlo as mc
+import rl.td as td
 from rl.gen_utils.plot_funcs import plot_list_of_curves
 from math import sqrt, log, ceil
 
@@ -17,10 +18,13 @@ user_stockout_cost = 10.0
 
 user_gamma = 0.9
 
-num_traces = 1000
-pool = 1
+num_traces = 100000
+pool = 100
 
 tol = 1e-6
+
+learning_rate = 0.1
+learning_rate_decay = 1000
 
 si_mrp = SimpleInventoryMRPFinite(
     capacity=user_capacity,
@@ -32,10 +36,17 @@ si_mrp = SimpleInventoryMRPFinite(
 states = si_mrp.non_terminal_states
 true_vf = si_mrp.get_value_function_vec(gamma=user_gamma)
 
-mc_funcs_it: Iterator[FunctionApprox[InventoryState]] = evaluate_mrp(
-    mrp=si_mrp,
-    states=Choose(set(si_mrp.states())),
-    approx_0=Tabular(),
+mc_traces: Iterable[Iterable[TransitionStep[InventoryState]]] = \
+                 si_mrp.reward_traces(Choose(set(states)))
+
+
+def count_to_weight(n: int) -> float:
+    return learning_rate * (n / learning_rate_decay) ** -0.5
+
+
+mc_funcs_it: Iterator[FunctionApprox[InventoryState]] = mc.evaluate_mrp(
+    mc_traces,
+    approx_0=Tabular(count_to_weight_func=count_to_weight),
     γ=user_gamma,
     tolerance=tol
 )
@@ -50,14 +61,20 @@ for i, mc_f in enumerate(islice(mc_funcs_it, 0, num_traces)):
         pool_mc_errs = []
 
 td_episode_length = int(ceil(log(tol) / log(user_gamma)))
-alpha = 0.03
 
-td_funcs_it: Iterator[FunctionApprox[InventoryState]] = td_0(
-    mrp=si_mrp,
-    states=Choose(set(si_mrp.states())),
-    approx_0=Tabular(count_to_weight_func=lambda _: alpha),
-    γ=user_gamma,
-    episode_length=td_episode_length
+
+td_traces: Iterable[Iterable[TransitionStep[InventoryState]]] = \
+                 si_mrp.reward_traces(Choose(set(states)))
+
+td_experiences: Iterable[TransitionStep[InventoryState]] = \
+    chain.from_iterable(
+        islice(trace, td_episode_length) for trace in td_traces
+    )
+
+td_funcs_it: Iterator[FunctionApprox[InventoryState]] = td.evaluate_mrp(
+    td_experiences,
+    approx_0=Tabular(count_to_weight_func=count_to_weight),
+    γ=user_gamma
 )
 
 td_errors = []
@@ -73,7 +90,7 @@ for i, td_f in enumerate(
         td_errors.append(sum(pool_td_errs) / trans_pool)
         pool_td_errs = []
 
-plot_start = 50
+plot_start = 0
 mc_plot = mc_errors[plot_start:]
 td_plot = td_errors[plot_start:]
 
