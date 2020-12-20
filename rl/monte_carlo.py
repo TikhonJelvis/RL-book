@@ -64,7 +64,7 @@ def evaluate_mdp(
       mrp -- the Markov Reward Process to evaluate
       states -- distribution of states to start episodes from
       approx_0 -- initial approximation of value function
-      γ -- discount rate (0 < γ ≤ 1), default: 1
+      γ -- discount rate (0 < γ ≤ 1)
       ϵ -- the fraction of the actions where we explore rather
       than following the optimal policy
       tolerance -- a small value—we stop iterating once γᵏ ≤ tolerance
