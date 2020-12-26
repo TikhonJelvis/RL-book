@@ -1,0 +1,112 @@
+* Sampling
+** Expectations
+   As we're writing ADP algorithms, we're running into fundamental
+   design question: where do we choose *how* we calculate expectations
+   for transition distributions. In particular:
+
+     1. Where do we sample vs calculating exactly?
+     2. How do we decide /how many/ samples to use?
+     3. /Who/ gets to decide how we do this?
+        1. The person /writing the MRP/?
+        2. The algorithm implementation?
+        3. The person /calling/ the algorithm?
+     4. Can we decide this after the fact? (Example: choose the number
+        of samples based the /final/ answer we're looking for, using
+        either a tolerance or a compute time limit to decide where to
+        stop.)
+        1. For RL this will depend on the number of episodes we want
+           to run. This is one of the fundamental decisions for RL
+           algorithms.
+
+   Each of these choices seems reasonable, and there's no 100% obvious
+   way to resolve it at this point.
+*** Design Options
+**** Let the algorithm choose
+     We let the algorithm choose how to calculate expectations at each
+     step. Exact dynamic programming would do an exact calculation;
+     ADP would do sampling... etc.
+
+     Upsides:
+
+       1. The algorithm has full visibility into the process. It can
+          choose how to approximate expectations at each iteration.
+       2. The code to support this can be simple and direct. At each
+          step, you can get the expectation /as a number/ and you
+          don't have to deal with connecting together the steps (ie no
+          need for an iterator/continuation/whatever).
+
+     Downsides:
+
+       1. You would have to tune the sampling at each step as a
+          hyperparameter, which is difficult and often requires manual
+          intervention.
+       2. The choice is always made locally, in an /ad hoc/ way.
+       3. Since the choice is made /by the algorithm/, it can't
+          reflect the structure of different processes. What if your
+          process has a massive state space, but each transition is
+          small? No direct way to take advantage of that—you'd have to
+          have separate algorithm code.
+**** Let the distribution choose
+     We have different distribution types that all provide an
+     =expectation= method, with some distributions calculating that
+     with sampling and others calculating with an exact calculation.
+
+     Upsides:
+
+     1. By choosing which type of distribution to use when you're
+        specifying your process, you can reflect the /structure/ of
+        the process.
+
+        Example: if you have a large state space but some of the
+        /transitions/ are small, you can return a =FiniteDistribution=
+        value /for those transitions/, letting you calculate the
+        expectation in those cases exactly instead of using sampling.
+
+     2. This abstracts over the way expectations are calculated so
+        that the only person who has to worry about implementation
+        details (including sampling algorithm and # of samples) is the
+        person /implementing the distribution type/.
+
+     3. The code here is also simple and direct. We've moved /where/
+        we make the decision, but we still get to have a simple number
+        for the expectation at each step—no need for iterators or
+        continuations here either.
+
+
+     Downsides:
+
+     1. The choice is disconnected from the algorithm. Since we decide
+        what kind of distribution type to use /in the definition of
+        the process/, that choice is going to be the same no matter
+        what algorithm we use. For example, if an algorithm needs more
+        or less precision, we would have to write a different version
+        of the process.
+     2. This approach still lacks end-to-end visibility. We make the
+        choice of distribution to use at each step, but there's no way
+        to adjust how we sample based on the final calculation as a
+        whole.
+**** Leave the decision to the end
+     We could connect the code using something like iterators so that
+     the decision of /how/ to calculate expecations and sample is
+     pull-based. That is, instead of deciding how much work to do
+     up-front, our final result is an iterator itself and the total
+     amount of work we do depends on how much of the final iterator we
+     evaluate.
+
+     If we do decide to try this out, it's worth checkout out PyMC3.
+
+     Upsides:
+
+       1. The decision can be /global/. We don't make it based on the
+          definition of the process /or/ the definition of the
+          algorithm; instead, we make it based on the final result
+          that we need to calculate.
+
+     Downside:
+
+       1. The code gets less direct. You have to express fundamental
+          operations in terms of iterators (or something) which means
+          you can't just "get a number and do something with it".
+       2. If you're not careful, the amount of computation needed to
+          get the next iteration of the final answer can be very
+          non-linear, making the final result not really incremental.
