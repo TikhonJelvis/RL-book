@@ -644,6 +644,16 @@ class DNNApprox(FunctionApprox[X]):
         )
 
 
+def learning_rate_schedule(
+    initial_learning_rate: float,
+    half_life: float,
+    exponent: float
+) -> Callable[[int], float]:
+    def lr_func(n: int) -> float:
+        return initial_learning_rate * (1 + (n - 1) / half_life) ** -exponent
+    return lr_func
+
+
 if __name__ == '__main__':
 
     from scipy.stats import norm
