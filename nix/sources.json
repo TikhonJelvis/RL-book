@@ -12,7 +12,7 @@
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
     "nixpkgs": {
-        "branch": "release-20.09",
+        "branch": "nixpkgs-20.09-darwin",
         "description": "Nix Packages collection",
         "homepage": "",
         "owner": "NixOS",
