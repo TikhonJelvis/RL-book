@@ -1,8 +1,8 @@
-from typing import Tuple, Sequence, Iterator
+from typing import Tuple, Sequence, Iterator, List
 import numpy as np
 from scipy.stats import norm
 from itertools import islice
-from rl.function_approx import Tabular, sgd, rmse
+from rl.function_approx import Tabular
 
 Triple = Tuple[float, float, float]
 Aug_Triple = Tuple[float, float, float, float]
@@ -18,7 +18,7 @@ def example_model_data_generator() -> Iterator[DataSeq]:
     d = norm(loc=0., scale=2.0)
 
     while True:
-        res: DataSeq = []
+        res: List[Tuple[Triple, float]] = []
         for pt in pts:
             x_val: Triple = (pt[0], pt[1], pt[2])
             y_val: float = coeffs[0] + np.dot(coeffs[1:], pt) + \
@@ -28,12 +28,12 @@ def example_model_data_generator() -> Iterator[DataSeq]:
 
 
 if __name__ == '__main__':
-    training_iterations: int = 300
+    training_iterations: int = 30
     data_gen: Iterator[DataSeq] = example_model_data_generator()
     test_data: DataSeq = list(next(data_gen))
 
     tabular: Tabular[Triple] = Tabular()
-    for xy_seq in data_gen:
+    for xy_seq in islice(data_gen, training_iterations):
         tabular = tabular.update(xy_seq)
-        this_rmse: float = rmse(tabular, test_data)
+        this_rmse: float = tabular.rmse(test_data)
         print(f"RMSE = {this_rmse:.3f}")

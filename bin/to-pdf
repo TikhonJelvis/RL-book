@@ -1,11 +1,46 @@
 #!/usr/bin/env bash
 
-FILE=$1
+book=0
 
-if [[ ${FILE: -3} == ".md" ]]
+if [[ $# -eq 0 ]]
 then
-    FILE=${FILE%.*}
+    book=1
 fi
 
-echo "Converting $FILE.md to $FILE.pdf"
-pandoc -t pdf --pdf-engine=xelatex -o "$1.pdf" --template latex.template "$1.md"
+if [[ $book == 1 ]]
+then
+    args=(chapter0/chapter0.md chapter1/chapter1.md chapter2/chapter2.md chapter3/chapter3.md chapter4/chapter4.md chapter5/chapter5.md chapter6/chapter6.md chapter7/chapter7.md chapter8/chapter8.md chapter9/chapter9.md chapter10/chapter10.md chapter11/chapter11.md chapter12/chapter12.md chapter13/chapter13.md chapter14/chapter14.md chapter15/chapter15.md chapter16/chapter16.md appendix1/appendix1.md appendix2/appendix2.md appendix3/appendix3.md appendix4/appendix4.md appendix5/appendix5.md)
+    out="book.pdf"
+else
+    args="$@"
+    out="${1%.*}.pdf"
+fi
+
+for path in "${args[@]}"
+do
+    names+=("${path%.*}.md")
+done
+
+if [[ $book == 1 ]]
+then
+    echo "Combining"
+    for path in "${names[@]}"
+    do
+        echo $path
+    done
+    echo "into $out"
+else
+    echo "Converting ${names[@]} to $out"
+fi
+
+pandoc -t pdf \
+       -o "$out" \
+       -F pandoc-crossref \
+       -M chapters \
+       -M title='Foundations of Reinforcement Learning with Applications in Finance' \
+       -M author='Ashwin Rao, Tikhon Jelvis' \
+       --pdf-engine=xelatex \
+       --template templates/latex.template \
+       --top-level-division=part \
+       $( (( book == 1 )) && printf %s '--toc' ) \
+       "${names[@]}"

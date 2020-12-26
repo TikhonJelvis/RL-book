@@ -1,10 +1,13 @@
+from __future__ import annotations
+
 from abc import ABC, abstractmethod
-import graphviz
-from typing import (Dict, Iterable, Generic, Sequence, Tuple, Mapping,
-                    Optional, TypeVar)
 from collections import defaultdict
+from dataclasses import dataclass
+import graphviz
 import numpy as np
 from pprint import pprint
+from typing import (Dict, Iterable, Generic, Sequence, Tuple,
+                    Mapping, Optional, TypeVar)
 
 from rl.distribution import (Categorical, Distribution, FiniteDistribution,
                              SampledDistribution)
@@ -33,7 +36,10 @@ class MarkovProcess(ABC, Generic[S]):
         '''
         return self.transition(state) is None
 
-    def simulate(self, start_state: S) -> Iterable[S]:
+    def simulate(
+        self,
+        start_state_distribution: Distribution[S]
+    ) -> Iterable[S]:
         '''Run a simulation trace of this Markov process, generating the
         states visited during the trace.
 
@@ -41,14 +47,25 @@ class MarkovProcess(ABC, Generic[S]):
         subsequent states forever or until we hit a terminal state.
         '''
 
-        state: S = start_state
+        state: S = start_state_distribution.sample()
         while True:
             yield state
             next_states = self.transition(state)
             if next_states is None:
-                break
-            else:
-                state = next_states.sample()
+                return
+
+            state = next_states.sample()
+
+    def traces(
+            self,
+            start_state_distribution: Distribution[S]
+    ) -> Iterable[Iterable[S]]:
+        '''Yield simulation traces (the output of `simulate'), sampling a
+        start state from the given distribution each time.
+
+        '''
+        while True:
+            yield self.simulate(start_state_distribution)
 
 
 class FiniteMarkovProcess(MarkovProcess[S]):
@@ -129,6 +146,29 @@ class FiniteMarkovProcess(MarkovProcess[S]):
 
 
 # Reward processes
+@dataclass(frozen=True)
+class TransitionStep(Generic[S]):
+    state: S
+    next_state: S
+    reward: float
+
+    def add_return(self, γ: float, return_: float) -> ReturnStep[S]:
+        '''Given a γ and the return from 'next_state', this annotates the
+        transition with a return for 'state'.
+
+        '''
+        return ReturnStep(
+            self.state,
+            self.next_state,
+            self.reward,
+            return_=self.reward + γ * return_
+        )
+
+
+@dataclass(frozen=True)
+class ReturnStep(TransitionStep[S]):
+    return_: float
+
 
 class MarkovRewardProcess(MarkovProcess[S]):
     def transition(self, state: S) -> Optional[Distribution[S]]:
@@ -139,12 +179,12 @@ class MarkovRewardProcess(MarkovProcess[S]):
         distribution = self.transition_reward(state)
         if distribution is None:
             return None
-        else:
-            def next_state(distribution=distribution):
-                next_s, _ = distribution.sample()
-                return next_s
 
-            return SampledDistribution(next_state)
+        def next_state(distribution=distribution):
+            next_s, _ = distribution.sample()
+            return next_s
+
+        return SampledDistribution(next_state)
 
     @abstractmethod
     def transition_reward(self, state: S)\
@@ -154,24 +194,37 @@ class MarkovRewardProcess(MarkovProcess[S]):
 
         '''
 
-    def simulate_reward(self, start_state: S) -> Iterable[Tuple[S, float]]:
-        '''Simulate the MRP, yielding the new state and reward for each
-        transition.
-
-        The trace starts with the start state and a reward of 0.
-
+    def simulate_reward(
+        self,
+        start_state_distribution: Distribution[S]
+    ) -> Iterable[TransitionStep[S]]:
+        '''Simulate the MRP, yielding an Iterable of
+        (state, next state, reward) for each sampled transition.
         '''
 
-        state: S = start_state
+        state: S = start_state_distribution.sample()
         reward: float = 0.
 
         while True:
-            yield state, reward
             next_distribution = self.transition_reward(state)
             if next_distribution is None:
-                break
-            else:
-                state, reward = next_distribution.sample()
+                return
+
+            next_state, reward = next_distribution.sample()
+            yield TransitionStep(state, next_state, reward)
+
+            state = next_state
+
+    def reward_traces(
+            self,
+            start_state_distribution: Distribution[S]
+    ) -> Iterable[Iterable[TransitionStep[S]]]:
+        '''Yield simulation traces (the output of `simulate_reward'), sampling
+        a start state from the given distribution each time.
+
+        '''
+        while True:
+            yield self.simulate_reward(start_state_distribution)
 
 
 StateReward = FiniteDistribution[Tuple[S, float]]

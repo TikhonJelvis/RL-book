@@ -4,7 +4,7 @@ from typing import Tuple
 import unittest
 
 from rl.distribution import (Bernoulli, Categorical, Distribution,
-                             SampledDistribution)
+                             SampledDistribution, Constant)
 from rl.markov_process import (FiniteMarkovProcess, MarkovProcess,
                                MarkovRewardProcess)
 
@@ -68,11 +68,17 @@ class TestMarkovProcess(unittest.TestCase):
         self.flip_flop = FlipFlop(0.5)
 
     def test_flip_flop(self):
-        trace = list(itertools.islice(self.flip_flop.simulate(True), 10))
+        trace = list(itertools.islice(
+            self.flip_flop.simulate(Constant(True)),
+            10
+        ))
 
         self.assertTrue(all(isinstance(outcome, bool) for outcome in trace))
 
-        longer_trace = itertools.islice(self.flip_flop.simulate(True), 10000)
+        longer_trace = itertools.islice(
+            self.flip_flop.simulate(Constant(True)),
+            10000
+        )
         count_trues = len(list(outcome for outcome in longer_trace if outcome))
 
         # If the code is correct, this should fail with a vanishingly
@@ -87,11 +93,17 @@ class TestFiniteMarkovProcess(unittest.TestCase):
         self.biased = FiniteFlipFlop(0.3)
 
     def test_flip_flop(self):
-        trace = list(itertools.islice(self.flip_flop.simulate(True), 10))
+        trace = list(itertools.islice(
+            self.flip_flop.simulate(Constant(True)),
+            10
+        ))
 
         self.assertTrue(all(isinstance(outcome, bool) for outcome in trace))
 
-        longer_trace = itertools.islice(self.flip_flop.simulate(True), 10000)
+        longer_trace = itertools.islice(
+            self.flip_flop.simulate(Constant(True)),
+            10000
+        )
         count_trues = len(list(outcome for outcome in longer_trace if outcome))
 
         # If the code is correct, this should fail with a vanishingly
@@ -131,10 +143,14 @@ class TestRewardMarkovProcess(unittest.TestCase):
         self.flip_flop = RewardFlipFlop(0.5)
 
     def test_flip_flop(self):
-        trace = list(itertools.islice(self.flip_flop.simulate_reward(True),
-                                      10))
+        trace = list(itertools.islice(
+            self.flip_flop.simulate_reward(Constant(True)),
+            10
+        ))
 
-        self.assertTrue(all(isinstance(outcome, bool) for outcome, _ in trace))
+        self.assertTrue(
+            all(isinstance(step.next_state, bool) for step in trace)
+        )
 
-        cumulative_reward = sum(reward for _, reward in trace)
+        cumulative_reward = sum(step.reward for step in trace)
         self.assertTrue(0 <= cumulative_reward <= 10)

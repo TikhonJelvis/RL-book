@@ -1,5 +1,6 @@
 from dataclasses import dataclass
-from typing import Tuple, Sequence
+from typing import Tuple, Iterator
+import itertools
 import numpy as np
 from scipy.stats import poisson
 import random
@@ -26,53 +27,53 @@ class SimpleInventoryMDPNoCap(MarkovDecisionProcess[InventoryState, int]):
         self.holding_cost: float = holding_cost
         self.stockout_cost: float = stockout_cost
 
-    def apply_policy(self, policy: Policy[InventoryState, int])\
-            -> MarkovRewardProcess[InventoryState]:
+    def step(
+        self,
+        state: InventoryState,
+        order: int
+    ) -> SampledDistribution[Tuple[InventoryState, float]]:
 
-        mdp = self
+        def sample_next_state_reward(
+            state=state,
+            order=order
+        ) -> Tuple[InventoryState, float]:
+            demand_sample: int = np.random.poisson(self.poisson_lambda)
+            ip: int = state.inventory_position()
+            next_state: InventoryState = InventoryState(
+                max(ip - demand_sample, 0),
+                order
+            )
+            reward: float = - self.holding_cost * state.on_hand\
+                - self.stockout_cost * max(demand_sample - ip, 0)
+            return next_state, reward
 
-        class ImpliedMRP(MarkovRewardProcess[InventoryState]):
+        return SampledDistribution(sample_next_state_reward)
 
-            def transition_reward(self, state: InventoryState)\
-                    -> SampledDistribution[Tuple[InventoryState, float]]:
-                order = policy.act(state).sample()
+    def actions(self, state: InventoryState) -> Iterator[int]:
+        return itertools.count(start=0, step=1)
 
-                def sample_next_state_reward(
-                    mdp=mdp,
-                    state=state,
-                    order=order
-                ) -> Tuple[InventoryState, float]:
-                    demand_sample: int = np.random.poisson(mdp.poisson_lambda)
-                    ip: int = state.inventory_position()
-                    next_state: InventoryState = InventoryState(
-                        max(ip - demand_sample, 0),
-                        order
-                    )
-                    reward: float = - mdp.holding_cost * state.on_hand\
-                        - mdp.stockout_cost * max(demand_sample - ip, 0)
-                    return next_state, reward
-
-                return SampledDistribution(sample_next_state_reward)
-
-        return ImpliedMRP()
-
-    def fraction_of_days_oos(self, policy: Policy[InventoryState, int],
-                             time_steps: int, num_traces: int) -> float:
+    def fraction_of_days_oos(
+        self,
+        policy: Policy[InventoryState, int],
+        time_steps: int,
+        num_traces: int
+    ) -> float:
         impl_mrp: MarkovRewardProcess[InventoryState] =\
             self.apply_policy(policy)
         count: int = 0
         high_fractile: int = int(poisson(self.poisson_lambda).ppf(0.98))
         start: InventoryState = random.choice(
             [InventoryState(i, 0) for i in range(high_fractile + 1)])
+
         for _ in range(num_traces):
-            sr_pairs: Sequence[Tuple[InventoryState, float]] =\
-                list(itertools.islice(
-                    impl_mrp.simulate_reward(start),
-                    time_steps + 1
-                ))
-            for i, (_, reward) in enumerate(sr_pairs[1:]):
-                if reward < -self.holding_cost * sr_pairs[i][0].on_hand:
+            steps = itertools.islice(
+                impl_mrp.simulate_reward(Constant(start)),
+                time_steps
+            )
+            for step in steps:
+                if step.reward < -self.holding_cost * step.next_state.on_hand:
                     count += 1
+
         return float(count) / (time_steps * num_traces)
 
 
@@ -99,7 +100,6 @@ class SimpleInventoryStochasticPolicy(Policy[InventoryState, int]):
 
 
 if __name__ == '__main__':
-    import itertools
     user_poisson_lambda = 2.0
     user_holding_cost = 1.0
     user_stockout_cost = 10.0

@@ -33,17 +33,61 @@ Once you have Nix installed, run `nix-shell` to get access to Pandoc, LaTeX and 
 
 [install]: https://nixos.org/download.html
 
-## Development
+## Generating PDFs
 
 Once inside the Nix shell, you'll have access to Pandoc and you'll be able to generate PDFs with XeTeX. The `to-pdf` script does this for a single Markdown file:
 
 ```
-[nix-shell:~/Documents/RL-book]$ bin/to-pdf example
+[nix-shell:~/Documents/RL-book]$ bin/to-pdf chapter0/chapter0.md
+Converting chapter0/chapter0.md to chapter0/chapter0.pdf
 ```
 
-(Note that it's `example` and not `example.md`.)
+You can also generate the entire book to a file called `book.pdf`:
 
-Over time, I'm going to add more functionality to this system, depending on exactly what we need. I'll probably set up a way to generate PDF/Word/etc documents using `nix-build` as well.
+```
+[nix-shell:~/Documents/RL-book]$ bin/to-pdf
+Combining
+chapter0/chapter0.md
+chapter2/chapter2.md
+chapter3/chapter3.md
+chapter4/chapter4.md
+chapter5/chapter5.md
+into book.pdf
+```
+
+Note that this can take a little while (10–20 seconds for chapters 0–5).
+
+### Cross-references
+
+We can define labels for chapters and headings:
+
+```
+# Overview {#sec:overview}
+
+## Learning Reinforcement Learning {#sec:learning-rl}
+```
+
+Because of limitations with the system I'm using for managing internal references, labels for sections *and* chapters always have to start with `sec:`.
+
+Once you have defined a label for a section or chapter, you can reference its number as follows:
+
+```
+Take a look at Chapter [-@sec:mdp].
+```
+
+> Take a look at Chapter 3.
+
+For sections, you can also use:
+
+```
+Take a look at [@sec:learning-rl].
+```
+
+> Take a look at sec. 1.
+
+(The `[-@sec:foo]` syntax drops the "sec. " text.)
+
+For references across chapters to render correctly, you have to compile the entire book PDF (following the instructions above).
 
 ## Working with Python and venv
 
