@@ -22,5 +22,17 @@
         "type": "tarball",
         "url": "https://github.com/NixOS/nixpkgs/archive/ae1b121d9a68518dbf46124397e34e465d3cdf6c.tar.gz",
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
+    },
+    "pandoc-include-code": {
+        "branch": "clean-up-nix",
+        "description": "A Pandoc filter for including code from source files",
+        "homepage": null,
+        "owner": "owickstrom",
+        "repo": "pandoc-include-code",
+        "rev": "e50984a9d561396954005c12f2a5d9df6e2963f9",
+        "sha256": "0ij0vba4y86ahizarv9bc5z2h716f9lnr39ib0bddd5mgiww5568",
+        "type": "tarball",
+        "url": "https://github.com/owickstrom/pandoc-include-code/archive/e50984a9d561396954005c12f2a5d9df6e2963f9.tar.gz",
+        "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     }
 }

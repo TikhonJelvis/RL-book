@@ -36,6 +36,7 @@ fi
 pandoc -t pdf \
        -o "$out" \
        -F pandoc-crossref \
+       -F pandoc-include-code \
        -M chapters \
        -M title='Foundations of Reinforcement Learning with Applications in Finance' \
        -M author='Ashwin Rao, Tikhon Jelvis' \
