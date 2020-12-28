@@ -44,8 +44,8 @@ class FinitePolicy(Policy[S, A]):
     policy_map: Mapping[S, Optional[FiniteDistribution[A]]]
 
     def __init__(
-        self,
-        policy_map: Mapping[S, Optional[FiniteDistribution[A]]]
+            self,
+            policy_map: Mapping[S, Optional[FiniteDistribution[A]]]
     ):
         self.policy_map = policy_map
 
@@ -110,8 +110,8 @@ class MarkovDecisionProcess(ABC, Generic[S, A]):
 
         class RewardProcess(MarkovRewardProcess[S]):
             def transition_reward(
-                self,
-                state: S
+                    self,
+                    state: S
             ) -> Optional[Distribution[Tuple[S, float]]]:
                 actions: Optional[Distribution[A]] = policy.act(state)
 
@@ -146,9 +146,9 @@ class MarkovDecisionProcess(ABC, Generic[S, A]):
 
     @abstractmethod
     def step(
-        self,
-        state: S,
-        action: A
+            self,
+            state: S,
+            action: A
     ) -> Optional[Distribution[Tuple[S, float]]]:
         pass
 
