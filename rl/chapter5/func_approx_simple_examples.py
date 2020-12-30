@@ -69,12 +69,16 @@ def get_dnn_model() -> DNNApprox[Triple]:
     def identity(arg: np.ndarray) -> np.ndarray:
         return arg
 
+    def identity_deriv(res: np.ndarray) -> np.ndarray:
+        return np.ones_like(res)
+
     ds = DNNSpec(
         neurons=[2],
         bias=True,
         hidden_activation=relu,
         hidden_activation_deriv=relu_deriv,
-        output_activation=identity
+        output_activation=identity,
+        output_activation_deriv=identity_deriv
     )
 
     return DNNApprox.create(
