@@ -19,12 +19,22 @@ SMALL_NUM = 1e-6
 
 class FunctionApprox(ABC, Generic[X]):
     '''Interface for function approximations.
-
     An object of this class approximates some function X ↦ ℝ in a way
     that can be evaluated at specific points in X and updated with
     additional (X, ℝ) points.
-
     '''
+
+    @abstractmethod
+    def representational_gradient(self, x_value: X) -> FunctionApprox[X]:
+        '''Computes the gradient of the self FunctionApprox with respect
+        to the parameters in the internal representation of the
+        FunctionApprox, i.e., computes Gradient with respect to internal
+        parameters of expected value of y for the input x, where the
+        expectation is with respect tp the FunctionApprox's model of
+        the probability distribution of y|x. The gradient is output
+        in the form of a FunctionApprox whose internal parameters are
+        equal to the gradient values.
+        '''
 
     @abstractmethod
     def evaluate(self, x_values_seq: Iterable[X]) -> np.ndarray:
@@ -105,6 +115,13 @@ class FunctionApprox(ABC, Generic[X]):
             initial=self
         )
 
+    def representational_gradient_stream(
+        self,
+        x_values_seq: Iterable[X]
+    ) -> Iterator[FunctionApprox[X]]:
+        for x_val in x_values_seq:
+            yield self.representational_gradient(x_val)
+
 
 @dataclass(frozen=True)
 class Dynamic(FunctionApprox[X]):
@@ -117,6 +134,9 @@ class Dynamic(FunctionApprox[X]):
     '''
 
     values_map: Mapping[X, float]
+
+    def representational_gradient(self, x_value: X) -> Dynamic[X]:
+        return Dynamic({x_value: 1.0})
 
     def evaluate(self, x_values_seq: Iterable[X]) -> np.ndarray:
         '''Evaluate the function approximation by looking up the value in the
@@ -189,6 +209,9 @@ class Tabular(FunctionApprox[X]):
     count_to_weight_func: Callable[[int], float] = \
         field(default_factory=lambda: lambda n: 1.0 / n)
 
+    def representational_gradient(self, x_value: X) -> Tabular[X]:
+        return Tabular({x_value: 1.0})
+
     def evaluate(self, x_values_seq: Iterable[X]) -> np.ndarray:
         '''Evaluate the approximation at each given X.
 
@@ -253,6 +276,25 @@ class BSplineApprox(FunctionApprox[X]):
 
     def get_feature_values(self, x_values_seq: Iterable[X]) -> Sequence[float]:
         return [self.feature_function(x) for x in x_values_seq]
+
+    def representational_gradient(self, x_value: X) -> BSplineApprox[X]:
+        feature_val: float = self.feature_function(x_value)
+        eps: float = 1e-6
+        one_hots: np.array = np.eye(len(self.coeffs))
+        return replace(
+            self,
+            coeffs=np.array([(
+                BSpline(
+                    self.knots,
+                    c + one_hots[i] * eps,
+                    self.degree
+                )(feature_val) -
+                BSpline(
+                    self.knots,
+                    c - one_hots[i] * eps,
+                    self.degree
+                )(feature_val)
+            ) / (2 * eps) for i, c in enumerate(self.coeffs)]))
 
     def evaluate(self, x_values_seq: Iterable[X]) -> np.ndarray:
         spline_func: Callable[[Sequence[float]], np.ndarray] = \
@@ -395,6 +437,15 @@ class LinearFunctionApprox(FunctionApprox[X]):
             [[f(x) for f in self.feature_functions] for x in x_values_seq]
         )
 
+    def representational_gradient(self, x_value: X) -> LinearFunctionApprox[X]:
+        return replace(
+            self,
+            weights=replace(
+                self.weights,
+                weights=np.array([f(x_value) for f in self.feature_functions])
+            )
+        )
+
     def evaluate(self, x_values_seq: Iterable[X]) -> np.ndarray:
         return np.dot(
             self.get_feature_values(x_values_seq),
@@ -471,6 +522,7 @@ class DNNSpec:
     hidden_activation: Callable[[np.ndarray], np.ndarray]
     hidden_activation_deriv: Callable[[np.ndarray], np.ndarray]
     output_activation: Callable[[np.ndarray], np.ndarray]
+    output_activation_deriv: Callable[[np.ndarray], np.ndarray]
 
 
 @dataclass(frozen=True)
@@ -523,7 +575,7 @@ class DNNApprox(FunctionApprox[X]):
                  each represent the 2-D input arrays (of size n x |I_l|),
                  for each of the (L+1) layers (L of which are hidden layers),
                  and the last value represents the output of the DNN (as a
-                 2-D array of length n x 1)
+                 1-D array of length n)
         """
         inp: np.ndarray = self.get_feature_values(x_values_seq)
         ret: List[np.ndarray] = [inp]
@@ -539,12 +591,12 @@ class DNNApprox(FunctionApprox[X]):
         ret.append(
             self.dnn_spec.output_activation(
                 np.dot(inp, self.weights[-1].weights.T)
-            )
+            )[:, 0]
         )
         return ret
 
     def evaluate(self, x_values_seq: Iterable[X]) -> np.ndarray:
-        return self.forward_propagation(x_values_seq)[-1][:, 0]
+        return self.forward_propagation(x_values_seq)[-1]
 
     def within(self, other: FunctionApprox[X], tolerance: float) -> bool:
         if isinstance(other, DNNApprox):
@@ -555,22 +607,27 @@ class DNNApprox(FunctionApprox[X]):
 
     def backward_propagation(
         self,
-        xy_vals_seq: Iterable[Tuple[X, float]]
+        fwd_prop: Sequence[np.ndarray],
+        objective_derivative_output: Callable[[np.ndarray], np.ndarray]
     ) -> Sequence[np.ndarray]:
         """
-        :param pairs: list of pairs of n (x, y) points
-        :return: list (of length L+1) of |O_l| x |I_l| 2-D array,
+        :param
+        fwd_prop represents the result of forward propagation, a sequence
+        of (L+1) 2-D np.ndarrays, followed by a 1-D np.ndarray for the output
+        of the DNN.
+        objective_derivative_output represents the derivative of the objective
+        function with respect to the output of the DNN
+
+        :return: list (of length L+1) of |O_l| x |I_l| 2-D arrays,
                  i.e., same as the type of self.weights.weights
         This function computes the gradient (with respect to weights) of
         cross-entropy loss where the output layer activation function
         is the canonical link function of the conditional distribution of y|x
         """
-        x_vals, y_vals = zip(*xy_vals_seq)
-        fwd_prop: Sequence[np.ndarray] = self.forward_propagation(x_vals)
         layer_inputs: Sequence[np.ndarray] = fwd_prop[:-1]
-        deriv: np.ndarray = (
-            fwd_prop[-1][:, 0] - np.array(y_vals)
-        ).reshape(1, -1)
+        deriv: np.ndarray = objective_derivative_output(fwd_prop[-1]) * \
+            self.dnn_spec.output_activation_deriv(fwd_prop[-1])
+        deriv = deriv.reshape(1, -1)
         back_prop: List[np.ndarray] = [np.dot(deriv, layer_inputs[-1]) /
                                        deriv.shape[1]]
         # L is the number of hidden layers, n is the number of points
@@ -596,6 +653,18 @@ class DNNApprox(FunctionApprox[X]):
             back_prop.append(np.dot(deriv, layer_inputs[i]) / deriv.shape[1])
         return back_prop[::-1]
 
+    def representational_gradient(self, x_value: X) -> DNNApprox[X]:
+        return replace(
+            self,
+            weights=replace(
+                self.weights,
+                weights=self.backward_propagation(
+                    fwd_prop=self.forward_propagation([x_value]),
+                    objective_derivative_output=lambda arr: np.ones_like(arr)
+                )
+            )
+        )
+
     def regularized_loss_gradient(
         self,
         xy_vals_seq: Iterable[Tuple[X, float]]
@@ -609,8 +678,18 @@ class DNNApprox(FunctionApprox[X]):
         function is the canonical link function of the conditional
         distribution of y|x
         """
+        x_vals, y_vals = zip(*xy_vals_seq)
+        fwd_prop: Sequence[np.ndarray] = self.forward_propagation(x_vals)
+
+        def obj_deriv_output(out: np.ndarray) -> np.ndarray:
+            return (out - np.array(y_vals)) / \
+                self.dnn_spec.output_activation_deriv(out)
+
         return [x + self.regularization_coeff * self.weights[i].weights
-                for i, x in enumerate(self.backward_propagation(xy_vals_seq))]
+                for i, x in enumerate(self.backward_propagation(
+                    fwd_prop=fwd_prop,
+                    objective_derivative_output=obj_deriv_output
+                ))]
 
     def update(
         self,
@@ -722,7 +801,8 @@ if __name__ == '__main__':
         bias=True,
         hidden_activation=lambda x: x,
         hidden_activation_deriv=lambda x: np.ones_like(x),
-        output_activation=lambda x: x
+        output_activation=lambda x: x,
+        output_activation_deriv=lambda x: np.ones_like(x)
     )
 
     dnna = DNNApprox.create(

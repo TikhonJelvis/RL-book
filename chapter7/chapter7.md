@@ -619,8 +619,9 @@ dnn: DNNSpec = DNNSpec(
     neurons=[],
     bias=False,
     hidden_activation=lambda x: x,
-    hidden_activation_deriv=lambda _: 1.,
-    output_activation=lambda x: - np.sign(a) * np.exp(-x)
+    hidden_activation_deriv=lambda y: np.ones_like(y),
+    output_activation=lambda x: - np.sign(a) * np.exp(-x),
+    output_activation_deriv=lambda y: -y
 )
 init_wealth_distr: Gaussian = Gaussian(
     mu=init_wealth,
