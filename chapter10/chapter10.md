@@ -523,7 +523,229 @@ More generally, we encourage you to play with the `compare_mc_and_td` function o
 
 #### Fixed-Data Experience Replay on TD versus MC
 
-We have talked a lot about *how* TD learns versus *how* MC learns. In this subsection, we turn our focus to *what* TD learns and what *MC* learns, which is a profound conceptual difference between TD and MC. We illuminate this difference with a special setting - we consider a fixed finite set of trace experiences (versus usual settings considered in this chapter so far where we had an "endless" stream of trace experiences). The agent is allowed to tap into this fixed finite set of traces experiences endlessly, i.e., the agent can consume a stream of data for consumption by MC and TD Prediction, but any data consumed by MC and TD Prediction must ultimately come from just this fixed data set. This means we'd end up tapping into trace experiences/atomic experiences repeatedly. We call this technique of repeatedly tapping into the same data as *Experience Replay*
+We have talked a lot about *how* TD learns versus *how* MC learns. In this subsection, we turn our focus to *what* TD learns and what *MC* learns, which is a profound conceptual difference between TD and MC. We illuminate this difference with a special setting - we consider a fixed finite set of trace experiences (versus usual settings considered in this chapter so far where we had an "endless" stream of trace experiences). The agent is allowed to tap into this fixed finite set of traces experiences endlessly, i.e., the MC or TD prediction RL agent can indeed consume an endless stream of data, but all of that stream of data must ultimately be sourced from the fixed finite set of trace experiences. This means we'd end up tapping into trace experiences (or it's component atomic experiences) repeatedly. We call this technique of repeatedly tapping into the same data as *Experience Replay*. We will uncover the key conceptual difference of *what* MC and TD learn by running them on an *Experience Replay* of a fixed finite set of trace experiences.
+
+So let us start by setting up this experience replay with some code. Firstly, we represent the given input data of the fixed finite set of trace experience as:
+
+Firstly, we represent the given input data of the fixed finite set of trace experience as the type:
+
+`Sequence[Sequence[Tuple[str, float]]]`
+
+The outer `Sequence` refers to the sequence of trace experiences, and the inner `sequence` refers to the sequence of (stte, reward) pairs in a trace experience (to represent the alternating sequence of states and rewards in a trace experience). The first function we write is to convert this data set into a:
+
+`Sequence[Sequence[TransitionStep[S]]]`
+
+which is consumable by MC and TD Prediction algorithms (since their interfaces work with the `TransitionStep[S]` data type). The following function does this job:
+
+```python
+def get_fixed_episodes_from_sr_pairs_seq(
+    sr_pairs_seq: Sequence[Sequence[Tuple[S, float]]],
+    terminal_state: S
+) -> Sequence[Sequence[TransitionStep[S]]]:
+    return [[TransitionStep(
+        state=s,
+        reward=r,
+        next_state=trace[i+1][0] if i < len(trace) - 1 else terminal_state
+    ) for i, (s, r) in enumerate(trace)] for trace in sr_pairs_seq]
+```
+
+We'd like MC Prediction to run on an endless stream of `Sequence[TransitionStep[S]]]` sourced from the fixed finite data set produced by `get_fixed_episodes_from_sr_pairs_seq`. So we write the following function to generate an endless stream by repeatedly randomly (uniformly) sampling from the fixed finite set of trace experiences, as follows:
+
+```python
+def get_episodes_stream(
+    fixed_episodes: Sequence[Sequence[TransitionStep[S]]]
+) -> Iterator[Sequence[TransitionStep[S]]]:
+    num_episodes: int = len(fixed_episodes)
+    while True:
+        yield fixed_episodes[np.random.randint(num_episodes)]
+```
+
+As we know, TD works with atomic experiences rather than trace experiences. So we need the following function to split the fixed finite set of trace experiences into a fixed finite set of atomic experiences:
+
+```python
+def fixed_experiences_from_fixed_episodes(
+    fixed_episodes: Sequence[Sequence[TransitionStep[S]]]
+) -> Sequence[TransitionStep[S]]:
+    return list(itertools.chain.from_iterable(fixed_episodes))
+```
+
+We'd like TD Prediction to run on an endless stream of `TransitionStep[S]]]` sourced from the fixed finite set of atomic experiences produced by `fixed_experiences_from_fixed_episodes`. So we write the following function to generate an endless stream by repeatedly randomly (uniformly) sampling from the fixed finite set of unit experiences, as follows:
+
+```python
+def get_experiences_stream(
+    fixed_experiences: Sequence[TransitionStep[S]]
+) -> Iterator[TransitionStep[S]]:
+    num_experiences: int = len(fixed_experiences)
+    while True:
+        yield fixed_experiences[np.random.randint(num_experiences)]
+```
+
+Ok - now we are ready to run MC and TD Prediction algorithms on an experience replay of the given input of a fixed finite set of trace experiences. It is quite obvious what MC Prediction algorithm would produce. MC Prediction is simply supervised learning of a data set of states and their associated returns, and here we have a fixed finite set of states (across the trace experiences) and a fixed finite set of returns associated with each of those states. Hence, MC Prediction will return a Value Function that is equal to the average returns seen in the fixed finite data set for each of the states in the data set. So let us first write a function to explicitly calculate the average returns, and then we can check if MC Prediction will give the same answer (it should - this will simply be a validation of our code).
+
+```python
+def get_return_steps_from_fixed_episodes(
+    fixed_episodes: Sequence[Sequence[TransitionStep[S]]],
+    gamma: float
+) -> Sequence[ReturnStep[S]]:
+    return list(itertools.chain.from_iterable(returns(episode, gamma, 1e-8)
+                                              for episode in fixed_episodes))
+
+
+def get_mean_returns_from_return_steps(
+    returns_seq: Sequence[ReturnStep[S]]
+) -> Mapping[S, float]:
+    def by_state(ret: ReturnStep[S]) -> S:
+        return ret.state
+
+    sorted_returns_seq: Sequence[ReturnStep[S]] = sorted(
+        returns_seq,
+        key=by_state
+    )
+    return {s: np.mean([r.return_ for r in l])
+            for s, l in itertools.groupby(
+                sorted_returns_seq,
+                key=by_state
+            )}
+```
+
+To facilitate comparisons, we will do all calculations on the following simple hand-entered input data set:
+
+```python
+given_data: Sequence[Sequence[Tuple[str, float]]] = [
+    [('A', 2.), ('A', 6.), ('B', 1.), ('B', 2.)],
+    [('A', 3.), ('B', 2.), ('A', 4.), ('B', 2.), ('B', 0.)],
+    [('B', 3.), ('B', 6.), ('A', 1.), ('B', 1.)],
+    [('A', 0.), ('B', 2.), ('A', 4.), ('B', 4.), ('B', 2.), ('B', 3.)],
+    [('B', 8.), ('B', 2.)]
+]
+```
+
+The following code runs `get_mean_returns_from_return_steps` on this simple input data set.
+
+```python
+from pprint import pprint
+gamma: float = 0.9
+
+fixed_episodes: Sequence[Sequence[TransitionStep[str]]] = \
+    get_fixed_episodes_from_sr_pairs_seq(
+        sr_pairs_seq=given_data,
+        terminal_state='T'
+    )
+
+returns_seq: Sequence[ReturnStep[str]] = \
+    get_return_steps_from_fixed_episodes(
+        fixed_episodes=fixed_episodes,
+        gamma=gamma
+    )
+
+mean_returns: Mapping[str, float] = get_mean_returns_from_return_steps(
+    returns_seq
+)
+
+pprint(mean_returns)
+```
+
+This prints:
+
+```
+{'A': 8.261809999999999, 'B': 5.190378571428572}
+```
+
+Now let's run MC Prediction with experience-replayed 100,000 trace experiences:
+
+```python
+num_mc_episodes: int = 100000
+
+episodes: Iterator[Sequence[TransitionStep[str]]] = \
+    get_episodes_stream(fixed_episodes)
+
+mc_pred: Mapping[str, float] = mc_prediction(
+    episodes_stream=episodes,
+    gamma=gamma,
+    num_episodes=num_mc_episodes
+)
+
+pprint(mc_pred)
+```
+
+This prints:
+
+```
+{'A': 8.259354513588503, 'B': 5.18847638381789}
+```
+
+So, as expected, it ties out. Now let's move on to TD Prediction. Let's run TD Prediction on experience-replayed 1,000,000 atomic experiences.
+
+```
+num_td_experiences: int = 1000000
+
+fixed_experiences: Sequence[TransitionStep[str]] = \
+    fixed_experiences_from_fixed_episodes(fixed_episodes)
+
+experiences: Iterator[TransitionStep[str]] = \
+    get_experiences_stream(fixed_experiences)
+
+td_pred: Mapping[str, float] = td_prediction(
+    experiences_stream=experiences,
+    gamma=gamma,
+    num_experiences=num_td_experiences
+)
+
+pprint(td_pred)
+```
+
+This prints:
+
+```
+{'A': 9.733383341548377, 'B': 7.483985631705235}
+```
+
+We note that this Value Function is vastly different from the Value Function produced by MC Prediction. Is there a bug in our code, or perhaps a more serious conceptual problem? It turns out there is no bug or more serious problem. This is exactly what TD Prediction on Experience Replay on a fixed finite data set is meant to produce. So, what Value Function does this correspond to? It turns out that TD Prediction drives towards a Value Function of an MRP that is *implied* by the fixed finite set of given experiences. By the term *implied*, we mean the MRP's transition probabilities estimated from the input data as follows:
+
+$$\mathcal{P}_R(s,r,s') = \frac {\sum_{i=1}^N \mathbb{I}_{S_i=s,R_{i+1}=r,S_{i+1}=s'}} {\sum_{i=1}^N \mathbb{I}_{S_i=s}}$$
+
+where the finite fixed set of atomic transitions are $[(S_i,R_{i+1}=r,S_{i+1}=s')|1\leq i \leq N]$, $\mathbb{I}$ denotes the indicator function.
+
+So let's write some code to construct this MRP based on the above formula.
+
+```python
+def finite_mrp(
+    fixed_experiences: Sequence[TransitionStep[S]]
+) -> FiniteMarkovRewardProcess[S]:
+    def by_state(tr: TransitionStep[S]) -> S:
+        return tr.state
+
+    terminal_state: S = fixed_experiences[-1].next_state
+
+    d: Mapping[S, Sequence[Tuple[S, float]]] = \
+        {s: [(t.next_state, t.reward) for t in l] for s, l in
+         itertools.groupby(
+             sorted(fixed_experiences, key=by_state),
+             key=by_state
+         )}
+    mrp: Dict[S, Optional[Categorical[Tuple[S, float]]]] = \
+        {s: Categorical({x: y / len(l) for x, y in
+                         collections.Counter(l).items()})
+         for s, l in d.items()}
+    mrp[terminal_state] = None
+    return FiniteMarkovRewardProcess(mrp)
+```
+
+Now let's print it's Value Function.
+
+```python
+fmrp: FiniteMarkovRewardProcess[str] = finite_mrp(fixed_experiences)
+fmrp.display_value_function(gamma)
+```
+
+This prints:
+
+```
+{'A': 9.958, 'B': 7.545}
+```
+
+This Value Function is quite close to the Value Function produced by TD Prediction. The TD Prediction algorithm'sIt doesn't quite hit the Value Function of the data-implied MRP, but is quite close
+
 
 #### Pictures of depth versus breadth
 
