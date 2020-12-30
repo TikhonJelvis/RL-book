@@ -5,7 +5,7 @@ from rl.function_approx import Tabular
 from rl.distribution import Categorical
 from rl.returns import returns
 import rl.iterate as iterate
-from rl.chapter10.prediction_utils import learning_rate_decay_func
+from rl.function_approx import learning_rate_schedule
 import itertools
 import collections
 import numpy as np
@@ -119,9 +119,10 @@ def td_prediction(
     return iterate.last(itertools.islice(
         td.evaluate_mrp(
             transitions=experiences_stream,
-            approx_0=Tabular(count_to_weight_func=learning_rate_decay_func(
-                base_learning_rate=0.01,
-                learning_rate_decay=10000
+            approx_0=Tabular(count_to_weight_func=learning_rate_schedule(
+                initial_learning_rate=0.01,
+                half_life=10000,
+                exponent=0.5
             )),
             γ=gamma
         ),
