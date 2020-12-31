@@ -36,7 +36,8 @@ def evaluate_mrp(
                           transition.reward + γ * v(transition.next_state))])
 
     return itertools.accumulate(transitions, step, initial=approx_0)
-  
+
+
 A = TypeVar('A')
 
 

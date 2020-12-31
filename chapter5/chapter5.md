@@ -73,7 +73,7 @@ When concrete classes implementing `FunctionApprox` write the `solve` method in 
 
 Any concrete class that implement this abstract class `FunctionApprox` will need to implement these four `abstractmethod`s of `FunctionApprox`, based on the specific assumptions that the concrete class makes for $f$. 
 
-Next, we write some useful methods that the concrete classes implementing `FunctionApprox` can inherit and utilize. Firstly, we write a method called `iterate_updates` that takes as input a stream (`Iterator`) of `Iterable` of $(x,y)$ pairs, and performs a series of incremental updates to the parameters $w$ (each using the `update` method), with each `update` done for each `Iterable` of $(x,y)$ pairs in the input stream `xy_seq: Iterator[Iterable[Tuple[X, float]]]`. `iterate_updates` returns an `Iterator[FunctionApprox[X]]` representing the successively updated `FunctionApprox` instances as a consequence of the repeated invocations to `update`. Note the use of the standard Python function `itertools.acccumulate` to accomplish this. 
+Next, we write some useful methods that the concrete classes implementing `FunctionApprox` can inherit and utilize. Firstly, we write a method called `iterate_updates` that takes as input a stream (`Iterator`) of `Iterable` of $(x,y)$ pairs, and performs a series of incremental updates to the parameters $w$ (each using the `update` method), with each `update` done for each `Iterable` of $(x,y)$ pairs in the input stream `xy_seq: Iterator[Iterable[Tuple[X, float]]]`. `iterate_updates` returns an `Iterator[FunctionApprox[X]]` representing the successively updated `FunctionApprox` instances as a consequence of the repeated invocations to `update`. Note the use of the standard Python function [`itertools.accumulate`](https://docs.python.org/3/library/itertools.html#itertools.accumulate) that calculates accumulated results (including intermediate results) on an `Iterable`, based on a provided function to govern the accumulation. In the code below, the `Iterable` is the input stream `xy_seq_stream` and the function governing the accumulation is the `update` method of `FunctionApprox`.
 
 ```python
 import itertools
@@ -868,15 +868,15 @@ The plot of `linear_model_rmse_seq` and `dnn_model_rmse_seq` is shown in Figure 
 ![SGD Convergence \label{fig:sgd_convergence}](./chapter5/rmse.png "SGD Convergence")
 </div>
 
-### Tabular as a form of `FunctionApprox`
+### Tabular as a form of `FunctionApprox` {#sec:tabular-funcapprox-section}
 
 Now we consider a simple case where we have a fixed and finite set of $x$-values $\mathcal{X} = \{x_1, x_2, \ldots, x_n\}$, and any data set of $(x,y)$ made available to us needs to have it's $x$-values from within this finite set $\mathcal{X}$. The prediction $\mathbb{E}[y|x]$ for each $x \in \mathcal{X}$ needs to be calculated only from the $y$-values associated with this $x$ within the data set of $(x,y)$ pairs. In other words, the $y$-values in the data associated with other $x$ should not influence the prediction for $x$. Since we'd like the prediction for $x$ to be $\mathbb{E}[y|x]$, it would make sense for the prediction for a given $x$ to be the average of all the $y$-values associated with $x$ within the data set of $(x,y)$ pairs seen so far. This simple case is refered to as *Tabular* because we can store all $x \in \mathcal{X}$ together with their corresponding predictions $\mathbb{E}[y|x]$ in a finite data structure (loosely refered to as a "table").
 
 So the calculations for Tabular prediction of $\mathbb{E}[y|x]$ is particularly straightforward. What is interesting though is the fact that Tabular prediction actually fits the interface of `FunctionApprox` in terms of implementing:
 
 * the `solve` method, that would simply take the average of all the $y$-values associated with each $x$ in the given data set, and store those averages in a dictionary data structure.
-* the `update` function, that would update the current averages in the dictionary data structure, based on the new data set of $(x,y)$ pairs that is provided.
-* the `evaluate` function, that would simply look up the dictionary data structure for the $y$-value averages associated with each $x$-value provided as input.
+* the `update` method, that would update the current averages in the dictionary data structure, based on the new data set of $(x,y)$ pairs that is provided.
+* the `evaluate` method, that would simply look up the dictionary data structure for the $y$-value averages associated with each $x$-value provided as input.
 
  This view of Tabular prediction as a special case of `FunctionApprox` also permits us to cast the tabular algorithms of Dynamic Programming and Reinforcement Learning as special cases of the function approximation versions of the algorithms (using the `Tabular` class we develop below).
 
@@ -900,7 +900,7 @@ class Tabular(FunctionApprox[X]):
         field(default_factory=lambda: lambda n: 1. / n)
 
     def evaluate(self, x_values_seq: Iterable[X]) -> np.ndarray:
-        return np.array([self.values_map[x] for x in x_values_seq])
+        return np.array([self.values_map.get(x, 0.) for x in x_values_seq])
 
     def update(self, xy_vals_seq: Iterable[Tuple[X, float]]) -> Tabular[X]:
         values_map: Dict[X, float] = dict(self.values_map)
@@ -908,7 +908,7 @@ class Tabular(FunctionApprox[X]):
 
         for x, y in xy_vals_seq:
             counts_map[x] = counts_map.get(x, 0) + 1
-            weight: float = self.count_to_weight_func(counts_map[x])
+            weight: float = self.count_to_weight_func(counts_map.get(x, 0))
             values_map[x] = weight * y + (1 - weight) * values_map.get(x, 0.)
 
         return replace(
@@ -926,7 +926,7 @@ class Tabular(FunctionApprox[X]):
         counts_map: Dict[X, int] = {}
         for x, y in xy_vals_seq:
             counts_map[x] = counts_map.get(x, 0) + 1
-            weight: float = self.count_to_weight_func(counts_map[x])
+            weight: float = self.count_to_weight_func(counts_map.get(x, 0))
             values_map[x] = weight * y + (1 - weight) * values_map.get(x, 0.)
         return replace(
             self,
@@ -1176,9 +1176,9 @@ All of the above code for Approximate Dynamic Programming (ADP) algorithms is in
 
 Each of the above ADP algorithms takes as input probability distribution(s) of non-terminal states. You may be wondering how one constructs the probability distribution of non-terminal states so you can feed it as input to any of these ADP algorithm. There is no simple, crisp answer to this. But we will provide some general pointers in this section on how to construct the probability distribution of non-terminal states.
 
-Let us start with Approximate Policy Evaluation and Approximate Value Iteration algorithms. They require as input the probability distribution of non-terminal states. For Approximate Value Iteration algorithm, a natural choice would be evaluate the Markov Decision Process (MDP) with a uniform policy (equal probability for each action, from any state) to construct the implied Markov Reward Process (MRP), and then infer the stationary distribution of it's Markov Process, using some special property of the Markov Process (for instance, if it's a finite-states Markov Process, we might be able to perform the matrix calculations we covered in Chapter [-@sec:mrp-chapter] to calculate the stationary distribution). The stationary distribution would serve as the probability distribution of non-terminal states to be used by the Approximate Value Iteration algorithm. For Approximate Policy Evaluation algorithm, we do the same stationary distribution calculation with the given MRP. If we cannot take advantage of any special properties of the given MDP/MRP, then we can run a simulation with the `simulate` method in `MarkovRewardProcess` (inherited from `MarkovProcess`) and create a `SampledDistribution` of non-terminal states based on the non-terminal states reached by the simulation after a sufficiently large (but fixed) number of time steps (this is essentially an estimate of the stationary distribution). If the above choices are infeasible or computationally expensive, then a simple and neutral choice is to use a uniform distribution over the states.
+Let us start with Approximate Policy Evaluation and Approximate Value Iteration algorithms. They require as input the probability distribution of non-terminal states. For Approximate Value Iteration algorithm, a natural choice would be evaluate the Markov Decision Process (MDP) with a uniform policy (equal probability for each action, from any state) to construct the implied Markov Reward Process (MRP), and then infer the stationary distribution of it's Markov Process, using some special property of the Markov Process (for instance, if it's a finite-states Markov Process, we might be able to perform the matrix calculations we covered in Chapter [-@sec:mrp-chapter] to calculate the stationary distribution). The stationary distribution would serve as the probability distribution of non-terminal states to be used by the Approximate Value Iteration algorithm. For Approximate Policy Evaluation algorithm, we do the same stationary distribution calculation with the given MRP. If we cannot take advantage of any special properties of the given MDP/MRP, then we can run a simulation with the `simulate` method in `MarkovRewardProcess` (inherited from `MarkovProcess`) and create a `SampledDistribution` of non-terminal states based on the non-terminal states reached by the sampling trace after a sufficiently large (but fixed) number of time steps (this is essentially an estimate of the stationary distribution). If the above choices are infeasible or computationally expensive, then a simple and neutral choice is to use a uniform distribution over the states.
 
-Next, we consider the backward induction ADP algorithms for finite-horizon MDPs/MRPs. Our job here is to infer the distribution of non-terminal states for each time step in the finite horizon. Sometimes you can take advantage of the mathematical structure of the underlying Markov Process to come up with an analytical expression (exact or approximate) for the probability distribution of non-terminal states at any time step for the underlying Markov Process of the MRP/implied-MRP. For instance, if the Markov Process is described by a stochastic differential equation (SDE) and if we are able to solve the SDE, we would know the analytical expression for the probability distribution of non-terminal states. If we cannot take advantage of any such special properties, then we can create simulation paths by time-incrementally sampling from the state-transition probability distributions of each of the Markov Reward Processes at each time step (if we are solving a Control problem, then we create implied-MRPs by evaluating the given MDPs with a uniform policy). The end points of these simulation paths at each time step provide a `SampledDistribution` of non-terminal states for each time step within the finite horizon. If the above choices are infeasible or computationally expensive, then a simple and neutral choice is to use a uniform distribution over the non-terminal states for each time step.
+Next, we consider the backward induction ADP algorithms for finite-horizon MDPs/MRPs. Our job here is to infer the distribution of non-terminal states for each time step in the finite horizon. Sometimes you can take advantage of the mathematical structure of the underlying Markov Process to come up with an analytical expression (exact or approximate) for the probability distribution of non-terminal states at any time step for the underlying Markov Process of the MRP/implied-MRP. For instance, if the Markov Process is described by a stochastic differential equation (SDE) and if we are able to solve the SDE, we would know the analytical expression for the probability distribution of non-terminal states. If we cannot take advantage of any such special properties, then we can generate sampling traces by time-incrementally sampling from the state-transition probability distributions of each of the Markov Reward Processes at each time step (if we are solving a Control problem, then we create implied-MRPs by evaluating the given MDPs with a uniform policy). The states reached by these sampling traces at any fixed time step provide a `SampledDistribution` of non-terminal states for that time step. If the above choices are infeasible or computationally expensive, then a simple and neutral choice is to use a uniform distribution over the non-terminal states for each time step.
 
 We will write some code in Chapter [-@sec:portfolio-chapter] to create a `SampledDistribution` of non-terminal states for each time step of a finite-horizon problem by stitching together samples of state transitions at each time step. If you are curious about this now, you can [take a peek at the code](https://github.com/TikhonJelvis/RL-book/blob/master/rl/chapter7/asset_alloc_discrete.py).
 
