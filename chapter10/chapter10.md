@@ -523,15 +523,13 @@ More generally, we encourage you to play with the `compare_mc_and_td` function o
 
 #### Fixed-Data Experience Replay on TD versus MC
 
-We have talked a lot about *how* TD learns versus *how* MC learns. In this subsection, we turn our focus to *what* TD learns and what *MC* learns, which is a profound conceptual difference between TD and MC. We illuminate this difference with a special setting - we consider a fixed finite set of trace experiences (versus usual settings considered in this chapter so far where we had an "endless" stream of trace experiences). The agent is allowed to tap into this fixed finite set of traces experiences endlessly, i.e., the MC or TD prediction RL agent can indeed consume an endless stream of data, but all of that stream of data must ultimately be sourced from the fixed finite set of trace experiences. This means we'd end up tapping into trace experiences (or it's component atomic experiences) repeatedly. We call this technique of repeatedly tapping into the same data as *Experience Replay*. We will uncover the key conceptual difference of *what* MC and TD learn by running them on an *Experience Replay* of a fixed finite set of trace experiences.
+We have talked a lot about *how* TD learns versus *how* MC learns. In this subsection, we turn our focus to *what* TD learns and *what* MC learns, which is a profound conceptual difference between TD and MC. We illuminate this difference with a special setting - we are given a fixed finite set of trace experiences (versus usual settings considered in this chapter so far where we had an "endless" stream of trace experiences). The agent is allowed to tap into this fixed finite set of traces experiences endlessly, i.e., the MC or TD prediction RL agent can indeed consume an endless stream of data, but all of that stream of data must ultimately be sourced from the given fixed finite set of trace experiences. This means we'd end up tapping into trace experiences (or it's component atomic experiences) repeatedly. We call this technique of repeatedly tapping into the same data as *Experience Replay*. We will uncover the key conceptual difference of *what* MC and TD learn by running the algorithms on an *Experience Replay* of a fixed finite set of trace experiences.
 
-So let us start by setting up this experience replay with some code. Firstly, we represent the given input data of the fixed finite set of trace experience as:
-
-Firstly, we represent the given input data of the fixed finite set of trace experience as the type:
+So let us start by setting up this experience replay with some code. Firstly, we represent the given input data of the fixed finite set of trace experience as the type:
 
 `Sequence[Sequence[Tuple[str, float]]]`
 
-The outer `Sequence` refers to the sequence of trace experiences, and the inner `sequence` refers to the sequence of (stte, reward) pairs in a trace experience (to represent the alternating sequence of states and rewards in a trace experience). The first function we write is to convert this data set into a:
+The outer `Sequence` refers to the sequence of trace experiences, and the inner `Sequence` refers to the sequence of (state, reward) pairs in a trace experience (to represent the alternating sequence of states and rewards in a trace experience). The first function we write is to convert this data set into a:
 
 `Sequence[Sequence[TransitionStep[S]]]`
 
@@ -549,9 +547,11 @@ def get_fixed_episodes_from_sr_pairs_seq(
     ) for i, (s, r) in enumerate(trace)] for trace in sr_pairs_seq]
 ```
 
-We'd like MC Prediction to run on an endless stream of `Sequence[TransitionStep[S]]]` sourced from the fixed finite data set produced by `get_fixed_episodes_from_sr_pairs_seq`. So we write the following function to generate an endless stream by repeatedly randomly (uniformly) sampling from the fixed finite set of trace experiences, as follows:
+We'd like MC Prediction to run on an endless stream of `Sequence[TransitionStep[S]` sourced from the fixed finite data set produced by `get_fixed_episodes_from_sr_pairs_seq`. So we write the following function to generate an endless stream by repeatedly randomly (uniformly) sampling from the fixed finite set of trace experiences, as follows:
 
 ```python
+import numpy as np
+
 def get_episodes_stream(
     fixed_episodes: Sequence[Sequence[TransitionStep[S]]]
 ) -> Iterator[Sequence[TransitionStep[S]]]:
@@ -563,13 +563,15 @@ def get_episodes_stream(
 As we know, TD works with atomic experiences rather than trace experiences. So we need the following function to split the fixed finite set of trace experiences into a fixed finite set of atomic experiences:
 
 ```python
+import itertools
+
 def fixed_experiences_from_fixed_episodes(
     fixed_episodes: Sequence[Sequence[TransitionStep[S]]]
 ) -> Sequence[TransitionStep[S]]:
     return list(itertools.chain.from_iterable(fixed_episodes))
 ```
 
-We'd like TD Prediction to run on an endless stream of `TransitionStep[S]]]` sourced from the fixed finite set of atomic experiences produced by `fixed_experiences_from_fixed_episodes`. So we write the following function to generate an endless stream by repeatedly randomly (uniformly) sampling from the fixed finite set of unit experiences, as follows:
+We'd like TD Prediction to run on an endless stream of `TransitionStep[S]` sourced from the fixed finite set of atomic experiences produced by `fixed_experiences_from_fixed_episodes`. So we write the following function to generate an endless stream by repeatedly randomly (uniformly) sampling from the fixed finite set of atomic experiences, as follows:
 
 ```python
 def get_experiences_stream(
@@ -580,16 +582,18 @@ def get_experiences_stream(
         yield fixed_experiences[np.random.randint(num_experiences)]
 ```
 
-Ok - now we are ready to run MC and TD Prediction algorithms on an experience replay of the given input of a fixed finite set of trace experiences. It is quite obvious what MC Prediction algorithm would produce. MC Prediction is simply supervised learning of a data set of states and their associated returns, and here we have a fixed finite set of states (across the trace experiences) and a fixed finite set of returns associated with each of those states. Hence, MC Prediction will return a Value Function that is equal to the average returns seen in the fixed finite data set for each of the states in the data set. So let us first write a function to explicitly calculate the average returns, and then we can check if MC Prediction will give the same answer (it should - this will simply be a validation of our code).
+Ok - now we are ready to run MC and TD Prediction algorithms on an experience replay of the given input of a fixed finite set of trace experiences. It is quite obvious what MC Prediction algorithm would learn. MC Prediction is simply supervised learning of a data set of states and their associated returns, and here we have a fixed finite set of states (across the trace experiences) and the corresponding trace experience returns associated with each of those states. Hence, MC Prediction should return a Value Function that is equal to the average returns seen in the fixed finite data set for each of the states in the data set. So let us first write a function to explicitly calculate the average returns, and then we can confirm that MC Prediction will give the same answer.
 
 ```python
+from rl.returns import returns
+from rl.markov_process import ReturnStep
+
 def get_return_steps_from_fixed_episodes(
     fixed_episodes: Sequence[Sequence[TransitionStep[S]]],
     gamma: float
 ) -> Sequence[ReturnStep[S]]:
     return list(itertools.chain.from_iterable(returns(episode, gamma, 1e-8)
                                               for episode in fixed_episodes))
-
 
 def get_mean_returns_from_return_steps(
     returns_seq: Sequence[ReturnStep[S]]
@@ -651,9 +655,26 @@ This prints:
 {'A': 8.261809999999999, 'B': 5.190378571428572}
 ```
 
-Now let's run MC Prediction with experience-replayed 100,000 trace experiences:
+Now let's run MC Prediction with experience-replayed 100,000 trace experiences with equal weighting for each of the (state, return) pairs, i.e., with `count_to_weights_func` attribute of `Tabular` as the function `lambda n: 1.0 / n`:
 
 ```python
+import rl.monte_carlo as mc
+
+def mc_prediction(
+    episodes_stream: Iterator[Sequence[TransitionStep[S]]],
+    gamma: float,
+    num_episodes: int
+) -> Mapping[S, float]:
+    return iterate.last(itertools.islice(
+        mc.evaluate_mrp(
+            traces=episodes_stream,
+            approx_0=Tabular(),
+            gamma=gamma,
+            tolerance=1e-10
+        ),
+        num_episodes
+    )).values_map
+
 num_mc_episodes: int = 100000
 
 episodes: Iterator[Sequence[TransitionStep[str]]] = \
@@ -674,9 +695,30 @@ This prints:
 {'A': 8.259354513588503, 'B': 5.18847638381789}
 ```
 
-So, as expected, it ties out. Now let's move on to TD Prediction. Let's run TD Prediction on experience-replayed 1,000,000 atomic experiences.
+So, as expected, it ties out within the standard error for 100,000 trace experiences. Now let's move on to TD Prediction. Let's run TD Prediction on experience-replayed 1,000,000 atomic experiences with a learning rate schedule having an initial learning rate of 0.01, decaying with a half life of 10000, and with an exponent of 0.5.
 
 ```
+import rl.td as td
+from rl.function_approx import learning_rate_schedule, Tabular
+
+def td_prediction(
+    experiences_stream: Iterator[TransitionStep[S]],
+    gamma: float,
+    num_experiences: int
+) -> Mapping[S, float]:
+    return iterate.last(itertools.islice(
+        td.evaluate_mrp(
+            transitions=experiences_stream,
+            approx_0=Tabular(count_to_weight_func=learning_rate_schedule(
+                initial_learning_rate=0.01,
+                half_life=10000,
+                exponent=0.5
+            )),
+            gamma=gamma
+        ),
+        num_experiences
+    )).values_map
+
 num_td_experiences: int = 1000000
 
 fixed_experiences: Sequence[TransitionStep[str]] = \
@@ -684,6 +726,7 @@ fixed_experiences: Sequence[TransitionStep[str]] = \
 
 experiences: Iterator[TransitionStep[str]] = \
     get_experiences_stream(fixed_experiences)
+
 
 td_pred: Mapping[str, float] = td_prediction(
     experiences_stream=experiences,
@@ -700,15 +743,21 @@ This prints:
 {'A': 9.733383341548377, 'B': 7.483985631705235}
 ```
 
-We note that this Value Function is vastly different from the Value Function produced by MC Prediction. Is there a bug in our code, or perhaps a more serious conceptual problem? It turns out there is no bug or more serious problem. This is exactly what TD Prediction on Experience Replay on a fixed finite data set is meant to produce. So, what Value Function does this correspond to? It turns out that TD Prediction drives towards a Value Function of an MRP that is *implied* by the fixed finite set of given experiences. By the term *implied*, we mean the MRP's transition probabilities estimated from the input data as follows:
+We note that this Value Function is vastly different from the Value Function produced by MC Prediction. Is there a bug in our code, or perhaps a more serious conceptual problem? It turns out there is no bug or a more serious problem. This is exactly what TD Prediction on Experience Replay on a fixed finite data set is meant to produce. So, what Value Function does this correspond to? It turns out that TD Prediction drives towards a Value Function of an MRP that is *implied* by the fixed finite set of given experiences. By the term *implied*, we mean the maximum likelihood estimate for the transition probabilities $\mathcal{P}_R$ estimated from the given fixed finite  data, i.e.,
 
-$$\mathcal{P}_R(s,r,s') = \frac {\sum_{i=1}^N \mathbb{I}_{S_i=s,R_{i+1}=r,S_{i+1}=s'}} {\sum_{i=1}^N \mathbb{I}_{S_i=s}}$$
+\begin{equation}
+\mathcal{P}_R(s,r,s') = \frac {\sum_{i=1}^N \mathbb{I}_{S_i=s,R_{i+1}=r,S_{i+1}=s'}} {\sum_{i=1}^N \mathbb{I}_{S_i=s}}
+\label{eq:mrp-mle}
+\end{equation}
 
-where the finite fixed set of atomic transitions are $[(S_i,R_{i+1}=r,S_{i+1}=s')|1\leq i \leq N]$, $\mathbb{I}$ denotes the indicator function.
+where the fixed finite set of transitions are $[(S_i,R_{i+1}=r,S_{i+1}=s')|1\leq i \leq N]$, and $\mathbb{I}$ denotes the indicator function.
 
 So let's write some code to construct this MRP based on the above formula.
 
 ```python
+from rl.distribution import Categorical
+from rl.markov_process import FiniteMarkovRewardProcess
+
 def finite_mrp(
     fixed_experiences: Sequence[TransitionStep[S]]
 ) -> FiniteMarkovRewardProcess[S]:
@@ -744,10 +793,42 @@ This prints:
 {'A': 9.958, 'B': 7.545}
 ```
 
-This Value Function is quite close to the Value Function produced by TD Prediction. The TD Prediction algorithm'sIt doesn't quite hit the Value Function of the data-implied MRP, but is quite close
+This Value Function is quite close to the Value Function produced by TD Prediction. The TD Prediction algorithm doesn't exactly match the Value Function of the data-implied MRP, but is quite close. It turns out that a variation of our TD Prediction algorithm produces the Value Function of the data-implied MRP. We won't implement this variation in this chapter, but will describe it briefly here. The variation is as follows:
 
+- The Value Function is not updated after each atomic experience, rather the Value Function is updated at the end of each *batch of atomic experiences*.
+- Each batch of atomic experiences consists of a single occurrence of each atomic experience in the given fixed finite data set.
+- The updates to the Value Function to be performed at the end of each batch are accumulated in a buffer after each atomic experience and the buffer's contents are used to update the Value Function only at the end of the batch. Specifically, this means that the right-hand-side of Equation \eqref{eq:td-funcapprox-params-adj} is calculated at the end of each atomic experience and these calculated values are accumulated in the buffer until the end of the batch, at which point the buffer's contents are used to update the Value Function.
 
-#### Pictures of depth versus breadth
+This variant of the TD Prediction algorithm is known as *Batch Updating* and more broadly, RL algorithms that update the Value Function at the end of a batch are refered to as *Batch Methods*. This contrasts with *Incremental Methods*, which are RL algorithms that update the Value Functions after each atomic experience (in the case of TD) or at the end of each trace experience (in the case of MC). The MC and TD Prediction algorithms we implemented earlier in this chapter are Incremental Methods. We will cover Batch Methods in detail in Chapter [-@sec:batch-rl-chapter]. 
+
+Although our TD Prediction algorithm is an Incremental Method, it did get fairly close to the Value Function of the data-implied MRP (and the Value Function that would be obtained by a TD Prediction algorithm with Batch Method). So let us ignore the nuance that our TD Prediction algorithm didn't exactly match the Value Function of the data-implied MDP and instead focus on the fact that our MC Prediction algorithm and TD Prediction algorithm drove towards two very different Value Functions. The MC Prediction algorithm learns a "fairly naive" Value Function - one that is based on the mean of the observed returns (for each state) in the given fixed finite data. The TD Prediction algorithm is learning something "deeper" - it is (implicitly) constructing an MRP based on the given fixed finite data (Equation \eqref{eq:mrp-mle}), and then (implicitly) calculating the Value Function of the constructed MRP. The mechanics of the TD Prediction algorithms don't actually construct the MRP and calculate the Value Function of the MRP - rather, the TD Prediction algorithm directly drives towards the Value Function of the data-implied MRP. However, the fact that it gets to this Value Function means it is (implictly) trying to infer a transitions structure from the given data, and hence, we say that it is learning something "deeper" than what MC is learning. This has practical implications. Firstly, this learning facet of TD means that it exploits any Markov property in the environment and so, TD algorithms are more efficient (learn faster than MC) in Markov environments. On the other hand, the naive nature of MC (not exploiting any Markov property in the environment) is advantageous (more effective than TD) in non-Markov environments.
+
+We encourage you to play with the above code (in the file [rl/chapter10/mc_td_experience_replay.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/chapter10/mc_td_experience_replay.py)) by trying Experience Replay on larger input data sets. We also encourage you to code up Batch Method variants of MC and TD Prediction algorithms.
+
+#### Bootstrapping and Experiencing
+
+We summarize MC, TD and DP in terms of whether they bootstrap (or not) and in terms of whether they use experiences/samples (or use a model of transitions).
+
+- Bootstrapping: By "bootstrapping"", we mean that an update to the Value Function utilizes a current or prior estimate of the Value Function. MC *does not bootstrap* since it's Value Function updates use actual trace experience returns and not any current or prior estimates of the Value Function. On the other hand, TD and DP *do bootstrap*.
+- Experiencing: By "experiencing", we mean that the algorithm uses experiences or samples rather than performing expectation calculations with a model of transition probabilities. MD and TD *do experience*, while DP *does not experience*.
+
+We illustrate this perspective of bootstrapping (or not) and experiencing (or not) with some very popular diagrams that we are borrowing from teaching content prepared by Richard Sutton [Richard Sutton](http://www.incompleteideas.net/), who has the written the most influential [book on Reinforcement Learning](http://www.incompleteideas.net/book/the-book.html) (along with [Andrew Barto](https://people.cs.umass.edu/~barto/).
+
+The first diagram is Figure \ref{fig:mc_backup}, known as the MC *backup* diagram for an MDP (although we are covering Prediction in this chapter, these concepts also apply to MDP Control). The root of the tree is the state whose Value Function we want to update. The remaining nodes of the tree are the future states/actions that might be visited. The branching on the tree is due to the probabilistic transitions of the MDP and the choices of actions that might be taken. The green nodes (marked as "T") are the terminal states. The red-colored path on the tree from the root node (current state) to a terminal state indicates the trace experience used by MC. The red-colored path is the set of future states/actions used in updating the Value Function of the current state (root node). We say that the Value Function is "backed up" along this red-colored path (to mean that the Value Function propagates from the bottom of the red-colored path to the top, since the returns are calculated accumulated rewards from the bottom to the top, i.e., from the end of a trace experience to the beginning of the trace experience). This is why we refer to such diagrams as *backup* diagrams. Since MC "experiences", it only considers a single child node from any node (rather than all the child nodes, which would be the case if we considered all probabilistic transitions or considered all action choices). Since MC does not "bootstrap", it doesn't just use the Value Function estimate from it's child/grandchild node (next state/action) - it considers all future states/actions along the entire trace experience. Hence, the backup (colored red) goes deep into the tree and is narrow (doesn't go wide across the tree).
+
+![MC Backup Diagram \label{fig:mc_backup}](./chapter10/mc_backup.png "MC Backup Diagram")
+
+The next diagram is Figure \ref{fig:td_backup}, known as the TD *backup* diagram for an MDP. Again, the red-coloring applies to the future states/actions used in updating the Value Function of the current state (root node). The Value Function is "backed up" along this red-colored section of the tree. Since TD "experiences", it only considers a single child node from any node (rather than all the child nodes, which would be the case if we considered all probabilistic transitions or considered all actions choices). Since TD "bootstraps", it uses the Value Function estimate from it's child/grandchild node (next state/action) and doesn't utilize any information from nodes beyond the child/grandchild node. Hence, the backup (colored red) is shallow (doesn't go deep into the tree) and is narrow (doesn't go wide across the tree).
+
+![TD Backup Diagram \label{fig:td_backup}](./chapter10/td_backup.png "TD Backup Diagram")
+
+The next diagram is Figure \ref{fig:dp_backup}, known as the DP *backup* diagram for an MDP. Again, the red-coloring applies to the future states/actions used in updating the Value Function of the current state (root node). The Value Function is "backed up" along this red-colored section of the tree. Since DP does not "experience" and utilizes the knowledge of probabilities of all next states and considers all choices of actions (in the case of Control), it considers all child nodes (all choices of actions) and all grandchild nodes ( (all probabilistic transitions to next states) from the root node (current state). Since DP "bootstraps", it uses the Value Function estimate from it's children/grandchildren nodes (next states/actions) and doesn't utilize any information from nodes beyond the children/grandchildren nodes. Hence, the backup (colored red) is shallow (doesn't go deep into the tree) and goes wide across the tree.
+
+![DP Backup Diagram \label{fig:dp_backup}](./chapter10/dp_backup.png "DP Backup Diagram")
+
+This perspective of shallow versus deep (for "bootstrapping" or not) and of narrow versus wide (for "experiencing" or not) is a great way to visualize and recollect MC, TD and DP and it helps us compare and contrast these methods in a simple and intuitive manner. We thank Rich Sutton for this excellent pedagogical contribution. This brings us to the next image (Figure \ref{fig:unified_view_of_rl}) which provides a unified view of RL in a single picture. The top of this Figure shows methods that "bootstrap" (including TD and DP) and the bottom of this Figure shows methods that do not "bootstrap" (including MC and methods known as "Exhaustive Search" that go both deep into the tree and wide across the tree - we shall cover some of these methods in a later chapter). Therefore the vertical dimension of this Figure refers to the depth of the backup. The left of this Figure shows methods that "experience" (including TD and MC) and the right of this Figure shows methods than do not "experience" (including DP and "Exhaustive Search"). Therefore, the horizontal dimension of this Figure refers to the width of the backup.
+
+![Unified View of RL \label{fig:unified_view_of_rl}](./chapter10/unified_view.png "Unified View of RL")
 
 ### TD($\lambda$)
 
