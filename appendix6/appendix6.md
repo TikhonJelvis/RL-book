@@ -2,7 +2,7 @@
 
 ### Definition of a Vector Space
 
-A Vector space is defined as a commutative group $\mathcal{V}$ under an addition operation (written as $+$), together with multiplication of elements of $\mathcal{V}$ with elements of a field $\mathcal{K}$ (known as scalars), expressed as a binary in-fix operation $\cdot: \mathcal{K} \times \mathcal{V} \rightarrow \mathcal{V}$, with the following properties:
+A Vector space is defined as a [commutative group](https://en.wikipedia.org/wiki/Abelian_group) $\mathcal{V}$ under an addition operation (written as $+$), together with multiplication of elements of $\mathcal{V}$ with elements of a [field](https://en.wikipedia.org/wiki/Field_(mathematics)) $\mathcal{K}$ (known as scalars), expressed as a binary in-fix operation $\cdot: \mathcal{K} \times \mathcal{V} \rightarrow \mathcal{V}$, with the following properties:
 
 - $a \cdot (b \cdot \bm{v}) = (a \cdot b) \cdot \bm{v}$, for all $a, b \in \mathcal{K}$, for all $\bm{v} \in \mathcal{V}$.
 - $1 \cdot \bm{v} = \bm{v}$ for all $\bm{v} \in \mathcal{V}$ where $1$ denotes the multiplicative identity of $\mathcal{K}$.
