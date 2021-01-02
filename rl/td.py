@@ -13,7 +13,7 @@ import rl.markov_decision_process as mdp
 S = TypeVar('S')
 
 
-def evaluate_mrp(
+def td_prediction(
         transitions: Iterable[mp.TransitionStep[S]],
         approx_0: FunctionApprox[S],
         γ: float,
@@ -42,7 +42,7 @@ A = TypeVar('A')
 
 
 # TODO: More specific name (ie experience replay?)
-def evaluate_mdp(
+def td_control(
         transitions: Iterable[mdp.TransitionStep[S, A]],
         actions: Callable[[S], Iterable[A]],
         approx_0: FunctionApprox[Tuple[S, A]],

@@ -16,7 +16,7 @@ S = TypeVar('S')
 A = TypeVar('A')
 
 
-def evaluate_mrp(
+def mc_prediction(
         traces: Iterable[Iterable[mp.TransitionStep[S]]],
         approx_0: FunctionApprox[S],
         γ: float,
@@ -46,7 +46,7 @@ def evaluate_mrp(
     )
 
 
-def evaluate_mdp(
+def mc_control(
         mdp: MarkovDecisionProcess[S, A],
         states: Distribution[S],
         approx_0: FunctionApprox[Tuple[S, A]],
