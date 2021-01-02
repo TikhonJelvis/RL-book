@@ -26,6 +26,9 @@ let
       jedi
       jupyter
       pytest
+      black
+      autopep8
+      yapf
 
       # Checkers
       flake8
