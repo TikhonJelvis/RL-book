@@ -50,7 +50,6 @@ class FunctionApprox(ABC, Generic[X], VectorSpace):
     def __call__(self, x_value: X) -> float:
         return self.evaluate([x_value]).item()
 
-
     @abstractmethod
     def update(
         self: Self,

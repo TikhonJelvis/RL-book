@@ -1,5 +1,5 @@
 '''Types and functions for working with vector spaces.'''
-from abc import abstractmethod
+from abc import abstractmethod, abstractclassmethod
 from typing import TypeVar
 
 Self = TypeVar('Self', bound='VectorSpace')
@@ -36,12 +36,16 @@ class VectorSpace:
         '''Addition of two vectors. '''
 
     @abstractmethod
-    def inverse(self: Self) -> Self:
-        '''Inverse of this vector.'''
-
-    @abstractmethod
     def scalar_multiply(self: Self, scalar: float) -> Self:
         '''Left or right multiplication by a scalar (float or int).'''
+
+    def inverse(self: Self) -> Self:
+        '''Inverse of this vector.'''
+        return self.scalar_multiply(-1)
+
+    def zero(self: Self) -> Self:
+        '''The zero vector.'''
+        return self.scalar_multiply(0)
 
     def __add__(self: Self, other: Self) -> Self:
         return self.add(other)
