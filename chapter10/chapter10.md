@@ -914,19 +914,56 @@ Thus, the update Equation is:
 
 We note that for $\lambda=0$, the $\lambda$-Return target reduces to the TD (1-step bootstrapping) target and for $\lambda=1$, the $\lambda$-Return target reduces to the MC target $G_t$. The $\lambda$ parameter gives us a smooth way of tuning from TD ($\lambda=0$) to MC ($\lambda=1$).
 
-Note that for $\lambda > 0$, Equation \eqref{eq:lambda-return-funcapprox-params-adj} tells us that the parameters $\bm{w}$ of the function approximation can be updated only at the end of an episode (the term *episode* refers to a terminating trace experience). Updating the $\bm{w}$ according to Equation \eqref{eq:lambda-return-funcapprox-params-adj} for all states $S_t, t = 0, \ldots, T-1$ *at the end of each episode* gives us the *Offline* $\lambda$-Return Prediction algorithm. The term *Offline* refers to the fact that we have to wait till the end of an episode to make an update to the parameters $\bm{w}$ of the function approximation (rather than making parameter updates after each time step in the episode, which we refer to as an *Online* algorithm).
+Note that for $\lambda > 0$, Equation \eqref{eq:lambda-return-funcapprox-params-adj} tells us that the parameters $\bm{w}$ of the function approximation can be updated only at the end of an episode (the term *episode* refers to a terminating trace experience). Updating the $\bm{w}$ according to Equation \eqref{eq:lambda-return-funcapprox-params-adj} for all states $S_t, t = 0, \ldots, T-1$ *at the end of each episode* gives us the *Offline* $\lambda$-Return Prediction algorithm. The term *Offline* refers to the fact that we have to wait till the end of an episode to make an update to the parameters $\bm{w}$ of the function approximation (rather than making parameter updates after each time step in the episode, which we refer to as an *Online* algorithm). Online algorithms are appealing because the Value Function update after each atomic experience is utilized immediately for the update at the next atomic experience, and so it facilitates continuous/fast learning. So the natural question to ask here is if we can turn the Offline $\lambda$-return Prediction algorithm outlined above to an Online version. An online version is indeed possible (it's known as the TD($\lambda$) Prediction algorithm) and is the topic of the remaining subsections of this section. But before we begin the coverage of the (Online) TD($\lambda$) Prediction algorithm, let's wrap up this subsection with an implementation of this Offline version (i.e., the $\lambda$-Return Prediction algorithm).
 
-Online algorithms are appealing because the Value Function update after each atomic experience is utilized immediately for the update at the next atomic experience, and so it facilitates continuous/fast learning. So the natural question to ask here is if we can turn the Offline $\lambda$-return Prediction algorithm outlined above to an Online version. It might seems like this isn't possible since the target $G_t^{(\lambda)}$ is known only at the end of an episode for $\lambda > 0$. However, by observing that the $\lambda$-Return target is composed of the $n$-step bootstrapping targets $G_{t,n}$ (scaled by their respective weights), we can employ a clever idea: *Make partial updates* (corresponding to these scaled $G_{t,n}$ targets) *after each time step*. Thus, at a given time step $t$ (having received state $S_t$ and reward $R_t$), the change in parameters $\bm{w}$ would be an accumulation of each of the following partial update terms (corresponding to past states $S_0, S_1, \ldots, S_{t-1}$):
+```python
+import rl.markov_process as mp
+import numpy as np
 
-$$\alpha \cdot (1 - \lambda) \cdot \lambda^{t-i-1} \cdot (G_{i,t-i} - V(S_i; \bm{w})) \cdot \nabla_{\bm{w}} V(S_i;\bm{w}) \text{ for all } i = 0, 1, \ldots, t-1$$
+def lambda_return_prediction(
+        traces: Iterable[Iterable[mp.TransitionStep[S]]],
+        approx_0: FunctionApprox[S],
+        gamma: float,
+        lambd: float
+) -> Iterator[FunctionApprox[S]]:
+    func_approx: FunctionApprox[S] = approx_0
 
-Thus, we can perform an update to the parameters $\bm{w}$ with a sequence of $t$ (predictor, response) pairs where the predictor variables are $S_i, i = 0, 1, \ldots, t-1$, and their respective response variables are $(1-\lambda)\cdot \lambda^{t-i-1} \cdot G_{i,t-i}, i = 0, 1, \ldots, t-1$. Let's get this organized and write out the sequence of (predictor, response) pairs (for a specific time step $t$) in detail:
+    for trace in traces:
+        gp: List[float] = [1.]
+        lp: List[float] = [1.]
+        predictors: List[S] = []
+        partials: List[List[float]] = []
+        weights: List[List[float]] = []
+        trace_seq: Sequence[mp.TransitionStep[S]] = list(trace)
+        for t, tr in enumerate(trace_seq):
+            for i, partial in enumerate(partials):
+                partial.append(
+                    partial[-1] +
+                    gp[t - i] * (tr.reward - func_approx(tr.state)) +
+                    (gp[t - i] * gamma * func_approx(tr.next_state)
+                     if t < len(trace_seq) - 1 else 0.)
+                )
+                weights[i].append(
+                    weights[i][-1] * lambd if t < len(trace_seq)
+                    else lp[t - i]
+                )
+            predictors.append(tr.state)
+            partials.append([tr.reward + (gamma * func_approx(tr.next_state)
+                             if t < len(trace_seq) - 1 else 0.)])
+            weights.append([1. - (lambd if t < len(trace_seq) else 0.)])
+            gp.append(gp[-1] * gamma)
+            lp.append(lp[-1] * lambd)
+        responses: Sequence[float] = [np.dot(p, w) for p, w in
+                                      zip(partials, weights)]
+        func_approx = func_approx.update(zip(predictors, responses))
+        yield func_approx
+```
 
-$$[(S_i, (1 - \lambda) \cdot \lambda^{t-i-1} \cdot (R_{i+1} + \gamma \cdot R_{i+2} + \ldots + \gamma^{t-i-1} \cdot R_t + \gamma^{t-i} \cdot V(S_t, \bm{w})))|0 \leq i < t]$$
-
-Note that the Online and Offline $\lambda$-Return Prediction algorithms are not the same since the online algorithm updates the value function after every time step which alters the targets for the next time steps within the same episode. However, the sum of the values used to make updates within a single episode match up for the offline and online algorithms.
+The above code is in the file [rl/td_lambda.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/td_lambda.py).
 
 #### Eligibility Traces
+Now we are ready to start developing the TD($\lambda$) Prediction algorithm. The TD($\lambda$) Prediction algorithm is founded on the concept of *Eligibility Traces*. So we start by introducing the concept of Eligibility traces (first for the Tabular case, then generalize to Function Approximations), then go over the TD($\lambda$) Prediction algorithm (based on Eligibility traces), and finally explain why the TD($\lambda$) Prediction algorithm is essentially the *Online* version of the *Offline* $\lambda$-Return Prediction algorithm we've implemented above.
+
 #### Implementation of the TD($\lambda$) Prediction algorithm
-#### MC Error as sum of TD Errors
+#### Sum of online TD($\lambda$) updates equals $\lambda$-Return update
 
