@@ -44,11 +44,11 @@ We consider a function $I: \mathcal{P} \rightarrow (\mathcal{X} \rightarrow \mat
 
 $$I(\bm{w_1}) + I(\bm{w_2}) = I(\bm{w_1} + \bm{w_2}) \text{ for all } \bm{w_1}, \bm{w_2} \in \mathcal{P}$$
 
-and multiplication operation is defined as:
+and multiplication operation defined as:
 
 $$a \cdot I(\bm{w}) = I(a \cdot \bm{w}) \text{ for all } \bm{w} \in \mathcal{P}, \text{ for all } a \in \mathbb{R}$$
 
-We refer to this vector space $\mathcal{G}$ as the *Representational Space* (to signify that fact that addition and multiplication operations in $\mathcal{G}$ essentially "delegate" to addition and multiplication operations in the Parameters Space $\mathcal{P}$, with any parameters $\bm{w} \in \mathcal{P}$ serving as the internal representation of a function approximation $I(\bm{w}): \mathcal{X} \rightarrow \mathbb{R}$). This "delegation" from $\mathcal{G}$ to $\mathcal{P}$ implies that $I$ is a linear map from Parameters Space $\mathcal{P}$ to Representational Space $\mathcal{G}$.
+We refer to this vector space $\mathcal{G}$ as the *Representational Space* (to signify the fact that addition and multiplication operations in $\mathcal{G}$ essentially "delegate" to addition and multiplication operations in the Parameters Space $\mathcal{P}$, with any parameters $\bm{w} \in \mathcal{P}$ serving as the internal representation of a function approximation $I(\bm{w}): \mathcal{X} \rightarrow \mathbb{R}$). This "delegation" from $\mathcal{G}$ to $\mathcal{P}$ implies that $I$ is a linear map from Parameters Space $\mathcal{P}$ to Representational Space $\mathcal{G}$.
 
 ### The Gradient Function
 
