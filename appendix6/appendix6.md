@@ -40,15 +40,15 @@ $D[\mathbb{R}]$ forms a vector space $\mathcal{P}$ over the scalars field $\math
 
 #### Representational Space $\mathcal{G}$
 
-We consider a function $I: \mathcal{P} \rightarrow (\mathcal{X} \rightarrow \mathbb{R})$ defined as $I(\bm{w}) = g: \mathcal{X} \rightarrow \mathbb{R}$ for all $\bm{w} \in \mathcal{P}$ such that $g(x) = f(x, \bm{w})$ for all $x \in \mathcal{X}$. The *Range* of this function $I$ forms a vector space $\mathcal{G}$ over the scalars field $\mathbb{R}$ with vector addition operation defined as:
+We consider a function $I: \mathcal{P} \rightarrow (\mathcal{X} \rightarrow \mathbb{R})$ defined as $I(\bm{w}) = g: \mathcal{X} \rightarrow \mathbb{R}$ for all $\bm{w} \in \mathcal{P}$ such that $g(x) = f(x, \bm{w})$ for all $x \in \mathcal{X}$. The *Range* of this function $I$ forms a vector space $\mathcal{G}$ over the scalars field $\mathbb{R}$ with addition operation defined as:
 
 $$I(\bm{w_1}) + I(\bm{w_2}) = I(\bm{w_1} + \bm{w_2}) \text{ for all } \bm{w_1}, \bm{w_2} \in \mathcal{P}$$
 
-and scalar multiplication is defined as:
+and multiplication operation is defined as:
 
 $$a \cdot I(\bm{w}) = I(a \cdot \bm{w}) \text{ for all } \bm{w} \in \mathcal{P}, \text{ for all } a \in \mathbb{R}$$
 
-We refer to this vector space $\mathcal{G}$ as the *Representational Space* (to signify that fact that addition and multiplication operations in $\mathcal{G}$ essentially "delegate" to addition and multiplication operations in the Parameters Space $\mathcal{P}$, with any parameters $\bm{w} \in \mathcal{P}$ serving as the internal representation of a function approximation $I(\bm{w}): \mathcal{X} \rightarrow \mathbb{R}$).
+We refer to this vector space $\mathcal{G}$ as the *Representational Space* (to signify that fact that addition and multiplication operations in $\mathcal{G}$ essentially "delegate" to addition and multiplication operations in the Parameters Space $\mathcal{P}$, with any parameters $\bm{w} \in \mathcal{P}$ serving as the internal representation of a function approximation $I(\bm{w}): \mathcal{X} \rightarrow \mathbb{R}$). This "delegation" from $\mathcal{G}$ to $\mathcal{P}$ implies that $I$ is a linear map from Parameters Space $\mathcal{P}$ to Representational Space $\mathcal{G}$.
 
 ### The Gradient Function
 
@@ -68,12 +68,12 @@ Then the gradient function $G: \mathcal{X} \rightarrow (\mathbb{R}^m \rightarrow
 $$G(x)(\bm{w}) = \nabla_{\bm{w}} (\bm{\Phi}(x) \circ \bm{w}) = \bm{\Phi}(x)$$
 for all $x \in \mathcal{X}$, for all $\bm{w} \in \mathbb{R}^m$.
 
-Also note that in the case of linear function approximations, the function $I: \mathcal{R}^m \rightarrow (\mathcal{X} \rightarrow \mathbb{R})$ is a linear map from $\mathcal{R}^m = \mathcal{P}$ to a vector subspace of the function space $\mathcal{F}$ of all $\mathcal{X} \rightarrow \mathbb{R}$ functions over scalars field $\mathbb{R}$. This is because for all $x \in \mathcal{X}$:
+Also note that in the case of linear function approximations, the function $I: \mathcal{R}^m \rightarrow (\mathcal{X} \rightarrow \mathbb{R})$ is a linear map from $\mathcal{R}^m = \mathcal{P}$ to a vector subspace of the function space $\mathcal{F}$ of all $\mathcal{X} \rightarrow \mathbb{R}$ functions over scalars field $\mathbb{R}$ (with pointwise operations). This is because for all $x \in \mathcal{X}$:
 
 $$\bm{\Phi}(x) \circ (\bm{w}_1 + \bm{w}_2) = \bm{\Phi}(x) \circ \bm{w}_1 + \bm{\Phi}(x) \circ \bm{w}_2 \text{ for all } \bm{w}_1, \bm{w}_2 \in \mathbb{R}^m$$
 $$\bm{\Phi}(x) \circ (a \cdot \bm{w}) = a \cdot (\bm{\Phi}(x) \circ \bm{w}) \text{ for all } \bm{w} \in \mathbb{R}^m, \text{ for all } a \in \mathbb{R}$$
 
-The key concept here is that for the case of linear function approximations, vector addition and scalar multiplication operations in $\mathcal{F}$ coincide with vector additions and scalar multiplications operations in $\mathcal{G}$, which implies that $\mathcal{G}$ is a vector subspace of $\mathcal{F}$.
+The key concept here is that for the case of linear function approximations, addition and multiplication "delegating" operations in $\mathcal{G}$ coincide with addition and multiplication "pointwise" operations in $\mathcal{F}$, which implies that $\mathcal{G}$ is isomorphic to a vector subspace of $\mathcal{F}$.
 
 ### Stochastic Gradient Descent
 
@@ -104,11 +104,17 @@ So, we can conceptualize the parameters change function $U$ as the product of:
 
 Note that the product of functions $e$ and $G(x)$ above is element-wise in their common domain $\mathcal{P} = D[\mathbb{R}]$, resulting in the scalar ($\mathbb{R}$) multiplication of vectors in $\mathcal{P}$.
 
-Updating vector $\bm{w}$ to vector $\bm{w} + U(\bm{w})$ in the Parameter Space $\mathcal{P}$ results in updating function $I(\bm{w}): \mathcal{X} \rightarrow \mathbb{R}$ to function $I(\bm{w} + U(\bm{w})): \mathcal{X} \rightarrow \mathbb{R}$ in the Representational Space $\mathcal{G}$. This is rather convenient since we can view all of the above vector addition/scalar multiplication operations in the Parameter Space $\mathcal{P}$ as vector addition/scalar multiplication operations in the Representational Space $\mathcal{G}$.
+Updating vector $\bm{w}$ to vector $\bm{w} + U(\bm{w})$ in the Parameter Space $\mathcal{P}$ results in updating function $I(\bm{w}): \mathcal{X} \rightarrow \mathbb{R}$ to function $I(\bm{w} + U(\bm{w})): \mathcal{X} \rightarrow \mathbb{R}$ in the Representational Space $\mathcal{G}$. This is rather convenient since we can view all of the above addition/multiplication operations in the Parameter Space $\mathcal{P}$ as addition/multiplication operations in the Representational Space $\mathcal{G}$.
 
-### SGD Update for Linear Function Approximation
+### SGD Update for Linear Function Approximations
 
-As a reminder, $I$ is a linear map in the case of linear function approximation. In the case of linear function approximation, when updating vector $\bm{w}$ to vector $\bm{w} + \alpha \cdot (y - \bm{\Phi}(x) \circ \bm{w}) \cdot \bm{\Phi}(x)$ in the Parameter Space $\mathcal{P} = \mathbb{R}^m$, the linear map $I: \mathbb{R}^m \rightarrow \mathcal{G}$ updates function $g: \mathcal{X} \rightarrow \mathbb{R}$ defined as $g(z) = \bm{\Phi}(z) \circ \bm{w}$ for all $z \in \mathcal{X}$ to the function $g^{(x,y)}: \mathcal{X} \rightarrow \mathbb{R}$ defined as $g^{(x,y)}(z) = \bm{\Phi}(z) \circ \bm{w} + \alpha \cdot (y - \bm{\Phi}(x) \circ \bm{w}) \cdot (\bm{\Phi}(z) \circ \bm{\Phi}(x))$ for all $z \in \mathcal{X}$. It's useful to note that the change in the evaluation at $z \in \mathcal{X}$ is simply the product of:
+As a reminder, for the case of linear function approximations, $\mathcal{G}$ is isomorphic to a vector subspace of the function space $\mathcal{F}$ of all $\mathcal{X} \rightarrow \mathbb{R}$ functions over the scalars field $\mathbb{R}$ (addition and multiplication "delegating" operations in $\mathcal{G}$ coincide with addition and multiplication "pointwise" operations in $\mathcal{F}$).
+
+So in the case of linear function approximations, when updating vector $\bm{w}$ to vector $\bm{w} + \alpha \cdot (y - \bm{\Phi}(x) \circ \bm{w}) \cdot \bm{\Phi}(x)$ in the Parameter Space $\mathcal{P} = \mathbb{R}^m$, applying the linear map $I: \mathbb{R}^m \rightarrow \mathcal{G}$ updates functions in $\mathcal{G}$ with corresponding pointwise addition and multiplication operations.
+
+Concretely, a linear function approximation $g: \mathcal{X} \rightarrow \mathbb{R}$ defined as $g(z) = \bm{\Phi}(z) \circ \bm{w}$ for all $z \in \mathcal{X}$ updates correspondingly to the function $g^{(x,y)}: \mathcal{X} \rightarrow \mathbb{R}$ defined as $g^{(x,y)}(z) = \bm{\Phi}(z) \circ \bm{w} + \alpha \cdot (y - \bm{\Phi}(x) \circ \bm{w}) \cdot (\bm{\Phi}(z) \circ \bm{\Phi}(x))$ for all $z \in \mathcal{X}$.
+
+It's useful to note that the change in the evaluation at $z \in \mathcal{X}$ is simply the product of:
 
 - Learning rate $\alpha \in \mathbb{R}^+$
 - Prediction Error $y - \bm{\Phi}(x) \circ \bm{w} \in \mathbb{R}$ for the updating data $(x,y) \in \mathcal{X} \times \mathbb{R}$
