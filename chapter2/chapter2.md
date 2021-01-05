@@ -755,7 +755,7 @@ Since the customer demand on any day can be an infinite set of possibilities (po
 $$(\max(\alpha + \beta - i, 0), \max(C - (\alpha + \beta), 0))$$
 and the reward $R_{t+1}$ is:
 $$-h \cdot \alpha - p \cdot \max(i - (\alpha + \beta), 0)$$
-Note that the overnight holding cost applies to each unit of on-hand inventory at store closing ($=\alpha$) and the stockout cost applies only to any units of "missed demand" ($=\max(i - (\alpha + \beta), 0)$). So, the probability transition function $\mathcal{P}_R$ for this Simple Inventory Example as a Markov Reward Process is given by:
+Note that the overnight holding cost applies to each unit of on-hand inventory at store closing ($=\alpha$) and the stockout cost applies only to any units of "missed demand" ($=\max(i - (\alpha + \beta), 0)$). Since two different values of demand $i \in \mathbb{Z}_{\geq 0}$ do not collide on any unique pair $(s',r)$ of next state and reward, we can express the transition probability function $\mathcal{P}_R$ for this Simple Inventory Example as a Markov Reward Process as:
 
 $$\mathcal{P}_R((\alpha, \beta), -h \cdot \alpha - p \cdot \max(i - (\alpha + \beta), 0), (\max(\alpha + \beta - i, 0), \max(C - (\alpha + \beta), 0)))$$
 $$= \frac {e^{-\lambda} \lambda^i} {i!} \text{ for all } i = 0, 1, 2, \ldots $$
@@ -816,11 +816,11 @@ The above code can be found in the file [rl/chapter2/simple_inventory_mrp.py](ht
 Certain calculations for Markov Reward Processes can be performed easily if:
 
 * The state space is finite ($\mathcal{S} = \{s_1, s_2, \ldots, s_n\}$), and
-* The set of pairs of next state and reward transitions from each of the states in $\mathcal{N}$ is finite
+* The set of unique pairs of next state and reward transitions from each of the states in $\mathcal{N}$ is finite
 
 If we satisfy the above two characteristics, we refer to the Markov Reward Process as a Finite Markov Reward Process. So let us write some code for a Finite Markov Reward Process. We create a concrete class `FiniteMarkovRewardProcess` that primarily inherits from `FiniteMarkovProcess` (a concrete class) and secondarily implements the interface of the abstract class `MarkovRewardProcess`. Our first task is to think about the data structure required to specify an instance of `FiniteMarkovRewardProcess` (i.e., the data structure we'd pass to the `__init__` method of `FiniteMarkovRewardProcess`). Analogous to how we curried $\mathcal{P}$ for a Markov Process as $\mathcal{N} \rightarrow (\mathcal{S} \rightarrow [0,1])$ (where $\mathcal{S} = \{s_1, s_2, \ldots, s_n\}$ and $\mathcal{N}$ has $m \leq n$ states), here we curry $\mathcal{P}_R$ as:
 $$\mathcal{N} \rightarrow (\mathcal{S} \times \mathbb{R} \rightarrow [0, 1])$$
-Since $\mathcal{S}$ is finite and since the set of pairs of next state and reward transitions are also finite, this leads to the analog of the `Transition` data type for the case of Finite Markov Reward Processes (named `RewardTransition`) as follows:
+Since $\mathcal{S}$ is finite and since the set of unique pairs of next state and reward transitions are also finite, this leads to the analog of the `Transition` data type for the case of Finite Markov Reward Processes (named `RewardTransition`) as follows:
 
 ```python
 StateReward = FiniteDistribution[Tuple[S, float]]
