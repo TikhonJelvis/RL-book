@@ -246,7 +246,7 @@ Our formal definitions in this book will be restricted to Discrete-Time Markov P
 A {\em Markov Process} consists of:
 \begin{itemize}
 \item A countable set of states $\mathcal{S}$ (known as the State Space) and a set $\mathcal{T} \subseteq \mathcal{S}$ (known as the set of Terminal States)
- \item A time-indexed sequence of random states $S_t$ for time steps $t=0, 1, 2, \ldots$, with each $S_t \in \mathcal{S}$. If $S_T \in \mathcal{T}$ for some time step $T$, then we say that the time-indexed sequence of random states terminates at time step $T$ (and that $S_T$ is a terminal state).
+ \item A time-indexed sequence of random states $S_t$ for time steps $t=0, 1, 2, \ldots$, with each $S_t \in \mathcal{S}$. If an outcome for $S_T$ (for some time step $T$) is a state in the set $\mathcal{T}$, then this sequence outcome terminates at time step $T$.
  \item Markov Property: $\mathbb{P}[S_{t+1}|S_t, S_{t-1}, \ldots, S_0] = \mathbb{P}[S_{t+1}|S_t]$ for all $t \geq 0$
  \end{itemize}
  \end{definition}
