@@ -384,7 +384,7 @@ Now let us consider Markov Processes with a finite state space. So we can repres
 $$\mathcal{P} : \mathcal{N} \times \mathcal{S} \rightarrow [0, 1]$$
 However, we often find that this matrix can be sparse since one often transitions from a given state to just a few set of states. So we'd like a sparse representation and we can accomplish this by conceptualizing $\mathcal{P}$ in an [equivalent curried form](https://en.wikipedia.org/wiki/Currying) as follows:
 $$\mathcal{N} \rightarrow (\mathcal{S} \rightarrow [0, 1])$$
-With this curried view, we can represent the outer $\rightarrow$ as a map (in Python, as a dictionary of type `Mapping`) whose keys are the states in $\mathcal{S}$. A terminal-state key will map to `None` (since there are no transitions from a terminal state) and a non-terminal-state key maps to a `FiniteDistribution[S]` type that represents the inner $\rightarrow$, i.e. a finite probability distribution of the next states transitioned to from the non-terminal state (note: `FiniteDistribution` type was covered in Chapter [-@sec:python-chapter]). Let us create an alias for this `Mapping` (called `Transition`) since we will use this data structure often:
+With this curried view, we can represent the outer $\rightarrow$ as a map (in Python, as a dictionary of type `Mapping`) whose keys are the states in $\mathcal{S}$. A terminal-state key will map to `None` (since there are no transitions from a terminal state) and a non-terminal-state key maps to a `FiniteDistribution[S]` type that represents the inner $\rightarrow$, i.e. a finite probability distribution of the next states transitioned to from the non-terminal state (note: `FiniteDistribution` type was covered in the Chapter on *Design Paradigms for Applied Mathematics Implementations in Python*). Let us create an alias for this `Mapping` (called `Transition`) since we will use this data structure often:
 
 ```python
 Transition = Mapping[S, Optional[FiniteDistribution[S]]]
@@ -571,14 +571,14 @@ The intuitive view of the stationary distribution $\pi$ is that (under specific 
 If we specialize this definition of *Stationary Distribution* to Finite-States Stationary Markov Processes with state space $\mathcal{S} = \{s_1, s_2, \ldots, s_n\} = \mathcal{N}$, then we can express the Stationary Distribution $\pi$ as follows:
 $$\pi(s_j) = \sum_{i=1}^n \pi(s_i) \cdot \mathcal{P}(s_i, s_j) \text{ for all } j = 1, 2, \ldots n$$
 
-Below we use bold-face notation to represent functions as vectors and matrices (since we assume finite states). So, $\bm{pi}$ is a column vector of length $n$ and $\bm{\mathcal{P}}$ is the $n \times n$ transition probability matrix (rows are source states, columns are destination states with each row summing to 1).
+Below we use bold-face notation to represent functions as vectors and matrices (since we assume finite states). So, $\bm{\pi}$ is a column vector of length $n$ and $\bm{\mathcal{P}}$ is the $n \times n$ transition probability matrix (rows are source states, columns are destination states with each row summing to 1).
 Then, the statement of the above definition can be succinctly expressed as:
 $$\bm{\pi}^T = \bm{\pi}^T \cdot \bm{\mathcal{P}}$$
 which can be re-written as:
 $$\bm{\mathcal{P}}^T \cdot \bm{\pi} = \bm{\pi}$$
-But this is simply saying that $\bm{pi}$ is an eigenvector of $\bm{\mathcal{P}}^T$ with eigenvalue of 1. So then, it should be easy to obtain the stationary distribution $\bm{pi}$ from an eigenvectors and eigenvalues calculation of $\bm{\mathcal{P}}^T$. 
+But this is simply saying that $\bm{\pi}$ is an eigenvector of $\bm{\mathcal{P}}^T$ with eigenvalue of 1. So then, it should be easy to obtain the stationary distribution $\bm{\pi}$ from an eigenvectors and eigenvalues calculation of $\bm{\mathcal{P}}^T$. 
 
-Let us write code to compute the stationary distribution. We shall add two methods in the `FiniteMarkovProcess` class, one for setting up the transition probability matrix $\bm{\mathcal{P}}$ (`get_transition_matrix` method) and another to calculate the stationary distribution $\bm{pi}$ (`get_stationary_distribution`) from the transition probability matrix. Note that $\bm{\mathcal{P}}$ is restricted to $\mathcal{N} \times \mathcal{N} \rightarrow [0, 1]$ (rather than $\mathcal{N} \times \mathcal{S} \rightarrow [0, 1]$) because these probability transitions suffice for all the calculations we will be performing for Finite Markov Processes. Here's the code for the two methods (the full code for `FiniteMarkovProcess` is in the file [`rl/markov_process.py`](https://github.com/TikhonJelvis/RL-book/blob/master/rl/markov_process.py)):
+Let us write code to compute the stationary distribution. We shall add two methods in the `FiniteMarkovProcess` class, one for setting up the transition probability matrix $\bm{\mathcal{P}}$ (`get_transition_matrix` method) and another to calculate the stationary distribution $\bm{\pi}$ (`get_stationary_distribution`) from the transition probability matrix. Note that $\bm{\mathcal{P}}$ is restricted to $\mathcal{N} \times \mathcal{N} \rightarrow [0, 1]$ (rather than $\mathcal{N} \times \mathcal{S} \rightarrow [0, 1]$) because these probability transitions suffice for all the calculations we will be performing for Finite Markov Processes. Here's the code for the two methods (the full code for `FiniteMarkovProcess` is in the file [`rl/markov_process.py`](https://github.com/TikhonJelvis/RL-book/blob/master/rl/markov_process.py)):
 
 ```python
 import numpy as np
@@ -660,7 +660,7 @@ The subsection on *Start States* we had covered for Markov Processes naturally a
 
 If all random sequences of states in a Markov Reward Process terminate, we refer to it as *episodic* sequences (otherwise, we refer to it as *continuing* sequences). 
 
-Let's write some code that captures this formalism. We create a derived *abstract* class `MarkovRewardProcess` that inherits from the abstract class `MarkovProcess`. Analogous to `MarkovProcess`'s `@abstractmethod transition` (that represents $\mathcal{P}$), `MarkovRewardProcess` has an `@abstractmethod transition_reward` that represents $\mathcal{P}_R$. Note that the return type of `transition_reward` is `Optional[Distribution[Tuple[S, float]]]` which means it returns `None` for a terminal `state: S` and it returns `Distribution[Tuple[S, float]]` for a non-terminal `state: S`, representing the probability distribution of (next state, reward) pairs transitioned to.
+Let's write some code that captures this formalism. We create a derived `@abstractclass MarkovRewardProcess` that inherits from the `@abstractclass MarkovProcess`. Analogous to `MarkovProcess`'s `@abstractmethod transition` (that represents $\mathcal{P}$), `MarkovRewardProcess` has an `@abstractmethod transition_reward` that represents $\mathcal{P}_R$. Note that the return type of `transition_reward` is `Optional[Distribution[Tuple[S, float]]]` which means it returns `None` for a terminal `state: S` and it returns `Distribution[Tuple[S, float]]` for a non-terminal `state: S`, representing the probability distribution of (next state, reward) pairs transitioned to.
 
 Also, analogous to `MarkovProcess`'s `simulate` method, `MarkovRewardProcess` has the method `simulate_reward` which generates a stream of `TransitionStep` objects. Each `TransitionStep` object consists of a 3-tuple: (state, next state, reward) representing the sampled transitions from the states visited in the generated sampling trace. Here's the actual code:
 
@@ -696,7 +696,7 @@ class MarkovRewardProcess(MarkovProcess[S]):
             state = next_state
 ```
 
-So the idea is that if someone wants to model a Markov Reward Process, they'd simply have to create a concrete class that implements the interface of the abstract class `MarkovRewardProcess` (specifically implement the `@abstractmethod transition_reward`). But note that the `@abstractmethod transition` of `MarkovProcess` also needs to be implemented to make the whole thing concrete. However, we don't have to implement it in the concrete class implementing the interface of `MarkovRewardProcess` - in fact, we can implement it in the `MarkovRewardProcess` class itself by tapping the method `transition_reward`. Here's the code for the `transition` method in `MarkovRewardProcess`:
+So the idea is that if someone wants to model a Markov Reward Process, they'd simply have to create a concrete class that implements the interface of the `@abstractclass MarkovRewardProcess` (specifically implement the `@abstractmethod transition_reward`). But note that the `@abstractmethod transition` of `MarkovProcess` also needs to be implemented to make the whole thing concrete. However, we don't have to implement it in the concrete class implementing the interface of `MarkovRewardProcess` - in fact, we can implement it in the `MarkovRewardProcess` class itself by tapping the method `transition_reward`. Here's the code for the `transition` method in `MarkovRewardProcess`:
 
 ```python
 from rl.distribution import SampledDistribution
@@ -713,7 +713,7 @@ from rl.distribution import SampledDistribution
         return SampledDistribution(next_state)
 ```
 
-Note that since the `transition_reward` method is abstract in `MarkovRewardProcess`, the only thing the `transition` method can do is tap the `sample` method of the abstract `Distribution` object produced by `transition_reward` and return a `SampledDistribution`. The full code for the `MarkovRewardProcess` class shown above is in the file [rl/markov_process.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/markov_process.py).
+Note that since the `transition_reward` method is abstract in `MarkovRewardProcess`, the only thing the `transition` method can do is to tap into the `sample` method of the abstract `Distribution` object produced by `transition_reward` and return a `SampledDistribution`. The full code for the `MarkovRewardProcess` class shown above is in the file [rl/markov_process.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/markov_process.py).
 
 
 Now let us develop some more theory. Given a specification of $\mathcal{P}_R$, we can extract:
