@@ -246,8 +246,8 @@ Our formal definitions in this book will be restricted to Discrete-Time Markov P
 A {\em Markov Process} consists of:
 \begin{itemize}
 \item A countable set of states $\mathcal{S}$ (known as the State Space) and a set $\mathcal{T} \subseteq \mathcal{S}$ (known as the set of Terminal States)
- \item A time-indexed sequence of random states $S_t$ for time steps $t=0, 1, 2, \ldots$, with each $S_t \in \mathcal{S}$. If an outcome for $S_T$ (for some time step $T$) is a state in the set $\mathcal{T}$, then this sequence outcome terminates at time step $T$.
- \item Markov Property: $\mathbb{P}[S_{t+1}|S_t, S_{t-1}, \ldots, S_0] = \mathbb{P}[S_{t+1}|S_t]$ for all $t \geq 0$
+ \item A time-indexed sequence of random states $S_t \in \mathcal{S}$ for time steps $t=0, 1, 2, \ldots$ with each state transition satisfying the Markov Property: $\mathbb{P}[S_{t+1}|S_t, S_{t-1}, \ldots, S_0] = \mathbb{P}[S_{t+1}|S_t]$ for all $t \geq 0$.
+ \item Termination: If an outcome for $S_T$ (for some time step $T$) is a state in the set $\mathcal{T}$, then this sequence outcome terminates at time step $T$.
  \end{itemize}
  \end{definition}
 
@@ -637,15 +637,8 @@ As we've said earlier, the reason we covered Markov Processes is because we want
 The main purpose of Markov Reward Processes is to calculate how much reward we would accumulate (in expectation, from each of the non-terminal states) if we let the Process run indefinitely, bearing in mind that future rewards need to be discounted appropriately (otherwise the sum of rewards could blow up to $\infty$). In order to solve the problem of calculating expected accumulative rewards from each non-terminal state, we will first set up some formalism for Markov Reward Processes, develop some (elegant) theory on calculating rewards accumulation, write plenty of code (based on the theory), and apply the theory and code to the simple inventory example (which we will embellish with rewards equal to negative of the costs incurred at the store).
 
 \begin{definition}
-A {\em Markov Reward Process} is a Markov Process, along with:
-\begin{itemize}
-\item A time-indexed sequence of {\em Reward} random variables $R_t \in \mathbb{R}$ for time steps $t=1, 2, \ldots$
-\item Markov Property (including Rewards): $\mathbb{P}[(R_{t+1}, S_{t+1}) | S_t, S_{t-1}, \ldots, S_0] = \mathbb{P}[(R_{t+1}, S_{t+1}) | S_t]$ for all $t \geq 0$
-\item Specification of a discount factor $\gamma \in [0,1]$
- \end{itemize}
+A {\em Markov Reward Process} is a Markov Process, along with a time-indexed sequence of {\em Reward} random variables $R_t \in \mathbb{R}$ for time steps $t=1, 2, \ldots$, satisfying the Markov Property (including Rewards): $\mathbb{P}[(R_{t+1}, S_{t+1}) | S_t, S_{t-1}, \ldots, S_0] = \mathbb{P}[(R_{t+1}, S_{t+1}) | S_t]$ for all $t \geq 0$.
 \end{definition}
-
-The role of $\gamma$ only comes in discounting future rewards when accumulating rewards from a given state (as mentioned earlier) - more on this later.
 
 It pays to emphasize again (like we emphasized for Markov Processes), that the definitions and theory of Markov Reward Processes are for discrete-time, for countable state spaces and countable set of pairs of next state and reward transitions (with the knowledge that the definitions and theory are analogously extensible to continuous-time and uncountable spaces/transitions). Since we commonly assume Stationarity of Markov Processes, we shall also (by default) assume Stationarity for Markov Reward Processes, i.e., $\mathbb{P}[(R_{t+1}, S_{t+1}) | S_t]$ is independent of $t$. 
 
@@ -950,7 +943,7 @@ The above code is in the file [rl/chapter2/simple_inventory_mrp.py](https://gith
 
 ### Value Function of a Markov Reward Process
 
-Now we are ready to formally define the main problem involving Markov Reward Processes. As we've said earlier, we'd like to compute the "expected accumulated rewards" from any non-terminal state. However, if we simply add up the rewards in a sampling trace following time step $t$ as $\sum_{i=t+1}^{\infty} R_i = R_{t+1} + R_{t+2} + \ldots$, the sum would often diverge to infinity. This is where the discount factor $\gamma$ comes into play. We define the (random) *Return* $G_t$ as the "discounted accumulation of future rewards" following time step $t$. Formally,
+Now we are ready to formally define the main problem involving Markov Reward Processes. As we've said earlier, we'd like to compute the "expected accumulated rewards" from any non-terminal state. However, if we simply add up the rewards in a sampling trace following time step $t$ as $\sum_{i=t+1}^{\infty} R_i = R_{t+1} + R_{t+2} + \ldots$, the sum would often diverge to infinity. So we allow for rewards accumulation to be done with a discount factor $\gamma \in [0, 1]$: We define the (random) *Return* $G_t$ as the "discounted accumulation of future rewards" following time step $t$. Formally,
 $$G_t = \sum_{i=t+1}^{\infty} \gamma^{i-t-1} \cdot R_i = R_{t+1} + \gamma \cdot R_{t+2} + \gamma^2 \cdot R_{t+3} + \ldots$$
 
 We use the above definition of *Return* even for a terminating sequence (say terminating at $t=T$, i.e., $S_T \in \mathcal{T}$), by treating $R_i = 0$ for all $i > T$.
@@ -1012,7 +1005,9 @@ Invoking this `get_value_function_vec` method on `SimpleInventoryMRPFinite` for 
  InventoryState(on_hand=1, on_order=0): -28.932,
  InventoryState(on_hand=0, on_order=1): -27.932,
  InventoryState(on_hand=0, on_order=2): -28.345,
- InventoryState(on_hand=2, on_order=0): -30.345,
+ InventoryState(on_hand=2, on_order=0): -3
+ 
+ 0.345,
  InventoryState(on_hand=1, on_order=1): -29.345}
 ```
 
