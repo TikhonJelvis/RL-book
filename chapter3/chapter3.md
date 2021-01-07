@@ -107,7 +107,7 @@ defined as:
 
 $$\pi(s, a) = \mathbb{P}[A_t = a|S_t = s] \text{ for time steps } t = 0, 1, 2, \ldots, \text{ for all } s\in \mathcal{N}, a \in \mathcal{A}$$
 
-Note that in the definition above, we've assumed that a Policy is stationary, i.e., $\mathbb{P}[A_t = a|S_t = s]$ is invariant in time $t$. If we do encounter a situation where the policy would need to depend on the time $t$, we'll simply include $t$ to be part of the state, which would make the Policy stationary (albeit at the cost of state-space bloat and hence, computational cost).
+Note that the definition above assumes that a Policy is Markovian, i.e., the action probabilities depend only on the current state and not the history. The definition above also assumes that a Policy is Stationary, i.e., $\mathbb{P}[A_t = a|S_t = s]$ is invariant in time $t$. If we do encounter a situation where the policy would need to depend on the time $t$, we'll simply include $t$ to be part of the state, which would make the Policy stationary (albeit at the cost of state-space bloat and hence, computational cost).
 
 When we have a policy such that the action probability distribution for each state is concentrated on a single action, we refer to it as a deterministic policy. Formally, a deterministic policy has the property that for all $s\in \mathcal{N}$,
 
