@@ -355,7 +355,7 @@ We leave it to you as an exercise to run various simulations of the MRP implied 
 Certain calculations for Markov Decision Processes can be performed easily if:
 
 * The state space is finite ($\mathcal{S} = \{s_1, s_2, \ldots, s_n\}$),
-* The action space $\mathcal{A}(s)$ is finite for each $s \in \mathcal{S}$.
+* The action space $\mathcal{A}(s)$ is finite for each $s \in \mathcal{N}$.
 * The set of unique pairs of next state and reward transitions from each pair of current non-terminal state and action is finite
 
 If we satisfy the above three characteristics, we refer to the Markov Decision Process as a Finite Markov Decision Process. Let us write some code for a Finite Markov Decision Process. We create a concrete class `FiniteMarkovDecisionProcess` that implements the interface of the abstract class `MarkovDecisionProcess` (specifically implements the `@abstractmethod apply_policy`). Our first task is to think about the data structure required to specify an instance of `FiniteMarkovDecisionProcess` (i.e., the data structure we'd pass to the `__init__` method of `FiniteMarkovDecisionProcess`). Analogous to how we curried $\mathcal{P}_R$ for a Markov Reward Process as $\mathcal{N} \rightarrow (\mathcal{S} \times \mathbb{R} \rightarrow [0,1])$ (where $\mathcal{S} = \{s_1, s_2, \ldots, s_n\}$ and $\mathcal{N}$ has $m\leq n$ states), here we curry $\mathcal{P}_R$ for the MDP as:
