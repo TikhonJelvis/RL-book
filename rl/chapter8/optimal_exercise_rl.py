@@ -266,7 +266,8 @@ def fitted_dql_put_option(
         # hidden_activation_deriv=lambda x: np.vectorize(
         #     lambda y: 1. if y > 0. else 0.
         # )(x),
-        output_activation=lambda x: x
+        output_activation=lambda x: x,
+        output_activation_deriv=lambda y: np.ones_like(y)
     )
 
     dql_reg: float = 1e-6

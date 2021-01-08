@@ -73,7 +73,7 @@ When concrete classes implementing `FunctionApprox` write the `solve` method in 
 
 Any concrete class that implement this abstract class `FunctionApprox` will need to implement these four `abstractmethod`s of `FunctionApprox`, based on the specific assumptions that the concrete class makes for $f$. 
 
-Next, we write some useful methods that the concrete classes implementing `FunctionApprox` can inherit and utilize. Firstly, we write a method called `iterate_updates` that takes as input a stream (`Iterator`) of `Iterable` of $(x,y)$ pairs, and performs a series of incremental updates to the parameters $w$ (each using the `update` method), with each `update` done for each `Iterable` of $(x,y)$ pairs in the input stream `xy_seq: Iterator[Iterable[Tuple[X, float]]]`. `iterate_updates` returns an `Iterator[FunctionApprox[X]]` representing the successively updated `FunctionApprox` instances as a consequence of the repeated invocations to `update`. Note the use of the standard Python function `itertools.acccumulate` to accomplish this. 
+Next, we write some useful methods that the concrete classes implementing `FunctionApprox` can inherit and utilize. Firstly, we write a method called `iterate_updates` that takes as input a stream (`Iterator`) of `Iterable` of $(x,y)$ pairs, and performs a series of incremental updates to the parameters $w$ (each using the `update` method), with each `update` done for each `Iterable` of $(x,y)$ pairs in the input stream `xy_seq: Iterator[Iterable[Tuple[X, float]]]`. `iterate_updates` returns an `Iterator[FunctionApprox[X]]` representing the successively updated `FunctionApprox` instances as a consequence of the repeated invocations to `update`. Note the use of the standard Python function [`itertools.accumulate`](https://docs.python.org/3/library/itertools.html#itertools.accumulate) that calculates accumulated results (including intermediate results) on an `Iterable`, based on a provided function to govern the accumulation. In the code below, the `Iterable` is the input stream `xy_seq_stream` and the function governing the accumulation is the `update` method of `FunctionApprox`.
 
 ```python
 import itertools
@@ -357,7 +357,7 @@ import rl.iterate import iterate
         return ret
 ```
 
-The above code is in the file [rl/function_approx.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/function_approx.py).
+The above code is in the file [rl/function_approx.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/function_approx.py). Note that the `FunctionApprox` class implemented in this file has another `@abstractclass` called `representational_gradient` which we can ignore for now, and will be covered later when we get to Module III of the book. For now, assume that this `@abstractclass representational_gradient` doesn't exist in the `FunctionApprox` class as it is an unnecessary distraction for the purpose of the contents in Modules I and II.
 
 ### Neural Network Function Approximation
 
@@ -389,7 +389,9 @@ We denote the activation function of layer $l$ as $g_l: \mathbb{R} \rightarrow \
 
 Equations \eqref{eq:layers_input_output_connect}, \eqref{eq:layer_linearity} and \eqref{eq:layer_non_linearity} together define the calculation of the neural network prediction $\bm{O_L}$ (associated with the response variable $y$), given the predictor variable $x$. This calculation is known as *forward-propagation* and will define the `evaluate` method of the deep neural network function approximation class we shall soon write.
 
-Our goal is to derive an expression for the loss gradient $\nabla_{\bm{w_l}} \mathcal{L}$ for all $l = 0, 1, \ldots, L$. We can reduce this problem of calculating the loss gradient to the problem of calculating $\bm{P_l} = \nabla_{\bm{S_l}} \mathcal{L}$ for all $l = 0, 1, \ldots, L$, as revealed by the following chain-rule calculation:
+Our goal is to derive an expression for the cross-entropy loss gradient $\nabla_{\bm{w_l}} \mathcal{L}$ for all $l = 0, 1, \ldots, L$. For ease of understanding, our following exposition will be expressed in terms of the cross-entropy loss function for a single predictor variable input $x \in \mathcal{X}$ and it's associated single response variable $y \in \mathbb{R}$ (the code will generalize appropriately to the cross-entropy loss function for a given set of data points $[x_i, y_i|1 \leq i \leq n]$).
+
+We can reduce this problem of calculating the cross-entropy loss gradient to the problem of calculating $\bm{P_l} = \nabla_{\bm{S_l}} \mathcal{L}$ for all $l = 0, 1, \ldots, L$, as revealed by the following chain-rule calculation:
 $$\nabla_{\bm{w_l}} \mathcal{L} = (\nabla_{\bm{S_l}} \mathcal{L})^T \cdot \nabla_{\bm{w_l}} \bm{S_l} = \bm{P_l}^T \cdot \nabla_{\bm{w_l}} \bm{S_l} = \bm{P_l} \cdot \bm{I_l}^T = \bm{P_l} \otimes \bm{I_l} \text{ for all } l = 0, 1, \ldots L$$
 where the symbol $\otimes$ refers to the [outer-product](https://en.wikipedia.org/wiki/Outer_product) of two vectors resulting in a matrix. Note that the outer-product of the $dim(\bm{O_l})$ size vector $\bm{P_l}$ and the $dim(\bm{I_l})$ size vector $\bm{I_l}$ gives a matrix of size $dim(\bm{O_l}) \times dim(\bm{I_l})$.
 
@@ -541,9 +543,10 @@ class DNNSpec:
     hidden_activation: Callable[[np.ndarray], np.ndarray]
     hidden_activation_deriv: Callable[[np.ndarray], np.ndarray]
     output_activation: Callable[[np.ndarray], np.ndarray]
+    output_activation_deriv: Callable[[np.ndarray], np.ndarray]
 ```
 
-`neurons` is a sequence of length $L$ specifying $dim(O_0), dim(O_1), \ldots, dim(O_{L-1})$ (note $dim(O_L)$ doesn't need to be specified since we know $dim(O_L) = 1$). If `bias` is set to be `True`, then $dim(I_l) = dim(O_{l-1}) + 1$ for all $l=1, 2, \ldots L$ and so in the code below, when `bias` is `True`, we'll need to prepend the matrix representing $I_l$ with a vector consisting of all 1s (to incorporate the bias term). Note that along with specifying the hidden and output layers activation functions $g_l(\cdot)$ defined as $g_l(\bm{S_l}) = \bm{O_l}$, we also specify the hidden layers activation function derivative (`hidden_activation_deriv`) in the form of a function $h_l(\cdot)$ defined as $h_l(g(\bm{S_l})) = h_l(\bm{O_l}) = g_l'(\bm{S_l})$ (as we know, this derivative is required in the back-propagation calculation). We shall soon see that in the code, $h_l(\cdot)$ is a more convenient specification than the direct specification of $g_l'(\cdot)$.
+`neurons` is a sequence of length $L$ specifying $dim(O_0), dim(O_1), \ldots, dim(O_{L-1})$ (note $dim(O_L)$ doesn't need to be specified since we know $dim(O_L) = 1$). If `bias` is set to be `True`, then $dim(I_l) = dim(O_{l-1}) + 1$ for all $l=1, 2, \ldots L$ and so in the code below, when `bias` is `True`, we'll need to prepend the matrix representing $I_l$ with a vector consisting of all 1s (to incorporate the bias term). Note that along with specifying the hidden and output layers activation functions $g_l(\cdot)$ defined as $g_l(\bm{S_l}) = \bm{O_l}$, we also specify the hidden layers activation function derivative (`hidden_activation_deriv`) and the output layer activation function derivative (`output_activation_deriv`) in the form of functions $h_l(\cdot)$ defined as $h_l(g(\bm{S_l})) = h_l(\bm{O_l}) = g_l'(\bm{S_l})$ (as we know, this derivative is required in the back-propagation calculation). We shall soon see that in the code, $h_l(\cdot)$ is a more convenient specification than the direct specification of $g_l'(\cdot)$.
 
 Now we write the `@dataclass DNNApprox` that implements the abstract base class `FunctionApprox`. It has attributes:
 
@@ -552,11 +555,24 @@ Now we write the `@dataclass DNNApprox` that implements the abstract base class 
 * `regularization_coeff` that represents the common regularization coefficient $\lambda$ for the weights across all layers
 * `weights` which is a sequence of `Weights` objects (to represent and update the weights of all layers).
 
-The `get_feature_values` method is identical to the case of `LinearFunctionApprox` producing a matrix with number of rows equal to the number of $x$ values in it's input `x_values_seq: Iterable[X]` and number of columns equal to the number of specified `feature_functions`. The method `forward_propagation` implements the forward-propagation calculation that was covered earlier (combining Equations \eqref{eq:layers_input_output_connect} (potentially adjusted for the bias term, as mentioned above), \eqref{eq:layer_linearity} and \eqref{eq:layer_non_linearity}), computing a sequence of $y$ values as an `np.ndarray` corresponding to each of the input $x$ values `x_values_seq`. `forward_propagation` returns a list whose last element represents the final output of the neural network $\bm{O_L} = \mathbb{E}_M[y|x]$ and the remaining elements represent $\bm{I_l}$ for all $l = 0, 1, \ldots L$ (for each of the $x$ values provided as input in `x_values_seq`). The method `evaluate` (an `@abstractmethod` in `FunctionApprox`) returns the last element ($\bm{O_L} = \mathbb{E}_M[y|x]$) from the output of `forward_propagation`. The method `backward_propagation` is the most important method of `DNNApprox` and deserves a detailed explanation.
+The method `get_feature_values` is identical to the case of `LinearFunctionApprox` producing a matrix with number of rows equal to the number of $x$ values in it's input `x_values_seq: Iterable[X]` and number of columns equal to the number of specified `feature_functions`.
 
-`backward_propagation` takes as input `xy_vals_seq` which is an `Iterable` of $(x,y)$ pairs, and the output of `backward_propagation` is an estimate of $\nabla_{\bm{w_l}} \mathcal{L} = \bm{P_l} \otimes \bm{I_l}$ (i.e., without the regularization term) for all $l = 0, 1, \ldots L$, using the input data of $(x,y)$ pairs. The first step in this method is to invoke `forward_propagation` and store the results in the variable `fwd_prop`, whose last element represents $\bm{O_L}$ and whose remaining elements represent $\bm{I_l}$ for all $l = 0, 1, \ldots L$ (for each of the $x$ values provided as input in `xy_vals_seq`). This sequence of $\bm{I_l}$ is stored in the variable `layer_inputs`. The variable `deriv` represents $\bm{P_l} = \nabla_{\bm{S_l}} \mathcal{L}$, computed for each of the $x$ values provided as input in `xy_vals_seq` (note that `deriv` is updated in each iteration of the loop). `deriv` is initialized to the value of $P_L = O_L - y$. Within the loop, we perform the calculations of Theorem \ref{th:recursive_gradient_formulation}: $\bm{P_l} = (\bm{w_{l+1}}^T \cdot \bm{P_{l+1}}) \circ g_l'(\bm{S_l})$ (updating the `deriv` variable) and Equation \eqref{eq:loss_gradient_formula}: $\nabla_{\bm{w_l}} \mathcal{L} = \bm{P_l} \otimes \bm{I_l}$ (storing the results in the variable `back_prop`).
+The method `forward_propagation` implements the forward-propagation calculation that was covered earlier (combining Equations \eqref{eq:layers_input_output_connect} (potentially adjusted for the bias term, as mentioned above), \eqref{eq:layer_linearity} and \eqref{eq:layer_non_linearity}). `forward_propagation` takes as input the same data type as the input of `get_feature_values` (`x_values_seq: Iterable[X]`) and returns a list with $L+2$ numpy arrays. The last element of the returned list is a 1-D numpy array representing the final output of the neural network: $O_L = \mathbb{E}_M[y|x]$ for each of the $x$ values in the input `x_values_seq`. The remaining $L+1$ elements in the returned list are each 2-D numpy arrays, consisting of $\bm{I_l}$ for all $l = 0, 1, \ldots L$ (for each of the $x$ values provided as input in `x_values_seq`).
 
-The method `regularized_loss_gradient` simply adds on the regularization term $\lambda \cdot \bm{w_l}$ to the output of `backward_propagation`. The method `update` (`@abstractmethod` in `FunctionApprox`) invokes `regularized_loss_gradient` and returns a new instance of `DNNApprox` that contains the updated weights, along with the ADAM cache updates (invoking the `update` method of the `Weights` class to ensure there are no in-place updates). Finally, the method `solve` (`@abstractmethod` in `FunctionApprox`) utilizes the method `iterate_updates` (inherited from `FunctionApprox`) along with the method `within` to perform a best-fit of the weights that minimizes the cross-entropy loss function (basically, a series of incremental `update`s based on gradient descent).
+The method `evaluate` (an `@abstractmethod` in `FunctionApprox`) returns the last element ($O_L = \mathbb{E}_M[y|x]$) of the list returned by `forward_propagation`.
+
+The method `backward_propagation` is the most important method of `DNNApprox` and deserves a detailed explanation. `backward_propagation` takes two inputs:
+
+1. `fwd_prop: Sequence[np.ndarray]` which represents the output of the `forward_propagation` method, i.e., a sequence of $L+2$ numpy arrays with the first $L+1$ elements as the 2-D numpy arrays representing the inputs to layers $l = 0, 1, \ldots L$ (for each of an `Iterable` of $x$-values provided as input to the neural network), and the last element as the 1-D numpy array representing the output $O_L = \mathbb{E}_M[y|x]$ of the neural network (for each of the `Iterable` of $x$-values provided as input to the neural network).
+2. `objective_derivative_output: Callable[[np.ndarray], np.ndarray]`, a function representing the partial derivative of an arbitrary objective function $Obj$ with respect to $O_L$ (the output of the neural network), i.e., a function representing $\frac {\partial Obj}{\partial O_L}$.
+
+The output of `backward_propagation` is an estimate of $\nabla_{\bm{w_l}} Obj$ for all $l = 0, 1, \ldots, L$. If we generalize the objective function from the cross-entropy loss function $\mathcal{L}$ to an arbitrary objective function $Obj$ and generalize $\bm{P_l}$ to be $\nabla_{\bm{S_l}} Obj$ (from $\nabla_{\bm{S_l}} \mathcal{L}$), then the output of `backward_propagation` would be equal to $\bm{P_l} \otimes \bm{I_l}$ (i.e., without the regularization term) for all $l = 0, 1, \ldots L$. 
+
+The first step in `backward_propagation` is to extract $\bm{I_l}$ as the first $L+1$ elements of `fwd_prop` and store in the variable `layer_inputs`. The next step is to construct $\bm{P_L} = \frac {\partial Obj} {\partial S_L} = \frac {\partial Obj} {\partial O_L} \cdot \frac {\partial O_L} {\partial S_L}$ (variable `deriv` is initialized to $\bm{P_L}$) which is the product of the input `objective_derivative_output` (evaluated at each value in the 1-D numpy array `fwd_prop[-1]`, representing the outputs $O_L$ of the neural network) and the attribute `self.output_activation_deriv` representing $\frac {\partial O_L} {\partial S_L}$ as a function of $O_L$ (also evaluated at each value in the 1-D numpy array `fwd_prop[-1]`). The variable `deriv` represents $\bm{P_l} = \nabla_{\bm{S_l}} Obj$, evaluated for each of the values made available by `fwd_prop` (note that `deriv` is updated in each iteration of the loop reflecting Theorem \ref{th:recursive_gradient_formulation}: $\bm{P_l} = (\bm{w_{l+1}}^T \cdot \bm{P_{l+1}}) \circ g_l'(\bm{S_l})$). Note also that the returned list `back_prop` is populated with the result of Equation \eqref{eq:loss_gradient_formula}: $\nabla_{\bm{w_l}} \mathcal{L} = \bm{P_l} \otimes \bm{I_l}$.
+
+The method `regularized_loss_gradient` takes as input an `Iterable` of $(x,y)$ pairs, invokes the `forward_propagation` method (to be passed as input to `backward_propagation`), prepares a function `obj_deriv_output` (to be passed as the other input to `backward_propagation`), invokes `backward_propagation` and simply adds on the regularization term $\lambda \cdot \bm{w_l}$ to the output of `backward_propagation`.
+
+The method `update` (`@abstractmethod` in `FunctionApprox`) invokes `regularized_loss_gradient` and returns a new instance of `DNNApprox` that contains the updated weights, along with the ADAM cache updates (invoking the `update` method of the `Weights` class to ensure there are no in-place updates). Finally, the method `solve` (`@abstractmethod` in `FunctionApprox`) utilizes the method `iterate_updates` (inherited from `FunctionApprox`) along with the method `within` to perform a best-fit of the weights that minimizes the cross-entropy loss function (basically, a series of incremental `update`s based on gradient descent).
 
 ```python
 from dataclasses import replace
@@ -621,12 +637,12 @@ class DNNApprox(FunctionApprox[X]):
         ret.append(
             self.dnn_spec.output_activation(
                 np.dot(inp, self.weights[-1].weights.T)
-            )
+            )[:, 0]
         )
         return ret
 
     def evaluate(self, x_values_seq: Iterable[X]) -> np.ndarray:
-        return self.forward_propagation(x_values_seq)[-1][:, 0]
+        return self.forward_propagation(x_values_seq)[-1]
 
     def within(self, other: FunctionApprox[X], tolerance: float) -> bool:
         if isinstance(other, DNNApprox):
@@ -637,14 +653,13 @@ class DNNApprox(FunctionApprox[X]):
 
     def backward_propagation(
         self,
-        xy_vals_seq: Iterable[Tuple[X, float]]
+        fwd_prop: Sequence[np.ndarray],
+        objective_derivative_output: Callable[[np.ndarray], np.ndarray]
     ) -> Sequence[np.ndarray]:
-        x_vals, y_vals = zip(*xy_vals_seq)
-        fwd_prop: Sequence[np.ndarray] = self.forward_propagation(x_vals)
         layer_inputs: Sequence[np.ndarray] = fwd_prop[:-1]
-        deriv: np.ndarray = (
-            fwd_prop[-1][:, 0] - np.array(y_vals)
-        ).reshape(1, -1)
+        deriv: np.ndarray = objective_derivative_output(fwd_prop[-1]) * \
+            self.dnn_spec.output_activation_deriv(fwd_prop[-1])
+        deriv = deriv.reshape(1, -1)
         back_prop: List[np.ndarray] = [np.dot(deriv, layer_inputs[-1]) /
                                        deriv.shape[1]]
         # L is the number of hidden layers, n is the number of points
@@ -674,8 +689,18 @@ class DNNApprox(FunctionApprox[X]):
         self,
         xy_vals_seq: Iterable[Tuple[X, float]]
     ) -> Sequence[np.ndarray]:
+        x_vals, y_vals = zip(*xy_vals_seq)
+        fwd_prop: Sequence[np.ndarray] = self.forward_propagation(x_vals)
+
+        def obj_deriv_output(out: np.ndarray) -> np.ndarray:
+            return (out - np.array(y_vals)) / \
+                self.dnn_spec.output_activation_deriv(out)
+
         return [x + self.regularization_coeff * self.weights[i].weights
-                for i, x in enumerate(self.backward_propagation(xy_vals_seq))]
+                for i, x in enumerate(self.backward_propagation(
+                    fwd_prop=fwd_prop,
+                    objective_derivative_output=obj_deriv_output
+                ))]
 
     def update(
         self,
@@ -781,12 +806,16 @@ def get_dnn_model() -> DNNApprox[Triple]:
     def identity(arg: np.ndarray) -> np.ndarray:
         return arg
 
+    def identity_deriv(res: np.ndarray) -> np.ndarray:
+        return np.ones_like(res)
+
     ds = DNNSpec(
         neurons=[2],
         bias=True,
         hidden_activation=relu,
         hidden_activation_deriv=relu_deriv,
-        output_activation=identity
+        output_activation=identity,
+        output_activation_deriv=identity_deriv
     )
 
     return DNNApprox.create(
@@ -839,15 +868,15 @@ The plot of `linear_model_rmse_seq` and `dnn_model_rmse_seq` is shown in Figure 
 ![SGD Convergence \label{fig:sgd_convergence}](./chapter5/rmse.png "SGD Convergence")
 </div>
 
-### Tabular as a form of `FunctionApprox`
+### Tabular as a form of `FunctionApprox` {#sec:tabular-funcapprox-section}
 
 Now we consider a simple case where we have a fixed and finite set of $x$-values $\mathcal{X} = \{x_1, x_2, \ldots, x_n\}$, and any data set of $(x,y)$ made available to us needs to have it's $x$-values from within this finite set $\mathcal{X}$. The prediction $\mathbb{E}[y|x]$ for each $x \in \mathcal{X}$ needs to be calculated only from the $y$-values associated with this $x$ within the data set of $(x,y)$ pairs. In other words, the $y$-values in the data associated with other $x$ should not influence the prediction for $x$. Since we'd like the prediction for $x$ to be $\mathbb{E}[y|x]$, it would make sense for the prediction for a given $x$ to be the average of all the $y$-values associated with $x$ within the data set of $(x,y)$ pairs seen so far. This simple case is refered to as *Tabular* because we can store all $x \in \mathcal{X}$ together with their corresponding predictions $\mathbb{E}[y|x]$ in a finite data structure (loosely refered to as a "table").
 
 So the calculations for Tabular prediction of $\mathbb{E}[y|x]$ is particularly straightforward. What is interesting though is the fact that Tabular prediction actually fits the interface of `FunctionApprox` in terms of implementing:
 
 * the `solve` method, that would simply take the average of all the $y$-values associated with each $x$ in the given data set, and store those averages in a dictionary data structure.
-* the `update` function, that would update the current averages in the dictionary data structure, based on the new data set of $(x,y)$ pairs that is provided.
-* the `evaluate` function, that would simply look up the dictionary data structure for the $y$-value averages associated with each $x$-value provided as input.
+* the `update` method, that would update the current averages in the dictionary data structure, based on the new data set of $(x,y)$ pairs that is provided.
+* the `evaluate` method, that would simply look up the dictionary data structure for the $y$-value averages associated with each $x$-value provided as input.
 
  This view of Tabular prediction as a special case of `FunctionApprox` also permits us to cast the tabular algorithms of Dynamic Programming and Reinforcement Learning as special cases of the function approximation versions of the algorithms (using the `Tabular` class we develop below).
 
@@ -871,7 +900,7 @@ class Tabular(FunctionApprox[X]):
         field(default_factory=lambda: lambda n: 1. / n)
 
     def evaluate(self, x_values_seq: Iterable[X]) -> np.ndarray:
-        return np.array([self.values_map[x] for x in x_values_seq])
+        return np.array([self.values_map.get(x, 0.) for x in x_values_seq])
 
     def update(self, xy_vals_seq: Iterable[Tuple[X, float]]) -> Tabular[X]:
         values_map: Dict[X, float] = dict(self.values_map)
@@ -879,7 +908,7 @@ class Tabular(FunctionApprox[X]):
 
         for x, y in xy_vals_seq:
             counts_map[x] = counts_map.get(x, 0) + 1
-            weight: float = self.count_to_weight_func(counts_map[x])
+            weight: float = self.count_to_weight_func(counts_map.get(x, 0))
             values_map[x] = weight * y + (1 - weight) * values_map.get(x, 0.)
 
         return replace(
@@ -897,7 +926,7 @@ class Tabular(FunctionApprox[X]):
         counts_map: Dict[X, int] = {}
         for x, y in xy_vals_seq:
             counts_map[x] = counts_map.get(x, 0) + 1
-            weight: float = self.count_to_weight_func(counts_map[x])
+            weight: float = self.count_to_weight_func(counts_map.get(x, 0))
             values_map[x] = weight * y + (1 - weight) * values_map.get(x, 0.)
         return replace(
             self,
@@ -1147,9 +1176,9 @@ All of the above code for Approximate Dynamic Programming (ADP) algorithms is in
 
 Each of the above ADP algorithms takes as input probability distribution(s) of non-terminal states. You may be wondering how one constructs the probability distribution of non-terminal states so you can feed it as input to any of these ADP algorithm. There is no simple, crisp answer to this. But we will provide some general pointers in this section on how to construct the probability distribution of non-terminal states.
 
-Let us start with Approximate Policy Evaluation and Approximate Value Iteration algorithms. They require as input the probability distribution of non-terminal states. For Approximate Value Iteration algorithm, a natural choice would be evaluate the Markov Decision Process (MDP) with a uniform policy (equal probability for each action, from any state) to construct the implied Markov Reward Process (MRP), and then infer the stationary distribution of it's Markov Process, using some special property of the Markov Process (for instance, if it's a finite-states Markov Process, we might be able to perform the matrix calculations we covered in Chapter [-@sec:mrp-chapter] to calculate the stationary distribution). The stationary distribution would serve as the probability distribution of non-terminal states to be used by the Approximate Value Iteration algorithm. For Approximate Policy Evaluation algorithm, we do the same stationary distribution calculation with the given MRP. If we cannot take advantage of any special properties of the given MDP/MRP, then we can run a simulation with the `simulate` method in `MarkovRewardProcess` (inherited from `MarkovProcess`) and create a `SampledDistribution` of non-terminal states based on the non-terminal states reached by the simulation after a sufficiently large (but fixed) number of time steps (this is essentially an estimate of the stationary distribution). If the above choices are infeasible or computationally expensive, then a simple and neutral choice is to use a uniform distribution over the states.
+Let us start with Approximate Policy Evaluation and Approximate Value Iteration algorithms. They require as input the probability distribution of non-terminal states. For Approximate Value Iteration algorithm, a natural choice would be evaluate the Markov Decision Process (MDP) with a uniform policy (equal probability for each action, from any state) to construct the implied Markov Reward Process (MRP), and then infer the stationary distribution of it's Markov Process, using some special property of the Markov Process (for instance, if it's a finite-states Markov Process, we might be able to perform the matrix calculations we covered in Chapter [-@sec:mrp-chapter] to calculate the stationary distribution). The stationary distribution would serve as the probability distribution of non-terminal states to be used by the Approximate Value Iteration algorithm. For Approximate Policy Evaluation algorithm, we do the same stationary distribution calculation with the given MRP. If we cannot take advantage of any special properties of the given MDP/MRP, then we can run a simulation with the `simulate` method in `MarkovRewardProcess` (inherited from `MarkovProcess`) and create a `SampledDistribution` of non-terminal states based on the non-terminal states reached by the sampling trace after a sufficiently large (but fixed) number of time steps (this is essentially an estimate of the stationary distribution). If the above choices are infeasible or computationally expensive, then a simple and neutral choice is to use a uniform distribution over the states.
 
-Next, we consider the backward induction ADP algorithms for finite-horizon MDPs/MRPs. Our job here is to infer the distribution of non-terminal states for each time step in the finite horizon. Sometimes you can take advantage of the mathematical structure of the underlying Markov Process to come up with an analytical expression (exact or approximate) for the probability distribution of non-terminal states at any time step for the underlying Markov Process of the MRP/implied-MRP. For instance, if the Markov Process is described by a stochastic differential equation (SDE) and if we are able to solve the SDE, we would know the analytical expression for the probability distribution of non-terminal states. If we cannot take advantage of any such special properties, then we can create simulation paths by time-incrementally sampling from the state-transition probability distributions of each of the Markov Reward Processes at each time step (if we are solving a Control problem, then we create implied-MRPs by evaluating the given MDPs with a uniform policy). The end points of these simulation paths at each time step provide a `SampledDistribution` of non-terminal states for each time step within the finite horizon. If the above choices are infeasible or computationally expensive, then a simple and neutral choice is to use a uniform distribution over the non-terminal states for each time step.
+Next, we consider the backward induction ADP algorithms for finite-horizon MDPs/MRPs. Our job here is to infer the distribution of non-terminal states for each time step in the finite horizon. Sometimes you can take advantage of the mathematical structure of the underlying Markov Process to come up with an analytical expression (exact or approximate) for the probability distribution of non-terminal states at any time step for the underlying Markov Process of the MRP/implied-MRP. For instance, if the Markov Process is described by a stochastic differential equation (SDE) and if we are able to solve the SDE, we would know the analytical expression for the probability distribution of non-terminal states. If we cannot take advantage of any such special properties, then we can generate sampling traces by time-incrementally sampling from the state-transition probability distributions of each of the Markov Reward Processes at each time step (if we are solving a Control problem, then we create implied-MRPs by evaluating the given MDPs with a uniform policy). The states reached by these sampling traces at any fixed time step provide a `SampledDistribution` of non-terminal states for that time step. If the above choices are infeasible or computationally expensive, then a simple and neutral choice is to use a uniform distribution over the non-terminal states for each time step.
 
 We will write some code in Chapter [-@sec:portfolio-chapter] to create a `SampledDistribution` of non-terminal states for each time step of a finite-horizon problem by stitching together samples of state transitions at each time step. If you are curious about this now, you can [take a peek at the code](https://github.com/TikhonJelvis/RL-book/blob/master/rl/chapter7/asset_alloc_discrete.py).
 

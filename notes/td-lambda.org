@@ -1,0 +1,87 @@
+* TD algorithms
+  There are a few variations of TD algorithms:
+
+    1. TD(0)
+    2. TD(n)
+    3. forward view TD(λ)
+    4. backward view TD(λ)
+
+  We have working code for TD(0).
+
+  Do we want to implement TD(N) and forward view TD(λ)? Both of those
+  seem doable with the framework we have today.
+
+  However, backward view TD(λ) is a bit more complicated.
+  
+** Backward view TD(λ)
+   To support the "backwards view" TD(λ) algorithm, we need to track
+   eligibility traces for our states. Doing this requires *two*
+   function approximations:
+
+     1. ̂v for the value function
+     2. E for the eligibility value of each state
+
+   (Aside: do we want to implement other TD-style algorithms between
+   TD(0) and this?)
+
+   David Silver defines the update for this mode as follows:
+
+     δₜ = Rₜ₊₁ + γ̂v(Sₜ₊₁, w) - ̂v(Sₜ, w)
+     Eₜ = γλEₜ₋₁ + x(Sₜ)
+     ∆w = αδₜEₜ
+
+   In this model, both ̂v and E would be function approximations. In
+   our code we would want ~FunctionApprox~ values for both E and ̂v,
+   but we run into a problem:
+
+     1. The update to E (Eₜ) is defined in terms of /both/ Eₜ₋₁ /and/
+        ̂vₜ₋₁ (via x(Sₜ)).
+     2. ∆w—the update to ̂v—is defined in terms of Eₜ.
+     3. The ~FunctionApprox~ interface only lets us update using (x,
+        y) pairs (via the ~update~) method.
+
+   This means the interface of ~FunctionApprox~ is not expressive
+   enough to capture this code directly. We need to add operations to
+   the ~FunctionApprox~ interface—either in the class directly or
+   in a subclass—to capture all of this. The exact details of how this
+   looks is an important design question.
+
+   First, we'll need scalar multiplication and addition.
+
+   Next, we'll also need an operation for calculating the equivalent
+   of x(Sₜ) for function approximations in general.
+
+   Finally, we'll need a way to update a function approximation in
+   terms of another function approximation.
+
+   This gives us four new methods to add to the ~FunctionApprox~ interface:
+
+     1. ~(+): FA[S] → FA[S] → FA[S]~
+     2. ~(*): ℝ → FA → FA~
+     3. ~grad_w: FA[S] → S → FA[S]~
+     4. ~update: FA[S] → FA[S] → FA[S]~
+
+   (~FA[S]~ = ~FunctionApprox[S]~)
+
+*** Is this the right interface?
+    This preliminary set of methods leaves some questions! Is this the
+    right design for this particular problem? Do we need any other
+    operations? Can all of our existing ~FunctionApprox~ instances
+    implement these new operations as well?
+
+    Does the signature and concept behind ~grad_w~ make sense? Can we
+    always treat the gradient of a function approximation at a
+    specific state as an instance of the same type of function
+    approximation with the same shape?
+
+    What exactly is the meaning of ~update~ applied to a function
+    approximation? My idea is to capture ∆w = αδₜEₜ, but not 100% sure
+    it makes sense.
+
+    Is this notion of ~update~ equivalent to some more general
+    operation?
+
+    Scalar multiplication and addition clearly make sense because
+    function approximations form vector spaces. Is it worth defining a
+    dedicated ~Vector~ interface and having ~FunctionApprox~ inherit
+    from it?
