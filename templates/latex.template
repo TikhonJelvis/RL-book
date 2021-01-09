@@ -1,5 +1,5 @@
 %!TEX TS-program = xelatex
-\documentclass[11pt]{scrbook}
+\documentclass[12pt]{scrbook}
 
 % -- We are in swanky unicode, XeTeX land, and must now import these packages:
 \usepackage{fontspec,xltxtra,xunicode}
@@ -40,7 +40,7 @@
 % the `geometry` package makes for convenient adjusting of margins, which is what
 % you asked about.  Of course it can do much more, even make coffee for you:
 \usepackage{geometry}
-\geometry{verbose,letterpaper,tmargin=1cm,bmargin=1cm,lmargin=3.5cm,rmargin=4cm}
+\geometry{verbose,letterpaper,tmargin=2cm,bmargin=2.5cm,lmargin=3.25cm,rmargin=3.75cm}
 % so if you just keep a copy of this template in the directory you are working in, you
 % can adjust the margins by going into this file and messing with the margins.
 % the syntax is very unforgiving, but permits 3cm and 2.5in and some other things.
@@ -80,7 +80,7 @@
 %% \setlength{\parskip}{6pt plus 2pt minus 1pt}
 
 % Page format:
-\pagestyle{empty} 
+\pagestyle{plain}
 
 % Footnotes
 % if you have code in your footnotes, the million macro march 
