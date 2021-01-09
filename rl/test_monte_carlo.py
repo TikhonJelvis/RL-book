@@ -1,5 +1,7 @@
 import unittest
 
+import random
+
 from rl.distribution import Categorical, Choose
 from rl.function_approx import Tabular
 import rl.iterate as iterate
@@ -23,6 +25,7 @@ class FlipFlop(FiniteMarkovRewardProcess[bool]):
 
 class TestEvaluate(unittest.TestCase):
     def setUp(self):
+        random.seed(42)
         self.finite_flip_flop = FlipFlop(0.7)
 
     def test_evaluate_finite_mrp(self):
