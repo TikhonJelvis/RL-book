@@ -4,6 +4,7 @@ from typing import Iterable, Iterator, TypeVar, overload
 
 import rl.markov_process as mp
 import rl.markov_decision_process as mdp
+import rl.iterate as iterate
 
 
 S = TypeVar('S')
@@ -46,7 +47,7 @@ def returns(trace, γ, tolerance):
 
     *transitions, last_transition = list(trace)
 
-    return_steps = itertools.accumulate(
+    return_steps = iterate.accumulate(
         reversed(transitions),
         func=lambda next, curr: curr.add_return(γ, next.return_),
         initial=last_transition.add_return(γ, 0)
