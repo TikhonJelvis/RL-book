@@ -80,7 +80,7 @@ def evaluate_mrp(
 
 The core of the `evaluate_mrp` function above is the call to the `returns` function (detailed below and available in the file [rl/returns.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/returns.py)). `returns` takes as input `trace` representing a trace experience (`Iterable` of `TransitionStep`), the discount factor `gamma`, and a `tolerance` that determines how many time steps to cover in each trace experience when $\gamma < 1$ (as many steps as until $\gamma^{steps} \leq tolerance$ or until the trace experience ends in a terminal state, whichever happens first). If $\gamma = 1$, each trace experience needs to end in a terminal state (else the `returns` function will loop forever). 
 
-The `returns` function calculates the returns $G_t$ (accumulated discounted rewards) starting from each state $S_t$ in the trace experience. The key is to walk backwards from the end of the trace experience to the start (so as to reuse the calculated returns while walking backwards: $G_t = R_{t+1} + \gamma \cdot G_{t+1}$). Note the use of `itertools.accumulate` to perform this backwards-walk calculation, which in turn uses the `add_return` method in `TransitionStep` to create an instance of `ReturnStep`. The `ReturnStep` (as seen in the code below) class is derived from the `TransitionStep` class and includes the additional attribute named `return_`. We add a method called `add_return` in `TransitionStep` so we can augment the attributes `state`, `reward`, `next_state` with the additional attribute `return_` that is comprised of the reward plus gamma times the `return_` from the next state. 
+The `returns` function calculates the returns $G_t$ (accumulated discounted rewards) starting from each state $S_t$ in the trace experience. The key is to walk backwards from the end of the trace experience to the start (so as to reuse the calculated returns while walking backwards: $G_t = R_{t+1} + \gamma \cdot G_{t+1}$). Note the use of `iterate.accumulate` to perform this backwards-walk calculation, which in turn uses the `add_return` method in `TransitionStep` to create an instance of `ReturnStep`. The `ReturnStep` (as seen in the code below) class is derived from the `TransitionStep` class and includes the additional attribute named `return_`. We add a method called `add_return` in `TransitionStep` so we can augment the attributes `state`, `reward`, `next_state` with the additional attribute `return_` that is comprised of the reward plus gamma times the `return_` from the next state. 
 
 
 ```python
@@ -107,6 +107,8 @@ The above code is in the file [rl/markov_process.py](https://github.com/TikhonJe
 
 ```python
 import itertools
+
+import rl.iterate as iterate
 import rl.markov_process as mp
 
 def returns(
@@ -123,7 +125,7 @@ def returns(
 
     *transitions, last_transition = list(trace)
 
-    return_steps = itertools.accumulate(
+    return_steps = iterate.accumulate(
         reversed(transitions),
         func=lambda next, curr: curr.add_return(gamma, next.return_),
         initial=last_transition.add_return(gamma, 0)
@@ -331,12 +333,12 @@ This looks similar to the formula for parameters update in the case of MC (with 
 Now let's write some code to implement TD Prediction (with Function Approximation). Unlike MC which takes as input a stream of trace experiences, TD works with a more granular stream: a stream of *atomic experiences*. Note that a stream of trace experiences can be broken up into a stream of atomic experiences, but we could also obtain a stream of atomic experiences in other ways (not necessarily from a stream of trace experiences). Thus, the TD prediction algorithm we write below (`evaluate_mrp`) takes as input an `Iterable[TransitionStep[S]]`. `evaluate_mrp` produces an `Iterator` of `FunctionApprox[S]`, i.e., an updated function approximation of the Value Function after each atomic experience in the input atomic experiences stream. Similar to our implementation of MC, our implementation of TD is based on supervised learning on a stream of $(x,y)$ pairs, but there are two key differences:
 
 1. The $(x,y)$ pairs will be provided as one pair at a time (corresponding to a single atomic experience) for a single `update`, and not as a set of $(x,y)$ pairs corresponding to a single trace experience.
-2. The $y$-value depends on the Value Function, as seen from the update Equation \eqref{eq:td-funcapprox-params-adj} above. This means we cannot use the `iterate_updates` method of `FunctionApprox` that MC Prediction uses. Rather, we need to directly use the [`itertool.accumulate`](https://docs.python.org/3/library/itertools.html#itertools.accumulate) function. As seen in the code below, the accumulation is performed on the input `transitions: Iterable[TransitionStep[S]]` and the function governing the accumulation is the `step` function in the code below that calls the `update` method of `FunctionApprox` (note that the $y$-values passed to `update` involve a call to the estimated Value Function `v` for the `next_state` of each `transition`).
+2. The $y$-value depends on the Value Function, as seen from the update Equation \eqref{eq:td-funcapprox-params-adj} above. This means we cannot use the `iterate_updates` method of `FunctionApprox` that MC Prediction uses. Rather, we need to directly use the `rl.iterate.accumulate` function (a wrapped version of  [`itertools.accumulate`](https://docs.python.org/3/library/itertools.html#itertools.accumulate)). As seen in the code below, the accumulation is performed on the input `transitions: Iterable[TransitionStep[S]]` and the function governing the accumulation is the `step` function in the code below that calls the `update` method of `FunctionApprox` (note that the $y$-values passed to `update` involve a call to the estimated Value Function `v` for the `next_state` of each `transition`).
 
 
 ```python
+import rl.iterate as iterate
 import rl.markov_process as mp
-import itertools
 
 def evaluate_mrp(
         transitions: Iterable[mp.TransitionStep[S]],
@@ -348,7 +350,7 @@ def evaluate_mrp(
         return v.update([(transition.state,
                           transition.reward + gamma * v(transition.next_state))])
 
-    return itertools.accumulate(transitions, step, initial=approx_0)
+    return iterate.accumulate(transitions, step, initial=approx_0)
 ```
 
 The above code is in the file [rl/td.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/td.py).
