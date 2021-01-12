@@ -543,8 +543,8 @@ $$= \max_{a\in \mathcal{A}} \{\mathcal{R}(s,a) + \gamma \sum_{s' \in \mathcal{N}
 $$\bbs(\bm{X} + c)(s) = \bbs(\bm{X})(s) + \gamma c \text{ for all } s \in \mathcal{N}$$
 In the above statement, adding a constant ($\in \mathbb{R}$) to a Value Function ($\in \mathbb{R}^m$) adds the constant point-wise to all states of the Value Function (to all dimensions of the vector representing the Value Function). In other words, a constant $\in \mathbb{R}$ might as well be treated as a Value Function with the same (constant) value for all states. Therefore,
 
-$$\bbs(\bm{X}+c)(s) = \max_{a \in \mathcal{A}} \{ \mathcal{R}(s,a) + \gamma \sum_{s' \in \mathcal{N}} \mathcal{P}(s,a,s') \cdot (\bm{X}(s) + c) \}$$
-$$ = \max_{a \in \mathcal{A}} \{ \mathcal{R}(s,a) + \gamma \sum_{s' \in \mathcal{N}} \mathcal{P}(s,a,s') \cdot \bm{X}(s) \} + \gamma c = \bbs(\bm{X}) + \gamma c$$
+$$\bbs(\bm{X}+c)(s) = \max_{a \in \mathcal{A}} \{ \mathcal{R}(s,a) + \gamma \sum_{s' \in \mathcal{N}} \mathcal{P}(s,a,s') \cdot (\bm{X}(s') + c) \}$$
+$$ = \max_{a \in \mathcal{A}} \{ \mathcal{R}(s,a) + \gamma \sum_{s' \in \mathcal{N}} \mathcal{P}(s,a,s') \cdot \bm{X}(s') \} + \gamma c = \bbs(\bm{X})(s) + \gamma c$$
 
 With these two properties of $\bbs$ in place, let's prove that $\bbs$ is a contraction function. For given $\bm{X}, \bm{Y} \in \mathbb{R}^m$, assume:
 $$\max_{s \in \mathcal{N}} |(\bm{X} - \bm{Y})(s)| = c$$
@@ -588,7 +588,7 @@ But Value Iteration has no such policy associated with it since the entire algor
 $\bm{V_i} = \bvs$ in iteration $i$, how do we get hold of an Optimal Policy $\pi^*$ such that:
 $$\bm{V}^{\pi^*} = \bm{V_i} = \bvs$$
 
-The answer lies in the Greedy Policy function $G$. Consider $G(\bvs)$. Equation \eqref{eq:greedy_improvement_optimality_operator} told us that:
+The answer lies in the Greedy Policy function $G$. Equation \eqref{eq:greedy_improvement_optimality_operator} told us that:
 $$\bm{B}^{G(\bv)}(\bv) = \bbs(\bv) \text{ for all } \bv \in \mathbb{R}^m$$
 Specializing $\bv$ to be $\bvs$, we get:
 $$\bm{B}^{G(\bvs)}(\bvs) = \bbs(\bvs)$$ 
