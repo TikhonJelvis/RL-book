@@ -3,7 +3,6 @@ Markov Decision Processes.
 
 '''
 
-import itertools
 from typing import Callable, Iterable, Iterator, TypeVar, Tuple
 
 from rl.function_approx import FunctionApprox
