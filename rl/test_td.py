@@ -60,7 +60,7 @@ class TestEvaluate(unittest.TestCase):
                 for episode in episodes
             )
 
-        vs = td.evaluate_mrp(transitions, γ=0.99, approx_0=start)
+        vs = td.td_prediction(transitions, γ=0.99, approx_0=start)
 
         v: Optional[Tabular[bool]] = iterate.last(
             itertools.islice(cast(Iterator[Tabular[bool]], vs), 10000)
@@ -96,7 +96,7 @@ class TestEvaluate(unittest.TestCase):
                 uniform_policy
             )
 
-        qs = td.evaluate_mdp(
+        qs = td.td_control(
             transitions,
             self.finite_mdp.actions,
             q_0,
