@@ -561,8 +561,6 @@ user_poisson_lambda = 1.0
 user_holding_cost = 1.0
 user_stockout_cost = 10.0
 
-user_gamma = 0.9
-
 si_mdp: FiniteMarkovDecisionProcess[InventoryState, int] =\
     SimpleInventoryMDPCap(
         capacity=user_capacity,
@@ -596,6 +594,8 @@ The Value Function for an MDP evaluated with a fixed policy $\pi$
 $$V^{\pi}: \mathcal{N} \rightarrow \mathbb{R}$$
 is defined as:
 $$V^{\pi}(s) = \mathbb{E}_{\pi, \mathcal{P}_R}[G_t|S_t=s] \text{ for all } s \in \mathcal{N}, \text{ for all } t = 0, 1, 2, \ldots$$
+
+For the rest of the book, we will assume that whenever we are talking about a Value Function, the discount factor $\gamma$ is appropriate to ensure that the Expected Return from each state is finite - in particular, $\gamma < 1$ for continuing (non-terminating) MDPs where the Return could otherwise diverge.
 
 Now let's expand $\mathbb{E}_{\pi, \mathcal{P}_R}[G_t|S_t=s]$.
 
@@ -726,28 +726,44 @@ We have been using the phrase "policy/policies that achieve the Optimal Value Fu
 
 $$\pi^* \in \Pi \text{ is an Optimal Policy if } V^{\pi^*}(s) \geq V^{\pi}(s) \text{ {\em for all} } \pi \in \Pi \text{ and {\em for all states} } s \in \mathcal{N}$$
 
-The definition of an Optimal Policy $\pi^*$ says that it is a policy that is "better than or equal to" (on the $V^{\pi}$ metric) all other stationary policies *for all* non-terminal states (note that there could be multiple Optimal Policies). Putting this defintion together with the definition of the Optimal Value Function $V^*$, the natural question to then ask is whether there exists an Optimal Policy $\pi^*$ that maximizes $V^{\pi}(s)$  *for all* $s \in \mathcal{N}$, i.e., whether there exists a $\pi^*$ such that $V^*(s) = V^{\pi^*}(s)$ for all $s \in \mathcal{N}$. On the face of it, this seems like a strong statement. However, this answers in the affirmative in most MDP settings of interest. Under a variety of MDP settings (which we will not enumerate in detail here), the following 3 (strong) statements can be made:
+The definition of an Optimal Policy $\pi^*$ says that it is a policy that is "better than or equal to" (on the $V^{\pi}$ metric) all other stationary policies *for all* non-terminal states (note that there could be multiple Optimal Policies). Putting this definition together with the definition of the Optimal Value Function $V^*$, the natural question to then ask is whether there exists an Optimal Policy $\pi^*$ that maximizes $V^{\pi}(s)$  *for all* $s \in \mathcal{N}$, i.e., whether there exists a $\pi^*$ such that $V^*(s) = V^{\pi^*}(s)$ for all $s \in \mathcal{N}$. On the face of it, this seems like a strong statement. However, this answers in the affirmative in most MDP settings of interest. The following theorem and proof is for our default setting of MDP (discrete-time, countable-states, stationary), but the statements and argument themes below apply to various other MDP settings as well (the [MDP book by Martin Puterman](https://www.amazon.com/Markov-Decision-Processes-Stochastic-Programming/dp/0471727822) provides rigorous proofs for a variety of settings). 
 
-* There exists an Optimal Policy $\pi^* \in \Pi$, i.e., there exists a Policy $\pi^* \in \Pi$ such that $V^{\pi^*}(s) \geq V^{\pi}(s) \mbox{ for all policies  } \pi \in \Pi \mbox{ and for all states } s \in \mathcal{N}$
-* All Optimal Policies achieve the Optimal Value Function, i.e. $V^{\pi^*}(s) = V^*(s)$ for all $s \in \mathcal{N}$, for all Optimal Policies $\pi^*$
-* All Optimal Policies achieve the Optimal Action-Value Function, i.e. $Q^{\pi^*}(s,a) = Q^*(s,a)$ for all $s \in \mathcal{N}$, for all $a \in \mathcal{A}$, for all Optimal Policies $\pi^*$
+\begin{theorem}
+For any (discrete-time, countable-states, stationary) MDP:
+\begin{itemize}
+\item There exists an Optimal Policy $\pi^* \in \Pi$, i.e., there exists a Policy $\pi^* \in \Pi$ such that $V^{\pi^*}(s) \geq V^{\pi}(s) \mbox{ for all policies  } \pi \in \Pi \mbox{ and for all states } s \in \mathcal{N}$
+\item All Optimal Policies achieve the Optimal Value Function, i.e. $V^{\pi^*}(s) = V^*(s)$ for all $s \in \mathcal{N}$, for all Optimal Policies $\pi^*$
+\item All Optimal Policies achieve the Optimal Action-Value Function, i.e. $Q^{\pi^*}(s,a) = Q^*(s,a)$ for all $s \in \mathcal{N}$, for all $a \in \mathcal{A}$, for all Optimal Policies $\pi^*$
+\end{itemize}
+\label{th:mdp-optimal-policy-existence}
+\end{theorem}
 
-We won't provide a formal proof for these statements here (see the excellent [MDP book by Martin Puterman](https://www.amazon.com/Markov-Decision-Processes-Stochastic-Programming/dp/0471727822) for the formal proofs under various settings - discrete versus continuous spaces, stationary versus non-stationary, terminating versus continuing, discounted versus undiscounted etc.). Instead, we outline a few key ideas that will provide intuition on the validity of the above 3 statements:
+Before proceeding with the proof of Theorem \eqref{th:mdp-optimal-policy-existence}, we establish a simple Lemma.
 
-* For any two Optimal Policies $\pi_1^*$ and $\pi_2^*$, $V^{\pi_1^*}(s) = V^{\pi_2^*}(s)$ for all $s \in \mathcal{N}$. This is easy to argue as follows: Since $\pi_1^*$ is an Optimal Policy, from the Optimal Policy definition, we have: $V^{\pi_1^*}(s) \geq V^{\pi_2^*}(s)$ for all $s \in \mathcal{N}$. Likewise, since $\pi_2^*$ is an Optimal Policy, from the Optimal Policy definition, we have: $V^{\pi_2^*}(s) \geq V^{\pi_1^*}(s)$ for all $s \in \mathcal{N}$. This implies: $V^{\pi_1^*}(s) = V^{\pi_2^*}(s)$ for all $s \in \mathcal{N}$
-* Construct a Deterministic Policy (as a candidate Optimal Policy) $\pi_D^* : \mathcal{N} \rightarrow \mathcal{A}$ as follows:
+\begin{lemma}
+For any two Optimal Policies $\pi_1^*$ and $\pi_2^*$, $V^{\pi_1^*}(s) = V^{\pi_2^*}(s)$ for all $s \in \mathcal{N}$
+\end{lemma}
+\begin{proof}
+Since $\pi_1^*$ is an Optimal Policy, from the Optimal Policy definition, we have: $V^{\pi_1^*}(s) \geq V^{\pi_2^*}(s)$ for all $s \in \mathcal{N}$. Likewise, since $\pi_2^*$ is an Optimal Policy, from the Optimal Policy definition, we have: $V^{\pi_2^*}(s) \geq V^{\pi_1^*}(s)$ for all $s \in \mathcal{N}$. This implies: $V^{\pi_1^*}(s) = V^{\pi_2^*}(s)$ for all $s \in \mathcal{N}$.
+\end{proof}
+
+Now we are ready to prove Theorem \eqref{th:mdp-optimal-policy-existence}
+
+\begin{proof}
+As a consequence of the above Lemma, all we need to do to prove Theorem \eqref{th:mdp-optimal-policy-existence} is to establish an Optimal Policy that achieves the Optimal Value Function and the Optimal Action-Value Function. We construct a Deterministic Policy (as a candidate Optimal Policy) $\pi_D^* : \mathcal{N} \rightarrow \mathcal{A}$ as follows:
 \begin{equation}
 \pi_D^*(s) = \argmax_{a \in \mathcal{A}} Q^*(s,a) \mbox{ for all } s \in \mathcal{N}
 \label{eq:mdp_optimal_policy}
 \end{equation}
-* Here's the intuition on the fact that $\pi_D^*$ achieves the Optimal Value Functions $V^*$ and $Q^*$: Since $\pi_D^*(s) = \argmax_{a \in \mathcal{A}} Q^*(s,a)$ and $V^*(s) = \max_{a \in \mathcal{A}} Q^*(s,a)$ for all $s \in \mathcal{N}$, we can infer for all $s \in \mathcal{N}$ that:
+First we show that $\pi_D^*$ achieves the Optimal Value Functions $V^*$ and $Q^*$. Since $\pi_D^*(s) = \argmax_{a \in \mathcal{A}} Q^*(s,a)$ and $V^*(s) = \max_{a \in \mathcal{A}} Q^*(s,a)$ for all $s \in \mathcal{N}$, we can infer for all $s \in \mathcal{N}$ that:
 $$V^*(s) = Q^*(s,\pi_D^*(s))$$
-This says that we achieve the Optimal Value Function from a given non-terminal state $s$, if we first take the action prescribed by the policy $\pi_D^*$ (i.e., the action $\pi_D^*(s)$), followed by achieving the Optimal Value Function from each of the next time step's states. But note that each of the next time step's states can achieve the Optimal Value Function by doing the same thing described above ("first take action prescribed by $\pi_D^*$, followed by ..."), and so on and so forth for further time step's states. This is not a formal proof, but it provides intuition on how the Optimal Value Function $V^*$ can be achieved if from each non-terminal state, we take the action prescribed by $\pi_D^*$. Likewise, the Optimal Action-Value Function $Q^*$ can be achieved if from each non-terminal state, we take the action $a$ (argument to $Q^*$) followed by future actions prescribed by $\pi_D^*$. Formally, this says:
+This says that we achieve the Optimal Value Function from a given non-terminal state $s$ if we first take the action prescribed by the policy $\pi_D^*$ (i.e., the action $\pi_D^*(s)$), followed by achieving the Optimal Value Function from each of the next time step's states. But note that each of the next time step's states can achieve the Optimal Value Function by doing the same thing described above ("first take action prescribed by $\pi_D^*$, followed by ..."), and so on and so forth for further time step's states. Thus, the Optimal Value Function $V^*$ is achieved if from each non-terminal state, we take the action prescribed by $\pi_D^*$. Likewise, the Optimal Action-Value Function $Q^*$ is achieved if from each non-terminal state, we take the action $a$ (argument to $Q^*$) followed by future actions prescribed by $\pi_D^*$. Formally, this says:
 $$V^{\pi_D^*}(s) = V^*(s) \text{ for all } s \in \mathcal{N}$$
 $$Q^{\pi_D^*}(s,a) = Q^*(s,a) \text{ for all } s \in \mathcal{N}, \text{ for all } a \in \mathcal{A}$$
-* Finally, we argue that $\pi_D^*$ is an Optimal Policy. Assume the contradiction (that $\pi_D^*$ is not an Optimal Policy). Then there exists a policy $\pi \in \Pi$ and a state $s \in \mathcal{N}$ such that $V^{\pi}(s) > V^{\pi_D^*}(s)$. Since $V^{\pi_D^*}(s) = V^*(s)$, we have: $V^{\pi}(s) > V^*(s)$ which contradicts the Optimal Value Function Definition: $V^*(s) = \max_{\pi \in \Pi} V^{\pi}(s)$ for all $s\in \mathcal{N}$. Hence, $\pi_D^*$ must be an Optimal Policy.
+Finally, we argue that $\pi_D^*$ is an Optimal Policy. Assume the contradiction (that $\pi_D^*$ is not an Optimal Policy). Then there exists a policy $\pi \in \Pi$ and a state $s \in \mathcal{N}$ such that $V^{\pi}(s) > V^{\pi_D^*}(s)$. Since $V^{\pi_D^*}(s) = V^*(s)$, we have: $V^{\pi}(s) > V^*(s)$ which contradicts the Optimal Value Function Definition: $V^*(s) = \max_{\pi \in \Pi} V^{\pi}(s)$ for all $s\in \mathcal{N}$. Hence, $\pi_D^*$ must be an Optimal Policy.
+\end{proof}
  
-This completes the outline of the arguments illustrating the existence of an Optimal Policy and all Optimal Policies achieving the Optimal Value Functions. Equation \eqref{eq:mdp_optimal_policy} is a key construction that goes hand-in-hand with the Bellman Optimality Equations in designing the various Dynamic Programming and Reinforcement Learning algorithms to solve the MDP Control problem (i.e., to solve for $V^*$, $Q^*$ and $\pi^*$). Lastly, it's important to note that unlike the Prediction problem which has a straightforward linear-algebra solution for small state spaces, the Control problem is non-linear and so, doesn't have an analogous straightforward linear-algebra solution. The simplest solutions for the Control problem (even for small state spaces) are the Dynamic Programming algorithms we will cover in Chapter [-@sec:dp-chapter].
+Equation \eqref{eq:mdp_optimal_policy} is a key construction that goes hand-in-hand with the Bellman Optimality Equations in designing the various Dynamic Programming and Reinforcement Learning algorithms to solve the MDP Control problem (i.e., to solve for $V^*$, $Q^*$ and $\pi^*$). Lastly, it's important to note that unlike the Prediction problem which has a straightforward linear-algebra solution for small state spaces, the Control problem is non-linear and so, doesn't have an analogous straightforward linear-algebra solution. The simplest solutions for the Control problem (even for small state spaces) are the Dynamic Programming algorithms we will cover in Chapter [-@sec:dp-chapter].
 
 ### Variants and Extensions of MDPs
 
@@ -835,5 +851,5 @@ The purpose of this subsection on POMDPs is to highlight that by default a lot o
 
 * MDP Bellman Policy Equations
 * MDP Bellman Optimality Equations
-* The statements on the existence of an Optimal Policy, and of each Optimal Policy achieving the Optimal Value Function
+* Theorem \eqref{th:mdp-optimal-policy-existence} on the existence of an Optimal Policy, and of each Optimal Policy achieving the Optimal Value Function
 

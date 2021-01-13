@@ -147,7 +147,7 @@ The good news is that even the Optimal Value Function can be expressed recursive
 
 $$V^*(s) = \max_{a} \sum_{s',r} p(s',r|s,a) \cdot (r + \gamma \cdot V^*(s')) \text{ for all } s \in \mathcal{S}$$
 
-Furthermore, we can prove that there exists an Optimal Policy $\pi^*$ achieving $V^*(s)$ for all $s \in \mathcal{S}$ (the proof is constructive, which gives a simple method to obtain the function $\pi^*$ from the function $V^*$)$. Specifically, this means that the Value Function obtained by following the optimal policy $\pi^*$ is the same as the Optimal Value Function $V^*$, i.e.,
+Furthermore, we can prove that there exists an Optimal Policy $\pi^*$ achieving $V^*(s)$ for all $s \in \mathcal{S}$ (the proof is constructive, which gives a simple method to obtain the function $\pi^*$ from the function $V^*$). Specifically, this means that the Value Function obtained by following the optimal policy $\pi^*$ is the same as the Optimal Value Function $V^*$, i.e.,
 
 $$V^{\pi^*}(s) = V^*(s) \text{ for all } s \in \mathcal{S}$$
 
