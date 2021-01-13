@@ -1,7 +1,9 @@
 '''Finding fixed points of functions using iterators.'''
-from typing import (Callable, Iterator, Optional, TypeVar)
+import itertools
+from typing import (overload, Callable, Iterable, Iterator, Optional, TypeVar)
 
 X = TypeVar('X')
+Y = TypeVar('Y')
 
 
 # It would be more efficient if you iterated in place instead of
@@ -76,3 +78,31 @@ def converged(values: Iterator[X],
         raise ValueError("converged called on an empty iterator")
 
     return result
+
+
+def accumulate(
+        iterable: Iterable[X],
+        func: Callable[[Y, X], Y],
+        *,
+        initial: Optional[Y]
+) -> Iterator[Y]:
+    '''Make an iterator that returns accumulated sums, or accumulated
+    results of other binary functions (specified via the optional func
+    argument).
+
+    If func is supplied, it should be a function of two
+    arguments. Elements of the input iterable may be any type that can
+    be accepted as arguments to func. (For example, with the default
+    operation of addition, elements may be any addable type including
+    Decimal or Fraction.)
+
+    Usually, the number of elements output matches the input
+    iterable. However, if the keyword argument initial is provided,
+    the accumulation leads off with the initial value so that the
+    output has one more element than the input iterable.
+
+    '''
+    if initial is not None:
+        iterable = itertools.chain([initial], iterable)  # type: ignore
+
+    return itertools.accumulate(iterable, func)  # type: ignore

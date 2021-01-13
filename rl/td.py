@@ -9,6 +9,7 @@ from typing import Callable, Iterable, Iterator, TypeVar, Tuple
 from rl.function_approx import FunctionApprox
 import rl.markov_process as mp
 import rl.markov_decision_process as mdp
+import rl.iterate as iterate
 
 S = TypeVar('S')
 
@@ -35,7 +36,7 @@ def td_prediction(
         return v.update([(transition.state,
                           transition.reward + γ * v(transition.next_state))])
 
-    return itertools.accumulate(transitions, step, initial=approx_0)
+    return iterate.accumulate(transitions, step, initial=approx_0)
 
 
 A = TypeVar('A')
@@ -72,4 +73,4 @@ def td_control(
              transition.reward + γ * next_reward)
         ])
 
-    return itertools.accumulate(transitions, step, initial=approx_0)
+    return iterate.accumulate(transitions, step, initial=approx_0)

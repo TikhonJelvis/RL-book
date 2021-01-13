@@ -11,6 +11,7 @@ from operator import itemgetter
 from scipy.interpolate import splrep, BSpline
 from typing import (Callable, Dict, Generic, Iterator, Iterable, List,
                     Mapping, Optional, Sequence, Tuple, TypeVar)
+
 import rl.iterate as iterate
 
 X = TypeVar('X')
@@ -109,7 +110,7 @@ class FunctionApprox(ABC, Generic[X]):
         parameter update done for each data set of (x,y) pairs in the
         input stream of xy_seq_stream
         '''
-        return itertools.accumulate(
+        return iterate.accumulate(
             xy_seq_stream,
             lambda fa, xy: fa.update(xy),
             initial=self
