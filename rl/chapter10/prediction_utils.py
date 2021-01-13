@@ -39,7 +39,7 @@ def mc_prediction_equal_wts(
 ) -> Iterator[FunctionApprox[S]]:
     episodes: Iterable[Iterable[TransitionStep[S]]] = \
         mrp_episodes_stream(mrp, start_state_distribution)
-    return mc.evaluate_mrp(
+    return mc.mc_prediction(
         traces=episodes,
         approx_0=initial_func_approx,
         γ=gamma,
@@ -55,7 +55,7 @@ def mc_finite_prediction_equal_wts(
 ) -> Iterator[FunctionApprox[S]]:
     episodes: Iterable[Iterable[TransitionStep[S]]] = \
         fmrp_episodes_stream(fmrp)
-    return mc.evaluate_mrp(
+    return mc.mc_prediction(
         traces=episodes,
         approx_0=Tabular(values_map=initial_vf_dict),
         γ=gamma,
@@ -72,7 +72,7 @@ def mc_prediction_learning_rate(
 ) -> Iterator[FunctionApprox[S]]:
     episodes: Iterable[Iterable[TransitionStep[S]]] = \
         mrp_episodes_stream(mrp, start_state_distribution)
-    return mc.evaluate_mrp(
+    return mc.mc_prediction(
         traces=episodes,
         approx_0=initial_func_approx,
         γ=gamma,
@@ -96,7 +96,7 @@ def mc_finite_prediction_learning_rate(
         half_life=half_life,
         exponent=exponent
     )
-    return mc.evaluate_mrp(
+    return mc.mc_prediction(
         traces=episodes,
         approx_0=Tabular(
             values_map=initial_vf_dict,
@@ -130,7 +130,7 @@ def td_prediction_learning_rate(
             episodes,
             episode_length
         )
-    return td.evaluate_mrp(
+    return td.td_prediction(
         transitions=td_experiences,
         approx_0=initial_func_approx,
         γ=gamma
@@ -158,7 +158,7 @@ def td_finite_prediction_learning_rate(
         half_life=half_life,
         exponent=exponent
     )
-    return td.evaluate_mrp(
+    return td.td_prediction(
         transitions=td_experiences,
         approx_0=Tabular(
             values_map=initial_vf_dict,

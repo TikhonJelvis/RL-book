@@ -65,7 +65,7 @@ def mc_prediction(
     num_episodes: int
 ) -> Mapping[S, float]:
     return iterate.last(itertools.islice(
-        mc.evaluate_mrp(
+        mc.mc_prediction(
             traces=episodes_stream,
             approx_0=Tabular(),
             γ=gamma,
@@ -117,7 +117,7 @@ def td_prediction(
     num_experiences: int
 ) -> Mapping[S, float]:
     return iterate.last(itertools.islice(
-        td.evaluate_mrp(
+        td.td_prediction(
             transitions=experiences_stream,
             approx_0=Tabular(count_to_weight_func=learning_rate_schedule(
                 initial_learning_rate=0.01,

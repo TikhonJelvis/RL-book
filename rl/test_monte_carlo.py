@@ -32,7 +32,7 @@ class TestEvaluate(unittest.TestCase):
         start = Tabular({s: 0.0 for s in self.finite_flip_flop.states()})
         traces = self.finite_flip_flop.reward_traces(Choose({True, False}))
         v = iterate.converged(
-            mc.evaluate_mrp(traces, γ=0.99, approx_0=start),
+            mc.mc_prediction(traces, γ=0.99, approx_0=start),
             # Loose bound of 0.025 to speed up test.
             done=lambda a, b: a.within(b, 0.025)
         )
