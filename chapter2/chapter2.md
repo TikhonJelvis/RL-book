@@ -637,17 +637,19 @@ As we've said earlier, the reason we covered Markov Processes is because we want
 The main purpose of Markov Reward Processes is to calculate how much reward we would accumulate (in expectation, from each of the non-terminal states) if we let the Process run indefinitely, bearing in mind that future rewards need to be discounted appropriately (otherwise the sum of rewards could blow up to $\infty$). In order to solve the problem of calculating expected accumulative rewards from each non-terminal state, we will first set up some formalism for Markov Reward Processes, develop some (elegant) theory on calculating rewards accumulation, write plenty of code (based on the theory), and apply the theory and code to the simple inventory example (which we will embellish with rewards equal to negative of the costs incurred at the store).
 
 \begin{definition}
-A {\em Markov Reward Process} is a Markov Process, along with a time-indexed sequence of {\em Reward} random variables $R_t \in \mathbb{R}$ for time steps $t=1, 2, \ldots$, satisfying the Markov Property (including Rewards): $\mathbb{P}[(R_{t+1}, S_{t+1}) | S_t, S_{t-1}, \ldots, S_0] = \mathbb{P}[(R_{t+1}, S_{t+1}) | S_t]$ for all $t \geq 0$.
+A {\em Markov Reward Process} is a Markov Process, along with a time-indexed sequence of {\em Reward} random variables $R_t \in \mathcal{D}$ (a countable subset of $\mathbb{R}$) for time steps $t=1, 2, \ldots$, satisfying the Markov Property (including Rewards): $\mathbb{P}[(R_{t+1}, S_{t+1}) | S_t, S_{t-1}, \ldots, S_0] = \mathbb{P}[(R_{t+1}, S_{t+1}) | S_t]$ for all $t \geq 0$.
 \end{definition}
 
-It pays to emphasize again (like we emphasized for Markov Processes), that the definitions and theory of Markov Reward Processes are for discrete-time, for countable state spaces and countable set of pairs of next state and reward transitions (with the knowledge that the definitions and theory are analogously extensible to continuous-time and uncountable spaces/transitions). Since we commonly assume Stationarity of Markov Processes, we shall also (by default) assume Stationarity for Markov Reward Processes, i.e., $\mathbb{P}[(R_{t+1}, S_{t+1}) | S_t]$ is independent of $t$. 
+It pays to emphasize again (like we emphasized for Markov Processes), that the definitions and theory of Markov Reward Processes we cover (by default) are for discrete-time, for countable state spaces and countable set of pairs of next state and reward transitions (with the knowledge that the definitions and theory are analogously extensible to continuous-time and uncountable spaces/transitions). In the more general case, where states or rewards are uncountable, the same concepts apply except that the mathematical formalism needs to be more detailed and more careful. Specifically, we'd end up with integrals instead of summations, and probability density functions (for continuous probability distributions) instead of probability mass functions (for discrete probability distributions). For ease of notation and more importantly, for ease of understanding of the core concepts (without being distracted by heavy mathematical formalism), we've chosen to stay with discrete-time, countable $\mathcal{S}$ and countable $\mathcal{D}$ (by default). However, there will be examples of Markov Reward Processes in this book involving continuous-time and uncountable $\mathcal{S}$ and $\mathcal{D}$ (please adjust the definitions and formulas accordingly).
 
-With the default assumption of stationarity, the transition probabilities of a Markov Reward Process can, in the most general case, be expressed as a transition probability function:
-$$\mathcal{P}_R: \mathcal{N} \times \mathbb{R} \times \mathcal{S} \rightarrow [0,1]$$
+Since we commonly assume Stationarity of Markov Processes, we shall also (by default) assume Stationarity for Markov Reward Processes, i.e., $\mathbb{P}[(R_{t+1}, S_{t+1}) | S_t]$ is independent of $t$. 
+
+With the default assumption of stationarity, the transition probabilities of a Markov Reward Process can be expressed as a transition probability function:
+$$\mathcal{P}_R: \mathcal{N} \times \mathcal{D} \times \mathcal{S} \rightarrow [0,1]$$
 defined as:
 $$\mathcal{P}_R(s,r,s') = \mathbb{P}[(R_{t+1}=r, S_{t+1}=s') | S_t=s]$$
 such that
-$$\sum_{s'\in \mathcal{S}} \sum_{r \in \mathbb{R}} \mathcal{P}_R(s,r,s') = 1 \text{ for all } s \in \mathcal{N}$$
+$$\sum_{s'\in \mathcal{S}} \sum_{r \in \mathcal{D}} \mathcal{P}_R(s,r,s') = 1 \text{ for all } s \in \mathcal{N}$$
 
 The subsection on *Start States* we had covered for Markov Processes naturally applies to Markov Reward Processes as well. So we won't repeat the section here, rather we will simply highlight that when it comes to simulations, we need a separate specification of the probability distribution of start states. Also, by inheriting from our framework of Markov Processes, we model the notion of a "process termination" by explicitly specifying states as terminal states or non-terminal states. The sequence $S_0, R_1, S_1, R_2, S_2, \ldots$ terminates at time step $t=T$ if $S_T \in \mathcal{T}$, with $R_T$ being the final reward in the sequence.
 
@@ -712,17 +714,17 @@ Note that since the `transition_reward` method is abstract in `MarkovRewardProce
 Now let us develop some more theory. Given a specification of $\mathcal{P}_R$, we can extract:
 \begin{itemize}
 \item The transition probability function $\mathcal{P}: \mathcal{N} \times \mathcal{S} \rightarrow [0,1]$ of the implicit Markov Process defined as:
-$$\mathcal{P}(s, s') = \sum_{r\in \mathbb{R}} \mathcal{P}_R(s,r,s')$$
+$$\mathcal{P}(s, s') = \sum_{r\in \mathcal{D}} \mathcal{P}_R(s,r,s')$$
 \item The reward transition function:
 $$\mathcal{R}_T: \mathcal{N} \times \mathcal{S} \rightarrow \mathbb{R}$$
 defined as:
-$$\mathcal{R}_T(s,s') = \mathbb{E}[R_{t+1}|S_{t+1}=s',S_t=s] = \sum_{r\in \mathbb{R}} \frac {\mathcal{P}_R(s,r,s')} {\mathcal{P}(s,s')} \cdot r = \sum_{r\in \mathbb{R}} \frac {\mathcal{P}_R(s,r,s')} {\sum_{r\in \mathbb{R}} \mathcal{P}_R(s,r,s')} \cdot r$$
+$$\mathcal{R}_T(s,s') = \mathbb{E}[R_{t+1}|S_{t+1}=s',S_t=s] = \sum_{r\in \mathcal{D}} \frac {\mathcal{P}_R(s,r,s')} {\mathcal{P}(s,s')} \cdot r = \sum_{r\in \mathcal{D}} \frac {\mathcal{P}_R(s,r,s')} {\sum_{r\in \mathcal{D}} \mathcal{P}_R(s,r,s')} \cdot r$$
 \end{itemize}
 
 The Rewards specification of most Markov Reward Processes we encounter in practice can be directly expressed as the reward transition function $\mathcal{R}_T$ (versus the more general specification of $\mathcal{P}_R$). Lastly, we want to highlight that we can transform either of $\mathcal{P}_R$ or $\mathcal{R}_T$ into a "more compact" reward function that is sufficient to perform key calculations involving Markov Reward Processes. This reward function 
 $$\mathcal{R}: \mathcal{N} \rightarrow \mathbb{R}$$
 is defined as:
-$$\mathcal{R}(s) = \mathbb{E}[R_{t+1}|S_t=s] = \sum_{s' \in \mathcal{S}} \mathcal{P}(s,s') \cdot \mathcal{R}_T(s,s') = \sum_{s'\in \mathcal{S}} \sum_{r\in\mathbb{R}} \mathcal{P}_R(s,r,s') \cdot r$$
+$$\mathcal{R}(s) = \mathbb{E}[R_{t+1}|S_t=s] = \sum_{s' \in \mathcal{S}} \mathcal{P}(s,s') \cdot \mathcal{R}_T(s,s') = \sum_{s'\in \mathcal{S}} \sum_{r\in\mathcal{D}} \mathcal{P}_R(s,r,s') \cdot r$$
 
 We've created a bit of notational clutter here. So it would be a good idea for you to take a few minutes to pause, reflect and internalize the differences between $\mathcal{P}_R$, $\mathcal{P}$ (of the implicit Markov Process), $\mathcal{R}_T$ and $\mathcal{R}$. This notation will analogously re-appear when we learn about Markov Decision Processes in Chapter [-@sec:mdp-chapter]. Moreover, this notation will be used considerably in the rest of the book, so it pays to get comfortable with their semantics.
 
@@ -812,7 +814,7 @@ Certain calculations for Markov Reward Processes can be performed easily if:
 * The set of unique pairs of next state and reward transitions from each of the states in $\mathcal{N}$ is finite
 
 If we satisfy the above two characteristics, we refer to the Markov Reward Process as a Finite Markov Reward Process. So let us write some code for a Finite Markov Reward Process. We create a concrete class `FiniteMarkovRewardProcess` that primarily inherits from `FiniteMarkovProcess` (a concrete class) and secondarily implements the interface of the abstract class `MarkovRewardProcess`. Our first task is to think about the data structure required to specify an instance of `FiniteMarkovRewardProcess` (i.e., the data structure we'd pass to the `__init__` method of `FiniteMarkovRewardProcess`). Analogous to how we curried $\mathcal{P}$ for a Markov Process as $\mathcal{N} \rightarrow (\mathcal{S} \rightarrow [0,1])$ (where $\mathcal{S} = \{s_1, s_2, \ldots, s_n\}$ and $\mathcal{N}$ has $m \leq n$ states), here we curry $\mathcal{P}_R$ as:
-$$\mathcal{N} \rightarrow (\mathcal{S} \times \mathbb{R} \rightarrow [0, 1])$$
+$$\mathcal{N} \rightarrow (\mathcal{S} \times \mathcal{D} \rightarrow [0, 1])$$
 Since $\mathcal{S}$ is finite and since the set of unique pairs of next state and reward transitions are also finite, this leads to the analog of the `Transition` data type for the case of Finite Markov Reward Processes (named `RewardTransition`) as follows:
 
 ```python
