@@ -210,7 +210,7 @@ Now let us understand how the Wealth process evolves. Let us substitute for $\pi
 dW_t = (r + \frac {(\mu - r)^2} {\sigma^2 \gamma} - \frac 1 {f(t)}) \cdot W_t \cdot dt + \frac {\mu - r} {\sigma \gamma} \cdot W_t \cdot dz_t \label{eq:optimal-wealth-process}
 \end{equation}
 
-The first thing to note about this Wealth process is that it is a lognormal process of the form covered in Section [-@sec:lognormal-process-section] of Appendix [-@sec:stochasticcalculus-chapter]. The lognormal volatility (fractional dispersion) of this wealth process is constant ($=\frac {\mu - r} {\sigma \gamma}$). The lognormal drift (fractional drift) is independent of the wealth but is dependent on time ($=r + \frac {(\mu - r)^2} {\sigma^2 \gamma} - \frac 1 {f(t)}$). From the solution of the general lognormal process derived in Section [-@sec:lognormal-process-section] of Appendix [-@sec:stochasticcalculus-chapter], we conclude that:
+The first thing to note about this Wealth process is that it is a lognormal process of the form covered in Section [-@sec:lognormal-process-section] of Appendix [-@sec:stochasticcalculus-appendix]. The lognormal volatility (fractional dispersion) of this wealth process is constant ($=\frac {\mu - r} {\sigma \gamma}$). The lognormal drift (fractional drift) is independent of the wealth but is dependent on time ($=r + \frac {(\mu - r)^2} {\sigma^2 \gamma} - \frac 1 {f(t)}$). From the solution of the general lognormal process derived in Section [-@sec:lognormal-process-section] of Appendix [-@sec:stochasticcalculus-appendix], we conclude that:
 \begin{equation}
 \mathbb{E}[W_t] = W_0 \cdot e^{(r + \frac {(\mu - r)^2} {\sigma^2 \gamma})t} \cdot e^{- \int_0^t \frac {du} {f(u)}}
 =
@@ -322,7 +322,7 @@ W_{t+1} = x_t \cdot (1 + Y_t) + (W_t - x_t) \cdot (1 + r) = x_t \cdot (Y_t - r) 
 
 for all $t = 0, 1, \ldots, T-1$.
 
-The MDP *Reward* is 0 for all $t = 0, 1, \ldots, T-1$. As a result of the simplified objective \eqref{eq:asset-alloc-discrete-objective} above, the MDP *Reward* for $t=T$ is the following random quantity (conditional on state $W_{T-1}$ and action $x_{T-1}$):
+The MDP *Reward* is 0 for all $t = 0, 1, \ldots, T-1$. As a result of the simplified objective \eqref{eq:asset-alloc-discrete-objective} above, the MDP *Reward* for $t=T$ is the following random quantity:
 
 $$\frac {- e^{-a W_T}} {a}$$
 

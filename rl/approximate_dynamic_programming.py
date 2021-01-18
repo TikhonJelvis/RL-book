@@ -126,7 +126,7 @@ def value_iteration(
             return r + γ * v.evaluate([s1]).item()
 
         return v.update(
-            [(s, max(mdp.step(s, a).expectation(return_,)
+            [(s, max(mdp.step(s, a).expectation(return_)
                      for a in mdp.actions(s)))
              for s in nt_states]
         )

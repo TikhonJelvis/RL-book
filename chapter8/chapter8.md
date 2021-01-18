@@ -203,7 +203,7 @@ Note that $S_0^{(i)} = 1 + r$ for all $i = 1, \ldots, n$ and so,
 \begin{equation}
 \sum_{i=1}^n u_i = 0 \label{eq:partitionunity}
 \end{equation}
-Define $\pi' : \Omega \rightarrow \mathbb{R}$ as follows (for some $\epsilon > 0 \in \mathbb{R})$:
+Define $\pi' : \Omega \rightarrow \mathbb{R}$ as follows (for some $\epsilon \in \mathbb{R}^+)$:
 \begin{equation}
 \pi'(\omega_i) = \pi(\omega_i) + \epsilon \cdot u_i \mbox{ for all } i = 1, \ldots, n \label{eq:newmeasure}
 \end{equation}

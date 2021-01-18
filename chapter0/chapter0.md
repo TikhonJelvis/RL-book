@@ -81,11 +81,11 @@ Upon receiving an *Action* from the *Agent* at time step $t$, the *Environment* 
 
 The goal of the *Agent* at any point in time is to maximize the *Expected Sum* of all future *Reward*s by controlling (at each time step) the *Action* as a function of the observed *State* (at that time step). This function from a *State* to *Action* at any time step is known as the *Policy* function. So we say that the agent's job is exercise control by determining the optimal *Policy* function. Hence, this is a dynamic (i.e., time-sequenced) control system under uncertainty. If the above description was too terse, don't worry - we will explain all of this in great detail in the coming chapters. For now, we just wanted to provide a quick flavor for what the MDP framework looks like. Now we sketch the above description with some (terse) mathematical notation to provide a bit more of the overview of the MDP framework. The following notation is for discrete time steps (continuous time steps notation is analogous, but technically more complicated to describe here):
 
-We denote time steps as $t = 1, 2, 3, \ldots$. Markov State at time $t$ is denoted as $S_t \in \mathcal{S}$ where $\mathcal{S}$ is refered to as the *State Space*. Action at time $t$ is denoted as $A_t \in \mathcal{A}$ where $\mathcal{A}$ is refered to as the *Action Space*. Reward at time $t$ is denoted as $R_t \in \mathbb{R}$ (representing the numerical feedback served by the Environment, along with the State, at each time step $t$). 
+We denote time steps as $t = 1, 2, 3, \ldots$. Markov State at time $t$ is denoted as $S_t \in \mathcal{S}$ where $\mathcal{S}$ is refered to as the *State Space* (a countable set). Action at time $t$ is denoted as $A_t \in \mathcal{A}$ where $\mathcal{A}$ is refered to as the *Action Space* (a countable set). Reward at time $t$ is denoted as $R_t \in \mathcal{D}$ where $\mathcal{D}$ is a countable subset of $\mathbb{R}$ (representing the numerical feedback served by the Environment, along with the State, at each time step $t$). 
 
 We represent the transition probabilities from one time step to the next with the following notation:
 
-$$p(s',r|s,a) = \mathbb{P}[S_{t+1}=s',R_{t+1}=r|S_t=s,A_t=a]$$
+$$p(r,s'|s,a) = \mathbb{P}[(R_{t+1}=r, S_{t+1}=s')|S_t=s,A_t=a]$$
 
 $\gamma \in [0,1]$ is known as the discount factor used to discount Rewards when accumulating Rewards, as follows:
 
@@ -137,7 +137,7 @@ we can compute it in an efficient manner with either Planning or Learning algori
 $$V^{\pi}(s) = \mathbb{E}[G_t|S_t = s] \text{ for all } s \in \mathcal{S}$$
 
 The intuitive way to understand Value Function is that it tells us how much "accumulated future reward" (i.e., *Return*) we expect to obtain from a given state. The randomness under the expectation comes from the uncertain future states and rewards the Agent is going to see upon taking future actions prescribed by the policy $\pi$. The key in evaluating the Value Function for a given policy is that it can be expressed recursively, in terms of the Value Function for the next time step's states. In other words, 
-$$V^{\pi}(s) = \sum_{s',r} p(s',r|s,\pi(s)) \cdot (r + \gamma \cdot V^{\pi}(s')) \text{ for all } s \in \mathcal{S}$$
+$$V^{\pi}(s) = \sum_{r,s'} p(r,s'|s,\pi(s)) \cdot (r + \gamma \cdot V^{\pi}(s')) \text{ for all } s \in \mathcal{S}$$
 This equation says that when the Agent is in a given state $s$, it takes an action $a=\pi(s)$, then sees a random next state $s'$ and a random reward $r$, so $V^{\pi}(s)$ can be broken into the expectation of $r$ (first step's expected reward) and the remainder of the future expected accumulated rewards (which can be written in terms of the expectation of $V^{\pi}(s')$). We won't get into the details of how to solve this recursive formulation in this chapter (will cover this in great detail in future chapters), but it's important for you to recognize for now that this recursive formulation is the key to evaluating the Value Function for a given policy.
 
 However, evaluating the Value Function for a given policy is not the end goal - it is simply a means to the end goal of evaluating the *Optimal Value Function* (from which we obtain the *Optimal Policy*). The Optimal Value Function $V^*: \mathcal{S} \rightarrow \mathbb{R}$ is defined as:
@@ -145,7 +145,7 @@ $$V^*(s) = \max_{\pi} V^{\pi}(s) \text{ for all } s \in \mathcal{S}$$
 
 The good news is that even the Optimal Value Function can be expressed recursively, as follows:
 
-$$V^*(s) = \max_{a} \sum_{s',r} p(s',r|s,a) \cdot (r + \gamma \cdot V^*(s')) \text{ for all } s \in \mathcal{S}$$
+$$V^*(s) = \max_{a} \sum_{r,s'} p(r,s'|s,a) \cdot (r + \gamma \cdot V^*(s')) \text{ for all } s \in \mathcal{S}$$
 
 Furthermore, we can prove that there exists an Optimal Policy $\pi^*$ achieving $V^*(s)$ for all $s \in \mathcal{S}$ (the proof is constructive, which gives a simple method to obtain the function $\pi^*$ from the function $V^*$). Specifically, this means that the Value Function obtained by following the optimal policy $\pi^*$ is the same as the Optimal Value Function $V^*$, i.e.,
 

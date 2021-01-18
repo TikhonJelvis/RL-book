@@ -29,7 +29,7 @@ This is the setting of the class `FiniteMarkovDecisionProcess` we had covered in
 We cover 3 Dynamic Programming algorithms. Each of the 3 algorithms is founded on the Bellman Equations we had covered in Chapter [-@sec:mdp-chapter]. Each of the 3 algorithms is an iterative algorithm where the computed Value Function converges to the true Value Function as the number of iterations approaches infinity. Each of the 3 algorithms is based on the concept of *Fixed-Point* and updating the computed Value Function towards the Fixed-Point (which in this case, is the true Value Function). Fixed-Point is actually a fairly generic and important concept in the broader fields of Pure as well as Applied Mathematics (also important in Theoretical Computer Science), and we believe understanding Fixed-Point theory has many benefits beyond the needs of the subject of this book. Of more relevance is the fact that the Fixed-Point view of Dynamic Programming is the best way to understand Dynamic Programming. We shall not only cover the theory of Dynamic Programming through the Fixed-Point perspective, but we shall also implement Dynamic Programming algorithms in our code based on the Fixed-Point concept. So this section will be a short primer on general Fixed-Point Theory (and implementation in code) before we get to the 3 Dynamic Programming algorithms.
 
 \begin{definition}
-The Fixed-Point of a function $f: \mathcal{D} \rightarrow \mathcal{D}$ (for some arbitrary domain $\mathcal{D}$) is a value $x \in \mathcal{D}$ that satisfies the equation: $x = f(x)$.
+The Fixed-Point of a function $f: \mathcal{X} \rightarrow \mathcal{X}$ (for some arbitrary domain $\mathcal{X}$) is a value $x \in \mathcal{X}$ that satisfies the equation: $x = f(x)$.
 \end{definition}
 
 Note that for some functions, there will be multiple fixed-points and for some other functions, a fixed-point won't exist. We will be considering functions which have a unique fixed-point (this will be the case for the Dynamic Programming algorithms).
@@ -46,15 +46,15 @@ $$x = x - \frac {g(x)} {g'(x)} \Rightarrow g(x) = 0$$
 
 Thus, we see the same method pattern as we saw above for $\cos(x)$ (repeated application of a function, starting with any initial value) enables us to solve for the root of $g$.
 
-More broadly, what we are saying is that if we have a function $f: \mathcal{D} \rightarrow \mathcal{D}$ (for some arbitrary domain $\mathcal{D}$), under appropriate conditions (that we will state soon), $f(f(\ldots f(x_0)\ldots ))$ converges to a fixed-point of $f$, i.e., to the solution of the equation $x = f(x)$ (no matter what $x_0 \in \mathcal{D}$ we start with). Now we are ready to state this formally. The statement of the following theorem is quite terse, so we will provide plenty of explanation on how to interpret it and how to use it after stating the theorem (we skip the proof of the theorem).
+More broadly, what we are saying is that if we have a function $f: \mathcal{X} \rightarrow \mathcal{X}$ (for some arbitrary domain $\mathcal{X}$), under appropriate conditions (that we will state soon), $f(f(\ldots f(x_0)\ldots ))$ converges to a fixed-point of $f$, i.e., to the solution of the equation $x = f(x)$ (no matter what $x_0 \in \mathcal{X}$ we start with). Now we are ready to state this formally. The statement of the following theorem is quite terse, so we will provide plenty of explanation on how to interpret it and how to use it after stating the theorem (we skip the proof of the theorem).
 
 \begin{theorem}[Banach Fixed-Point Theorem]
-Let $\mathcal{D}$ be a non-empty set equipped with a complete metric $d: \mathcal{D} \times \mathcal{D} \rightarrow \mathbb{R}$. Let $f: \mathcal{D} \rightarrow \mathcal{D}$ be such that there exists a $L \in [0, 1)$ such that
-$d(f(x_1), f(x_2)) \leq L \cdot d(x_1, x_2)$ for all $x_1, x_2 \in \mathcal{D}$ (this property of $f$ is called a contraction, and we refer to $f$ as a contraction function). Then,
+Let $\mathcal{X}$ be a non-empty set equipped with a complete metric $d: \mathcal{X} \times \mathcal{X} \rightarrow \mathbb{R}$. Let $f: \mathcal{X} \rightarrow \mathcal{X}$ be such that there exists a $L \in [0, 1)$ such that
+$d(f(x_1), f(x_2)) \leq L \cdot d(x_1, x_2)$ for all $x_1, x_2 \in \mathcal{X}$ (this property of $f$ is called a contraction, and we refer to $f$ as a contraction function). Then,
 \begin{enumerate}
-\item There exists a unique Fixed-Point $x^* \in \mathcal{D}$, i.e.,
+\item There exists a unique Fixed-Point $x^* \in \mathcal{X}$, i.e.,
 $$x^* = f(x^*)$$
-\item For any $x_0 \in \mathcal{D}$, and sequence $[x_i|i=0, 1, 2, \ldots]$ defined as $x_{i+1} = f(x_i)$ for all $i = 0, 1, 2, \ldots$,
+\item For any $x_0 \in \mathcal{X}$, and sequence $[x_i|i=0, 1, 2, \ldots]$ defined as $x_{i+1} = f(x_i)$ for all $i = 0, 1, 2, \ldots$,
 $$\lim_{i\rightarrow \infty} x_i = x^*$$
 \item $$d(x^*, x_i) \leq \frac {L^i} {1-L} \cdot d(x_1, x_0)$$
 Equivalently,
@@ -64,28 +64,28 @@ $$d(x^*, x_{i+1}) \leq L \cdot d(x^*, x_i)$$
 \label{th:banach_fixed_point_theorem}
 \end{theorem}
 
-Sorry - that was pretty terse! Let's try to understand the theorem in a simple, intuitive manner. First we need to explain the jargon *complete metric*. Let's start with the term *metric*. A metric is simply a function $d: \mathcal{D} \times \mathcal{D} \rightarrow \mathbb{R}$ that satisfies the usual "distance" properties (for any $x_1, x_2, x_3 \in \mathcal{D}$):
+Sorry - that was pretty terse! Let's try to understand the theorem in a simple, intuitive manner. First we need to explain the jargon *complete metric*. Let's start with the term *metric*. A metric is simply a function $d: \mathcal{X} \times \mathcal{X} \rightarrow \mathbb{R}$ that satisfies the usual "distance" properties (for any $x_1, x_2, x_3 \in \mathcal{X}$):
 
 1. $d(x_1, x_2) = 0 \Leftrightarrow x_1 = x_2$ (meaning two different points will have a distance strictly greater than 0)
 2. $d(x_1, x_2) = d(x_2, x_1)$ (meaning distance is directionless)
 3. $d(x_1, x_3) \leq d(x_1, x_2) + d(x_2, x_3)$ (meaning the triangle inequality is satisfied)
 
-The term *complete* is a bit of a technical detail on sequences not escaping the set $\mathcal{D}$ (that's required in the proof). Since we won't be doing the proof and this technical detail is not so important for the intuition, we shall skip the formal definition of *complete*. A non-empty set $\mathcal{D}$ equipped with the function $d$ (and the technical detail of being *complete*) is known as a complete metric space.
+The term *complete* is a bit of a technical detail on sequences not escaping the set $\mathcal{X}$ (that's required in the proof). Since we won't be doing the proof and this technical detail is not so important for the intuition, we shall skip the formal definition of *complete*. A non-empty set $\mathcal{X}$ equipped with the function $d$ (and the technical detail of being *complete*) is known as a complete metric space.
 
-Now we move on to the key concept of *contraction*. A function $f: \mathcal{D} \rightarrow \mathcal{D}$ is said to be a contraction function if two points in $\mathcal{D}$ get closer when they are mapped by $f$ (the statement: $d(f(x_1), f(x_2)) \leq L \cdot d(x_1, x_2)$ for all $x_1, x_2 \in \mathcal{D}$, for some $L \in [0, 1)$).
+Now we move on to the key concept of *contraction*. A function $f: \mathcal{X} \rightarrow \mathcal{X}$ is said to be a contraction function if two points in $\mathcal{X}$ get closer when they are mapped by $f$ (the statement: $d(f(x_1), f(x_2)) \leq L \cdot d(x_1, x_2)$ for all $x_1, x_2 \in \mathcal{X}$, for some $L \in [0, 1)$).
  
- The theorem basically says that for any contraction function $f$, there is not only a unique fixed-point $x^*$, one can arrive at $x^*$ by repeated application of $f$, starting with any initial value $x_0 \in \mathcal{D}$:
+ The theorem basically says that for any contraction function $f$, there is not only a unique fixed-point $x^*$, one can arrive at $x^*$ by repeated application of $f$, starting with any initial value $x_0 \in \mathcal{X}$:
 
  $$f(f(\ldots f(x_0) \ldots )) \rightarrow x^*$$
 
- We shall use the notation $f^i: \mathcal{D} \rightarrow \mathcal{D}$ for $i = 0, 1, 2, \ldots$ as follows:
+ We shall use the notation $f^i: \mathcal{X} \rightarrow \mathcal{X}$ for $i = 0, 1, 2, \ldots$ as follows:
 
- $$f^{i+1}(x) = f(f^i(x)) \text{ for all } i = 0, 1, 2, \ldots, \text{ for all } x \in \mathcal{D}$$
- $$f^0(x) = x \text{ for all } x \in \mathcal{D}$$
+ $$f^{i+1}(x) = f(f^i(x)) \text{ for all } i = 0, 1, 2, \ldots, \text{ for all } x \in \mathcal{X}$$
+ $$f^0(x) = x \text{ for all } x \in \mathcal{X}$$
 
  With this notation, the computation of the fixed-point can be expressed as:
 
- $$\lim_{i \rightarrow \infty} f^i(x_0) = x^* \text{ for all } x_0 \in \mathcal{D}$$
+ $$\lim_{i \rightarrow \infty} f^i(x_0) = x^* \text{ for all } x_0 \in \mathcal{X}$$
 
  The algorithm, in iterative form, is:
 
@@ -95,9 +95,9 @@ We stop the algorithm when $x_i$ and $x_{i+1}$ are close enough based on the dis
 
 Banach Fixed-Point Theorem also gives us a statement on the speed of convergence relating the distance between $x^*$ and any $x_i$ to the distance between any two successive $x_i$.
 
-This is a powerful theorem. All we need to do is identify the appropriate set $\mathcal{D}$ to work with, identify the appropriate metric $d$ to work with, and ensure that $f$ is indeed a contraction function (with respect to $d$). This enables us to solve for the fixed-point of $f$ with the above-described iterative process of applying $f$ repeatedly, starting with any arbitrary value of $x_0 \in \mathcal{D}$.
+This is a powerful theorem. All we need to do is identify the appropriate set $\mathcal{X}$ to work with, identify the appropriate metric $d$ to work with, and ensure that $f$ is indeed a contraction function (with respect to $d$). This enables us to solve for the fixed-point of $f$ with the above-described iterative process of applying $f$ repeatedly, starting with any arbitrary value of $x_0 \in \mathcal{X}$.
 
-We leave it to you as an exercise to verify that $f(x) = \cos(x)$ is a contraction function in the domain $\mathcal{D} = \mathbb{R}$ with metric $d$ defined as $d(x_1, x_2) = |x_1 - x_2|$. Now let's write some code to implement the fixed-point algorithm we described above. Note that we will implement this for any generic type `X` to represent an arbitrary domain $\mathcal{D}$.
+We leave it to you as an exercise to verify that $f(x) = \cos(x)$ is a contraction function in the domain $\mathcal{X} = \mathbb{R}$ with metric $d$ defined as $d(x_1, x_2) = |x_1 - x_2|$. Now let's write some code to implement the fixed-point algorithm we described above. Note that we will implement this for any generic type `X` to represent an arbitrary domain $\mathcal{X}$.
 
 ```python
 from typing import Iterator
@@ -171,7 +171,7 @@ Our first Dynamic Programming algorithm is called *Policy Evaluation*. The Polic
 
 Let the states of the MDP (and hence, of the $\pi$-implied MRP) be $\mathcal{S} = \{s_1, s_2, \ldots, s_n\}$, and without loss of generality, let $\mathcal{N} = \{s_1, s_2, \ldots, s_m \}$ be the non-terminal states. We are given a fixed policy $\pi: \mathcal{N} \times \mathcal{A} \rightarrow [0, 1]$. We are also given the $\pi$-implied MRP's transition probability function:
 
-$$\mathcal{P}_R^{\pi}: \mathcal{N} \times \mathbb{R} \times \mathcal{S} \rightarrow [0, 1]$$
+$$\mathcal{P}_R^{\pi}: \mathcal{N} \times \mathcal{D} \times \mathcal{S} \rightarrow [0, 1]$$
 in the form of a data structure (since the states are finite, and the pairs of next state and reward transitions from each non-terminal state are also finite).
 
 We know from Chapters [-@sec:mrp-chapter] and [-@sec:mdp-chapter] that by extracting (from $\mathcal{P}_R^{\pi}$) the transition probability function $\mathcal{P}^{\pi}: \mathcal{N} \times \mathcal{S} \rightarrow [0, 1]$ of the implicit Markov Process and the reward function $\mathcal{R}^{\pi}: \mathcal{N} \rightarrow \mathbb{R}$, we can perform the following calculation for the Value Function $V^{\pi}: \mathcal{N} \rightarrow \mathbb{R}$ (expressed as a column vector $\bvpi \in \mathbb{R}^m$) to solve this Prediction problem:
@@ -278,7 +278,7 @@ G(\bv)(s) = \pi_D'(s) = \argmax_{a\in \mathcal{A}} \{\mathcal{R}(s,a) + \gamma \
 \end{equation}
 We shall use Equation \eqref{eq:greedy_policy_function1} in our mathematical exposition but we require a different (but equivalent) expression for $G(\bv)(s)$ to guide us with our code since the interface for `FiniteMarkovDecisionProcess` operates on $\mathcal{P}_R$, rather than $\mathcal{R}$ and $\mathcal{P}$. The equivalent expression for $G(\bv)(s)$ is as follows:
 \begin{equation}
- G(\bv)(s )= \argmax_{a\in \mathcal{A}} \{\sum_{s'\in \mathcal{S}} \sum_{r \in \mathbb{R}} \mathcal{P}_R(s,a,r,s') \cdot (r  + \gamma \cdot \bm{W}(s'))\} \text{ for all } s\in \mathcal{N}
+ G(\bv)(s )= \argmax_{a\in \mathcal{A}} \{\sum_{s'\in \mathcal{S}} \sum_{r \in \mathcal{D}} \mathcal{P}_R(s,a,r,s') \cdot (r  + \gamma \cdot \bm{W}(s'))\} \text{ for all } s\in \mathcal{N}
 \label{eq:greedy_policy_function2}
 \end{equation}
 
@@ -486,7 +486,7 @@ as the following (non-linear) transformation of a vector (representing a Value F
 We shall use Equation \eqref{eq:bellman_optimality_operator1} in our mathematical exposition but we require a different (but equivalent) expression for $\bbs(\bv)(s)$ to guide us with our code since the interface for `FiniteMarkovDecisionProcess` operates on $\mathcal{P}_R$, rather than $\mathcal{R}$ and $\mathcal{P}$. The equivalent expression for $\bbs(\bv)(s)$ is as follows:
 
 \begin{equation}
- \bbs(\bv)(s) = \max_{a\in \mathcal{A}} \{\sum_{s' \in \mathcal{S}} \sum_{r \in \mathbb{R}} \mathcal{P}_R(s,a,r,s') \cdot (r + \gamma \cdot \bm{W}(s'))\} \text{ for all } s \in \mathcal{N}
+ \bbs(\bv)(s) = \max_{a\in \mathcal{A}} \{\sum_{s' \in \mathcal{S}} \sum_{r \in \mathcal{D}} \mathcal{P}_R(s,a,r,s') \cdot (r + \gamma \cdot \bm{W}(s'))\} \text{ for all } s \in \mathcal{N}
 \label{eq:bellman_optimality_operator2}
 \end{equation}
 
@@ -794,7 +794,7 @@ Finally, we need to highlight that often special types of structures of MDPs can
 
 ### Finite-Horizon Dynamic Programming: Backward Induction {#sec:finite-horizon-section}
 
-In this section, we consider a specialization of the DAG-structured MDPs described at the end of the previous section - one that we shall refer to as *Finite-Horizon MDPs*, where each sequence terminates within a fixed finite number of time steps $T$ and each time step has a separate (from other time steps) set of states. So, all states at time-step $T$ are terminal states and some states before time-step $T$ could be terminal states. For all $t = 0, 1, \ldots, T$, denote the set of states for time step $t$ as $\mathcal{S}_t$, the set of terminal states for time step $t$ as $\mathcal{T}_t$ and the set of non-terminal states for time step $t$ as $\mathcal{N}_t = \mathcal{S}_t - \mathcal{T}_t$ (note: $\mathcal{N}_T = \emptyset$). As mentioned previously, in these type of non-stationary situations, we augment each state to include the index of the time step so that the augmented state at time step $t$ is $(t, s_t)$ for $s_t \in \mathcal{S}_t$. The entire MDP's (augmented) state space $\mathcal{S}$ is:
+In this section, we consider a specialization of the DAG-structured MDPs described at the end of the previous section - one that we shall refer to as *Finite-Horizon MDPs*, where each sequence terminates within a fixed finite number of time steps $T$ and each time step has a separate (from other time steps) set of countable states. So, all states at time-step $T$ are terminal states and some states before time-step $T$ could be terminal states. For all $t = 0, 1, \ldots, T$, denote the set of states for time step $t$ as $\mathcal{S}_t$, the set of terminal states for time step $t$ as $\mathcal{T}_t$ and the set of non-terminal states for time step $t$ as $\mathcal{N}_t = \mathcal{S}_t - \mathcal{T}_t$ (note: $\mathcal{N}_T = \emptyset$). As mentioned previously, in these type of non-stationary situations, we augment each state to include the index of the time step so that the augmented state at time step $t$ is $(t, s_t)$ for $s_t \in \mathcal{S}_t$. The entire MDP's (augmented) state space $\mathcal{S}$ is:
 
 $$\{(t, s_t) | t = 0, 1, \ldots, T, s_t \in \mathcal{S}_t\}$$
 
@@ -813,28 +813,28 @@ $$\{(t, s_t) | t = 0, 1, \ldots, T, s_t \in \mathcal{T}_t\}$$
 
 As usual, the set of non-terminal states is denoted as $\mathcal{N} = \mathcal{S} - \mathcal{T}$.
 
-Let us denote the allowable actions for states in $\mathcal{N}_t$ as $\mathcal{A}_t$. In a more generic setting, as we shall represent in our code, each non-terminal state $(t, s_t)$  has it's own set of allowable actions, denoted $\mathcal{A}(s_t)$, However, for ease of exposition, here we shall treat all non-terminal states at a particular time step to have the same set of allowable actions $\mathcal{A}_t$. Let us denote the entire action space $\mathcal{A}$ of the MDP as the union of all the $\mathcal{A}_t$ over all $t = 0, 1, \ldots, T-1$.
+We denote the set of rewards receivable by the agent at time $t$ as $\mathcal{D}_t$ (countable subset of $\mathbb{R}$) and we denote the allowable actions for states in $\mathcal{N}_t$ as $\mathcal{A}_t$. In a more generic setting, as we shall represent in our code, each non-terminal state $(t, s_t)$  has it's own set of allowable actions, denoted $\mathcal{A}(s_t)$, However, for ease of exposition, here we shall treat all non-terminal states at a particular time step to have the same set of allowable actions $\mathcal{A}_t$. Let us denote the entire action space $\mathcal{A}$ of the MDP as the union of all the $\mathcal{A}_t$ over all $t = 0, 1, \ldots, T-1$.
 
 The state-reward transition probability function
 
-$$\mathcal{P}_R: \mathcal{N} \times \mathcal{A} \times \mathbb{R} \times \mathcal{S} \rightarrow [0, 1]$$
+$$\mathcal{P}_R: \mathcal{N} \times \mathcal{A} \times \mathcal{D} \times \mathcal{S} \rightarrow [0, 1]$$
 
 is given by:
 
 $$
-\mathcal{P}_R((t, s_t), a_t, r, (t', s_{t'})) =
+\mathcal{P}_R((t, s_t), a_t, r_{t'}, (t', s_{t'})) =
 \begin{cases}
-(\mathcal{P}_R)_t(s_t, a_t, r, s_{t'}) & \text{ if } t' = t + 1 \text{ and } s_{t'} \in \mathcal{S}_{t'} \\
+(\mathcal{P}_R)_t(s_t, a_t, r_{t'}, s_{t'}) & \text{ if } t' = t + 1 \text{ and } s_{t'} \in \mathcal{S}_{t'} \text{ and } r_{t'} \in \mathcal{D}_{t'}\\
 0 & \text{ otherwise }
 \end{cases}
 $$
-for all $t = 0, 1, \ldots T-1,  s_t \in \mathcal{N}_t, a_t \in \mathcal{A}_t, t' = 0, 1, \ldots, T, s_{t'} \in \mathcal{S}_{t'}$, where
+for all $t = 0, 1, \ldots T-1,  s_t \in \mathcal{N}_t, a_t \in \mathcal{A}_t, t' = 0, 1, \ldots, T$ where
 
-$$(\mathcal{P}_R)_t: \mathcal{N}_t \times \mathcal{A}_t \times \mathbb{R} \times \mathcal{S}_{t+1} \rightarrow [0, 1]$$
+$$(\mathcal{P}_R)_t: \mathcal{N}_t \times \mathcal{A}_t \times \mathcal{D}_{t+1} \times \mathcal{S}_{t+1} \rightarrow [0, 1]$$
 
 are the separate state-reward transition probability functions for each of the time steps $t = 0, 1, \ldots, T-1$ such that
 
-$$\sum_{s_{t+1} \in \mathcal{S}_{t+1}} \sum_{r \in \mathbb{R}} (\mathcal{P}_R)_t(s_t, a_t, r, s_{t+1}) = 1$$
+$$\sum_{s_{t+1} \in \mathcal{S}_{t+1}} \sum_{r_{t+1} \in \mathcal{D}_{t+1}} (\mathcal{P}_R)_t(s_t, a_t, r_{t+1}, s_{t+1}) = 1$$
 for all $t = 0, 1, \ldots, T-1, s_t \in \mathcal{N}_t, a_t \in \mathcal{A}_t$.
 
 So it is convenient to represent a finite-horizon MDP with separate state-reward transition probability functions $(\mathcal{P}_R)_t$ for each time step. Likewise, it is convenient to represent any policy of the MDP
@@ -869,7 +869,7 @@ Then, the Bellman Policy Equation can be written as:
 
 \begin{equation}
 \begin{split}
-V^{\pi}_t(s_t) = \sum_{s_{t+1} \in \mathcal{S}_{t+1}} \sum_{r \in \mathbb{R}} & (\mathcal{P}_R^{\pi_t})_t(s_t, r, s_{t+1}) \cdot (r + \gamma \cdot W^{\pi}_{t+1}(s_{t+1})) \\
+V^{\pi}_t(s_t) = \sum_{s_{t+1} \in \mathcal{S}_{t+1}} \sum_{r_{t+1} \in \mathcal{D}_{t+1}} & (\mathcal{P}_R^{\pi_t})_t(s_t, r_{t+1}, s_{t+1}) \cdot (r_{t+1} + \gamma \cdot W^{\pi}_{t+1}(s_{t+1})) \\
 & \text{ for all } t = 0, 1, \ldots, T-1, s_t \in \mathcal{N}_t
 \end{split}
 \label{eq:bellman_policy_equation_finite_horizon}
@@ -885,9 +885,9 @@ V^{\pi}_t(s_t) & \text{ if } s_t \in \mathcal{N}_t \\
 \end{cases}
 $$
 
-for all $t = 1, 2, \ldots, T$ and where $(\mathcal{P}_R^{\pi_t})_t: \mathcal{N}_t \times \mathbb{R} \times \mathcal{S}_{t+1}$ for all $t = 0, 1, \ldots, T-1$ represent the $\pi$-implied MRP's state-reward transition probability functions for the time steps, defined as:
+for all $t = 1, 2, \ldots, T$ and where $(\mathcal{P}_R^{\pi_t})_t: \mathcal{N}_t \times \mathcal{D}_{t+1} \times \mathcal{S}_{t+1}$ for all $t = 0, 1, \ldots, T-1$ represent the $\pi$-implied MRP's state-reward transition probability functions for the time steps, defined as:
 
-$$(\mathcal{P}_R^{\pi_t})_t(s_t, r, s_{t+1}) = \sum_{a_t \in \mathcal{A}_t} \pi_t(s_t, a_t) \cdot (\mathcal{P}_R)_t(s_t, a_t, r, s_{t+1}) \text{ for all } t = 0, 1, \ldots, T-1$$
+$$(\mathcal{P}_R^{\pi_t})_t(s_t, r_{t+1}, s_{t+1}) = \sum_{a_t \in \mathcal{A}_t} \pi_t(s_t, a_t) \cdot (\mathcal{P}_R)_t(s_t, a_t, r_{t+1}, s_{t+1}) \text{ for all } t = 0, 1, \ldots, T-1$$
 
 So for a Finite MDP, this yields a simple algorithm to calculate $V^{\pi}_t$ for all $t$ by simply decrementing down from $t=T-1$ to $t=0$ and using Equation \eqref{eq:bellman_policy_equation_finite_horizon} to calculate $V^{\pi}_t$ for all $t = 0, 1, \ldots, T-1$ from the known values of $W^{\pi}_{t+1}$ (since we are decrementing in time index $t$).
 
@@ -958,7 +958,7 @@ Thus, the Bellman Optimality Equation can be written as:
 
 \begin{equation}
 \begin{split}
-V^*_t(s_t) = \max_{a_t \in \mathcal{A}_t} \{\sum_{s_{t+1} \in \mathcal{S}_{t+1}} \sum_{r \in \mathbb{R}} & (\mathcal{P}_R)_t(s_t, a_t, r, s_{t+1}) \cdot (r + \gamma \cdot W^*_{t+1}(s_{t+1}))\} \\
+V^*_t(s_t) = \max_{a_t \in \mathcal{A}_t} \{\sum_{s_{t+1} \in \mathcal{S}_{t+1}} \sum_{r_{t+1} \in \mathcal{D}_{t+1}} & (\mathcal{P}_R)_t(s_t, a_t, r_{t+1}, s_{t+1}) \cdot (r_{t+1} + \gamma \cdot W^*_{t+1}(s_{t+1}))\} \\
 & \text{ for all } t = 0, 1, \ldots, T-1, s_t \in \mathcal{N}_t
 \end{split}
 \label{eq:bellman_optimality_equation_finite_horizon}
@@ -981,7 +981,7 @@ is defined as:
 
 \begin{equation}
 \begin{split}
-(\pi^*_D)_t(s_t) = \argmax_{a_t \in \mathcal{A}_t} \{\sum_{s_{t+1} \in \mathcal{S}_{t+1}} \sum_{r \in \mathbb{R}} & (\mathcal{P}_R)_t(s_t, a_t, r, s_{t+1}) \cdot (r + \gamma \cdot W^*_{t+1}(s_{t+1}))\} \\
+(\pi^*_D)_t(s_t) = \argmax_{a_t \in \mathcal{A}_t} \{\sum_{s_{t+1} \in \mathcal{S}_{t+1}} \sum_{r_{t+1} \in \mathcal{D}_{t+1}} & (\mathcal{P}_R)_t(s_t, a_t, r_{t+1}, s_{t+1}) \cdot (r_{t+1} + \gamma \cdot W^*_{t+1}(s_{t+1}))\} \\
 & \text{ for all } t = 0, 1, \ldots, T-1, s_t \in \mathcal{N}_t
 \end{split}
 \label{eq:optimal_policy_finite_horizon}
@@ -1062,14 +1062,14 @@ A state for this MDP is given by a pair $(t, I_t)$ where $t \in \{0, 1, \ldots, 
 
 Note that:
 $$I_0 = M, I_{t+1} = \max(0, I_t - d_t) \mbox{ for } 0 \leq t < T$$
- where $d_t$ is the random demand on day $t$ governed by a Poisson distribution with mean $\lambda_i$ if the action (index of the price choice) on day $t$ is $i \in \mathcal{A}_t$. Also, note that sales revenue $R_t$ on day $t$ is equal to $\min(I_t, d_t) \cdot P_i$. Therefore, the state-reward probability transition function for time index $t$
- $$(\mathcal{P}_R)_t: \mathcal{N}_t \times \mathcal{A}_t \times \mathbb{R} \times \mathcal{S}_{t+1}$$
+ where $d_t$ is the random demand on day $t$ governed by a Poisson distribution with mean $\lambda_i$ if the action (index of the price choice) on day $t$ is $i \in \mathcal{A}_t$. Also, note that the sales revenue on day $t$ is equal to $\min(I_t, d_t) \cdot P_i$. Therefore, the state-reward probability transition function for time index $t$
+ $$(\mathcal{P}_R)_t: \mathcal{N}_t \times \mathcal{A}_t \times \mathcal{D}_{t+1} \times \mathcal{S}_{t+1}$$
  is defined as:
  $$
- (\mathcal{P}_R)_t(I_t, i, R_t, I_t - k) =
+ (\mathcal{P}_R)_t(I_t, i, r_{t+1}, I_t - k) =
  \begin{cases}
- \frac {e^{-\lambda_i} \lambda_i^{k}} {k!} & \text{ if } k < I_t \text{ and } R_t = k \cdot P_i\\
- \sum_{j=I_t}^{\infty} \frac {e^{-\lambda_i} \lambda_i^{j}} {j!} & \text{ if } k = I_t \text{ and } R_t = k \cdot P_i\\
+ \frac {e^{-\lambda_i} \lambda_i^{k}} {k!} & \text{ if } k < I_t \text{ and } r_{t+1} = k \cdot P_i\\
+ \sum_{j=I_t}^{\infty} \frac {e^{-\lambda_i} \lambda_i^{j}} {j!} & \text{ if } k = I_t \text{ and } r_{t+1} = k \cdot P_i\\
  0 & \text{ otherwise }
  \end{cases}
  $$
