@@ -784,7 +784,7 @@ In practice, Dynamic Programming algorithms are typically implemented as *Asynch
 
 Another feature of practical asynchronous algorithms is that we can prioritize the order in which state values are updated. There are many ways in which algorithms assign priorities, and we'll just highlight a simple but effective way of prioritizing state value updates. It's known as *prioritized sweeping*. We maintain a queue of the states sorted by their "value function gaps" $g: \mathcal{N} \rightarrow \mathbb{R}$ (illustrated below as an example for Value Iteration):
 
-$$g(s) = |V(s) - \argmax_{a\in \mathcal{A}} (\mathcal{R}(s,a) + \gamma \cdot \sum_{s' \in \mathcal{N}} \mathcal{P}(s,a,s') \cdot V(s'))| \text{ for all } s \in \mathcal{N}$$
+$$g(s) = |V(s) - \argmax_{a\in \mathcal{A}} \{ \mathcal{R}(s,a) + \gamma \cdot \sum_{s' \in \mathcal{N}} \mathcal{P}(s,a,s') \cdot V(s') \}| \text{ for all } s \in \mathcal{N}$$
 
 After each state's value is updated with the Bellman Optimality Operator, we update the Value Function Gap for all the states whose Value Function Gap does get changed as a result of this state value update. These are exactly the states from which we have a probabilistic transition to the state whose value just got updated. What this also means is that we need to maintain the reverse transition dynamics in our data structure representation. So, after each state value update, the queue of states is resorted (by their value function gaps). We always pull out the state with the largest value function gap (from the top of the queue), and update the value function for that state. This prioritizes updates of states with the largest gaps, and it ensures that we quickly get to a point where all value function gaps are low enough.
 
