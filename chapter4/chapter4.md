@@ -99,31 +99,12 @@ This is a powerful theorem. All we need to do is identify the appropriate set $\
 
 We leave it to you as an exercise to verify that $f(x) = \cos(x)$ is a contraction function in the domain $\mathcal{X} = \mathbb{R}$ with metric $d$ defined as $d(x_1, x_2) = |x_1 - x_2|$. Now let's write some code to implement the fixed-point algorithm we described above. Note that we will implement this for any generic type `X` to represent an arbitrary domain $\mathcal{X}$.
 
-```python
-from typing import Iterator
-X = TypeVar('X')
-
-def iterate(step: Callable[[X], X], start: X) -> Iterator[X]:
-    state = start
-
-    while True:
-        yield state
-        state = step(state)
+```{.python include=./chapter4/__init__.py snippet=iterate}
 ```
 
 The above function take a function (`step: Callable[X], X]`) and a starting value (`start: X`), and repeatedly applies the function while `yield`ing the values in the form of an `Iterator[X]`, i.e., as a stream of values. This produces an endless stream though. We need a way to specify convergence, i.e., when successive values of the stream are "close enough". 
 
-```python
-def converge(values: Iterator[X], done: Callable[[X, X], bool]) -> Iterator[X]:
-    a = next(values)
-    yield a
-
-    for b in values:
-        if done(a, b):
-            break
-        else:
-            a = b
-            yield b
+```{.python include=./chapter4/__init__.py snippet=converge}
 ```
 
 The above function takes the generated values from `iterate` (argument `values: Iterator[X]`) and a signal to indicate convergence (argument `done: Callable[[X, X], bool]`), and produces the generated values until `done` is `True`. It is the user's responsibility to write the function `done` and pass it to `converge`. Now let's use these two functions to solve for $x=\cos(x)$.

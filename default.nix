@@ -33,6 +33,13 @@ let
       pylint
     ];
 
+  ghc = "ghc884";
+
+  pandoc-include-code = import sources.pandoc-include-code {
+    inherit pkgs;
+    compiler = ghc;
+  };
+
   # Applications and utilties for buidling the book
   packages = with pkgs;
     [ fontconfig
@@ -40,7 +47,8 @@ let
       pandoc
       watchexec
 
-      haskellPackages.pandoc-crossref
+      haskell.packages.${ghc}.pandoc-crossref
+      pandoc-include-code
 
       (texlive.combine tex-packages)
     ];
