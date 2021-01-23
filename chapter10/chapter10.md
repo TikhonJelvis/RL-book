@@ -302,14 +302,16 @@ To understand Temporal-Difference (TD) Prediction, we start with it's Tabular ve
 
 $$V(S_t) \leftarrow V(S_t) + \alpha \cdot (G_t - V(S_t))$$
 
-where $S_t$ is the state visited at time step $t$ in the current trace experience, $G_t$ is the trace experience return obtained from time step $t$ onwards, and $\alpha$ denotes the learning rate (based on `count_to_weight_func` attribute in the `Tabular` class). The key in moving from MC to TD is to take advantage of the recursive structure of the Value Function as given by the MRP Bellman Equation (Equation \eqref{eq:mrp_bellman_eqn}). Although we only have access to individual experiences of next state $S_{t+1}$ and reward $R_{t+1}$, and not the transition probabilities of next state and reeward, we can approximate $G_t$ as experience reward $R_{t+1}$ plus $\gamma$ times $V(S_{t+1})$ (where $S_{t+1}$ is the experience's next state). The idea is to re-use (the technical term we use is *bootstrap*) the Value Function that is currently estimated. Clearly, this is a biased estimate of the Value Function meaning the update to the Value Function for $S_t$ will be biased. But the bias disadvantage is outweighed by the reduction in variance (which we will discuss more about later), by speedup in convergence (bootstrapping is our friend here), and by the fact that we don't actually need entire/long-enough trace experiences (again, bootstrapping is our friend here). So, the update for Tabular TD Prediction is:
+where $S_t$ is the state visited at time step $t$ in the current trace experience, $G_t$ is the trace experience return obtained from time step $t$ onwards, and $\alpha$ denotes the learning rate (based on `count_to_weight_func` attribute in the `Tabular` class). The key in moving from MC to TD is to take advantage of the recursive structure of the Value Function as given by the MRP Bellman Equation (Equation \eqref{eq:mrp_bellman_eqn}). Although we only have access to individual experiences of next state $S_{t+1}$ and reward $R_{t+1}$, and not the transition probabilities of next state and reward, we can approximate $G_t$ as experience reward $R_{t+1}$ plus $\gamma$ times $V(S_{t+1})$ (where $S_{t+1}$ is the experience's next state). The idea is to re-use (the technical term we use is *bootstrap*) the Value Function that is currently estimated. Clearly, this is a biased estimate of the Value Function meaning the update to the Value Function for $S_t$ will be biased. But the bias disadvantage is outweighed by the reduction in variance (which we will discuss more about later), by speedup in convergence (bootstrapping is our friend here), and by the fact that we don't actually need entire/long-enough trace experiences (again, bootstrapping is our friend here). So, the update for Tabular TD Prediction is:
 
 \begin{equation}
 V(S_t) \leftarrow V(S_t) + \alpha \cdot (R_{t+1} + \gamma \cdot V(S_{t+1}) - V(S_t))
 \label{eq:td-tabular-update}
 \end{equation}
 
-We refer to $R_{t+1} + \gamma \cdot V(S_{t+1})$ as the TD target and we refer to $\delta_t = R_{t+1} + \gamma \cdot V(S_{t+1}) - V(S_t)$ as the TD error. The TD error is the crucial quantity since it represents the "sample Bellman Error" and hence, the TD error can be used to move $V(S_t)$ appropriately (as shown in the above adjustment to $V(S_t)$), which in turn has the effect of bridging the TD error (on an expected basis).
+To facilitate understanding, for the remainder of the book, we shall interpret $V(S_{t+1})$ as being equal to 0 if $S_{t+1} \in \mathcal{T}$ (note: technically, this notation is incorrect because $V(\cdot)$ is a function with domain $\mathcal{N}$). Likewise, we shall interpret the function approximation notation $V(S_{t+1};\bm{w})$ as being equal to 0 of $S_{t+1} \in \mathcal{T}$.
+
+We refer to $R_{t+1} + \gamma \cdot V(S_{t+1})$ as the TD target and we refer to $\delta_t = R_{t+1} + \gamma \cdot V(S_{t+1}) - V(S_t)$ as the TD Error. The TD Error is the crucial quantity since it represents the "sample Bellman Error" and hence, the TD Error can be used to move $V(S_t)$ appropriately (as shown in the above adjustment to $V(S_t)$), which in turn has the effect of bridging the TD error (on an expected basis).
 
 An important practical advantage of TD is that (unlike MC) we can use it in situations where we have incomplete trace experiences (happens often in real-world situations where experiments gets curtailed/disrupted) and also, we can use it in situations where there are no terminal states (*continuing* traces). The other appealing thing about TD is that it is learning (updating Value Function) after each atomic experience (we call it *continuous learning*) versus MC's learning at the end of trace experiences.
 
@@ -330,7 +332,7 @@ Unlike MC, in the case of TD, we don't take the gradient of this loss function. 
 This looks similar to the formula for parameters update in the case of MC (with $G_t$ replaced by $R_{t+1} + \gamma \cdot V(S_{t+1}; \bm{w}))$. Hence, this has the same structure as MC in terms of conceptualizing the change in parameters as the product of the following 3 entities:
 
 * *Learning Rate* $\alpha$
-* *TD Error* $R_{t+1} + \gamma \cdot V(S_{t+1}; \bm{w}) - V(S_t; \bm{w})$
+* *TD Error* $\delta_t = R_{t+1} + \gamma \cdot V(S_{t+1}; \bm{w}) - V(S_t; \bm{w})$
 * *Estimate Gradient* of the conditional expected return $V(S_t;\bm{w})$ with respect to the parameters $\bm{w}$
 
 Now let's write some code to implement TD Prediction (with Function Approximation). Unlike MC which takes as input a stream of trace experiences, TD works with a more granular stream: a stream of *atomic experiences*. Note that a stream of trace experiences can be broken up into a stream of atomic experiences, but we could also obtain a stream of atomic experiences in other ways (not necessarily from a stream of trace experiences). Thus, the TD prediction algorithm we write below (`td_prediction`) takes as input an `Iterable[TransitionStep[S]]`. `td_prediction` produces an `Iterator` of `FunctionApprox[S]`, i.e., an updated function approximation of the Value Function after each atomic experience in the input atomic experiences stream. Similar to our implementation of MC, our implementation of TD is based on supervised learning on a stream of $(x,y)$ pairs, but there are two key differences:
@@ -964,8 +966,150 @@ def lambda_return_prediction(
 The above code is in the file [rl/td_lambda.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/td_lambda.py).
 
 #### Eligibility Traces
+
 Now we are ready to start developing the TD($\lambda$) Prediction algorithm. The TD($\lambda$) Prediction algorithm is founded on the concept of *Eligibility Traces*. So we start by introducing the concept of Eligibility traces (first for the Tabular case, then generalize to Function Approximations), then go over the TD($\lambda$) Prediction algorithm (based on Eligibility traces), and finally explain why the TD($\lambda$) Prediction algorithm is essentially the *Online* version of the *Offline* $\lambda$-Return Prediction algorithm we've implemented above.
 
-#### Implementation of the TD($\lambda$) Prediction algorithm
-#### Sum of online TD($\lambda$) updates equals $\lambda$-Return update
+We begin the story of Eligibility Traces with the concept of a (for lack of a better term) *Memory* function. Assume that we have an event happening at specific points in time, say at times $t_1, t_2, \ldots, t_n \in \mathbb{R}_{\geq 0}$ with $t_1 < t_2 < \ldots < t_n$, and we'd like to construct a *Memory* function $M: \mathbb{R}_{\geq 0} \rightarrow \mathbb{R}_{\geq 0}$ such that the *Memory* function (at any point in time $t$) remembers the number of times the event has occurred up to time $t$, but also has an element of "forgetfulness" in the sense that recent occurrences of the event are remembered better than older occurrences of the event. So the function $M$ needs to have an element of memory-decay in remembering the count of the occurrences of the events. In other words, we want the function $M$ to produce a time-decayed count of the event occurrences. We do this by constructing the function $f$ as follows (for some decay-parameter $\theta \in [0, 1]$):
 
+\begin{equation}
+M(t) = 
+\begin{cases}
+\mathbb{I}_{t=t_1} & \text{ if } t \leq t_1, \text{ else }\\
+M(t_i) \cdot \theta^{t - t_i} + \mathbb{I}_{t=t_{i+1}}& \text{ if }  t_i < t \leq t_{i+1} \text{ for any } 1 \leq i < n, \text{ else } \\
+M(t_n) \cdot \theta^{t - t_n} & \text{ otherwise (i.e., } t > t_n)
+\end{cases}
+\label{eq:memory-function}
+\end{equation}
+
+This means the memory function has an uptick of 1 each time the event occurs (at time $t_i$, for each $i = 1, 2, \ldots n$), but then decays by a factor of $\theta^{\delta t}$ over any interval $\delta t$ where the event doesn't occur. Thus, the memory function captures the notion of frequency of the events as well as the recency of the events.
+
+Let's write some code to plot this function in order to visualize it and gain some intuition.
+
+```python
+def plot_memory_function(theta: float, event_times: List[float]) -> None:
+    step: float = 0.01
+    x_vals: List[float] = [0.0]
+    y_vals: List[float] = [0.0]
+    for t in event_times:
+        rng: Sequence[int] = range(1, int(math.floor((t - x_vals[-1]) / step)))
+        x_vals += [x_vals[-1] + i * step for i in rng]
+        y_vals += [y_vals[-1] * theta ** (i * step) for i in rng]
+        x_vals.append(t)
+        y_vals.append(y_vals[-1] * theta ** (t - x_vals[-1]) + 1.0)
+    plt.plot(x_vals, y_vals)
+    plt.grid()
+    plt.xticks([0.0] + event_times)
+    plt.xlabel("Event Timings", fontsize=15)
+    plt.ylabel("Memory Funtion Values", fontsize=15)
+    plt.title("Memory Function (Frequency and Recency)", fontsize=25)
+    plt.show()
+```
+
+Let's run this for $\theta = 0.8$ and an arbitrary sequence of event times:
+
+```python
+theta = 0.8
+event_times = [2.0, 3.0, 4.0, 7.0, 9.0, 14.0, 15.0, 21.0]
+plot_memory_function(theta, event_times)
+```
+
+This produces the graph in Figure \ref{fig:memory_function}.
+
+![Memory Function (Frequency and Recency) \label{fig:memory_function}](./chapter10/memory_function.png "Memory Function (Frequency and Recency)")
+
+The above code is in the file [rl/chapter10/memory_function.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/chapter10/memory_function.py).
+
+This memory function is actually quite useful as a model for a variety of modeling situations in the broader world of Applied Mathematics where we want to combine the notions of frequency and recency. However, here we want to use this memory function as a way to model *Eligibility Traces* for the tabular case, which in turn will give us the tabular TD($\lambda$) Prediction algorithm (online version of the offline tabular $\lambda$-Return Prediction algorithm we covered earlier).
+
+Now we ready to define Eligibility Traces for the Tabular case, i.e., when the state space $\mathcal{S} = \{s_1, s_2, \ldots, s_n\}$. Eligibility Trace for each state $s\in S$ is defined as the Memory function $M(\cdot)$ with $\theta = \gamma \cdot \lambda$ (i.e., the product of the discount factor and the TD-$\lambda$ parameter) and the event timings are the time steps at which the state $s$ occurs in a trace experience. Thus, we define eligibility traces at any time step $t$ as a function $E_t: \mathcal{N} \rightarrow \mathbb{R}_{\geq 0}$ as follows:
+
+$$E_0(s) = 0, \text{ for all } s \in \mathcal{N}$$
+$$E_t(s) = \gamma \cdot \lambda \cdot E_{t-1}(s) + \mathbb{I}_{S_t=s}, \text{ for all } s \in \mathcal{N}, \text{ for all } t = 1, 2, \ldots$$
+
+Then, the Tabular TD($\lambda$) Prediction algorithm performs the following update to the Value Function at each time step $t$ in each trace experience:
+
+$$V(s) \leftarrow V(s) + \alpha \cdot (R_{t+1} + \gamma \cdot V(S_{t+1}) - V(S_t)) \cdot E_t(s), \text{ {\em for all} } s \in \mathcal{N}$$
+
+Note the similarities and differences relative to the TD update we have seen earlier. Firstly, this is an online algorithm since we make an update at each time step in a trace experience. Secondly, we update the Value Function *for all* states at each time step (unlike TD Prediction which updates the Value Function only for the particular state that is visited at that time step). Thirdly, the change in the Value Function for each state $s \in \mathcal{N}$ is proportional to the TD-Error $\delta_t = R_{t+1} + \gamma \cdot V(S_{t+1}) - V(S_t)$, much like in the case of the TD update. However, here the TD-Error is multiplied by the eligibility trace $E_t(s)$ for each state $s$ at each time step $t$. So, we can compactly write the update as:
+
+\begin{equation}
+V(s) \leftarrow V(s) + \alpha \cdot \delta_t \cdot E_t(s), \text{ {\em for all} } s \in \mathcal{N}
+\label{eq:td-lambda-update}
+\end{equation}
+
+where $\alpha$ is the learning rate.
+
+This is it - this is the TD($\lambda$) Prediction algorithm! Now the question is - how is this linked to the $\lambda$-Return prediction algorithm? It turns out that if we made all the updates of Equation \eqref{eq:td-lambda-update} in an offline manner (at the end of each trace experience), then the sum of the changes in the Value Function for any specific state $s \in \mathcal{N}$ over the course of the entire trace experience is equal to the change in the Value Function for $s$ in the $\lambda$-Return prediction algorithm as a result of it's offline update for state $s$. Concretely,
+
+\begin{theorem}
+$$\sum_{t=0}^{T-1} \alpha \cdot \delta_t \cdot E_t(s) = \sum_{t=0}^{T-1} \alpha \cdot (G_t^{(\lambda)} - V(S_t)) \cdot \mathbb{I}_{S_t=s}, \text{ for all } s \in \mathcal{N}$$
+\label{th:td-lambda-validity}
+\end{theorem}
+
+\begin{proof}
+
+We begin the proof with the following important identity:
+\begin{equation}
+\begin{aligned}[b]
+G_t^{(\lambda)} - V(S_t) & = -V(S_t) & + & (1 - \lambda) \cdot \lambda^0 \cdot (R_{t+1} + \gamma \cdot V(S_{t+1})) \\
+& & + & (1 - \lambda) \cdot \lambda^1 \cdot (R_{t+1} + \gamma \cdot R_{t+2} + \gamma^2 \cdot V(S_{t+2})) \\
+& & + & (1 - \lambda) \cdot \lambda^2 \cdot (R_{t+1} + \gamma \cdot R_{t+2} + \gamma^2 \cdot R_{t+3} + \gamma^3 \cdot V(S_{t+2})) \\
+& & + & \ldots \\
+& = -V(S_t) & + & (\gamma \lambda)^0 \cdot (R_{t+1} + \gamma \cdot V(S_{t+1}) - \gamma \lambda \cdot V(S_{t+1})) \\
+& & + & (\gamma \lambda)^1 \cdot (R_{t+2} + \gamma \cdot V(S_{t+2}) - \gamma \lambda \cdot V(S_{t+2})) \\
+& & + & (\gamma \lambda)^2 \cdot (R_{t+3} + \gamma \cdot V(S_{t+3}) - \gamma \lambda \cdot V(S_{t+3})) \\
+& & + & \ldots \\
+& = & & (\gamma \lambda)^0 \cdot (R_{t+1} + \gamma \cdot V(S_{t+1}) - V(S_t)) \\
+& & + & (\gamma \lambda)^1 \cdot (R_{t+2} + \gamma \cdot V(S_{t+2}) - V(S_{t+1})) \\
+& & + & (\gamma \lambda)^2 \cdot (R_{t+3} + \gamma \cdot V(S_{t+3}) - V(S_{t+2})) \\
+& & + & \ldots \\
+& = \delta_t + \gamma \lambda \cdot \delta_{t+1} + (\gamma \lambda)^2 \cdot \delta_{t+2} + \ldots \span \span
+\end{aligned}
+\label{eq:td-lambda-identity}
+\end{equation}
+
+Now assume that a specific non-terminal state $s$ appears at time steps $t_1, t_2, \ldots, t_n$. Then,
+
+\begin{align*}
+\sum_{t=0}^{T-1} \alpha \cdot (G_t^{(\lambda)} - V(S_t)) \cdot \mathbb{I}_{S_t=s} & = \sum_{i=1}^n \alpha \cdot (G_{t_i}^{(\lambda)} - V(S_{t_i})) \\
+& = \sum_{i=1}^n \alpha \cdot (\delta_{t_i} + \gamma \lambda \cdot \delta_{t_i+1} + (\gamma \lambda)^2 \cdot \delta_{t_i+2} + \ldots ) \\
+& = \sum_{t=0}^{T-1} \alpha \cdot \delta_t \cdot E_t(s)
+\end{align*}
+\end{proof}
+
+If we set $\lambda = 0$ in this TD($\lambda$) prediction algorithm, we note that $E_t(s)$ reduces to $\mathbb{I}_{S_t=s}$ and so, the TD($\lambda$) prediction algorithm's update for $\lambda=0$ at each time step $t$ reduces to:
+
+$$V(S_t) \leftarrow V(S_t) + \alpha \cdot \delta_t$$
+
+which is exactly the update of the TD prediction algorithm. Therefore, the TD algorithm is typically refered to as TD(0).
+
+If we set $\lambda=1$ in this TD($\lambda$) prediction algorithm with episodic traces (i.e., all trace experiences terminating), Theorem \ref{th:td-lambda-validity} tells us that the sum of all changes in the Value Function for any specific state $s \in \mathcal{N}$ over the course of the entire trace experience ($=\sum_{t=0}^{T-1} \alpha \cdot \delta_t \cdot E_t(s)$) is equal to the change in the Value Function for $s$ in the Every-Visit MC prediction algorithm as a result of it's offline update for state $s$ ($=\sum_{t=0}^{T-1} \alpha \cdot (G_t - V(S_t) \cdot \mathbb{I}_{S_t=s})$). Hence, TD(1) is considered to be "equivalent" to Every-Visit MC.
+
+To clarify, TD($\lambda$) Prediction is an online algorithm and hence, not exactly equivalent to the offline $\lambda$-Return prediction algorithm. However, if we modified the TD($\lambda$) prediction algorithm to be offline, then they are equivalent. The offline version of TD($\lambda$) prediction would not make the updates to the Value Function at each time step - rather, it would accumulate the changes to the Value Function (as prescribed by the TD($\lambda$) update formula) in a buffer, and then at the end of the trace experience, it would update the Value Function with the contents of the buffer.
+
+However, as explained earlier, online update are desirable because the changes to the Value Function at each time step can be immediately usable for the next time steps' updates and so, it promotes rapid learning without having to wait for a trace experience to end. Moreover, online algorithms can be used in situations where we don't have a complete episode.
+
+With an understanding of Tabular TD($\lambda$) in place, we can generalize TD($\lambda$) to the case of function approximation in a straightforward manner. In the case of function approximation, the type of eligibility traces will be the same type as that of the parameters $\bm{w}$ in the function approximation (so here we should denote eligibility traces at time $t$ of a trace experience as simply $\bm{E}_t$ rather than as a function of states as we had done for the Tabular case above). We initialize $\bm{E}_0$ at the start of each trace experience to 0 for each component in it's data type. Then, for each time step $t > 0$ we define $\bm{E}_t$ in terms of the previous ($t-1$) time step's value $\bm{E}_{t-1}$, as follows:
+
+$$\bm{E}_t = \gamma \lambda \cdot \bm{E}_{t-1} + \nabla_{\bm{w}} V(S_t;\bm{w})$$
+
+Then, the TD($\lambda$) Prediction algorithm performs the following update (change $\Delta \bm{w}$ to the parameters $\bm{w}$) to the function approximation for the Value Function at each time step $t$ in each trace experience:
+
+$$\Delta \bm{w} = \alpha \cdot (R_{t+1} + \gamma \cdot V(S_{t+1}; \bm{w}) - V(S_t; \bm{w})) \cdot \bm{E}_t$$
+
+which can be expressed more succinctly as: 
+
+$$\Delta \bm{w} = \alpha \cdot \delta_t \cdot \bm{E}_t$$
+
+where $\delta_t$ now denotes the TD Error based on the function approximation for the Value Function.
+
+#### Implementation of the TD($\lambda$) Prediction algorithm
+
+coming soon …
+
+### Key Takeaways from this Chapter
+
+* Bias-Variance tradeoff of TD versus MC.
+* MC learns the mean of the observed returns while TD learns something "deeper" - it implicitly estimates an MRP from the given data and produces the Value Function of the implicitly-estimated MRP.
+* Understanding TD versus MC versus DP from the perspectives of "bootstrapping" and "experiencing" (Figure \ref{fig:unified_view_of_rl} provides a great view).
+* "Equivalence" of $\lambda$-Return Prediction and TD($\lambda$) Prediction, hence TD is equivalent to TD(0) and MC is "equivalent" to TD(1).
