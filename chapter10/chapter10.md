@@ -896,7 +896,7 @@ The nuances we outlined above for when the trace experience terminates naturally
 This looks similar to the formula for parameters update in the case of the MC and TD Prediction algorithm we covered earlier, in terms of conceptualizing the change in parameters as the product of the following 3 entities:
 
 * *Learning Rate* $\alpha$
-* *$n$-step bootstrapped Error* $G_{t,n} - V(S_t; \bm{w})$
+* *$n$-step Bootstrapped Error* $G_{t,n} - V(S_t; \bm{w})$
 * *Estimate Gradient* of the conditional expected return $V(S_t;\bm{w})$ with respect to the parameters $\bm{w}$
 
 $n$ serves as a parameter taking us across the spectrum from TD to MC. $n=1$ is the case of TD while sufficiently large $n$ is the case of MC. If a trace experience is of length $T$ (i.e., $S_T \in \mathcal{T}$), then $n \geq T$ will not have any bootstrapping (since the bootstrapping target goes beyond the length of the trace experience) and hence, this makes it identical to MC.
