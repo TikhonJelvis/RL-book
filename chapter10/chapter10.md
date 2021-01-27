@@ -849,7 +849,7 @@ This perspective of shallow versus deep (for "bootstrapping" or not) and of narr
 
 ### TD($\lambda$) Prediction
 
-Now that we've seen the contrasting natures of TD and MC (and their respective pros and cons), it's natural to wonder if we could design an RL Prediction algorithm that combines the features of TD and MC and perhaps fetch us a blend of their respective benefits. It turns out this is indeed possible, and is the subject of this section - an innovative approach to RL Prediction known as TD($\lambda$). $\lambda$ is a continuous-valued parameter in the range $[0,1]$ such that $\lambda=0$ corresponds to the TD approach and $\lambda=1$ corresponds to the MC approach. Tuning $\lambda$ between 0 and 1 allows us to blend together the TD approach and the MC approach we covered earlier - this leads to a blended approach known as the TD($\lambda$) approach. The TD($\lambda$) approach for RL prediction gives us the TD($\lambda)$ Prediction algorithm. To get to the TD($\lambda$) Prediction algorithm (in this section), we start with the TD Prediction algorithm we wrote earlier, generalize it to a multi-time-step bootstrapping prediction algorithm, extend that further to an algorithm known as the $\lambda$-Return Prediction algorithm, and finally we get to the TD($\lambda$) Prediction algorithm.
+Now that we've seen the contrasting natures of TD and MC (and their respective pros and cons), it's natural to wonder if we could design an RL Prediction algorithm that combines the features of TD and MC and perhaps fetch us a blend of their respective benefits. It turns out this is indeed possible, and is the subject of this section - an innovative approach to RL Prediction known as TD($\lambda$). $\lambda$ is a continuous-valued parameter in the range $[0,1]$ such that $\lambda=0$ corresponds to the TD approach and $\lambda=1$ corresponds to the MC approach. Tuning $\lambda$ between 0 and 1 allows us to blend together the TD approach and the MC approach we covered earlier - this leads to a blended approach known as the TD($\lambda$) approach. The TD($\lambda$) approach for RL prediction gives us the TD($\lambda)$ Prediction algorithm. To get to the TD($\lambda$) Prediction algorithm (in this section), we start with the TD Prediction algorithm we wrote earlier, generalize it to a multi-time-step bootstrapping prediction algorithm, extend that further to an algorithm known as the $\lambda$-Return Prediction algorithm, after which we shall be ready to present the TD($\lambda$) Prediction algorithm.
 
 #### $n$-Step Bootstrapping Prediction Algorithm
 
@@ -871,8 +871,8 @@ V(S_t) \leftarrow V(S_t) + \alpha \cdot (G_{t,n} - V(S_t))
 where $G_{t,n}$ (known as $n$-step bootstrapped return) is defined as:
 
 \begin{align*}
-G_{t,n} & = \sum_{i=t+1}^{t+n} \gamma^{i-t-1} \cdot R_i  + \gamma^n \cdot V(S_{t+n}) \\
-& = R_{t+1} + \gamma \cdot R_{t+2} + \gamma^2 \cdot R_{t+3} + \ldots \gamma^{n-1} \cdot R_{t+n} + \gamma^n \cdot V(S_{t+n})
+G_{t,n} & = \sum_{i=t+1}^{t+n} \gamma^{i-t-1} \cdot R_i + \gamma^n \cdot V(S_{t+n}) \\
+& = R_{t+1} + \gamma \cdot R_{t+2} + \gamma^2 \cdot R_{t+3} + \ldots + \gamma^{n-1} \cdot R_{t+n} + \gamma^n \cdot V(S_{t+n})
 \end{align*}
 
 If the trace experience terminates at $t=T$, i.e., $S_T \in \mathcal{T}$, the above equation applies only for $t, n$ such that $t + n < T$. Essentially, each $n$-step bootstrapped return $G_{t,n}$ is an approximation of the full return $G_t$, by truncating $G_t$ at $n$ steps and adjusting for the remainder with the Value Function estimate $V(S_{t+n})$ for the state $S_{t+n}$. If $t+n \geq T$, then there is no need for a truncation and the $n$-step bootstrapped return $G_{t,n}$ is equal to the full return $G_t$.
@@ -888,7 +888,7 @@ where the $n$-step bootstrapped return $G_{t,n}$ is now defined in terms of the 
 
 \begin{align*}
 G_{t,n} & = \sum_{i=t+1}^{t+n} \gamma^{i-t-1} \cdot R_i + \gamma^n \cdot V(S_{t+n}; \bm{w})\\
-& = R_{t+1} + \gamma \cdot R_{t+2} + \gamma^2 \cdot R_{t+3} + \ldots \gamma^{n-1} \cdot R_{t+n} + \gamma^n \cdot V(S_{t+n}; \bm{w})
+& = R_{t+1} + \gamma \cdot R_{t+2} + \gamma^2 \cdot R_{t+3} + \ldots + \gamma^{n-1} \cdot R_{t+n} + \gamma^n \cdot V(S_{t+n}; \bm{w})
 \end{align*}
 
 The nuances we outlined above for when the trace experience terminates naturally apply here as well.
@@ -991,7 +991,7 @@ M(t_n) \cdot \theta^{t - t_n} & \text{ otherwise (i.e., } t > t_n)
 \label{eq:memory-function}
 \end{equation}
 
-This means the memory function has an uptick of 1 each time the event occurs (at time $t_i$, for each $i = 1, 2, \ldots n$), but then decays by a factor of $\theta^{\delta t}$ over any interval $\delta t$ where the event doesn't occur. Thus, the memory function captures the notion of frequency of the events as well as the recency of the events.
+This means the memory function has an uptick of 1 each time the event occurs (at time $t_i$, for each $i = 1, 2, \ldots n$), but then decays by a factor of $\theta^{\Delta t}$ over any interval $\Delta t$ where the event doesn't occur. Thus, the memory function captures the notion of frequency of the events as well as the recency of the events.
 
 Let's write some code to plot this function in order to visualize it and gain some intuition.
 
