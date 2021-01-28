@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+
+set -x
+echo $1
+
+out="${1%.*}.docx"
+
+pandoc -f markdown \
+       -t docx \
+       -o "$out" \
+       -F pandoc-crossref \
+       -M chapters \
+       -M title='Foundations of Reinforcement Learning with Applications in Finance' \
+       -M author='Ashwin Rao, Tikhon Jelvis' \
+       --top-level-division=part \
+       --standalone \
+       templates/definitions.tex \
+       "$1"

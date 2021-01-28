@@ -264,21 +264,6 @@ $else$
 \date{}
 $endif$
 
-% define some shorthands for common math notation to be used in the book
-\newcommand{\prob}{\mathcal{P}}
-\newcommand{\rew}{\mathcal{R}}
-\newcommand{\states}{\mathcal{S}}
-\newcommand{\actions}{\mathcal{S}}
-
-\DeclareMathOperator*{\argmin}{arg\,min}
-\DeclareMathOperator*{\argmax}{arg\,max}
-
-\newcommand{\bvpi}{\bm{V}^{\pi}}
-\newcommand{\bvs}{\bm{V}^*}
-\newcommand{\bbpi}{\bm{B}^{\pi}}
-\newcommand{\bbs}{\bm{B}^*}
-\newcommand{\bv}{\bm{V}}
-
 % At last: 
 % The document itself!:
 
