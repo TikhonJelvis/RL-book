@@ -349,11 +349,12 @@ We make an educated guess for the functional form of the Optimal Value Function 
 V^*_t(W_t) = - b_t \cdot e^{-c_t \cdot W_t} \label{eq:v-star-functional-discrete}
 \end{equation}
 where $b_t, c_t$ are independent of the wealth $W_t$ for all $t=0, 1, \ldots, T-1$. Next, we express the Bellman Optimality Equation using this functional form for the Optimal Value Function:
-
-$$V^*_t(W_t) = \max_{x_t} \{ \mathbb{E}_{Y_t \sim \mathcal{N}(\mu, \sigma^2)} [-b_{t+1} \cdot e^{-c_{t+1} \cdot (x_t \cdot (Y_t - r) + W_t \cdot (1+r))}] \}$$
+$$V^*_t(W_t) = \max_{x_t} \{ \mathbb{E}_{Y_t \sim \mathcal{N}(\mu, \sigma^2)} [-b_{t+1} \cdot e^{-c_{t+1} \cdot W_{t+1}}] \}$$
 
 Using Equation \eqref{eq:asset-alloc-discrete-wealth-recursive}, we can write this as:
+$$V^*_t(W_t) = \max_{x_t} \{ \mathbb{E}_{Y_t \sim \mathcal{N}(\mu, \sigma^2)} [-b_{t+1} \cdot e^{-c_{t+1} \cdot (x_t \cdot (Y_t - r) + W_t \cdot (1+r))}] \}$$
 
+The expectation of this exponential form (under the normal distribution) evaluates to:
 \begin{equation}
 V^*_t(W_t) = \max_{x_t} \{-b_{t+1} \cdot e^{-c_{t+1} \cdot (1 + r) \cdot W_t - c_{t+1} \cdot (\mu - r) \cdot x_t + c^2_{t+1} \cdot \frac {\sigma^2} {2} \cdot x_t^2} \} \label{eq:bellman-optimality-asset-alloc-discrete}
 \end{equation}
