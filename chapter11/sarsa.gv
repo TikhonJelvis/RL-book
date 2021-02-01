@@ -6,7 +6,7 @@ digraph sarsa
 {
   A [pos="0,0", label=<S,A>, shape=box, xlp="0,-30", xlabel=<R>, color=blue4, fontcolor=blue4]
   S [pos="0,-120", label=<S'>, shape=ellipse, color=blue4, fontcolor=blue4]
-  A1 [pos="0,-240", label=<A>, shape=box, color=blue4, fontcolor=blue4]
+  A1 [pos="0,-240", label=<A'>, shape=box, color=blue4, fontcolor=blue4]
   A->S [arrowhead=none, color=yellow4, fontcolor=blue4]
   S->A1 [arrowhead=none, color=yellow4, fontcolor=blue4]
 }
