@@ -1,0 +1,14 @@
+/*
+Run with the command: neato -n2 -Tpng -o q_learning.png q_learning.gv
+*/
+
+digraph q_learning
+{
+  A [pos="0,0", label=<S,A>, shape=box, xlp="0,-30", xlabel=<R>, color=blue4, fontcolor=blue4]
+  S [pos="0,-120", label=<S'>, shape=ellipse, xlp="0,-150", xlabel=<max>, color=blue4, fontcolor=blue4]
+  A1 [pos="-70,-240", label=<A'>, shape=box, color=blue4, fontcolor=blue4]
+  A2 [pos="70,-240", label=<A'>, shape=box, color=blue4, fontcolor=blue4]
+  A->S [arrowhead=none, color=yellow4, fontcolor=blue4]
+  S->A1 [arrowhead=none, color=yellow4, fontcolor=blue4]
+  S->A2 [arrowhead=none, color=yellow4, fontcolor=blue4]
+}
