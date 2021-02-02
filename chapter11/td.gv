@@ -1,0 +1,12 @@
+/*
+Run with the command: neato -n2 -Tpng -o td.png td.gv
+*/
+
+digraph td
+{
+  S [pos="0,0", label=<S>, shape=ellipse, color=blue4, fontcolor=blue4]
+  A [pos="0,-120", label=<A>, shape=box, xlp="0,-150", xlabel=<R>, color=blue4, fontcolor=blue4]
+  S1 [pos="0,-240", label=<S'>, shape=ellipse, color=blue4, fontcolor=blue4]
+  S->A [arrowhead=none, color=yellow4, fontcolor=blue4]
+  A->S1 [arrowhead=none, color=yellow4, fontcolor=blue4]
+}
