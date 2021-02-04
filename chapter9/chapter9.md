@@ -711,7 +711,7 @@ We need to point out here that the general case of optimal order execution invol
 $$P_{t+1} = P_t - (\beta \cdot N_t + \theta \cdot X_t) + \epsilon_t$$
 $$X_{t+1} = \rho \cdot X_t + \eta_t$$
 $$Q_t = P_t - (\beta \cdot N_t + \theta \cdot X_t)$$
-where $\epsilon_t$ and $\eta_t$ are each independent and identically distributed for all $t = 0, 1, \ldots, T-1$,  $\epsilon_t$ and $\eta_t$ are also mutually independent, and each has mean zero. $X_t$ can be thought of as a market factor affecting $P_t$ linearly. Applying the finite-horizon Bellman Optimality Equation on the Optimal Value Function (and the same backward-recursive approach as before) yields:
+where $\epsilon_t$ and $\eta_t$ are each independent and identically distributed random variables with mean zero for all $t = 0, 1, \ldots, T-1$,  $\epsilon_t$ and $\eta_t$ are also mutually independent. $X_t$ can be thought of as a market factor affecting $P_t$ linearly. Applying the finite-horizon Bellman Optimality Equation on the Optimal Value Function (and the same backward-recursive approach as before) yields:
 $$N^*_t = \frac {R_t} {T-t} + h(t, \beta, \theta, \rho) \cdot X_t$$
 $$V^*_t((P_t,R_t,X_t)) = R_t \cdot P_t - (\text{quadratic in } (R_t, X_t) + \text{ constant})$$
 Essentially, the serial-correlation predictability ($\rho \neq 0$) alters the uniform-split strategy.
@@ -727,7 +727,7 @@ The specific model is:
 $$P_{t+1} = P_t \cdot e^{Z_t}$$
 $$X_{t+1} = \rho \cdot X_t + \eta_t$$
 $$Q_t = P_t \cdot (1 - \beta \cdot N_t - \theta \cdot X_t)$$
-where $Z_t$ is a random variable with mean $\mu_Z$ and variance $\sigma^2_Z$. With the same derivation methodology as before, we get the solution:
+where $Z_t$ is a random variable with mean $\mu_Z$ and variance $\sigma^2_Z$, and $\eta_t$ are independent and identically distributed random variables with mean zero for all $t = 0, 1, \ldots, T-1$. $X_t$ can be thought of as a market factor affecting $P_t$ multiplicatively. With the same derivation methodology as before, we get the solution:
 $$N_t^* = c^{(1)}_t + c^{(2)}_t R_t + c^{(3)}_t X_t $$
 $$V^*_t((P_t,R_t,X_t)) = e^{\mu_Z + \frac {\sigma_Z^2} 2} \cdot P_t \cdot (c^{(4)}_t + c^{(5)}_t R_t + c^{(6)}_t X_t + c^{(7)}_t R_t^2 + c^{(8)}_t X_t^2 + c^{(9)}_t R_t X_t)$$
 where $c^{(k)}_t, 1 \leq k \leq 9$, are independent of $P_t, R_t, X_t$
