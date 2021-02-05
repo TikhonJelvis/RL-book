@@ -57,7 +57,7 @@ Assume $r \in \mathbb{R}$ is a fixed constant, representing the instantaneous ra
 
 $$U(x) = \frac {x^{1-\gamma}} {1 - \gamma}$$
 
-for a risk-aversion parameter $0 < \gamma \neq 1$. This Utility function is essentially the CRRA Utility function (ignoring the term $\frac {-1} {1 - \gamma}$) that we covered in Chapter [-@sec:utility-theory-chapter] for $\gamma \neq 1$. $gamma$ is the Coefficient of CRRA equal to  $\frac {-x \cdot U''(x)} {U'(x)}$. We will not cover the CRRA Utility function for $\gamma = 1$ (i.e., $U(x) = \log(x)$), but we encourage you to work out the derivation for $U(x) = \log(x)$ as an exercise.
+for a risk-aversion parameter $\gamma \neq 1$. This Utility function is essentially the CRRA Utility function (ignoring the term $\frac {-1} {1 - \gamma}$) that we covered in Chapter [-@sec:utility-theory-chapter] for $\gamma \neq 1$. $\gamma$ is the Coefficient of CRRA equal to  $\frac {-x \cdot U''(x)} {U'(x)}$. We will not cover the CRRA Utility function for $\gamma = 1$ (i.e., $U(x) = \log(x)$), but we encourage you to work out the derivation for $U(x) = \log(x)$ as an exercise.
 
 Due to our assumption of no addition of money to our investment portfolio of the risky asset $S_t$ and riskless $R_t$ and due to our assumption of no transaction costs of buying/selling any fractional quantities of risky as well as riskless asset, the time-evolution for wealth should be conceptualized as a continuous adjustment of the allocation $\pi_t$ and continuous extraction from the portfolio (equal to continuous consumption $c_t$). 
 
