@@ -1099,15 +1099,12 @@ To clarify, TD($\lambda$) Prediction is an online algorithm and hence, not exact
 
 However, as explained earlier, online update are desirable because the changes to the Value Function at each time step can be immediately usable for the next time steps' updates and so, it promotes rapid learning without having to wait for a trace experience to end. Moreover, online algorithms can be used in situations where we don't have a complete episode.
 
-With an understanding of Tabular TD($\lambda$) in place, we can generalize TD($\lambda$) to the case of function approximation in a straightforward manner. In the case of function approximation, the type of eligibility traces will be the same type as that of the parameters $\bm{w}$ in the function approximation (so here we should denote eligibility traces at time $t$ of a trace experience as simply $\bm{E}_t$ rather than as a function of states as we had done for the Tabular case above). We initialize $\bm{E}_0$ at the start of each trace experience to 0 for each component in it's data type. Then, for each time step $t > 0$ we define $\bm{E}_t$ in terms of the previous ($t-1$) time step's value $\bm{E}_{t-1}$, as follows:
+With an understanding of Tabular TD($\lambda$) Prediction in place, we can generalize TD($\lambda$) Prediction to the case of function approximation in a straightforward manner. In the case of function approximation, the type of eligibility traces will be the same type as that of the parameters $\bm{w}$ in the function approximation (so here we denote eligibility traces at time $t$ of a trace experience as simply $\bm{E}_t$ rather than as a function of states as we had done for the Tabular case above). We initialize $\bm{E}_0$ at the start of each trace experience to 0 for each component in it's data type. Then, for each time step $t > 0$, $\bm{E}_t$ is calculated recursively in terms of the previous ($t-1$) time step's value $\bm{E}_{t-1}$, which is then used to update the parameters of the Value Function approximation, as follows:
 
 $$\bm{E}_t = \gamma \lambda \cdot \bm{E}_{t-1} + \nabla_{\bm{w}} V(S_t;\bm{w})$$
-
-Then, the TD($\lambda$) Prediction algorithm performs the following update (change $\Delta \bm{w}$ to the parameters $\bm{w}$) to the function approximation for the Value Function at each time step $t$ in each trace experience:
-
 $$\Delta \bm{w} = \alpha \cdot (R_{t+1} + \gamma \cdot V(S_{t+1}; \bm{w}) - V(S_t; \bm{w})) \cdot \bm{E}_t$$
 
-which can be expressed more succinctly as: 
+The update to the parameters $\bm{w}$ can be expressed more succinctly as: 
 
 $$\Delta \bm{w} = \alpha \cdot \delta_t \cdot \bm{E}_t$$
 
