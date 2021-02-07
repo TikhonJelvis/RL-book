@@ -101,7 +101,7 @@ Our first step will be write out the Hamilton-Jacobi-Bellman (HJB) Equation (the
 Now use Ito's Lemma on $dV^*$, remove the $dz_t$ term since it's a martingale, and divide throughout by $dt$ to produce the HJB Equation in partial-differential form for any $0 \leq t < T$, as follows (the general form of this transformation appears as Equation \eqref{eq:hjb-ito} in Appendix [-@sec:hjb-appendix]):
 
 \begin{equation}
-\max_{\pi_t, c_t} \{ \pdv{V^*}{t} + \pdv{V^*}{W_t} ((\pi_t (\mu - r) + r)W_t  - c_t)+ \pdv[2]{V^*}{W_t} \cdot \frac {\pi_t^2 \cdot \sigma^2 \cdot W_t^2} {2} + \frac {c_t^{1-\gamma}}{1 - \gamma}\} = \rho \cdot V^*(t, W_t) \label{eq:merton-hjb-ito}
+\max_{\pi_t, c_t} \{ \pdv{V^*}{t} + \pdv{V^*}{W_t} \cdot ((\pi_t (\mu - r) + r)W_t  - c_t) + \pdv[2]{V^*}{W_t} \cdot \frac {\pi_t^2 \cdot \sigma^2 \cdot W_t^2} {2} + \frac {c_t^{1-\gamma}}{1 - \gamma}\} = \rho \cdot V^*(t, W_t) \label{eq:merton-hjb-ito}
 \end{equation}
 
 This HJB Equation is subject to the terminal condition:
