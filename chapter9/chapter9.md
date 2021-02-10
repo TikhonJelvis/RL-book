@@ -494,7 +494,7 @@ As ever, in order to solve the Control problem, we define the Optimal Value Func
 
 Denote the Value Function for policy $\pi$ at time $t$ (for all $t = 0, 1, \ldots T-1$) as:
 
-$$V^{\pi}_t((P_t, R_t)) = \mathbb{E}_{\pi}[\sum_{i=0}^{T-1} N_i \cdot (P_i - \beta \cdot N_i)|(t,P_t,R_t)]$$
+$$V^{\pi}_t((P_t, R_t)) = \mathbb{E}_{\pi}[\sum_{i=t}^{T-1} N_i \cdot (P_i - \beta \cdot N_i)|(P_t,R_t)]$$
 
 Denote the Optimal Value Function at time $t$ (for all $t= 0, 1, \ldots, T-1$) as:
 
@@ -504,7 +504,7 @@ The Optimal Value Function satisfies the finite-horizon Bellman Optimality Equat
 $$V^*_t((P_t,R_t)) = \max_{N_t} \{ N_t \cdot (P_t - \beta \cdot N_t)  + \mathbb{E}[V^*_{t+1}((P_{t+1}, R_{t+1}))] \}$$
 and
 
-$$V^*_{T-1}((P_{T-1},R_{T-1})) = N_{T-1} \cdot (P_{T-1} - \beta \cdot N_{T-1})) = R_{T-1} \cdot (P_{T-1} - \beta \cdot R_{T-1})$$
+$$V^*_{T-1}((P_{T-1},R_{T-1})) = N_{T-1} \cdot (P_{T-1} - \beta \cdot N_{T-1}) = R_{T-1} \cdot (P_{T-1} - \beta \cdot R_{T-1})$$
 
 From the above, we can infer:
 
