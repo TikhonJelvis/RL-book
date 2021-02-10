@@ -840,7 +840,7 @@ The Utility function is assumed to be: $U(x) = -e^{-\gamma x}$ where $\gamma > 0
 
 We can express this continuous-time formulation as a Hamilton-Jacobi-Bellman (HJB) formulation (note: for reference, the general HJB formulation is covered in Appendix [-@sec:hjb-appendix]).
 
-We denote the Optimal Value function as $V^*(t, S_t, W_t, I_t)$.
+We denote the Optimal Value function as $V^*(t, S_t, W_t, I_t)$. Note that unlike Section [-@sec:finite-horizon-section] in Chapter [-@sec:dp-chapter] where we denoted the Optimal Value Function as a time-indexed sequence $V^*_t(\cdot)$, here we make $t$ an explicit functional argument of $V^*$ and each of $S_t, W_t, I_t$ also as separate functional arguments of $V^*$ (instead of the typical approach of making the state, as a tuple, a single functional argument). This is because in the continuous-time setting, we are interested in the time-differential of the Optimal Value Function and we also want to represent the dependency of the Optimal Value Function on each of $S_t, W_t, I_t$ as explicit separate dependencies.
 
 $$V^*(t, S_t, W_t, I_t) = \max_{\delta_t^{(b)}, \delta_t^{(a)}} \mathbb{E}[-e^{-\gamma \cdot (W_T + I_T \cdot S_T)}]$$
 $V^*(t, S_t, W_t, I_t)$ satisfies a recursive formulation for $0 \leq t < t_1 < T$ as follows:

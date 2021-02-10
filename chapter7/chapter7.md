@@ -94,7 +94,8 @@ The *Return* at time $t$ is the accumulated discounted *Reward*:
 $$\int_t^T e^{-\rho(s-t)} \cdot \frac {c_s^{1-\gamma}} {1-\gamma} \cdot ds + \frac {e^{-\rho (T-t)} \cdot \epsilon^{\gamma} \cdot W_T^{1-\gamma}} {1-\gamma}$$
 Our goal is to find the *Policy* $: (t, W_t) \rightarrow (\pi_t, c_t)$ that maximizes the *Expected Return*. Note the important constraint that $c_t \geq 0$, but $\pi_t$ is unconstrained.
 
-Our first step will be write out the Hamilton-Jacobi-Bellman (HJB) Equation (the analog of the Bellman Optimality Equation in continuous-time). We denote the Optimal Value Function as $V^*$. We write the Optimal Value at time $t$ for wealth $W_t$ with lighter notation $V^*(t, W_t)$ instead of the more precise notation $V^*((t, W_t))$. Appendix [-@sec:hjb-appendix] provides the derivation of the general HJB formulation (Equation \eqref{eq:hjb} in Appendix [-@sec:hjb-appendix]) - this general HJB Equation specializes here to the following:
+Our first step will be write out the Hamilton-Jacobi-Bellman (HJB) Equation (the analog of the Bellman Optimality Equation in continuous-time). We denote the Optimal Value Function as $V^*$ such that the Optimal Value for wealth $W_t$ at time $t$ is $V^*(t, W_t)$. Note that unlike Section [-@sec:finite-horizon-section] in Chapter [-@sec:dp-chapter] where we denoted the Optimal Value Function as a time-indexed sequence $V^*_t(\cdot)$, here we make $t$ an explicit functional argument of $V^*$. This is because in the continuous-time setting, we are interested in the time-differential of the Optimal Value Function. Appendix [-@sec:hjb-appendix] provides the derivation of the general HJB formulation (Equation \eqref{eq:hjb} in Appendix [-@sec:hjb-appendix]) - this general HJB Equation specializes here to the following:
+
 \begin{equation}
 \max_{\pi_t, c_t} \{ \mathbb{E}_t[dV^*(t, W_t) + \frac {c_t^{1-\gamma}}{1 - \gamma} \cdot dt\} = \rho \cdot V^*(t, W_t) \cdot dt \label{eq:merton-hjb}
 \end{equation}
