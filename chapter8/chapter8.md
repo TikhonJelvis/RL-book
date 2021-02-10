@@ -914,9 +914,9 @@ Assume we have a portfolio of $m$ derivatives and we refer to our collective pos
   
 We will use the notation that we have previously used for discrete-time finite-horizon MDPs, i.e., we will use time-subscripts in our notation. 
  
-We denote the State Space at time $t$ (for all $0 \leq t \leq T+1$) as $\mathcal{S}_t$ and a specific state at time $t$ as $s_t \in \mathcal{S}_t$. Among other things, the key ingredients of $s_t$ includes: $t, \alpha_t, P_t, \beta_t, D$. In practice, $s_t$ will include many other components (in general, any market information relevant to hedge trading decisions). However, for simplicity (motivated by ease of articulation), we assume $s_t$ is simply the 5-tuple:
+We denote the State Space at time $t$ (for all $0 \leq t \leq T+1$) as $\mathcal{S}_t$ and a specific state at time $t$ as $s_t \in \mathcal{S}_t$. Among other things, the key ingredients of $s_t$ includes: $\alpha_t, P_t, \beta_t, D$. In practice, $s_t$ will include many other components (in general, any market information relevant to hedge trading decisions). However, for simplicity (motivated by ease of articulation), we assume $s_t$ is simply the 5-tuple:
  
- $$s_t := (t, \alpha_t, P_t, \beta_t, D)$$
+ $$s_t := (\alpha_t, P_t, \beta_t, D)$$
 
 We denote the Action Space at time $t$ (for all $0 \leq t \leq T$) as $\mathcal{A}_t$ and a specific action at time $t$ as $a_t \in \mathcal{A}_t$. $a_t$ represents the number of units of hedges traded at time $t$ (i.e., adjustments to be made to the hedges at each time step). Since there are $n$ hedge positions ($n$ assets to be traded), $a_t \in \mathbb{R}^n$, i.e., $\mathcal{A}_t \subseteq \mathbb{R}^n$. Note that for each of the $n$ assets, it's corresponding component in $a_t$ is positive if we buy the asset at time $t$ and negative if we sell the asset at time $t$. Any trading restrictions (eg: constraints on short-selling) will essentially manifest themselves in terms of the exact definition of $\mathcal{A}_t$ as a function of $s_t$.
 
@@ -924,7 +924,7 @@ State transitions are essentially defined by the random movements of prices of t
  
 It is important to pay careful attention to the sequence of events at each time step $t=0, \ldots, T$, described below:
  
- 1. Observe the state $s_t := (t, \alpha_t, P_t, \beta_t, D)$.
+ 1. Observe the state $s_t := (\alpha_t, P_t, \beta_t, D)$.
  2. Perform action (trades) $a_t$, which produces trading PnL $= - a_t \cdot P_t$ (note: this is a dot-product in $\mathbb{R}^n$).
  3. These trades incur transaction costs, for example equal to $\gamma P_t \cdot |a_t|$ for some $\gamma \in \mathbb{R}^+$ (note: the absolute value applies point-wise on $a_t \in \mathbb{R}^n$, and then we take it's dot-product with $P_t \in \mathbb{R}^n$).
  4. Update $\alpha_t$ as:
@@ -939,7 +939,7 @@ It is important to pay careful attention to the sequence of events at each time 
  Assume we now want to enter into an incremental position of derivatives-portfolio $D'$ in $m'$ derivatives. We denote the combined position as $D \cup D'$. We want to determine the *Price* of the incremental position $D'$, as well as the hedging strategy for $D'$.
  
  Denote the Optimal Value Function at time $t$ (for all $0 \leq t \leq T$) as $V_t^* : \mathcal{S}_t \rightarrow \mathbb{R}$. Pricing of $D'$ is based on the principle that introducing the incremental position of $D'$ together with a calibrated cash payment/receipt (Price of $D'$) at $t=0$ should leave the Optimal Value (at $t=0$) unchanged. Precisely, the Price of $D'$ is the value $x^*$ such that
- $$V_0^*((0,\alpha_0,P_0,\beta_0-x^*,D\cup D')) = V_0^*((0, \alpha_0, P_0, \beta_0, D))$$
+ $$V_0^*((\alpha_0,P_0,\beta_0-x^*,D\cup D')) = V_0^*((\alpha_0, P_0, \beta_0, D))$$
  This Pricing principle is known as the principle of *Indifference Pricing*. The hedging strategy at time $t$ (for all $0 \leq t < T$) is given by the Optimal Policy $\pi_t^* : \mathcal{S}_t \rightarrow \mathcal{A}_t$
   
 ### Key Takeaways from this Chapter
