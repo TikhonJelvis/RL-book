@@ -72,7 +72,8 @@ class OrderBook:
             []
         )
 
-    def sell_limit_order(self, price: float, shares: int) -> OrderBook:
+    def sell_limit_order(self, price: float, shares: int) -> \
+            Tuple[DollarsAndShares, OrderBook]:
         index: Optional[int] = next((i for i, d_s
                                      in enumerate(self.descending_bids)
                                      if d_s.dollars < price), None)
@@ -105,12 +106,12 @@ class OrderBook:
                     dollars=price,
                     shares=new_asks[index1].shares + rem_shares
                 )
-            return OrderBook(
+            return d_s, OrderBook(
                 ascending_asks=new_asks,
                 descending_bids=new_bids
             )
         else:
-            return replace(
+            return d_s, replace(
                 self,
                 descending_bids=new_bids
             )
@@ -125,7 +126,8 @@ class OrderBook:
         )
         return (d_s, replace(self, descending_bids=rem_bids))
 
-    def buy_limit_order(self, price: float, shares: int) -> OrderBook:
+    def buy_limit_order(self, price: float, shares: int) -> \
+            Tuple[DollarsAndShares, OrderBook]:
         index: Optional[int] = next((i for i, d_s
                                      in enumerate(self.ascending_asks)
                                      if d_s.dollars > price), None)
@@ -158,13 +160,13 @@ class OrderBook:
                     dollars=price,
                     shares=new_bids[index1].shares + rem_shares
                 )
-            return replace(
+            return d_s, replace(
                 self,
                 ascending_asks=new_asks,
                 descending_bids=new_bids
             )
         else:
-            return replace(
+            return d_s, replace(
                 self,
                 ascending_asks=new_asks
             )
@@ -233,36 +235,45 @@ if __name__ == '__main__':
 
     print("Sell Limit Order of (107, 40)")
     print()
-    ob1: OrderBook = ob0.sell_limit_order(107, 40)
+    d_s1, ob1 = ob0.sell_limit_order(107, 40)
+    proceeds1: float = d_s1.dollars
+    shares_sold1: int = d_s1.shares
+    print(f"Sales Proceeds = {proceeds1:.2f}, Shares Sold = {shares_sold1:d}")
     ob1.pretty_print_order_book()
     ob1.display_order_book()
 
     print("Sell Market Order of 120")
     print()
-    d_s, ob2 = ob1.sell_market_order(120)
-    proceeds: float = d_s.dollars
-    shares_sold: int = d_s.shares
-    print(f"Sales Proceeds = {proceeds:.2f}, Shares Sold = {shares_sold:d}")
+    d_s2, ob2 = ob1.sell_market_order(120)
+    proceeds2: float = d_s2.dollars
+    shares_sold2: int = d_s2.shares
+    print(f"Sales Proceeds = {proceeds2:.2f}, Shares Sold = {shares_sold2:d}")
     ob2.pretty_print_order_book()
     ob2.display_order_book()
 
     print("Buy Limit Order of (100, 80)")
     print()
-    ob3: OrderBook = ob2.buy_limit_order(100, 80)
+    d_s3, ob3 = ob2.buy_limit_order(100, 80)
+    bill3: float = d_s3.dollars
+    shares_bought3: int = d_s3.shares
+    print(f"Purchase Bill = {bill3:.2f}, Shares Bought = {shares_bought3:d}")
     ob3.pretty_print_order_book()
     ob3.display_order_book()
 
     print("Sell Limit Order of (104, 60)")
     print()
-    ob4: OrderBook = ob3.sell_limit_order(104, 60)
+    d_s4, ob4 = ob3.sell_limit_order(104, 60)
+    proceeds4: float = d_s4.dollars
+    shares_sold4: int = d_s4.shares
+    print(f"Sales Proceeds = {proceeds4:.2f}, Shares Sold = {shares_sold4:d}")
     ob4.pretty_print_order_book()
     ob4.display_order_book()
 
     print("Buy Market Order of 150")
     print()
-    d_s, ob5 = ob4.buy_market_order(150)
-    bill: float = d_s.dollars
-    shares_bought: int = d_s.shares
-    print(f"Purchase Bill = {bill:.2f}, Shares Bought = {shares_bought:d}")
+    d_s5, ob5 = ob4.buy_market_order(150)
+    bill5: float = d_s5.dollars
+    shares_bought5: int = d_s5.shares
+    print(f"Purchase Bill = {bill5:.2f}, Shares Bought = {shares_bought5:d}")
     ob5.pretty_print_order_book()
     ob5.display_order_book()

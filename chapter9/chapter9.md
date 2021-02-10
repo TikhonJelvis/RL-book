@@ -159,7 +159,8 @@ Now we are ready to write the method `sell_limit_order` which takes Sell MO Pric
 ```python
 from dataclasses import replace
 
-    def sell_limit_order(self, price: float, shares: int) -> OrderBook:
+    def sell_limit_order(self, price: float, shares: int) -> \
+            Tuple[DollarsAndShares, OrderBook]:
         index: Optional[int] = next((i for i, d_s
                                      in enumerate(self.descending_bids)
                                      if d_s.dollars < price), None)
@@ -192,12 +193,12 @@ from dataclasses import replace
                     dollars=price,
                     shares=new_asks[index1].shares + rem_shares
                 )
-            return OrderBook(
+            return d_s, OrderBook(
                 ascending_asks=new_asks,
                 descending_bids=new_bids
             )
         else:
-            return replace(
+            return d_s, replace(
                 self,
                 descending_bids=new_bids
             )
@@ -239,7 +240,7 @@ The above code creates an `OrderBook` in the price range [91, 114] with a bid-as
 Let's submit a Sell LO that says we'd like to sell 40 shares as long as the transacted price is greater than or equal to 107. Our Sell LO should simply get added to the Sell LO side of the OB.
 
 ```python
-ob1: OrderBook = ob0.sell_limit_order(107, 40)
+d_s1, ob1 = ob0.sell_limit_order(107, 40)
 ```
 
 The new `OrderBook` `ob1` has 40 more shares at the price level of 107, as depicted in Figure \ref{fig:order_book_1}.
@@ -248,7 +249,7 @@ The new `OrderBook` `ob1` has 40 more shares at the price level of 107, as depic
 
 Now let's submit a Sell MO that says we'd like to sell 120 shares at the "best price". Our Sell MO should transact with 120 shares at "best prices" of 100 and 99 as well (since the OB does not have enough Buy LO shares at the price of 100). 
 ```python
-d_s, ob2 = ob1.sell_market_order(120)
+d_s2, ob2 = ob1.sell_market_order(120)
 ```
 
 The new `OrderBook` `ob2` has 120 less shares on the Buy LO side of the OB, as depicted in Figure \ref{fig:order_book_2}.   
@@ -258,7 +259,7 @@ The new `OrderBook` `ob2` has 120 less shares on the Buy LO side of the OB, as d
 Now let's submit a Buy LO that says we'd like to buy 80 shares as long as the transacted price is less than or equal to 100. Our Buy LO should get added to the Buy LO side of the OB.
 
 ```python
-ob3: OrderBook = ob2.buy_limit_order(100, 80)
+d_s3, ob3 = ob2.buy_limit_order(100, 80)
 ```
 
 The new `OrderBook` `ob3` has re-introduced a Buy LO at the price level of 100 (now with 80 shares), as depicted in Figure \ref{fig:order_book_3}.
@@ -268,7 +269,7 @@ The new `OrderBook` `ob3` has re-introduced a Buy LO at the price level of 100 (
 Now let's submit a Sell LO that says we'd like to sell 60 shares as long as the transacted price is greater than or equal to 104. Our Sell LO should get added to the Sell LO side of the OB.
 
 ```python
-ob4: OrderBook = ob3.sell_limit_order(104, 60)
+d_s4, ob4 = ob3.sell_limit_order(104, 60)
 ```
 
 The new `OrderBook` `ob4` has introduced a Sell LO at a price of 104 with 60 shares, as depicted in Figure \ref{fig:order_book_4}.
@@ -278,7 +279,7 @@ The new `OrderBook` `ob4` has introduced a Sell LO at a price of 104 with 60 sha
 Now let's submit a Buy MO that says we'd like to buy 150 shares at the "best price". Our Buy MO should transact with 150 shares at "best prices" on the Sell LO side of the OB.
 
 ```python
-d_s, ob5 = ob4.buy_market_order(150)
+d_s5, ob5 = ob4.buy_market_order(150)
 ```
 
 The new `OrderBook` `ob5` has 150 less shares on the Sell LO side of the OB, wiping out all the shares at the price level of 104 and almost wiping out all the shares at the price level of 105, as depicted in Figure \ref{fig:order_book_5}.
