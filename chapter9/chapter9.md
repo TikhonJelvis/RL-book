@@ -804,7 +804,7 @@ $$
 The goal is to find an *Optimal Policy* $\pi^* = (\pi^*_0, \pi^*_1, \ldots, \pi^*_{T-1})$, where
 $$\pi^*_t((S_t, W_t, I_t)) = (P_t^{(b)}, N_t^{(b)}, P_t^{(a)}, N_t^{(a)})$$
 that maximizes:
-$$\mathbb{E}[\sum_{t=1}^T R_t] = \mathbb{E}[R_T] = U(W_T + I_T \cdot S_T)$$
+$$\mathbb{E}[\sum_{t=1}^T R_t] = \mathbb{E}[R_T] = \mathbb{E}[U(W_T + I_T \cdot S_T)]$$
 
 #### Avellaneda-Stoikov Continuous-Time Formulation
 
