@@ -1,6 +1,6 @@
 '''Finding fixed points of functions using iterators.'''
 import itertools
-from typing import (overload, Callable, Iterable, Iterator, Optional, TypeVar)
+from typing import (Callable, Iterable, Iterator, Optional, TypeVar)
 
 X = TypeVar('X')
 Y = TypeVar('Y')
