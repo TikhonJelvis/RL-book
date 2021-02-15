@@ -116,25 +116,26 @@ Now we are ready to cover a concrete but simple function approximation - the cas
 
 We define a sequence of feature functions
 $$\phi_j: \mathcal{X} \rightarrow \mathbb{R} \text{ for each } j = 1, 2, \ldots, m$$
-For linear function approximation, the internal parameters $w$ are represented as a weights vector $\bm{w} = (w_1, w_2, \ldots, w_m) \in \mathbb{R}^m$. Linear function approximation is based on the assumption of a Gaussian distribution for $y|x$ with mean
-$$\sum_{j=1}^m \phi_j(x) \cdot w_j$$
+and we define $\bm{\phi}: \mathcal{X} \rightarrow \mathbb{R}^m$ as:
+$$\bm{\phi}(x) = (\phi_1(x), \phi_2(x), \ldots, \phi_m(x)) \text{ for all } x \in \mathcal{X}$$
+We treat $\bm{\phi}(x)$ as a column vector for all $x \in \mathcal{X}$.
+
+For linear function approximation, the internal parameters $w$ are represented as a weights column-vector $\bm{w} = (w_1, w_2, \ldots, w_m) \in \mathbb{R}^m$. Linear function approximation is based on the assumption of a Gaussian distribution for $y|x$ with mean
+$$\sum_{j=1}^m \phi_j(x) \cdot w_j = \bm{\phi}(x)^T \cdot \bm{w}$$
 and constant variance $\sigma^2$, i.e.,
-$$\mathbb{P}[y|x] = f(x;\bm{w})(y) = \frac {1} {\sqrt{2\pi \sigma^2}} \cdot e^{-\frac {(y - \sum_{j=1}^m \phi_j(x) \cdot w_j)^2} {2\sigma^2}}$$
+$$\mathbb{P}[y|x] = f(x;\bm{w})(y) = \frac {1} {\sqrt{2\pi \sigma^2}} \cdot e^{-\frac {(y - \bm{\phi}(x)^T \cdot \bm{w})^2} {2\sigma^2}}$$
 
 So, the cross-entropy loss function (ignoring constant terms associated with $\sigma^2$) for a given set of data points $[x_i, y_i|1 \leq i \leq n]$ is defined as:
-$$\mathcal{L}(\bm{w}) = \frac 1 {2n} \cdot \sum_{i=1}^n (\sum_{j=1}^m \phi_j(x_i) \cdot w_j - y_i)^2$$
-Note that this loss function is identical to the mean-squared-error of the linear (in $\bm{w}$) predictions $\sum_{j=1}^m \phi_j(x_i) \cdot w_j$ relative to the response values $y_i$ associated with the predictor values $x_i$, over all $1\leq i \leq n$.
+$$\mathcal{L}(\bm{w}) = \frac 1 {2n} \cdot \sum_{i=1}^n (\bm{\phi}(x_i)^T \cdot \bm{w} - y_i)^2$$
+Note that this loss function is identical to the mean-squared-error of the linear (in $\bm{w}$) predictions $\bm{\phi}(x_i)^T \cdot \bm{w}$ relative to the response values $y_i$ associated with the predictor values $x_i$, over all $1\leq i \leq n$.
 
 If we include $L^2$ regularization (with $\lambda$ as the regularization coefficient), then the regularized loss function is:
 
-$$\mathcal{L}(\bm{w}) = \frac 1 {2n} (\sum_{i=1}^n (\sum_{j=1}^m \phi_j(x_i) \cdot w_j - y_i)^2) + \frac 1 2 \cdot\lambda \cdot \sum_{j=1}^m w_j^2$$
+$$\mathcal{L}(\bm{w}) = \frac 1 {2n} (\sum_{i=1}^n (\bm{\phi}(x_i)^T \cdot \bm{w} - y_i)^2) + \frac 1 2 \cdot\lambda \cdot |\bm{w}|^2$$
 
 The gradient of $\mathcal{L}(\bm{w})$ with respect to $\bm{w}$ works out to:
 
-$$\nabla_{\bm{w}} \mathcal{L}(\bm{w}) = \frac 1 n \cdot (\sum_{i=1}^n \bm{\phi}(x_i) \cdot (\bm{\phi}(x_i) \cdot \bm{w} - y_i)) + \lambda \cdot \bm{w}$$
-
-where $$\bm{\phi}: \mathcal{X} \rightarrow \mathbb{R}^m$$ is defined as:
-$$\bm{\phi}(x) = (\phi_1(x), \phi_2(x), \ldots, \phi_m(x)) \text{ for all } x \in \mathcal{X}$$
+$$\nabla_{\bm{w}} \mathcal{L}(\bm{w}) = \frac 1 n \cdot (\sum_{i=1}^n \bm{\phi}(x_i) \cdot (\bm{\phi}(x_i)^T \cdot \bm{w} - y_i)) + \lambda \cdot \bm{w}$$
 
 We can solve for $\bm{w^*}$ by incremental estimation using gradient descent (change in $\bm{w}$ proportional to the gradient estimate of $\mathcal{L}(\bm{w})$ with respect to $\bm{w}$). If the $(x_t, y_t)$ data at time $t$ is:
 
@@ -142,8 +143,8 @@ $$[(x_{t,i}, y_{t,i})|1 \leq i \leq n_t]$$,
 
 then the gradient estimate $\mathcal{G}_{(x_t,y_t)}(\bm{w}_t)$ at time $t$ is given by:
 
-$$\mathcal{G}_{(x_t, y_t)}(\bm{w}_t) = \frac 1 n \cdot (\sum_{i=1}^{n_t} \bm{\phi}(x_{t,i}) \cdot (\bm{\phi}(x_{t,i}) \cdot \bm{w}_t - y_{t,i})) + \lambda \cdot \bm{w}_t$$
-which can be interpreted as the mean (over the data in iteration $t$) of the feature vectors $\bm{\phi}(x_{t,i})$ weighted by the (scalar) linear prediction errors $\bm{\phi}(x_{t,i}) \cdot \bm{w}_t - y_{t,i}$ (plus regularization term $\lambda \cdot \bm{w}_t$).
+$$\mathcal{G}_{(x_t, y_t)}(\bm{w}_t) = \frac 1 n \cdot (\sum_{i=1}^{n_t} \bm{\phi}(x_{t,i}) \cdot (\bm{\phi}(x_{t,i})^T \cdot \bm{w}_t - y_{t,i})) + \lambda \cdot \bm{w}_t$$
+which can be interpreted as the mean (over the data in iteration $t$) of the feature vectors $\bm{\phi}(x_{t,i})$ weighted by the (scalar) linear prediction errors $\bm{\phi}(x_{t,i})^T \cdot \bm{w}_t - y_{t,i}$ (plus regularization term $\lambda \cdot \bm{w}_t$).
 
 Then, the update to the weights vector $\bm{w}$ is given by:
 
@@ -226,7 +227,7 @@ class Weights:
         return np.all(np.abs(self.weights - other.weights) <= tolerance).item()
 ```
 
-Given this `Weights` dataclass, we are now ready to write the `@dataclass LinearFunctionApprox` for linear function approximation that implements the abstract base class `FunctionApprox`. It has attributes `feature_functions` that represents $\phi_j: \mathcal{X} \rightarrow \mathbb{R}$ for all $j = 1, 2, \ldots, m$, `regularization_coeff` that represents the regularization coefficient $\lambda$, `weights` which is an instance of the `Weights` class we wrote above, and `direct_solve` (which we will explain shortly. The `@staticmethod create` serves as a factory method to create a new instance of `LinearFunctionApprox`. The method `get_feature_values` takes as input an `x_values_seq: Iterable[X]` (representing a data set of $x \in \mathcal{X}$), and produces as output the corresponding feature vectors $\bm{\phi}(x) \in \mathbb{R}^m$ for each of the input $x$. The feature vectors are output in the form of a 2-D numpy array, with each feature vector $\bm{\phi}(x)$ (for each $x$ in the input sequence) appearing as a row in the output 2-D numpy array (the number of rows in this numpy array is the length of the input `x_values_seq` and the number of columns is the number of feature functions). Note that often we want to include a bias term in our linear function approximation, in which case we need to prepend the sequence of feature functions we want to provide as input with an artificial feature function `lambda _: 1.` to represent the constant feature with value 1. This will ensure we have a bias weight in addition to each of the weights that serve as coefficients to the (non-artificial) feature functions. The method `evaluate` (an `@abstractmethod` in `FunctionApprox`) calculates the prediction $\mathbb{E}_M[y|x]$ for each input $x$ as: $\bm{\phi}(x) \cdot \bm{w} = \sum_{j=1}^m \phi_j(x) \cdot w_i$. The method `regularized_loss_gradient` performs the calculation $\mathcal{G}_{(x_t, y_t)}(\bm{w}_t)$ shown above. The method `update` (`@abstractmethod` in `FunctionApprox`) invokes `regularized_loss_gradient` and returns a new instance of `LinearFunctionApprox` that contains the updated weights, along with the ADAM cache updates (invoking the `update` method of the `Weights` class to ensure there are no in-place updates).
+Given this `Weights` dataclass, we are now ready to write the `@dataclass LinearFunctionApprox` for linear function approximation that implements the abstract base class `FunctionApprox`. It has attributes `feature_functions` that represents $\phi_j: \mathcal{X} \rightarrow \mathbb{R}$ for all $j = 1, 2, \ldots, m$, `regularization_coeff` that represents the regularization coefficient $\lambda$, `weights` which is an instance of the `Weights` class we wrote above, and `direct_solve` (which we will explain shortly. The `@staticmethod create` serves as a factory method to create a new instance of `LinearFunctionApprox`. The method `get_feature_values` takes as input an `x_values_seq: Iterable[X]` (representing a data set of $x \in \mathcal{X}$), and produces as output the corresponding feature vectors $\bm{\phi}(x) \in \mathbb{R}^m$ for each of the input $x$. The feature vectors are output in the form of a 2-D numpy array, with each feature vector $\bm{\phi}(x)$ (for each $x$ in the input sequence) appearing as a row in the output 2-D numpy array (the number of rows in this numpy array is the length of the input `x_values_seq` and the number of columns is the number of feature functions). Note that often we want to include a bias term in our linear function approximation, in which case we need to prepend the sequence of feature functions we want to provide as input with an artificial feature function `lambda _: 1.` to represent the constant feature with value 1. This will ensure we have a bias weight in addition to each of the weights that serve as coefficients to the (non-artificial) feature functions. The method `evaluate` (an `@abstractmethod` in `FunctionApprox`) calculates the prediction $\mathbb{E}_M[y|x]$ for each input $x$ as: $\bm{\phi}(x)^T \cdot \bm{w} = \sum_{j=1}^m \phi_j(x) \cdot w_i$. The method `regularized_loss_gradient` performs the calculation $\mathcal{G}_{(x_t, y_t)}(\bm{w}_t)$ shown above. The method `update` (`@abstractmethod` in `FunctionApprox`) invokes `regularized_loss_gradient` and returns a new instance of `LinearFunctionApprox` that contains the updated weights, along with the ADAM cache updates (invoking the `update` method of the `Weights` class to ensure there are no in-place updates).
 
 
 ```python
@@ -306,14 +307,14 @@ We also require the `within` method, that simply delegates to the `within` metho
 ```
 
 The only method that remains to be written now is the `solve` method. Note that for linear function approximation, we can directly solve for $\bm{w^*}$ if the number of feature functions $m$ is not too large. If the entire provided data is $[(x_i, y_i)|1\leq i \leq n]$, then the gradient estimate based on this data can be set to 0 to solve for $\bm{w^*}$, i.e.,
-$$\frac 1 n \cdot (\sum_{i=1}^n \bm{\phi}(x_i) \cdot (\bm{\phi}(x_i) \cdot \bm{w^*} - y_i)) + \lambda \cdot \bm{w^*} = 0$$
+$$\frac 1 n \cdot (\sum_{i=1}^n \bm{\phi}(x_i) \cdot (\bm{\phi}(x_i)^T \cdot \bm{w^*} - y_i)) + \lambda \cdot \bm{w^*} = 0$$
 We denote $\bm{\Phi}$ as the $n$ rows $\times$ $m$ columns matrix defined as $\bm{\Phi}_{i,j} = \phi_j(x_i)$ and the column vector $\bm{Y} \in \mathbb{R}^n$ defined as $\bm{Y}_i = y_i$. Then we can write the above equation as:
 $$\frac 1 n \cdot \bm{\Phi}^T \cdot (\bm{\Phi} \cdot \bm{w^*} - \bm{Y}) + \lambda \cdot \bm{w^*} = 0$$
 $$\Rightarrow (\bm{\Phi}^T \cdot \bm{\Phi} + n \lambda \cdot \bm{I_m}) \cdot \bm{w^*} = \bm{\Phi}^T \cdot \bm{Y}$$
 $$\Rightarrow \bm{w^*} = (\bm{\Phi}^T \cdot \bm{\Phi} + n \lambda \cdot \bm{I_m})^{-1} \cdot \bm{\Phi}^T \cdot \bm{Y}$$
 where $\bm{I_m}$ is the $m \times m$ identity matrix. Note that this requires inversion of the $m \times m$ matrix $\bm{\Phi}^T \cdot \bm{\Phi} + n \lambda \cdot \bm{I_m}$ and so, this direct solution for $\bm{w^*}$ requires that $m$ not be too large.
 
-On the other hand, if the number of feature functions $m$ is too large, then this direct-solve method is infeasible. In that case, we solve for $\bm{w^*}$ by repeatedly calling `update`. The attribute `direct_solve: bool' in `LinearFunctionApprox` specifies whether to perform a direct solution (linear algebra calculations shown above) or to perform a sequence of iterative (incremental) `updates` to $\bm{w}$ using gradient descent. The code below for the method `solve` does exactly this:
+On the other hand, if the number of feature functions $m$ is too large, then this direct-solve method is infeasible. In that case, we solve for $\bm{w^*}$ by repeatedly calling `update`. The attribute `direct_solve: bool` in `LinearFunctionApprox` specifies whether to perform a direct solution (linear algebra calculations shown above) or to perform a sequence of iterative (incremental) `updates` to $\bm{w}$ using gradient descent. The code below for the method `solve` does exactly this:
 
 ```python
 import itertools
@@ -392,13 +393,14 @@ Equations \eqref{eq:layers_input_output_connect}, \eqref{eq:layer_linearity} and
 Our goal is to derive an expression for the cross-entropy loss gradient $\nabla_{\bm{w_l}} \mathcal{L}$ for all $l = 0, 1, \ldots, L$. For ease of understanding, our following exposition will be expressed in terms of the cross-entropy loss function for a single predictor variable input $x \in \mathcal{X}$ and it's associated single response variable $y \in \mathbb{R}$ (the code will generalize appropriately to the cross-entropy loss function for a given set of data points $[x_i, y_i|1 \leq i \leq n]$).
 
 We can reduce this problem of calculating the cross-entropy loss gradient to the problem of calculating $\bm{P_l} = \nabla_{\bm{S_l}} \mathcal{L}$ for all $l = 0, 1, \ldots, L$, as revealed by the following chain-rule calculation:
-$$\nabla_{\bm{w_l}} \mathcal{L} = (\nabla_{\bm{S_l}} \mathcal{L})^T \cdot \nabla_{\bm{w_l}} \bm{S_l} = \bm{P_l}^T \cdot \nabla_{\bm{w_l}} \bm{S_l} = \bm{P_l} \cdot \bm{I_l}^T = \bm{P_l} \otimes \bm{I_l} \text{ for all } l = 0, 1, \ldots L$$
-where the symbol $\otimes$ refers to the [outer-product](https://en.wikipedia.org/wiki/Outer_product) of two vectors resulting in a matrix. Note that the outer-product of the $dim(\bm{O_l})$ size vector $\bm{P_l}$ and the $dim(\bm{I_l})$ size vector $\bm{I_l}$ gives a matrix of size $dim(\bm{O_l}) \times dim(\bm{I_l})$.
+$$\nabla_{\bm{w_l}} \mathcal{L} = (\nabla_{\bm{S_l}} \mathcal{L})^T \cdot \nabla_{\bm{w_l}} \bm{S_l} = \bm{P_l}^T \cdot \nabla_{\bm{w_l}} \bm{S_l} = \bm{P_l} \cdot \bm{I_l}^T \text{ for all } l = 0, 1, \ldots L$$
+
+Note that $\bm{P_l} \cdot \bm{I_l}^T$ represents the [outer-product](https://en.wikipedia.org/wiki/Outer_product) of the $dim(\bm{O_l})$-size vector $\bm{P_l}$ and the $dim(\bm{I_l})$-size vector $\bm{I_l}$ giving a matrix of size $dim(\bm{O_l}) \times dim(\bm{I_l})$.
 
 If we include $L^2$ regularization (with $\lambda_l$ as the regularization coefficient for layer $l$), then:
 
 \begin{equation}
-\nabla_{\bm{w_l}} \mathcal{L} = \bm{P_l} \otimes \bm{I_l} + \lambda_l \cdot \bm{w_l} \text{ for all } l = 0, 1, \ldots, L
+\nabla_{\bm{w_l}} \mathcal{L} = \bm{P_l} \cdot \bm{I_l}^T + \lambda_l \cdot \bm{w_l} \text{ for all } l = 0, 1, \ldots, L
 \label{eq:loss_gradient_formula}
 \end{equation}
 
@@ -435,7 +437,7 @@ Now that we have reduced the loss gradient calculation to calculation of $\bm{P_
 \begin{theorem}
 For all $l = 0, 1, \ldots, L-1$,
 $$\bm{P_l} = (\bm{w_{l+1}}^T \cdot \bm{P_{l+1}}) \circ g_l'(\bm{S_l})$$
-where the symbol $\cdot$ represents vector-matrix multiplication and the symbol $\circ$ represents the \href{https://en.wikipedia.org/wiki/Hadamard_product_(matrices)}{Hadamard Product}, i.e., point-wise multiplication of two vectors of the same dimension.
+where the symbol $\circ$ represents the \href{https://en.wikipedia.org/wiki/Hadamard_product_(matrices)}{Hadamard Product}, i.e., point-wise multiplication of two vectors of the same dimension.
 \label{th:recursive_gradient_formulation}
 \end{theorem}
 
@@ -575,9 +577,9 @@ The method `backward_propagation` is the most important method of `DNNApprox` an
 1. `fwd_prop: Sequence[np.ndarray]` which represents the output of the `forward_propagation` method, i.e., a sequence of $L+2$ numpy arrays with the first $L+1$ elements as the 2-D numpy arrays representing the inputs to layers $l = 0, 1, \ldots L$ (for each of an `Iterable` of $x$-values provided as input to the neural network), and the last element as the 1-D numpy array representing the output $O_L = \mathbb{E}_M[y|x]$ of the neural network (for each of the `Iterable` of $x$-values provided as input to the neural network).
 2. `objective_derivative_output: Callable[[np.ndarray], np.ndarray]`, a function representing the partial derivative of an arbitrary objective function $Obj$ with respect to $O_L$ (the output of the neural network), i.e., a function representing $\frac {\partial Obj}{\partial O_L}$.
 
-The output of `backward_propagation` is an estimate of $\nabla_{\bm{w_l}} Obj$ for all $l = 0, 1, \ldots, L$. If we generalize the objective function from the cross-entropy loss function $\mathcal{L}$ to an arbitrary objective function $Obj$ and generalize $\bm{P_l}$ to be $\nabla_{\bm{S_l}} Obj$ (from $\nabla_{\bm{S_l}} \mathcal{L}$), then the output of `backward_propagation` would be equal to $\bm{P_l} \otimes \bm{I_l}$ (i.e., without the regularization term) for all $l = 0, 1, \ldots L$. 
+The output of `backward_propagation` is an estimate of $\nabla_{\bm{w_l}} Obj$ for all $l = 0, 1, \ldots, L$. If we generalize the objective function from the cross-entropy loss function $\mathcal{L}$ to an arbitrary objective function $Obj$ and generalize $\bm{P_l}$ to be $\nabla_{\bm{S_l}} Obj$ (from $\nabla_{\bm{S_l}} \mathcal{L}$), then the output of `backward_propagation` would be equal to $\bm{P_l} \cdot \bm{I_l}^T$ (i.e., without the regularization term) for all $l = 0, 1, \ldots L$. 
 
-The first step in `backward_propagation` is to extract $\bm{I_l}$ as the first $L+1$ elements of `fwd_prop` and store in the variable `layer_inputs`. The next step is to construct $\bm{P_L} = \frac {\partial Obj} {\partial S_L} = \frac {\partial Obj} {\partial O_L} \cdot \frac {\partial O_L} {\partial S_L}$ (variable `deriv` is initialized to $\bm{P_L}$) which is the product of the input `objective_derivative_output` (evaluated at each value in the 1-D numpy array `fwd_prop[-1]`, representing the outputs $O_L$ of the neural network) and the attribute `self.output_activation_deriv` representing $\frac {\partial O_L} {\partial S_L}$ as a function of $O_L$ (also evaluated at each value in the 1-D numpy array `fwd_prop[-1]`). The variable `deriv` represents $\bm{P_l} = \nabla_{\bm{S_l}} Obj$, evaluated for each of the values made available by `fwd_prop` (note that `deriv` is updated in each iteration of the loop reflecting Theorem \ref{th:recursive_gradient_formulation}: $\bm{P_l} = (\bm{w_{l+1}}^T \cdot \bm{P_{l+1}}) \circ g_l'(\bm{S_l})$). Note also that the returned list `back_prop` is populated with the result of Equation \eqref{eq:loss_gradient_formula}: $\nabla_{\bm{w_l}} \mathcal{L} = \bm{P_l} \otimes \bm{I_l}$.
+The first step in `backward_propagation` is to extract $\bm{I_l}$ as the first $L+1$ elements of `fwd_prop` and store in the variable `layer_inputs`. The next step is to construct $\bm{P_L} = \frac {\partial Obj} {\partial S_L} = \frac {\partial Obj} {\partial O_L} \cdot \frac {\partial O_L} {\partial S_L}$ (variable `deriv` is initialized to $\bm{P_L}$) which is the product of the input `objective_derivative_output` (evaluated at each value in the 1-D numpy array `fwd_prop[-1]`, representing the outputs $O_L$ of the neural network) and the attribute `self.output_activation_deriv` representing $\frac {\partial O_L} {\partial S_L}$ as a function of $O_L$ (also evaluated at each value in the 1-D numpy array `fwd_prop[-1]`). The variable `deriv` represents $\bm{P_l} = \nabla_{\bm{S_l}} Obj$, evaluated for each of the values made available by `fwd_prop` (note that `deriv` is updated in each iteration of the loop reflecting Theorem \ref{th:recursive_gradient_formulation}: $\bm{P_l} = (\bm{w_{l+1}}^T \cdot \bm{P_{l+1}}) \circ g_l'(\bm{S_l})$). Note also that the returned list `back_prop` is populated with the result of Equation \eqref{eq:loss_gradient_formula}: $\nabla_{\bm{w_l}} \mathcal{L} = \bm{P_l} \cdot \bm{I_l}^T$.
 
 The method `regularized_loss_gradient` takes as input an `Iterable` of $(x,y)$ pairs, invokes the `forward_propagation` method (to be passed as input to `backward_propagation`), prepares a function `obj_deriv_output` (to be passed as the other input to `backward_propagation`), invokes `backward_propagation` and simply adds on the regularization term $\lambda \cdot \bm{w_l}$ to the output of `backward_propagation`.
 
