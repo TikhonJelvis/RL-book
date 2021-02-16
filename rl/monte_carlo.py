@@ -38,7 +38,8 @@ def mc_prediction(
     function after each episode.
 
     '''
-    episodes = (returns(trace, γ, tolerance) for trace in traces)
+    episodes: Iterator[Iterator[mp.ReturnStep[S]]] = \
+        (returns(trace, γ, tolerance) for trace in traces)
 
     return approx_0.iterate_updates(
         ((step.state, step.return_) for step in episode)
