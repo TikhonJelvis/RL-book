@@ -61,17 +61,17 @@ for all $x \in \mathcal{X}$, for all $\bm{w} \in \mathcal{P}$.
 ### Linear Function Approximations
 
 If we restrict to linear function approximations, for all $x \in \mathcal{X}$,
-$$f(x, \bm{w}) = h(\bm{w}) = \bm{\Phi}(x) \circ \bm{w}$$
-where $\bm{w} \in \mathbb{R}^m = \mathcal{P}$ and $\bm{\Phi}: \mathcal{X} \rightarrow \mathbb{R}^m$ represents the feature functions (with $\circ$ denoting inner-product in the vector space $\mathbb{R}^m$).
+$$f(x, \bm{w}) = h(\bm{w}) = \bm{\Phi}(x)^T \cdot \bm{w}$$
+where $\bm{w} \in \mathbb{R}^m = \mathcal{P}$ and $\bm{\Phi}: \mathcal{X} \rightarrow \mathbb{R}^m$ represents the feature functions (note: $\bm{\Phi}(x)^T \cdot \bm{w}$ is the usual inner-product in the vector space $\mathbb{R}^m$).
 
 Then the gradient function $G: \mathcal{X} \rightarrow (\mathbb{R}^m \rightarrow \mathbb{R}^m)$ can be written as:
-$$G(x)(\bm{w}) = \nabla_{\bm{w}} (\bm{\Phi}(x) \circ \bm{w}) = \bm{\Phi}(x)$$
+$$G(x)(\bm{w}) = \nabla_{\bm{w}} (\bm{\Phi}(x)^T \cdot \bm{w}) = \bm{\Phi}(x)$$
 for all $x \in \mathcal{X}$, for all $\bm{w} \in \mathbb{R}^m$.
 
 Also note that in the case of linear function approximations, the function $I: \mathcal{R}^m \rightarrow (\mathcal{X} \rightarrow \mathbb{R})$ is a linear map from $\mathcal{R}^m = \mathcal{P}$ to a vector subspace of the function space $\mathcal{F}$ of all $\mathcal{X} \rightarrow \mathbb{R}$ functions over scalars field $\mathbb{R}$ (with pointwise operations). This is because for all $x \in \mathcal{X}$:
 
-$$\bm{\Phi}(x) \circ (\bm{w}_1 + \bm{w}_2) = \bm{\Phi}(x) \circ \bm{w}_1 + \bm{\Phi}(x) \circ \bm{w}_2 \text{ for all } \bm{w}_1, \bm{w}_2 \in \mathbb{R}^m$$
-$$\bm{\Phi}(x) \circ (a \cdot \bm{w}) = a \cdot (\bm{\Phi}(x) \circ \bm{w}) \text{ for all } \bm{w} \in \mathbb{R}^m, \text{ for all } a \in \mathbb{R}$$
+$$\bm{\Phi}(x)^T \cdot (\bm{w}_1 + \bm{w}_2) = \bm{\Phi}(x)^T \cdot \bm{w}_1 + \bm{\Phi}(x)^T \cdot \bm{w}_2 \text{ for all } \bm{w}_1, \bm{w}_2 \in \mathbb{R}^m$$
+$$\bm{\Phi}(x)^T \cdot (a \cdot \bm{w}) = a \cdot (\bm{\Phi}(x)^T \cdot \bm{w}) \text{ for all } \bm{w} \in \mathbb{R}^m, \text{ for all } a \in \mathbb{R}$$
 
 The key concept here is that for the case of linear function approximations, addition and multiplication "delegating" operations in $\mathcal{G}$ coincide with addition and multiplication "pointwise" operations in $\mathcal{F}$, which implies that $\mathcal{G}$ is isomorphic to a vector subspace of $\mathcal{F}$.
 
@@ -110,12 +110,12 @@ Updating vector $\bm{w}$ to vector $\bm{w} + U(\bm{w})$ in the Parameter Space $
 
 As a reminder, for the case of linear function approximations, $\mathcal{G}$ is isomorphic to a vector subspace of the function space $\mathcal{F}$ of all $\mathcal{X} \rightarrow \mathbb{R}$ functions over the scalars field $\mathbb{R}$ (addition and multiplication "delegating" operations in $\mathcal{G}$ coincide with addition and multiplication "pointwise" operations in $\mathcal{F}$).
 
-So in the case of linear function approximations, when updating vector $\bm{w}$ to vector $\bm{w} + \alpha \cdot (y - \bm{\Phi}(x) \circ \bm{w}) \cdot \bm{\Phi}(x)$ in the Parameter Space $\mathcal{P} = \mathbb{R}^m$, applying the linear map $I: \mathbb{R}^m \rightarrow \mathcal{G}$ updates functions in $\mathcal{G}$ with corresponding pointwise addition and multiplication operations.
+So in the case of linear function approximations, when updating vector $\bm{w}$ to vector $\bm{w} + \alpha \cdot (y - \bm{\Phi}(x)^T \cdot \bm{w}) \cdot \bm{\Phi}(x)$ in the Parameter Space $\mathcal{P} = \mathbb{R}^m$, applying the linear map $I: \mathbb{R}^m \rightarrow \mathcal{G}$ updates functions in $\mathcal{G}$ with corresponding pointwise addition and multiplication operations.
 
-Concretely, a linear function approximation $g: \mathcal{X} \rightarrow \mathbb{R}$ defined as $g(z) = \bm{\Phi}(z) \circ \bm{w}$ for all $z \in \mathcal{X}$ updates correspondingly to the function $g^{(x,y)}: \mathcal{X} \rightarrow \mathbb{R}$ defined as $g^{(x,y)}(z) = \bm{\Phi}(z) \circ \bm{w} + \alpha \cdot (y - \bm{\Phi}(x) \circ \bm{w}) \cdot (\bm{\Phi}(z) \circ \bm{\Phi}(x))$ for all $z \in \mathcal{X}$.
+Concretely, a linear function approximation $g: \mathcal{X} \rightarrow \mathbb{R}$ defined as $g(z) = \bm{\Phi}(z)^T \cdot \bm{w}$ for all $z \in \mathcal{X}$ updates correspondingly to the function $g^{(x,y)}: \mathcal{X} \rightarrow \mathbb{R}$ defined as $g^{(x,y)}(z) = \bm{\Phi}(z)^T \cdot \bm{w} + \alpha \cdot (y - \bm{\Phi}(x)^T \cdot \bm{w}) \cdot (\bm{\Phi}(z)^T \cdot \bm{\Phi}(x))$ for all $z \in \mathcal{X}$.
 
 It's useful to note that the change in the evaluation at $z \in \mathcal{X}$ is simply the product of:
 
 - Learning rate $\alpha \in \mathbb{R}^+$
-- Prediction Error $y - \bm{\Phi}(x) \circ \bm{w} \in \mathbb{R}$ for the updating data $(x,y) \in \mathcal{X} \times \mathbb{R}$
+- Prediction Error $y - \bm{\Phi}(x)^T \cdot \bm{w} \in \mathbb{R}$ for the updating data $(x,y) \in \mathcal{X} \times \mathbb{R}$
 - Inner-product of the feature vector $\bm{\Phi}(x) \in \mathbb{R}^m$ of the updating input value $x \in \mathcal{X}$ and the feature vector $\bm{\Phi}(z) \in \mathbb{R}^m$ of the evaluation input value $z \in \mathcal{X}$.
