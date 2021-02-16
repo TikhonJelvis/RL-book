@@ -907,39 +907,39 @@ Assume we have a portfolio of $m$ derivatives and we refer to our collective pos
  
  * Denote the derivatives portfolio-aggregated *Contingent Cashflows* at time $t$ as $X_t \in \mathbb{R}$.
  * Assume we have $n$ assets trading in the market that would serve as potential hedges for our derivatives position $D$.
- * Denote the number of units held in the hedge positions at time $t$ as $\alpha_t \in \mathbb{R}^n$.
- * Denote the cashflows per unit of hedges at time $t$ as $Y_t \in \mathbb{R}^n$.
- * Denote the prices per unit of hedges at time $t$ as $P_t \in \mathbb{R}^n$.
+ * Denote the number of units held in the hedge positions at time $t$ as $\bm{\alpha}_t \in \mathbb{R}^n$.
+ * Denote the cashflows per unit of hedges at time $t$ as $\bm{Y}_t \in \mathbb{R}^n$.
+ * Denote the prices per unit of hedges at time $t$ as $\bm{P}_t \in \mathbb{R}^n$.
  * Denote the PnL position at time $t$ as $\beta_t \in \mathbb{R}$.
   
 We will use the notation that we have previously used for discrete-time finite-horizon MDPs, i.e., we will use time-subscripts in our notation. 
  
-We denote the State Space at time $t$ (for all $0 \leq t \leq T+1$) as $\mathcal{S}_t$ and a specific state at time $t$ as $s_t \in \mathcal{S}_t$. Among other things, the key ingredients of $s_t$ includes: $\alpha_t, P_t, \beta_t, D$. In practice, $s_t$ will include many other components (in general, any market information relevant to hedge trading decisions). However, for simplicity (motivated by ease of articulation), we assume $s_t$ is simply the 5-tuple:
+We denote the State Space at time $t$ (for all $0 \leq t \leq T+1$) as $\mathcal{S}_t$ and a specific state at time $t$ as $s_t \in \mathcal{S}_t$. Among other things, the key ingredients of $s_t$ includes: $\bm{\alpha}_t, \bm{P}_t, \beta_t, D$. In practice, $s_t$ will include many other components (in general, any market information relevant to hedge trading decisions). However, for simplicity (motivated by ease of articulation), we assume $s_t$ is simply the 5-tuple:
  
- $$s_t := (\alpha_t, P_t, \beta_t, D)$$
+ $$s_t := (\bm{\alpha}_t, \bm{P}_t, \beta_t, D)$$
 
-We denote the Action Space at time $t$ (for all $0 \leq t \leq T$) as $\mathcal{A}_t$ and a specific action at time $t$ as $a_t \in \mathcal{A}_t$. $a_t$ represents the number of units of hedges traded at time $t$ (i.e., adjustments to be made to the hedges at each time step). Since there are $n$ hedge positions ($n$ assets to be traded), $a_t \in \mathbb{R}^n$, i.e., $\mathcal{A}_t \subseteq \mathbb{R}^n$. Note that for each of the $n$ assets, it's corresponding component in $a_t$ is positive if we buy the asset at time $t$ and negative if we sell the asset at time $t$. Any trading restrictions (eg: constraints on short-selling) will essentially manifest themselves in terms of the exact definition of $\mathcal{A}_t$ as a function of $s_t$.
+We denote the Action Space at time $t$ (for all $0 \leq t \leq T$) as $\mathcal{A}_t$ and a specific action at time $t$ as $\bm{a}_t \in \mathcal{A}_t$. $\bm{a}_t$ represents the number of units of hedges traded at time $t$ (i.e., adjustments to be made to the hedges at each time step). Since there are $n$ hedge positions ($n$ assets to be traded), $\bm{a}_t \in \mathbb{R}^n$, i.e., $\mathcal{A}_t \subseteq \mathbb{R}^n$. Note that for each of the $n$ assets, it's corresponding component in $\bm{a}_t$ is positive if we buy the asset at time $t$ and negative if we sell the asset at time $t$. Any trading restrictions (eg: constraints on short-selling) will essentially manifest themselves in terms of the exact definition of $\mathcal{A}_t$ as a function of $s_t$.
 
-State transitions are essentially defined by the random movements of prices of the assets that make up the potential hedges, i.e., $\mathbb{P}[P_{t+1}|P_t]$. In practice, this is available either as an explicit transition-probabilities model, or more likely available in the form of a *simulator*, that produces an on-demand sample of the next time step's prices, given the current time step's prices.  Either way, the internals of $\mathbb{P}[P_{t+1}|P_t]$ are estimated from actual market data and realistic trading/market assumptions. The practical details of how to estimate these internals are beyond the scope of this book - it suffices to say here that this estimation is a form of supervised learning, albeit fairly nuanced due to the requirement of capturing the complexities of market-price behavior. For the following description of the MDP, simply assume that we have access to $\mathbb{P}[P_{t+1}|P_t]$ in *some form*.
+State transitions are essentially defined by the random movements of prices of the assets that make up the potential hedges, i.e., $\mathbb{P}[\bm{P}_{t+1}|\bm{P}_t]$. In practice, this is available either as an explicit transition-probabilities model, or more likely available in the form of a *simulator*, that produces an on-demand sample of the next time step's prices, given the current time step's prices.  Either way, the internals of $\mathbb{P}[\bm{P}_{t+1}|\bm{P}_t]$ are estimated from actual market data and realistic trading/market assumptions. The practical details of how to estimate these internals are beyond the scope of this book - it suffices to say here that this estimation is a form of supervised learning, albeit fairly nuanced due to the requirement of capturing the complexities of market-price behavior. For the following description of the MDP, simply assume that we have access to $\mathbb{P}[\bm{P}_{t+1}|\bm{P}_t]$ in *some form*.
  
 It is important to pay careful attention to the sequence of events at each time step $t=0, \ldots, T$, described below:
  
- 1. Observe the state $s_t := (\alpha_t, P_t, \beta_t, D)$.
- 2. Perform action (trades) $a_t$, which produces trading PnL $= - a_t \cdot P_t$ (note: this is a dot-product in $\mathbb{R}^n$).
- 3. These trades incur transaction costs, for example equal to $\gamma P_t \cdot |a_t|$ for some $\gamma \in \mathbb{R}^+$ (note: the absolute value applies point-wise on $a_t \in \mathbb{R}^n$, and then we take it's dot-product with $P_t \in \mathbb{R}^n$).
+ 1. Observe the state $s_t := (\bm{\alpha}_t, \bm{P}_t, \beta_t, D)$.
+ 2. Perform action (trades) $\bm{a}_t$, which produces trading PnL $= - \bm{a}_t^T \cdot \bm{P}_t$ (note: this is an inner-product in $\mathbb{R}^n$).
+ 3. These trades incur transaction costs, for example equal to $\gamma \cdot abs(\bm{a}_t^T) \cdot \bm{P}_t$ for some $\gamma \in \mathbb{R}^+$ (note: $abs$, denoting absolute value, applies point-wise on $\bm{a}_t^T \in \mathbb{R}^n$, and then we take it's inner-product with $\bm{P}_t \in \mathbb{R}^n$).
  4. Update $\alpha_t$ as:
- $$\alpha_{t+1} = \alpha_t + a_t$$
- At termination, we need to force-liquidate, which establishes the constraint: $a_T= - \alpha_T$.
- 5. Realize end-of-time-step cashflows from the derivatives position $D$ as well as from the (updated) hedge positions. This is equal to $X_{t+1} + \alpha_{t+1} \cdot Y_{t+1}$ (note: $\alpha_{t+1} \cdot Y_{t+1}$ is a dot-product in $\mathbb{R}^n$).
+ $$\bm{\alpha}_{t+1} = \bm{\alpha}_t + \bm{a}_t$$
+ At termination, we need to force-liquidate, which establishes the constraint: $\bm{a}_T= - \bm{\alpha}_T$.
+ 5. Realize end-of-time-step cashflows from the derivatives position $D$ as well as from the (updated) hedge positions. This is equal to $X_{t+1} + \bm{\alpha}_{t+1}^T \cdot \bm{Y}_{t+1}$ (note: $\bm{\alpha}_{t+1}^T \cdot \bm{Y}_{t+1}$ is an inner-product in $\mathbb{R}^n$).
  6. Update PnL $\beta_t$ as:
- $$\beta_{t+1} = \beta_t - a_t \cdot P_t - \gamma P_t \cdot |a_t| + X_{t+1} + \alpha_{t+1} \cdot Y_{t+1}$$
+ $$\beta_{t+1} = \beta_t - \bm{a}_t^T \cdot \bm{P}_t - \gamma \cdot abs(\bm{a}_t^T) \cdot \bm{P}_t + X_{t+1} + \bm{\alpha}_{t+1}^T \cdot \bm{Y}_{t+1}$$
  7. MDP Reward $r_{t+1} = 0$ for all $t = 0, \ldots, T-1$ and $r_{T+1} = U(\beta_{T+1})$ for an appropriate concave Utility function (based on the extent of risk-aversion).
- 8. Hedge prices evolve from $P_t$ to $P_{t+1}$, based on price-transition model of $\mathbb{P}[P_{t+1}|P_t]$.
+ 8. Hedge prices evolve from $\bm{P}_t$ to $\bm{P}_{t+1}$, based on price-transition model of $\mathbb{P}[\bm{P}_{t+1}|\bm{P}_t]$.
  
  Assume we now want to enter into an incremental position of derivatives-portfolio $D'$ in $m'$ derivatives. We denote the combined position as $D \cup D'$. We want to determine the *Price* of the incremental position $D'$, as well as the hedging strategy for $D'$.
  
  Denote the Optimal Value Function at time $t$ (for all $0 \leq t \leq T$) as $V_t^* : \mathcal{S}_t \rightarrow \mathbb{R}$. Pricing of $D'$ is based on the principle that introducing the incremental position of $D'$ together with a calibrated cash payment/receipt (Price of $D'$) at $t=0$ should leave the Optimal Value (at $t=0$) unchanged. Precisely, the Price of $D'$ is the value $x^*$ such that
- $$V_0^*((\alpha_0,P_0,\beta_0-x^*,D\cup D')) = V_0^*((\alpha_0, P_0, \beta_0, D))$$
+ $$V_0^*((\bm{\alpha}_0, \bm{P}_0, \beta_0 - x^*, D\cup D')) = V_0^*((\bm{\alpha}_0, \bm{P}_0, \beta_0, D))$$
  This Pricing principle is known as the principle of *Indifference Pricing*. The hedging strategy at time $t$ (for all $0 \leq t < T$) is given by the Optimal Policy $\pi_t^* : \mathcal{S}_t \rightarrow \mathcal{A}_t$
   
 ### Key Takeaways from this Chapter
