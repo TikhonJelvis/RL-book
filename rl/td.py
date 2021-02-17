@@ -35,8 +35,10 @@ def td_prediction(
             v: FunctionApprox[S],
             transition: mp.TransitionStep[S]
     ) -> FunctionApprox[S]:
-        return v.update([(transition.state,
-                          transition.reward + γ * v(transition.next_state))])
+        return v.update([(
+            transition.state,
+            transition.reward + γ * v(transition.next_state)
+        )])
 
     return iterate.accumulate(transitions, step, initial=approx_0)
 

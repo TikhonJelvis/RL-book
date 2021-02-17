@@ -79,7 +79,8 @@ def mc_prediction(
         gamma: float,
         tolerance: float = 1e-6
 ) -> Iterator[FunctionApprox[S]]:
-    episodes = (returns(trace, gamma, tolerance) for trace in traces)
+    episodes: Iterator[Iterator[mp.ReturnStep[S]]] = \
+        (returns(trace, gamma, tolerance) for trace in traces)
 
     return approx_0.iterate_updates(
         ((step.state, step.return_) for step in episode)
@@ -360,10 +361,14 @@ def td_prediction(
         approx_0: FunctionApprox[S],
         gamma: float,
 ) -> Iterator[FunctionApprox[S]]:
-
-    def step(v, transition):
-        return v.update([(transition.state,
-                          transition.reward + gamma * v(transition.next_state))])
+    def step(
+            v: FunctionApprox[S],
+            transition: mp.TransitionStep[S]
+    ) -> FunctionApprox[S]:
+        return v.update([(
+            transition.state,
+            transition.reward + gamma * v(transition.next_state)
+        )])
 
     return iterate.accumulate(transitions, step, initial=approx_0)
 ```
