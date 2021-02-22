@@ -30,23 +30,6 @@ def fmrp_episodes_stream(
     return mrp_episodes_stream(fmrp, Choose(set(fmrp.non_terminal_states)))
 
 
-def mc_prediction_equal_wts(
-    mrp: MarkovRewardProcess[S],
-    start_state_distribution: Distribution[S],
-    gamma: float,
-    tolerance: float,
-    initial_func_approx: FunctionApprox[S]
-) -> Iterator[FunctionApprox[S]]:
-    episodes: Iterable[Iterable[TransitionStep[S]]] = \
-        mrp_episodes_stream(mrp, start_state_distribution)
-    return mc.mc_prediction(
-        traces=episodes,
-        approx_0=initial_func_approx,
-        γ=gamma,
-        tolerance=tolerance
-    )
-
-
 def mc_finite_prediction_equal_wts(
     fmrp: FiniteMarkovRewardProcess[S],
     gamma: float,
