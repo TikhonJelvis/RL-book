@@ -290,7 +290,7 @@ if __name__ == '__main__':
         sarsa_vf_dict, sarsa_policy = wg.get_sarsa_vf_and_policy(
             states_actions_dict=wg.get_states_actions_dict(),
             sample_func=sample_func,
-            episodes=10000,
+            episodes=100000,
             step_size=0.01
         )
         print("SARSA\n")
@@ -302,7 +302,7 @@ if __name__ == '__main__':
         ql_vf_dict, ql_policy = wg.get_q_learning_vf_and_policy(
             states_actions_dict=wg.get_states_actions_dict(),
             sample_func=sample_func,
-            episodes=10000,
+            episodes=30000,
             step_size=0.01,
             epsilon=0.1
         )
