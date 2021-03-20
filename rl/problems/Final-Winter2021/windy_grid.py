@@ -114,13 +114,13 @@ class WindyGrid:
                 stay_prob: float = 1. - down_prob - up_prob
                 d1: Dict[Tuple[Cell, float], float] = \
                     {((r, c), -1.): stay_prob}
-                if (r - 1, c) not in self.blocks:
+                if self.is_valid_state((r - 1, c)):
                     d1[((r - 1, c), -1.)] = down_prob
-                if (r + 1, c) not in self.blocks:
+                if self.is_valid_state((r + 1, c)):
                     d1[((r + 1, c), -1.)] = up_prob
                 d1[((r, c), -1. - self.bump_cost)] = \
-                    down_prob * ((r - 1, c) in self.blocks) + \
-                    up_prob * ((r + 1, c) in self.blocks)
+                    down_prob * (1 - self.is_valid_state((r - 1, c))) + \
+                    up_prob * (1 - self.is_valid_state((r + 1, c)))
                 d[a] = Categorical(d1)
         return d
 
