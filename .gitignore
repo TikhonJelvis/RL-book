@@ -16,3 +16,7 @@ __pycache__
 *.dvi
 *.log
 *.out.ps
+
+# Haskell
+dist
+dist-newstyle

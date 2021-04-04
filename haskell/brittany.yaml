@@ -1,0 +1,13 @@
+conf_layout:
+  lconfig_cols: 90
+
+  lconfig_importAsColumn: 60
+  lconfig_importColumn: 60
+
+  lconfig_hangingTypeSignature: true
+  lconfig_allowSingleLineExportList: true
+
+conf_forward:
+  options_ghc: []
+conf_version: 1
+

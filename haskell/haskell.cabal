@@ -1,0 +1,37 @@
+cabal-version:       >=1.10
+
+name:                rl-book
+version:             0.1.0.0
+synopsis:            Haskell code used as a design study for the RL framework in the book.
+-- description:
+-- bug-reports:
+-- license:
+-- license-file:        LICENSE
+author:              Tikhon Jelvis
+maintainer:          tikhon@jelv.is
+-- copyright:
+-- category:
+build-type:          Simple
+extra-source-files:  CHANGELOG.md
+
+library
+  hs-source-dirs:      src
+
+  exposed-modules:     RL.Process.Finite,
+                       RL.Process.Markov
+
+  build-depends:       
+                       base,
+                       bytestring,
+                       containers,
+                       hashable,
+                       hmatrix,
+                       linear,
+                       monad-bayes,
+                       mtl,
+                       streaming,
+                       text,
+                       unordered-containers,
+                       vector
+  -- hs-source-dirs:
+  default-language:    Haskell2010
