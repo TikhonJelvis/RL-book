@@ -1,0 +1,52 @@
+cabal-version:  2.2
+
+name:       rl-book
+version:    0.1.0.0
+synopsis:   Haskell code used as a design study for the RL framework in the book.
+author:     Tikhon Jelvis
+maintainer: tikhon@jelv.is
+build-type: Simple
+
+common shared
+  default-language: Haskell2010
+  build-depends: base
+
+               , bytestring
+               , containers
+               , hashable
+               , hmatrix
+               , linear
+               , monad-bayes
+               , mtl
+               , QuickCheck
+               , streaming
+               , text
+               , unordered-containers
+               , vector
+
+library
+  import:              shared
+  hs-source-dirs:      src
+  exposed-modules:     RL.Iterate,
+                       RL.Matrix,
+
+                       RL.Process.DynamicProgramming,
+                       RL.Process.Finite,
+                       RL.Process.Markov
+
+test-suite tests
+  import:         shared
+  type:           exitcode-stdio-1.0
+  hs-source-dirs: test
+
+  main-is:        Test.hs
+  other-modules:  Test.RL.Iterate
+                , Test.RL.Matrix
+
+                , Test.RL.Process.DynamicProgramming
+
+  build-depends:  rl-book
+
+                , tasty
+                , tasty-hunit
+                , tasty-quickcheck
