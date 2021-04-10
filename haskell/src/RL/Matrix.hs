@@ -43,8 +43,8 @@ allWithin ϵ a b = Matrix.maxElement (abs (a - b)) <= ϵ
 -- * QuickCheck
 
 -- | Generate data for random matrices ranging from 1×1 to 100×100.
-matrixRows' :: Gen [[R]]
-matrixRows' = do
+matrixRows :: Gen [[R]]
+matrixRows = do
   n <- choose (1, 100)
   m <- choose (1, 100)
   replicateM m (replicateM n arbitrary)

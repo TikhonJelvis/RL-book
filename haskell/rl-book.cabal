@@ -13,6 +13,7 @@ common shared
 
                , bytestring
                , containers
+               , data-default
                , hashable
                , hmatrix
                , linear
@@ -27,12 +28,13 @@ common shared
 library
   import:              shared
   hs-source-dirs:      src
-  exposed-modules:     RL.Iterate,
-                       RL.Matrix,
+  exposed-modules:     RL.Iterate
+                     , RL.Matrix
 
-                       RL.Process.DynamicProgramming,
-                       RL.Process.Finite,
-                       RL.Process.Markov
+                     , RL.Process.DynamicProgramming
+                     , RL.Process.Finite
+                     , RL.Process.FunctionApproximation
+                     , RL.Process.Markov
 
 test-suite tests
   import:         shared
