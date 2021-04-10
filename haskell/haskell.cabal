@@ -17,7 +17,11 @@ extra-source-files:  CHANGELOG.md
 library
   hs-source-dirs:      src
 
-  exposed-modules:     RL.Process.Finite,
+  exposed-modules:     RL.Iterate,
+                       RL.Matrix,
+                       
+                       RL.Process.DynamicProgramming,
+                       RL.Process.Finite,
                        RL.Process.Markov
 
   build-depends:       

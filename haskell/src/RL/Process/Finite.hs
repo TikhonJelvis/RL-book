@@ -2,12 +2,12 @@
 {-# LANGUAGE ParallelListComp #-}
 {-# LANGUAGE ViewPatterns #-}
 module RL.Process.Finite
-  ( FiniteMarkovProcess
-  , states
+  ( FiniteMarkovProcess(..)
   , toProcess
   , fromProcess
-  , FiniteMarkovRewardProcess
+  , FiniteMarkovRewardProcess(..)
   , toRewardProcess
+  , fromRewardProcess
   ) where
 
 
@@ -30,6 +30,7 @@ import           Numeric.LinearAlgebra                    ( (!)
                                                           )
 import qualified Numeric.LinearAlgebra                   as Matrix
 
+import           RL.Matrix                                ( sumRows )
 import           RL.Process.Markov                        ( MarkovProcess(..)
                                                           , MarkovRewardProcess(..)
                                                           , Reward
@@ -96,8 +97,9 @@ fromProcess (List.sort -> states) MarkovProcess { step } = FiniteMarkovProcess
 -- | A Markov reward process with a finite number of states,
 -- represented as a 'FiniteMarkovProcess' along with a reward matrix.
 data FiniteMarkovRewardProcess s = FiniteMarkovRewardProcess
-  { process :: !(FiniteMarkovProcess s)
-  , rewards :: !(Matrix R)
+  { process         :: !(FiniteMarkovProcess s)
+  , rewards         :: !(Matrix R)
+  , expectedRewards :: !(Matrix.Vector R)
   }
   deriving (Show, Eq)
 
@@ -135,18 +137,20 @@ fromRewardProcess :: (Hashable s, Eq s, Ord s)
                   -> FiniteMarkovRewardProcess s
 fromRewardProcess (List.sort -> states) rewardProcess = FiniteMarkovRewardProcess
   { process
-  , rewards = Matrix.fromRows $ rs <$> rewards
+  , rewards
+  , expectedRewards = sumRows $ transition * rewards
   }
  where
-  process = FiniteMarkovProcess
-    { stateIndices = HashMap.fromList [ (s, i) | s <- states | i <- [0..] ]
-    , states       = V.fromList states
-    , transition   = Matrix.fromRows $ ps <$> rewards
-    }
-  rewards =
+  rewards    = Matrix.fromLists $ map (getSum . fst) <$> results
+  transition = Matrix.fromLists $ map snd <$> results
+
+  results =
     [ [ (r, p) | ((_, r), p) <- Enumerator.enumerate (step' rewardProcess s) ]
     | s <- states
     ]
 
-  ps = Matrix.fromList . map snd
-  rs = Matrix.fromList . map (getSum . fst)
+  process = FiniteMarkovProcess
+    { stateIndices = HashMap.fromList [ (s, i) | s <- states | i <- [0..] ]
+    , states       = V.fromList states
+    , transition
+    }
