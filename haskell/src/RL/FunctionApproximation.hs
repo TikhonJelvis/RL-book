@@ -1,9 +1,9 @@
 {-# LANGUAGE ViewPatterns #-}
 {-# LANGUAGE NamedFieldPuns #-}
-module RL.Process.FunctionApproximation where
+module RL.FunctionApproximation where
 
 import           Data.Default                             ( Default(..) )
-import qualified Data.Vector                              ( Vector )
+import qualified Data.Vector                             as V
 import qualified Data.Vector.Storable                    as Vector
 
 import           Numeric.LinearAlgebra                    ( (#>)
@@ -18,6 +18,7 @@ import           Numeric.LinearAlgebra                    ( (#>)
                                                           )
 import qualified Numeric.LinearAlgebra                   as Matrix
 
+import           RL.Matrix                                ( (<$$>) )
 import qualified RL.Matrix                               as Matrix
 
 -- * Function Approximation
@@ -29,25 +30,30 @@ class Approx f where
 
   -- | Improve the function approximation given a list of
   -- observations.
-  update :: f a -> [(a, R)] -> f a
+  update :: f a -> V.Vector a -> Vector R -> f a
 
   -- | Are the two function approximations within ϵ of each other?
   within :: R -> f a -> f a -> Bool
 
+
+-- | Evaluate a whole bunch of inputs and produce a vector of the
+-- results.
+eval' :: Approx f => f a -> V.Vector a -> Vector R
+eval' f xs = Matrix.storable $ eval f <$> xs
 
 -- * Weighted Approximations
 
 -- ** Learning Rates
 
 data Adam = Adam
-  { α      :: !R
-  , decay1 :: !R
-  , decay2 :: !R
+  { α  :: !R
+  , β₁ :: !R
+  , β₂ :: !R
   }
   deriving (Show, Eq)
 
 instance Default Adam where
-  def = Adam { α = 0.001, decay1 = 0.9, decay2 = 0.999 }
+  def = Adam { α = 0.001, β₁ = 0.9, β₂ = 0.999 }
 
 data AdamCache = AdamCache
   { cache1 :: !(Vector R)
@@ -55,8 +61,24 @@ data AdamCache = AdamCache
   }
   deriving (Show, Eq)
 
+-- | Create an 'AdamCache' for a set of @n@ weights, initialized to 0.
 adamCache :: Int -> AdamCache
 adamCache n = AdamCache { cache1 = Vector.replicate n 0, cache2 = Vector.replicate n 0 }
+
+-- | Update both Adam caches given 'Adam' settings and a loss
+-- gradient.
+updateCache :: AdamCache
+            -- ^ The Adam cache to update.
+            -> Adam
+            -- ^ Adam settings to use.
+            -> Vector R
+            -- ^ A vector representing the loss gradient (see
+            -- 'lossGradient').
+            -> AdamCache
+updateCache AdamCache { cache1, cache2 } Adam { α, β₁, β₂ } grad = AdamCache
+  { cache1 = scale β₁ cache1 + scale (1 - β₁) grad
+  , cache2 = scale β₂ cache2 + scale (1 - β₂) (grad ** 2)
+  }
 
 -- ** Weights
 
@@ -81,8 +103,21 @@ weights values =
 weightsWithin :: R -> Weights -> Weights -> Bool
 weightsWithin ϵ w₁ w₂ = Matrix.allWithin ϵ (values w₁) (values w₂)
 
+-- | Update weights given a vector representing the loss gradient.
 updateWeights :: Weights -> Vector R -> Weights
-updateWeights = undefined
+updateWeights weights grad = weights { time   = time weights + 1
+                                     , cache  = cache'
+                                     , values = values'
+                                     }
+ where
+  values'            = values weights - scale α m' / (sqrt v' + ϵ)
+  m'                 = cache1 cache' / scalar (1 - β₁ ** t)
+  v'                 = cache2 cache' / scalar (1 - β₂ ** t)
+  t                  = fromIntegral (time weights + 1)
+  ϵ                  = 1e-6
+
+  cache'             = updateCache (cache weights) (adam weights) grad
+  Adam { α, β₁, β₂ } = adam weights
 
 -- ** Linear Approximations
 
@@ -103,17 +138,17 @@ data Linear a = Linear
 features :: [a -> R] -> (a -> Vector R)
 features fs a = length fs |> [ f a | f <- fs ]
 
-lossGradient :: Linear a -> [(a, R)] -> Vector R
-lossGradient Linear { ϕ, w, λ } xy = (tr' ϕₓ #> (y' - y)) / n + scale λ (values w)
+lossGradient :: Linear a -> V.Vector a -> Vector R -> Vector R
+lossGradient Linear { ϕ, w, λ } x y = (tr' ϕₓ #> (y' - y)) / n + scale λ (values w)
  where
-  (x, Matrix.fromList -> y) = unzip xy
-  ϕₓ                        = Matrix.fromRows (ϕ <$> x)
-  y'                        = ϕₓ #> values w
-  n                         = scalar (fromIntegral $ length xy)
+  ϕₓ = ϕ <$$> x
+  y' = ϕₓ #> values w
+  n  = scalar (fromIntegral $ length x)
 
 instance Approx Linear where
   eval Linear { ϕ, w } a = ϕ a <.> values w
 
-  update linear@Linear { w } xy = linear { w = updateWeights w $ lossGradient linear xy }
+  update linear@Linear { w } x y =
+    linear { w = updateWeights w $ lossGradient linear x y }
 
   within ϵ l₁ l₂ = weightsWithin ϵ (w l₁) (w l₂)

@@ -3,6 +3,11 @@ module RL.Matrix where
 
 import           Control.Monad                            ( replicateM )
 
+import qualified Data.Foldable                           as Foldable
+import qualified Data.Vector                             as V
+import           Data.Vector.Storable                     ( Storable )
+import qualified Data.Vector.Storable                    as Storable
+
 import           Numeric.LinearAlgebra                    ( Matrix
                                                           , R
                                                           , Vector
@@ -39,6 +44,22 @@ allWithin :: (Ord a, Matrix.Container c a, Num (c a))
           -- ^ b
           -> Bool
 allWithin ϵ a b = Matrix.maxElement (abs (a - b)) <= ϵ
+
+-- * Converting Vector Types
+
+-- | Convert a normal 'V.Vector' to a storable 'Vector'.
+storable :: Storable a => V.Vector a -> Vector a
+storable xs = Storable.generate (V.length xs) $ \i -> xs V.! i
+
+-- | Construct a matrix out of a normal 'V.Vector' of rows (as
+-- storable 'Vector's).
+fromRows' :: Matrix.Element a => V.Vector (Vector a) -> Matrix a
+fromRows' = Matrix.fromRows . V.toList
+
+-- | Create a matrix by mapping a function that generates rows over a
+-- 'Foldable' container.
+(<$$>) :: (Foldable f, Functor f, Matrix.Element b) => (a -> Vector b) -> f a -> Matrix b
+f <$$> xs = Matrix.fromRows $ Foldable.toList $ f <$> xs
 
 -- * QuickCheck
 

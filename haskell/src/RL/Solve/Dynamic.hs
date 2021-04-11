@@ -2,7 +2,7 @@
 {-# LANGUAGE RecordWildCards #-}
 -- | Algorithms for "solving" finite Markov reward processes with
 -- dynamic programming.
-module RL.Process.DynamicProgramming where
+module RL.Solve.Dynamic where
 
 import qualified Data.Vector.Storable                    as Vector
 

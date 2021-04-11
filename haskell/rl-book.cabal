@@ -28,13 +28,15 @@ common shared
 library
   import:              shared
   hs-source-dirs:      src
-  exposed-modules:     RL.Iterate
+  exposed-modules:     RL.FunctionApproximation
+                     , RL.Iterate
                      , RL.Matrix
 
-                     , RL.Process.DynamicProgramming
                      , RL.Process.Finite
-                     , RL.Process.FunctionApproximation
                      , RL.Process.Markov
+
+                     , RL.Solve.Approximate
+                     , RL.Solve.Dynamic
 
 test-suite tests
   import:         shared
@@ -45,7 +47,7 @@ test-suite tests
   other-modules:  Test.RL.Iterate
                 , Test.RL.Matrix
 
-                , Test.RL.Process.DynamicProgramming
+                , Test.RL.Solve.Dynamic
 
   build-depends:  rl-book
 
