@@ -28,7 +28,7 @@ import           RL.Process.Markov                        ( MarkovRewardProcess
                                                           , step'
                                                           )
 
-evaluateFiniteMRP :: Approx v
+evaluateFiniteMRP :: Approx v s
                   => FiniteMarkovRewardProcess s
                   -> Double
                   -- ^ Discount factor (γ)
@@ -43,7 +43,7 @@ evaluateFiniteMRP FiniteMarkovRewardProcess { process, expectedRewards } γ v₀
     updated = expectedRewards + scale γ (transition process #> vs)
     vs      = Approx.eval' v (states process)
 
-evaluateMRP :: (Approx v, Monad m, MonadSample m)
+evaluateMRP :: (Approx v s, Monad m, MonadSample m)
             => MarkovRewardProcess m s
             -> m s
             -- ^ Distribution of start states.

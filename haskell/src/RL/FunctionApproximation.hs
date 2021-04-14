@@ -1,8 +1,17 @@
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE ParallelListComp #-}
 {-# LANGUAGE ViewPatterns #-}
 {-# LANGUAGE NamedFieldPuns #-}
 module RL.FunctionApproximation where
 
 import           Data.Default                             ( Default(..) )
+import qualified Data.Foldable                           as Foldable
+import           Data.HashMap.Strict                      ( (!)
+                                                          , HashMap
+                                                          )
+import qualified Data.HashMap.Strict                     as HashMap
+import           Data.Hashable                            ( Hashable )
 import qualified Data.Vector                             as V
 import qualified Data.Vector.Storable                    as Vector
 
@@ -18,13 +27,15 @@ import           Numeric.LinearAlgebra                    ( (#>)
                                                           )
 import qualified Numeric.LinearAlgebra                   as Matrix
 
+import           Text.Printf                              ( printf )
+
 import           RL.Matrix                                ( (<$$>) )
 import qualified RL.Matrix                               as Matrix
 
 -- * Function Approximation
 
 -- | Approximations for functions of the type a → ℝ.
-class Approx f where
+class Approx f a where
   -- | Evaluate the function approximation as a function.
   eval :: f a -> a -> R
 
@@ -38,7 +49,7 @@ class Approx f where
 
 -- | Evaluate a whole bunch of inputs and produce a vector of the
 -- results.
-eval' :: Approx f => f a -> V.Vector a -> Vector R
+eval' :: Approx f a => f a -> V.Vector a -> Vector R
 eval' f xs = Matrix.storable $ eval f <$> xs
 
 -- * Weighted Approximations
@@ -120,41 +131,83 @@ updateWeights weights grad = weights { time   = time weights + 1
   cache'             = updateCache (cache weights) (adam weights) grad
   Adam { α, β₁, β₂ } = adam weights
 
+-- ** Dynamic Programming
+
+-- $ While the 'Approx' class is primarily meant for function
+-- approximations, it can also be used for exact dynamic
+-- programming. This lets us have a single implementation of
+-- algorithms like Bellman iteration that can be run in both "exact"
+-- and "approximate" modes.
+
+-- | An 'Approx' that models a function as a map.
+data Dynamic a = Dynamic
+  { mapping :: HashMap a R
+  }
+  deriving (Show, Eq)
+
+instance (Eq a, Hashable a) => Approx Dynamic a where
+  eval Dynamic { mapping } x = mapping ! x
+
+  update Dynamic { mapping } xs ys = Dynamic
+    { mapping = HashMap.fromList pairs <> mapping
+    }
+    where pairs = [ (x, y) | x <- V.toList xs | y <- Matrix.toList ys ]
+
+  within ϵ (Dynamic d₁) (Dynamic d₂) =
+    (HashMap.keys d₁ == HashMap.keys d₂)
+      && all within_ϵ (Foldable.toList d₁ `zip` Foldable.toList d₂)
+    where within_ϵ (a, b) = abs (a - b) <= ϵ
+
+-- | Create a 'Dynamic' function approximation for the given set of
+-- inputs, all initialized to 0.
+dynamic :: (Eq a, Hashable a) => [a] -> Dynamic a
+dynamic xs = Dynamic { mapping = HashMap.fromList [ (x, 0) | x <- xs ] }
+
 -- ** Linear Approximations
 
+-- | An approximation that uses a linear combination of /features/
+-- ('ϕ') and an extra regularization term ('λ') to model a function.
 data Linear a = Linear
-  { ϕ :: (a -> Vector R)
+  { ϕ :: !(a -> Vector R)
     -- ^ Get all the features for an input @a@.
-  , w :: Weights
+  , w :: !Weights
     -- ^ The weights of all the features ϕ. Should have the same
     -- dimension as ϕ returns.
-  , λ :: R
+  , λ :: !R
     -- ^ The regularization coefficient.
   }
+
+-- | For debugging and GHCi.
+instance Show a => Show (Linear a) where
+  show Linear { w, λ } =
+    printf "Linear { ϕ = (λ x → …), w = %s, λ = %f }" (show w) λ
 
 -- | Convert a list of feature functions into a single function
 -- returning a vector.
 -- 
--- Basic idea: @[f₁, f₂, f₃]@ becomes @λ x → <f₁ x, f₂ x, f₃ x>@
+-- Basic idea: @[f₁, f₂, f₃]@ becomes @f(x) = <f₁ x, f₂ x, f₃ x>@.
 features :: [a -> R] -> (a -> Vector R)
 features fs a = length fs |> [ f a | f <- fs ]
 
--- | Convert a list of feature functions into a 'Linear' approximation
--- with no regularization.
-linear :: [a -> R] -> Linear a
-linear fs = Linear { ϕ = features fs, w, λ = 0 }
-  where w = weights $ Vector.replicate (length fs) 0
+-- | Convert a list of feature functions into a 'Linear'
+-- approximation.
+linear :: R
+       -- ^ Regularization coefficient (λ).
+       -> [a -> R]
+       -- ^ A set of feature functions (ϕ).
+       -> Linear a
+linear λ fs =
+  Linear { λ, ϕ = features fs, w = weights $ Vector.replicate (length fs) 0 }
 
 lossGradient :: Linear a -> V.Vector a -> Vector R -> Vector R
-lossGradient Linear { ϕ, w, λ } x y = (tr' ϕₓ #> (y' - y)) / n + scale
-  λ
-  (values w)
+lossGradient Linear { ϕ, w, λ } x y = (tr' ϕₓ #> (y' - y)) / n + reg
  where
-  ϕₓ = ϕ <$$> x
-  y' = ϕₓ #> values w
-  n  = scalar (fromIntegral $ length x)
+  ϕₓ  = ϕ <$$> x
+  y'  = ϕₓ #> values w
+  n   = scalar (fromIntegral $ length x)
+  reg = scale λ $ values w
 
-instance Approx Linear where
+instance Approx Linear a where
   eval Linear { ϕ, w } a = ϕ a <.> values w
 
   update linear@Linear { w } x y =
