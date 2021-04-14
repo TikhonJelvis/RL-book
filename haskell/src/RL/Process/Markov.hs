@@ -87,8 +87,10 @@ instance MonadSample m => MonadSample (WithReward m) where
 type MarkovRewardProcess m s = MarkovProcess (WithReward m) s
 
 -- | Step a 'MarkovRewardProcess', returning the new state and reward.
-step' :: MarkovRewardProcess m s -> s -> m (s, Reward)
-step' MarkovProcess { step } = runWithReward . step
+step' :: Monad m => MarkovRewardProcess m s -> s -> m (s, Double)
+step' MarkovProcess { step } s = do
+  (s', r) <- runWithReward (step s)
+  pure (s', getSum r)
 
 -- ** Simulations
 

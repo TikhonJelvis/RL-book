@@ -3,7 +3,7 @@
 }:
 let
   haskellNix = import sources."haskell.nix" {};
-  pkgs = import haskellNix.sources.nixpkgs-2003 haskellNix.nixpkgsArgs;
+  pkgs = import sources.nixpkgs haskellNix.nixpkgsArgs;
 in
 pkgs.haskell-nix.project {
   src = pkgs.haskell-nix.haskellLib.cleanGit {

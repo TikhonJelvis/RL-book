@@ -1,14 +1,13 @@
 module RL.Probability where
 
-import           Control.Monad.Bayes.Enumerator           ( Enumerator )
-import qualified Control.Monad.Bayes.Enumerator          as Enumerator
+import           Control.Monad                            ( replicateM )
+import           Control.Monad.Bayes.Class                ( MonadSample )
 
 import           Numeric.LinearAlgebra                    ( R )
 
--- | Probability monads where we can (approximate) the expected value
--- of distributions.
-class MonadExpect m where
-  expected :: (a -> R) -> m a -> m R
-
-instance MonadExpect Enumerator where
-  expected f = pure . Enumerator.expectation (log . f)
+-- | Approximate the expected value of @f(X)@ for some random variable
+-- @X@ by drawing @n@ samples.
+expected :: MonadSample m => Int -> (a -> R) -> m a -> m R
+expected n f x = do
+  samples <- replicateM n (f <$> x)
+  pure (sum samples / fromIntegral n)

@@ -71,7 +71,8 @@ toProcess FiniteMarkovProcess { states, stateIndices, transition } =
       j <- Bayes.categorical (transition ! i)
       pure (states V.! j)
     Nothing ->
-      error "Invalid state passed to process created from a finite Markov process."
+      error
+        "Invalid state passed to process created from a finite Markov process."
 
 -- | Create a finite process from the given Markov process and its
 -- full set of states.
@@ -89,7 +90,8 @@ fromProcess (List.sort -> states) MarkovProcess { step } = FiniteMarkovProcess
   , states       = V.fromList states
   , transition   = Matrix.fromRows $ toRow <$> states
   }
-  where toRow s = Matrix.fromList [ p | (_, p) <- Enumerator.enumerate (step s) ]
+ where
+  toRow s = Matrix.fromList [ p | (_, p) <- Enumerator.enumerate (step s) ]
 
 
 -- * Finite Markov Reward Processes
@@ -113,9 +115,11 @@ data FiniteMarkovRewardProcess s = FiniteMarkovRewardProcess
 toRewardProcess :: (Hashable s, Eq s, MonadSample m)
                 => FiniteMarkovRewardProcess s
                 -> MarkovRewardProcess m s
-toRewardProcess FiniteMarkovRewardProcess { process, rewards } = MarkovProcess $ \s ->
-  let FiniteMarkovProcess { stateIndices, states, transition } = process
-  in  case HashMap.lookup s stateIndices of
+toRewardProcess FiniteMarkovRewardProcess { process, rewards } =
+  MarkovProcess $ \s ->
+    let FiniteMarkovProcess { stateIndices, states, transition } = process
+    in
+      case HashMap.lookup s stateIndices of
         Just i -> do
           j <- Bayes.categorical (transition ! i)
           earn (rewards ! i ! j)
@@ -135,19 +139,16 @@ fromRewardProcess :: (Hashable s, Eq s, Ord s)
                   -> MarkovRewardProcess Enumerator s
                   -- ^ The underlying process.
                   -> FiniteMarkovRewardProcess s
-fromRewardProcess (List.sort -> states) rewardProcess = FiniteMarkovRewardProcess
-  { process
-  , rewards
-  , expectedRewards = sumRows $ transition * rewards
-  }
+fromRewardProcess (List.sort -> states) rewardProcess =
+  FiniteMarkovRewardProcess { process
+                            , rewards
+                            , expectedRewards = sumRows $ transition * rewards
+                            }
  where
-  rewards    = Matrix.fromLists $ map (getSum . fst) <$> results
-  transition = Matrix.fromLists $ map snd <$> results
+  (Matrix.fromLists -> rewards, Matrix.fromLists -> transition) = unzip results
 
-  results =
-    [ [ (r, p) | ((_, r), p) <- Enumerator.enumerate (step' rewardProcess s) ]
-    | s <- states
-    ]
+  results = [ unzip [ (r, p) | ((_, r), p) <- next s ] | s <- states ]
+  next    = Enumerator.enumerate . step' rewardProcess
 
   process = FiniteMarkovProcess
     { stateIndices = HashMap.fromList [ (s, i) | s <- states | i <- [0..] ]

@@ -63,7 +63,8 @@ data AdamCache = AdamCache
 
 -- | Create an 'AdamCache' for a set of @n@ weights, initialized to 0.
 adamCache :: Int -> AdamCache
-adamCache n = AdamCache { cache1 = Vector.replicate n 0, cache2 = Vector.replicate n 0 }
+adamCache n =
+  AdamCache { cache1 = Vector.replicate n 0, cache2 = Vector.replicate n 0 }
 
 -- | Update both Adam caches given 'Adam' settings and a loss
 -- gradient.
@@ -138,8 +139,16 @@ data Linear a = Linear
 features :: [a -> R] -> (a -> Vector R)
 features fs a = length fs |> [ f a | f <- fs ]
 
+-- | Convert a list of feature functions into a 'Linear' approximation
+-- with no regularization.
+linear :: [a -> R] -> Linear a
+linear fs = Linear { ϕ = features fs, w, λ = 0 }
+  where w = weights $ Vector.replicate (length fs) 0
+
 lossGradient :: Linear a -> V.Vector a -> Vector R -> Vector R
-lossGradient Linear { ϕ, w, λ } x y = (tr' ϕₓ #> (y' - y)) / n + scale λ (values w)
+lossGradient Linear { ϕ, w, λ } x y = (tr' ϕₓ #> (y' - y)) / n + scale
+  λ
+  (values w)
  where
   ϕₓ = ϕ <$$> x
   y' = ϕₓ #> values w

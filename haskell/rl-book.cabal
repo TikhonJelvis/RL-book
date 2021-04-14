@@ -31,6 +31,7 @@ library
   exposed-modules:     RL.FunctionApproximation
                      , RL.Iterate
                      , RL.Matrix
+                     , RL.Probability
 
                      , RL.Process.Finite
                      , RL.Process.Markov
@@ -44,9 +45,12 @@ test-suite tests
   hs-source-dirs: test
 
   main-is:        Test.hs
-  other-modules:  Test.RL.Iterate
+  other-modules:  Test.Processes
+                  
+                , Test.RL.Iterate
                 , Test.RL.Matrix
 
+                , Test.RL.Solve.Approximate
                 , Test.RL.Solve.Dynamic
 
   build-depends:  rl-book
