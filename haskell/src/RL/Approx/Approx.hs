@@ -16,7 +16,9 @@ import           Numeric.LinearAlgebra                    ( R
 
 
 import qualified RL.Matrix                               as Matrix
-import           RL.Vector                                ( Affine )
+import           RL.Vector                                ( Affine(..)
+                                                          , VectorSpace(..)
+                                                          )
 
 -- | Updatable approximations for functions of the type @a → ℝ@.
 class Affine (f a) => Approx f a where
@@ -26,6 +28,17 @@ class Affine (f a) => Approx f a where
   -- @a → ℝ@.
   eval :: f a -> (a -> R)
 
+  -- | Find an approximation that's reasonably close to the given set
+  -- of x, y pairs.
+  fit :: f a
+      -- ^ Starting configuration, if needed. Should probably ignore
+      -- any "updatable" elements like weights... etc.
+      -> V.Vector a
+      -- ^ x values—should map 1:1 to y values
+      -> Vector R
+    -- ^ y values—should map 1:1 to x values
+      -> f a
+
   -- | Evaluate a whole bunch of inputs and produce a vector of the
   -- results.
   eval' :: f a -> (V.Vector a -> Vector R)
@@ -34,26 +47,16 @@ class Affine (f a) => Approx f a where
   -- | Improve the function approximation given a list of
   -- observations. The two vectors have to be the same length and
   -- match up one-to-one.
-  update :: f a
+  update :: Scalar (Diff (f a))
+         -- ^ α: Learning rate or how much to weigh new
+         -- information. @α = 0@ means an update does nothing; @α = 1@
+         -- means ignore previously learned values and only fit to new
+         -- observations.
+         -> f a
          -- ^ Function approximation to start from.
          -> V.Vector a
          -- ^ x values to update
          -> Vector R
          -- ^ y values for each x value to update
          -> f a
-
-  -- | Are the two function approximations within ϵ of each other?
-  --
-  -- 'within' can consider implemenation details of the
-  -- approximation—it is not necessary that the /functions being
-  -- approximated/ are also within ϵ of each other.
-  --
-  -- This is useful for deciding when to stop iterative algorithms,
-  -- but I'm not sure if this really makes sense /for this class/—this
-  -- could be moved to its own class or removed altogether in the
-  -- future.
-  within :: R
-         -- ^ ϵ: bound to compare approximations
-         -> f a
-         -> f a
-         -> Bool
+  update α f x y = f .+ (α *: (fit f x y .-. f))

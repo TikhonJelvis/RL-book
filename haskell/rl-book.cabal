@@ -33,6 +33,7 @@ library
                      , RL.Matrix
                      , RL.Probability
                      , RL.Vector
+                     , RL.Within
 
                      , RL.Approx.Approx
                      , RL.Approx.Tabular
@@ -51,10 +52,12 @@ test-suite tests
   hs-source-dirs: test
 
   main-is:        Test.hs
-  other-modules:  Test.Processes
+  other-modules:  Test.Assert
+                , Test.Processes
                   
                 , Test.RL.Iterate
                 , Test.RL.Matrix
+                , Test.RL.Probability
 
                 , Test.RL.Solve.Approximate
                 , Test.RL.Solve.Dynamic

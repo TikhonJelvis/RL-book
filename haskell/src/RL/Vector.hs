@@ -81,7 +81,7 @@ instance VectorSpace (Vector R) where
 -- vector space of "differences" (ie /translations/) between
 -- points. This space /does/ have a natural 0 element—the translation
 -- (0, 0) between a point and itself.
-class Additive (Diff p) => Affine p where
+class VectorSpace (Diff p) => Affine p where
   -- | The type of /differences/ between points in an affine
   -- space. Should form a vector space.
   type Diff p
@@ -114,7 +114,7 @@ instance Affine R where
 newtype Point t = Point { toVector :: t }
   deriving stock (Show, Eq)
 
-instance Additive t => Affine (Point t) where
+instance VectorSpace t => Affine (Point t) where
   type Diff (Point t) = t
 
   Point p₁ .-. Point p₂ = p₁ -: p₂

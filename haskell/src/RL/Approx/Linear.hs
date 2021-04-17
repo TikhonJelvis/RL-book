@@ -12,8 +12,9 @@ import           Numeric.LinearAlgebra                    ( (#>)
                                                           , (<.>)
                                                           , R
                                                           , Vector
+                                                          , inv
                                                           , scalar
-                                                          , scale
+                                                          , size
                                                           , tr'
                                                           , (|>)
                                                           )
@@ -22,9 +23,14 @@ import           Text.Printf                              ( printf )
 
 
 import           RL.Matrix                                ( (<$$>) )
-import           RL.Vector                                ( Affine(..) )
+import qualified RL.Matrix                               as Matrix
+import           RL.Vector                                ( Affine(..)
+                                                          , VectorSpace(..)
+                                                          )
+import           RL.Within                                ( Within(..) )
 
-import           RL.Approx.Approx                         ( Approx(..) )
+
+import           RL.Approx                                ( Approx(..) )
 import           RL.Approx.Weights                        ( Weights
                                                           , values
                                                           )
@@ -35,7 +41,7 @@ import qualified RL.Approx.Weights                       as Weights
 data Linear a = Linear
   { ϕ :: !(a -> Vector R)
     -- ^ Get all the features for an input @a@.
-  , w :: !Weights
+  , w :: !(Vector R)
     -- ^ The weights of all the features ϕ. Should have the same
     -- dimension as ϕ returns.
   , λ :: !R
@@ -61,29 +67,35 @@ create :: R
        -> [a -> R]
        -- ^ A set of feature functions (ϕ).
        -> Linear a
-create λ fs = Linear { λ, ϕ = features fs, w = Weights.init (length fs) 0 }
+create λ fs = Linear { λ, ϕ = features fs, w = length fs |> [0, 0 ..] }
 
 lossGradient :: Linear a -> V.Vector a -> Vector R -> Vector R
-lossGradient Linear { ϕ, w, λ } x y = (tr' ϕₓ #> (y' - y)) / n + reg
+lossGradient Linear { ϕ, w, λ } x y = (tr' ϕₓ #> (y' - y)) / n + (λ *: w)
  where
-  ϕₓ  = ϕ <$$> x
-  y'  = ϕₓ #> values w
-  n   = scalar (fromIntegral $ length x)
-  reg = scale λ $ values w
+  ϕₓ = ϕ <$$> x
+  y' = ϕₓ #> w
+  n  = scalar (fromIntegral $ length x)
 
 instance Affine (Linear a) where
   type Diff (Linear a) = Vector R
 
-  l₁ .-. l₂ = w l₁ .-. w l₂
+  l₁ .-. l₂ = w l₁ - w l₂
 
-  l .+ v = l { w = w l .+ v }
+  l .+ v = l { w = w l + v }
 
 
 instance Approx Linear a where
-  eval Linear { ϕ, w } a = ϕ a <.> values w
+  eval Linear { ϕ, w } a = ϕ a <.> w
 
-  update linear@Linear { w } x y =
-    linear { w = Weights.update w $ lossGradient linear x y }
+  fit Linear { ϕ, λ } x y = Linear { ϕ, λ, w = inv left #> right }
+   where
+    left  = (tr' ϕₓ <> ϕₓ) + scalar (n * λ)
+    right = tr' ϕₓ #> y
 
-  within ϵ l₁ l₂ = Weights.within ϵ (w l₁) (w l₂)
+    ϕₓ    = ϕ <$$> x
+    n     = fromIntegral (snd $ size ϕₓ)
+
+
+instance Within (Linear a) where
+  within ϵ l₁ l₂ = Matrix.allWithin ϵ (w l₁) (w l₂)
 

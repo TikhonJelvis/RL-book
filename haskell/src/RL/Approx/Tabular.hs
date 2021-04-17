@@ -1,3 +1,5 @@
+{-# LANGUAGE ExplicitForAll #-}
+{-# LANGUAGE ViewPatterns #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
@@ -26,10 +28,10 @@ import           Numeric.LinearAlgebra                    ( R
                                                           )
 import qualified Numeric.LinearAlgebra                   as Matrix
 
-import           RL.Approx.Approx                         ( Approx(..) )
-
+import           RL.Approx                                ( Approx(..) )
 import qualified RL.Matrix                               as Matrix
 import           RL.Vector                                ( Affine(..) )
+import           RL.Within                                ( Within(..) )
 
 -- | An 'Approx' that models a function as a map.
 data Tabular a = Tabular
@@ -63,17 +65,19 @@ instance (Eq a, Hashable a) => Affine (Tabular a) where
 instance (Eq a, Hashable a) => Approx Tabular a where
   eval Tabular { mapping } x = mapping ! x
 
-  update d@Tabular { mapping } xs ys = d
-    { mapping = HashMap.fromList pairs <> mapping
-    }
-    where pairs = [ (x, y) | x <- V.toList xs | y <- Matrix.toList ys ]
+  fit Tabular { domain } xs ys = Tabular { mapping = xy <> zeros, domain }
+   where
+    zeros = mapping $ create domain
+    xy = HashMap.fromList [ (x, y) | x <- V.toList xs | y <- Matrix.toList ys ]
 
+instance (Eq a, Hashable a) => Within (Tabular a) where
   within ϵ d₁ d₂ =
     (domain d₁ == domain d₂) && Matrix.allWithin ϵ (toVector d₁) (toVector d₂)
 
 -- | Create a 'Tabular' function approximation for the given set of
 -- inputs, all initialized to 0.
-create :: (Eq a, Hashable a) => [a] -> Tabular a
-create xs = Tabular { mapping = HashMap.fromList [ (x, 0) | x <- xs ]
-                    , domain  = V.fromList xs
-                    }
+create :: forall f a . (Eq a, Hashable a, Foldable f) => f a -> Tabular a
+create (Foldable.toList -> xs) = Tabular
+  { mapping = HashMap.fromList [ (x, 0) | x <- xs ]
+  , domain  = V.fromList xs
+  }
