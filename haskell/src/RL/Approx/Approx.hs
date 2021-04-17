@@ -16,9 +16,10 @@ import           Numeric.LinearAlgebra                    ( R
 
 
 import qualified RL.Matrix                               as Matrix
+import           RL.Vector                                ( Affine )
 
 -- | Updatable approximations for functions of the type @a → ℝ@.
-class Approx f a where
+class Affine (f a) => Approx f a where
   -- | Evaluate the function approximation as a function.
   --
   -- Another perspective: interpret values of @f a@ as functions

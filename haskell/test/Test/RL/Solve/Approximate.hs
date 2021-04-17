@@ -20,8 +20,8 @@ import qualified RL.Iterate                              as Iterate
 import           RL.Matrix                                ( allWithin )
 
 import qualified RL.Approx                               as Approx
-import qualified RL.Approx.Dynamic                       as Dynamic
 import qualified RL.Approx.Linear                        as Linear
+import qualified RL.Approx.Tabular                       as Tabular
 
 import           RL.Process.Finite                        ( toRewardProcess )
 
@@ -39,8 +39,8 @@ tests = testGroup
   "Approximate"
   [ testGroup
     "evaluateFiniteMRP"
-    [ testCase "flipFlop + Dynamic" $ do
-      let v₀     = Dynamic.create [True, False]
+    [ testCase "flipFlop + Tabular" $ do
+      let v₀     = Tabular.create [True, False]
           vs     = evaluateFiniteMRP (flipFlop 0.7) 0.99 v₀
           Just v = Iterate.converge (Approx.within 1e-5) vs
       assertWithin 0.1 (Approx.eval' v [True, False]) (scalar 170)
@@ -52,8 +52,8 @@ tests = testGroup
     ]
   , testGroup
     "evaluateMRP"
-    [ testCase "flipFlop + Dynamic" $ do
-        let v₀      = Dynamic.create [True, False]
+    [ testCase "flipFlop + Tabular" $ do
+        let v₀      = Tabular.create [True, False]
             states  = bernoulli 0.5
             process = toRewardProcess $ flipFlop 0.7
             vs      = evaluateMRP process states 0.99 10 v₀

@@ -1,3 +1,4 @@
+{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE NamedFieldPuns #-}
@@ -21,6 +22,7 @@ import           Text.Printf                              ( printf )
 
 
 import           RL.Matrix                                ( (<$$>) )
+import           RL.Vector                                ( Affine(..) )
 
 import           RL.Approx.Approx                         ( Approx(..) )
 import           RL.Approx.Weights                        ( Weights
@@ -68,6 +70,14 @@ lossGradient Linear { ϕ, w, λ } x y = (tr' ϕₓ #> (y' - y)) / n + reg
   y'  = ϕₓ #> values w
   n   = scalar (fromIntegral $ length x)
   reg = scale λ $ values w
+
+instance Affine (Linear a) where
+  type Diff (Linear a) = Vector R
+
+  l₁ .-. l₂ = w l₁ .-. w l₂
+
+  l .+ v = l { w = w l .+ v }
+
 
 instance Approx Linear a where
   eval Linear { ϕ, w } a = ϕ a <.> values w

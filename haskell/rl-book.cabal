@@ -32,9 +32,10 @@ library
                      , RL.Iterate
                      , RL.Matrix
                      , RL.Probability
+                     , RL.Vector
 
                      , RL.Approx.Approx
-                     , RL.Approx.Dynamic
+                     , RL.Approx.Tabular
                      , RL.Approx.Linear
                      , RL.Approx.Weights
 

@@ -1,3 +1,4 @@
+{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE NamedFieldPuns #-}
 -- | Vectors of /weights/ as used in linear and neural approximations.
 module RL.Approx.Weights where
@@ -13,6 +14,7 @@ import           Numeric.LinearAlgebra                    ( R
                                                           )
 
 import qualified RL.Matrix                               as Matrix
+import           RL.Vector                                ( Affine(..) )
 
 -- * Learning Rates
 
@@ -64,6 +66,13 @@ data Weights = Weights
   , cache  :: !AdamCache
   }
   deriving (Show, Eq)
+
+instance Affine Weights where
+  type Diff Weights = Vector R
+
+  w₁ .-. w₂ = values w₁ - values w₂
+
+  w .+ v = w { values = values w + v }
 
 -- | Create a new 'Weights' value with 'time' at 0 and reasonable
 -- defaults for 'adam' and 'cache'.
