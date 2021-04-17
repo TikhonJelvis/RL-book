@@ -16,8 +16,8 @@ import           Streaming                                ( Of
                                                           )
 import qualified Streaming.Prelude                       as Streaming
 
-import           RL.FunctionApproximation                 ( Approx )
-import qualified RL.FunctionApproximation                as Approx
+import           RL.Approx                                ( Approx )
+import qualified RL.Approx                               as Approx
 import qualified RL.Probability                          as Probability
 
 import           RL.Process.Finite                        ( FiniteMarkovProcess(..)

@@ -28,10 +28,15 @@ common shared
 library
   import:              shared
   hs-source-dirs:      src
-  exposed-modules:     RL.FunctionApproximation
+  exposed-modules:     RL.Approx
                      , RL.Iterate
                      , RL.Matrix
                      , RL.Probability
+
+                     , RL.Approx.Approx
+                     , RL.Approx.Dynamic
+                     , RL.Approx.Linear
+                     , RL.Approx.Weights
 
                      , RL.Process.Finite
                      , RL.Process.Markov
