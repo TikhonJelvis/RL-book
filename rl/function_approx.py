@@ -86,7 +86,8 @@ class FunctionApprox(ABC, Generic[X]):
           xs -- list of inputs to evaluate and maximize, cannot be empty
         Returns the X that maximizes the function this approximates.
         '''
-        return list(xs)[np.argmax(self.evaluate(xs))]
+        args: Sequence[X] = list(xs)
+        return args[np.argmax(self.evaluate(args))]
 
     def rmse(
         self,
