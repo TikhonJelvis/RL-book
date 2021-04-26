@@ -3,12 +3,14 @@ Markov Decision Processes.
 
 '''
 
-from typing import Callable, Iterable, Iterator, TypeVar, Tuple
-
+from typing import Callable, Iterable, Iterator, TypeVar, Tuple, Mapping, Set
 from rl.function_approx import FunctionApprox
 import rl.markov_process as mp
-import rl.markov_decision_process as mdp
+from rl.markov_decision_process import MarkovDecisionProcess
+from rl.markov_decision_process import TransitionStep
 import rl.iterate as iterate
+from rl.distribution import Distribution, Categorical
+from operator import itemgetter
 
 S = TypeVar('S')
 
@@ -44,11 +46,109 @@ def td_prediction(
 
 
 A = TypeVar('A')
+QType = Mapping[S, Mapping[A, float]]
+
+
+def epsilon_greedy_action(
+    q: FunctionApprox[Tuple[S, A]],
+    nt_state: S,
+    actions: Set[A],
+    ϵ: float
+) -> A:
+    '''
+    given a non-terminal state, a Q-Value Function (in the form of a
+    FunctionApprox: (state, action) -> Value, and epislon, return
+    an action sampled from the probability distribution implied by an
+    epsilon-greedy policy that is derived from the Q-Value Function.
+    '''
+    greedy_action: A = max(
+        ((a, q((nt_state, a))) for a in actions),
+        key=itemgetter(1)
+    )[0]
+    return Categorical(
+        {a: ϵ / len(actions) +
+         (1 - ϵ if a == greedy_action else 0.) for a in actions}
+    ).sample()
+
+
+def glie_sarsa(
+    mdp: MarkovDecisionProcess[S, A],
+    states: Distribution[S],
+    approx_0: FunctionApprox[Tuple[S, A]],
+    γ: float,
+    ϵ_as_func_of_episodes: Callable[[int], float],
+    max_episode_length: int
+) -> Iterator[FunctionApprox[Tuple[S, A]]]:
+    q: FunctionApprox[Tuple[S, A]] = approx_0
+    yield q
+    num_episodes: int = 0
+    while True:
+        num_episodes += 1
+        ϵ: float = ϵ_as_func_of_episodes(num_episodes)
+        state: S = states.sample()
+        action: A = epsilon_greedy_action(
+            q=q,
+            nt_state=state,
+            actions=set(mdp.actions(state)),
+            ϵ=ϵ
+        )
+        steps: int = 0
+        while not mdp.is_terminal(state) and steps < max_episode_length:
+            next_state, reward = mdp.step(state, action).sample()
+            if mdp.is_terminal(next_state):
+                q = q.update([((state, action), reward)])
+            else:
+                next_action: A = epsilon_greedy_action(
+                    q=q,
+                    nt_state=next_state,
+                    actions=set(mdp.actions(next_state)),
+                    ϵ=ϵ
+                )
+                q = q.update([(
+                    (state, action),
+                    reward + γ * q((next_state, next_action))
+                )])
+                action = next_action
+            yield q
+            steps += 1
+            state = next_state
+
+
+def q_learning(
+    mdp: MarkovDecisionProcess[S, A],
+    states: Distribution[S],
+    approx_0: FunctionApprox[Tuple[S, A]],
+    γ: float,
+    ϵ: float,
+    max_episode_length: int
+) -> Iterator[FunctionApprox[Tuple[S, A]]]:
+    q: FunctionApprox[Tuple[S, A]] = approx_0
+    yield q
+    while True:
+        state: S = states.sample()
+        steps: int = 0
+        while not mdp.is_terminal(state) and steps < max_episode_length:
+            action: A = epsilon_greedy_action(
+                q=q,
+                nt_state=state,
+                actions=set(mdp.actions(state)),
+                ϵ=ϵ
+            )
+            next_state, reward = mdp.step(state, action).sample()
+            q = q.update([(
+                (state, action),
+                reward + γ * (max(q((next_state, a)) for a in
+                              mdp.actions(next_state))
+                              if not mdp.is_terminal(next_state) else 0)
+            )])
+            yield q
+            steps += 1
+            state = next_state
 
 
 # TODO: More specific name (ie experience replay?)
 def td_control(
-        transitions: Iterable[mdp.TransitionStep[S, A]],
+        transitions: Iterable[TransitionStep[S, A]],
         actions: Callable[[S], Iterable[A]],
         approx_0: FunctionApprox[Tuple[S, A]],
         γ: float
@@ -69,7 +169,7 @@ def td_control(
     '''
     def step(
             q: FunctionApprox[Tuple[S, A]],
-            transition: mdp.TransitionStep[S, A]
+            transition: TransitionStep[S, A]
     ) -> FunctionApprox[Tuple[S, A]]:
         next_reward = max(
             q((transition.next_state, a))
