@@ -34,14 +34,14 @@ exponent: float = 0.5
 mc_finite_equal_wts_correctness(
     fmrp=si_mrp,
     gamma=gamma,
-    tolerance=mc_episode_length_tol,
+    episode_length_tolerance=mc_episode_length_tol,
     num_episodes=num_episodes,
     initial_vf_dict=initial_vf_dict
 )
 mc_finite_learning_rate_correctness(
     fmrp=si_mrp,
     gamma=gamma,
-    tolerance=mc_episode_length_tol,
+    episode_length_tolerance=mc_episode_length_tol,
     num_episodes=num_episodes,
     initial_learning_rate=initial_learning_rate,
     half_life=half_life,
