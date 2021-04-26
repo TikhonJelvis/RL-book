@@ -69,7 +69,7 @@ def mc_prediction(
             traces=episodes_stream,
             approx_0=Tabular(),
             γ=gamma,
-            tolerance=1e-10
+            episode_length_tolerance=1e-10
         ),
         num_episodes
     )).values_map
