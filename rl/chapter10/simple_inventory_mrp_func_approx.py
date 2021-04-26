@@ -68,7 +68,7 @@ it_mc: Iterable[FunctionApprox[InventoryState]] = \
         mrp=si_mrp,
         start_state_distribution=Choose(set(nt_states)),
         gamma=gamma,
-        tolerance=mc_episode_length_tol,
+        episode_length_tolerance=mc_episode_length_tol,
         initial_func_approx=mc_func_approx
     )
 
