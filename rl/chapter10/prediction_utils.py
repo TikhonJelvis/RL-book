@@ -33,7 +33,7 @@ def fmrp_episodes_stream(
 def mc_finite_prediction_equal_wts(
     fmrp: FiniteMarkovRewardProcess[S],
     gamma: float,
-    tolerance: float,
+    episode_length_tolerance: float,
     initial_vf_dict: Mapping[S, float]
 ) -> Iterator[FunctionApprox[S]]:
     episodes: Iterable[Iterable[TransitionStep[S]]] = \
@@ -42,7 +42,7 @@ def mc_finite_prediction_equal_wts(
         traces=episodes,
         approx_0=Tabular(values_map=initial_vf_dict),
         γ=gamma,
-        tolerance=tolerance
+        episode_length_tolerance=episode_length_tolerance
     )
 
 
@@ -50,7 +50,7 @@ def mc_prediction_learning_rate(
     mrp: MarkovRewardProcess[S],
     start_state_distribution: Distribution[S],
     gamma: float,
-    tolerance: float,
+    episode_length_tolerance: float,
     initial_func_approx: FunctionApprox[S]
 ) -> Iterator[FunctionApprox[S]]:
     episodes: Iterable[Iterable[TransitionStep[S]]] = \
@@ -59,14 +59,14 @@ def mc_prediction_learning_rate(
         traces=episodes,
         approx_0=initial_func_approx,
         γ=gamma,
-        tolerance=tolerance
+        episode_length_tolerance=episode_length_tolerance
     )
 
 
 def mc_finite_prediction_learning_rate(
     fmrp: FiniteMarkovRewardProcess[S],
     gamma: float,
-    tolerance: float,
+    episode_length_tolerance: float,
     initial_learning_rate: float,
     half_life: float,
     exponent: float,
@@ -86,7 +86,7 @@ def mc_finite_prediction_learning_rate(
             count_to_weight_func=learning_rate_func
         ),
         γ=gamma,
-        tolerance=tolerance
+        episode_length_tolerance=episode_length_tolerance
     )
 
 
@@ -154,7 +154,7 @@ def td_finite_prediction_learning_rate(
 def mc_finite_equal_wts_correctness(
     fmrp: FiniteMarkovRewardProcess[S],
     gamma: float,
-    tolerance: float,
+    episode_length_tolerance: float,
     num_episodes: int,
     initial_vf_dict: Mapping[S, float]
 ) -> None:
@@ -162,7 +162,7 @@ def mc_finite_equal_wts_correctness(
         mc_finite_prediction_equal_wts(
             fmrp=fmrp,
             gamma=gamma,
-            tolerance=tolerance,
+            episode_length_tolerance=episode_length_tolerance,
             initial_vf_dict=initial_vf_dict
         )
     final_mc_vf: FunctionApprox[S] = \
@@ -176,7 +176,7 @@ def mc_finite_equal_wts_correctness(
 def mc_finite_learning_rate_correctness(
     fmrp: FiniteMarkovRewardProcess[S],
     gamma: float,
-    tolerance: float,
+    episode_length_tolerance: float,
     num_episodes: int,
     initial_learning_rate: float,
     half_life: float,
@@ -187,7 +187,7 @@ def mc_finite_learning_rate_correctness(
         mc_finite_prediction_learning_rate(
             fmrp=fmrp,
             gamma=gamma,
-            tolerance=tolerance,
+            episode_length_tolerance=episode_length_tolerance,
             initial_learning_rate=initial_learning_rate,
             half_life=half_life,
             exponent=exponent,
@@ -253,7 +253,7 @@ def compare_td_and_mc(
             mc_finite_prediction_learning_rate(
                 fmrp=fmrp,
                 gamma=gamma,
-                tolerance=mc_episode_length_tol,
+                episode_length_tolerance=mc_episode_length_tol,
                 initial_learning_rate=init_lr,
                 half_life=half_life,
                 exponent=exponent,
