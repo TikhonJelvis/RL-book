@@ -758,6 +758,8 @@ As a consequence of the above Lemma, all we need to do to prove Theorem \eqref{t
 \pi_D^*(s) = \argmax_{a \in \mathcal{A}} Q^*(s,a) \mbox{ for all } s \in \mathcal{N}
 \label{eq:mdp_optimal_policy}
 \end{equation}
+Note that for any specific $s$, if two or more actions $a$ achieve the maximization of $Q^*(s,a)$, then we use an arbitrary rule in breaking ties and assigning a single action $a$ as the output of the above $\argmax$ operation.
+
 First we show that $\pi_D^*$ achieves the Optimal Value Functions $V^*$ and $Q^*$. Since $\pi_D^*(s) = \argmax_{a \in \mathcal{A}} Q^*(s,a)$ and $V^*(s) = \max_{a \in \mathcal{A}} Q^*(s,a)$ for all $s \in \mathcal{N}$, we can infer for all $s \in \mathcal{N}$ that:
 $$V^*(s) = Q^*(s,\pi_D^*(s))$$
 This says that we achieve the Optimal Value Function from a given non-terminal state $s$ if we first take the action prescribed by the policy $\pi_D^*$ (i.e., the action $\pi_D^*(s)$), followed by achieving the Optimal Value Function from each of the next time step's states. But note that each of the next time step's states can achieve the Optimal Value Function by doing the same thing described above ("first take action prescribed by $\pi_D^*$, followed by ..."), and so on and so forth for further time step's states. Thus, the Optimal Value Function $V^*$ is achieved if from each non-terminal state, we take the action prescribed by $\pi_D^*$. Likewise, the Optimal Action-Value Function $Q^*$ is achieved if from each non-terminal state, we take the action $a$ (argument to $Q^*$) followed by future actions prescribed by $\pi_D^*$. Formally, this says:
