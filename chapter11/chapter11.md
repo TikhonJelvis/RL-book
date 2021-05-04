@@ -156,10 +156,10 @@ Now let us write some code to implement the above description of GLIE Monte-Carl
 * `epsilon_as_func_of_episodes: Callable[[int], float]` - This represents the extent of exploration ($\epsilon$) as a function of the number of episodes (allowing us to generalize from our default choice of $\epsilon(k) = \frac 1 k$).
 * `episode_length_tolerance: float` - This represents the $tolerance$ that determines the episode length $T$ (the minimum $T$ such that $\gamma^T < tolerance$).
 
-`glie_mc_control` produces a generator (`Iterator`) of Q-Value Function estimates at the end of each episode. The code is fairly self-explanatory. The method `simulate_actions` of `mdp: MarkovDecisionProcess` creates a single sampling trace (i.e., an episode). At the end of each episode, the `update` method of `FunctionApprox` updates the Q-Value Function (creates a new Q-Value Function without mutating the currrent Q-Value Function) using each of the trace returns (and associated state-actions pairs) from the episode. The $\epsilon$-greedy policy is derived from the Q-Value Function estimate by using the function `policy_from_q` that is shown below and is quite self-explanatory (`policy_from_q` is in the file [rl/markov_decision_process.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/markov_decision_process.py)).
+`glie_mc_control` produces a generator (`Iterator`) of Q-Value Function estimates at the end of each episode. The code is fairly self-explanatory. The method `simulate_actions` of `mdp: MarkovDecisionProcess` creates a single sampling trace (i.e., an episode). At the end of each episode, the `update` method of `FunctionApprox` updates the Q-Value Function (creates a new Q-Value Function without mutating the currrent Q-Value Function) using each of the trace returns (and associated state-actions pairs) from the episode. The $\epsilon$-greedy policy is derived from the Q-Value Function estimate by using the function `epsilon_greedy_policy` that is shown below and is quite self-explanatory (`epsilon_greedy_policy` is in the file [rl/markov_decision_process.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/markov_decision_process.py)).
 
 ```python
-from rl.markov_decision_process import policy_from_q, TransitionStep
+from rl.markov_decision_process import epsilon_greedy_policy, TransitionStep
 
 def glie_mc_control(
     mdp: MarkovDecisionProcess[S, A],
@@ -170,7 +170,7 @@ def glie_mc_control(
     episode_length_tolerance: float = 1e-6
 ) -> Iterator[FunctionApprox[Tuple[S, A]]]:
     q: FunctionApprox[Tuple[S, A]] = approx_0
-    p: Policy[S, A] = policy_from_q(q, mdp)
+    p: Policy[S, A] = epsilon_greedy_policy(q, mdp)
     yield q
 
     num_episodes: int = 0
@@ -182,7 +182,7 @@ def glie_mc_control(
             ((step.state, step.action), step.return_)
             for step in returns(trace, gamma, episode_length_tolerance)
         )
-        p = policy_from_q(q, mdp, epsilon_as_func_of_episodes(num_episodes))
+        p = epsilon_greedy_policy(q, mdp, epsilon_as_func_of_episodes(num_episodes))
         yield q
 ```
 
@@ -191,7 +191,7 @@ The above code is in the file [rl/monte_carlo.py](https://github.com/TikhonJelvi
 ```python
 from rl.distribution import Bernoulli, Choose, Constant
 
-def policy_from_q(
+def epsilon_greedy_policy(
         q: FunctionApprox[Tuple[S, A]],
         mdp: MarkovDecisionProcess[S, A],
         epsilon: float = 0.0
@@ -400,7 +400,7 @@ Now let us write some code to implement the above-described SARSA algorithm. Let
 * `epsilon_as_func_of_episodes: Callable[[int], float]` - This represents the extent of exploration ($\epsilon$) as a function of the number of episodes.
 * `max_episode_length: int` - This represents the number of time steps at which we would curtail a trace experience and start a new one. As we've explained, TD Control doesn't require complete trace experiences, and so we can do as little or as large a number of time steps in a trace experience (`max_episode_length` gives us that control).
 
-`glie_mc_control` produces a generator (`Iterator`) of Q-Value Function estimates at the end of each atomic experience. The `while True` loops over trace experiences. The inner `while` loops over time steps - each of these steps involves the following:
+`glie_sarsa` produces a generator (`Iterator`) of Q-Value Function estimates at the end of each atomic experience. The `while True` loops over trace experiences. The inner `while` loops over time steps - each of these steps involves the following:
 
 * Given the current `state` and `action`, we obtain a sample of the pair of `next_state` and `reward` (using the `sample` method of the `Distribution` obtained from `mdp.step(state, action)`.
 * Obtain the `next_action`  from `next_state` using the function `epsilon_greedy_action` which utilizes the $\epsilon$-greedy policy derived from the current Q-Value Function estimate (referenced by `q`).
@@ -573,3 +573,67 @@ Lastly, it's important to recognize that MC Control is not very sensitive to the
 
 More generally, we encourage you to play with the `compare_mc_sarsa_ql` function on other MDP choices (ones we have created earlier in this book, or make up your own MDPs) so you can develop good intuition for how GLIE MC Control and GLIE SARSA algorithms converge for a variety of choices of learning rate schedules, initial Value Function choices, choices of discount factor etc.
 
+### SARSA($\lambda$)
+
+Much like how we extended TD Prediction to TD($\lambda$) Prediction, we can extend SARSA to SARSA($\lambda$), which gives us a way to tune the spectrum from MC Control to SARSA using the $\lambda$ parameter. Recall that in order to develop TD($\lambda$) Prediction from TD Prediction, we first developed the $n$-step TD Prediction Algorithm, then the Offline $\lambda$-Return TD Algorithm, and finally the Online TD($\lambda$) Algorithm. We develop an analogous progression from SARSA to SARSA($\lambda$).
+
+So the first thing to do is to extend SARSA to 2-step-bootstrapped SARSA, whose update is as follows:
+
+$$\Delta \bm{w} = \alpha \cdot (R_{t+1} + \gamma \cdot R_{t+2} + \gamma^2 \cdot Q(S_{t+2}, A_{t+2}; \bm{w}) - Q(S_t, A_t;\bm{w})) \cdot \nabla_{\bm{w}} Q(S_t, A_t;\bm{w})$$
+
+Generalizing this to $n$-step-bootstrapped SARSA, the update would then be as follows:
+
+$$\Delta \bm{w} = \alpha \cdot (G_{t,n} - Q(S_t, A_t;\bm{w})) \cdot \nabla_{\bm{w}} Q(S_t, A_t;\bm{w})$$
+where the $n$-step-bootstrapped Return $G_{t,n}$ is defined as:
+\begin{align*}
+G_{t,n} & = \sum_{i=t+1}^{t+n} \gamma^{i-t-1} \cdot R_i  + \gamma^n \cdot Q(S_{t+n}, A_{t+n}; \bm{w}) \\
+& = R_{t+1} + \gamma \cdot R_{t+2} + \ldots + \gamma^{n-1} \cdot R_{t+n} + \gamma^n \cdot Q(S_{t+n}, A_{t+n}; \bm{w})
+\end{align*}
+
+Instead of $G_{t,n}$, a valid target is a weighted-average target:
+$$\sum_{n=1}^N u_n \cdot G_{t,n} + u \cdot G_t \text{ where } u + \sum_{n=1}^N u_n = 1$$
+Any of the $u_n$ or $u$ can be 0, as long as they all sum up to 1. The $\lambda$-Return target is a special case of weights $u_n$ and $u$, defined as follows:
+$$u_n = (1 - \lambda) \cdot \lambda^{n-1} \text{ for all } n = 1, \ldots, T-t-1$$
+$$u_n = 0 \text{ for all } n \geq T-t \text{ and } u = \lambda^{T-t-1}$$
+We denote the $\lambda$-Return target as $G_t^{(\lambda)}$, defined as:
+$$G_t^{(\lambda)} = (1-\lambda) \cdot \sum_{n=1}^{T-t-1} \lambda^{n-1} \cdot G_{t,n} + \lambda^{T-t-1} \cdot G_t$$
+
+Then, the Offline $\lambda$-Return SARSA Algorithm makes the following updates (performed at the end of each trace experience) for each $(S_t,A_t)$ encountered in the episode:
+$$\Delta \bm{w} = \alpha \cdot (G_t^{(\lambda)} - Q(S_t, A_t;\bm{w})) \cdot \nabla_{\bm{w}} Q(S_t, A_t;\bm{w})$$
+
+Finally, we create the SARSA($\lambda)$ Algorithm, which is the online "version" of the above $\lambda$-Return SARSA Algorithm. The calculations/updates at each time step $t$ are as follows:
+
+$$\delta_t = R_{t+1} + \gamma \cdot Q(S_{t+1},A_{t+1};\bm{w}) - Q(S_t,A_t;\bm{w})$$
+$$\bm{E}_t = \gamma \lambda \cdot \bm{E}_{t-1} + \nabla_{\bm{w}} Q(S_t,A_t;\bm{w})$$
+$$\Delta \bm{w} = \alpha \cdot \delta_t \cdot \bm{E}_t$$
+
+The eligibility trace is reset to 0 at the start of each trace experience, i.e., $\bm{E}_0 = 0$.
+Note that just like in SARSA, the $\epsilon$-greedy policy improvement is automatic from updated Q-Value Function estimate after each time step.
+
+We leave the implementation of SARSA($\lambda$) in Python code as an exercise for you to do.
+
+### Off-Policy Control
+
+All control algorithms face a tension between wanting to learn Q-Values contingent on *subsequent optimal behavior* and wanting to explore all actions. This almost seems contradictory because the quest for exploration deters one from optimal behavior. Our approach so far of pursuing an $\epsilon$-greedy policy (to be thought of as an *almost optimal* policy) is a hack to resolve this tension. A cleaner approach is to use two separate policies for the two separate goals of wanting to be optimal and wanting to explore. The first policy is the one that we learn about and that becomes the optimal policy - we call this policy the *Target Policy* (to signify the "target" of Control). The second policy is the one that behaves in an exploratory manner, so we can obtain sufficient data for all actions, enabling us to adequately estimate the Q-Value Function - we call this policy the *Behavior Policy*.
+
+In SARSA, at a given time step, we are in a current state $S$, take action $A$, after which we obtain the reward $R$ and next state $S'$, upon which we take the next action $A'$. The action $A$ taken from the current state $S$ is meant to come from an exploratory policy (behavior policy) so that for each state $S$, we have adequate occurrences of all actions in order to accurately estimate the Q-Value Function. The action $A'$ taken from the next state $S'$ is meant to come from the target policy as we aim for *subsequent optimal behavior* ($Q^*(S, A)$ requires optimal behavior subsequent to taking action $A$). However, in the SARSA algorithm, the behavior policy producing $A$ from $S$ and the target policy producing $A'$ from $S'$ are in fact the same policy - the $\epsilon$-greedy policy. Algorithms such as SARSA in which the behavior policy is the same as the target policy are refered to as On-Policy Algorithms to indicate the fact that the behavior used to generate data (experiences) does not deviate from the policy we are aiming for (target policy, which drives towards the optimal policy). 
+
+The separation of behavior policy and target policy as two separate policies gives us algorithms that are known as Off-Policy Algorithms to indicate the fact that the behavior policy is allowed to "deviate off" from the target policy. This separation enables us to construct more general and more powerful RL algorithms. We will use the notation $\pi$ for the target policy and the notation $\mu$ for the behavior policy - therefore, we say that Off-Policy algorithms estimate the Value Function for target policy $\pi$ while following behavior policy $\mu$. Off-Policy algorithms can be very valuable in real-world situations where we can learn the target policy $\pi$ by observing humans or other AI agents following a behavior policy $\mu$. Another great practical benefit is to be able to re-use prior experiences that were generated from old policies, say $\pi_1, \pi_2, \ldots$. Yet another powerful benefit is that we can learn multiple policies $\mu_1, \mu_2, \ldots$ while following one policy $\pi$. Let's now make the concept of Off-Policy Learning concrete by covering the most basic (and most famous) Off-Policy Control Algorithm, which goes by the name of Q-Learning.
+
+#### Q-Learning
+
+The best way to understand the (Off-Policy) Q-Learning algorithm is to tweak SARSA to make it Off-Policy. Instead of having both the action $A$ and the next action $A'$ being generated by the same $\epsilon$-greedy policy, we generate (i.e., sample) action $A$ (from state $S$) using an exploratory behavior policy $\mu$ and we generate the next action $A'$ (from next state $S'$) using the target policy $\pi$. The behavior policy can be any policy as long as it is exploratory enough to be able to obtain sufficient data for all actions (in order to obtain an adequate estimate of the Q-Value Function). Note that in SARSA, when we roll over to the next time step, the new time step's state $S$ is set to be equal to the previous time step's next state $S'$ and the new time step's action $A$ is set to be equal to the previous time step's next action $A'$. However, in Q-Learning, we simply set the new time step's state $S$ to be equal to the previous time step's next state $S'$. The action $A$ for the next time step will be generated using the behavior policy $\mu$, and won't be equal to the previous time step's next action $A'$ (that would have been generated using the target policy $\pi$).
+
+This Q-Learning idea of two separate policies - behavior policy and target policy - is fairly generic, and can be used in algorithms beyond solving the Control problem. However, here we are interested in Q-Learning for Control and so, we want to ensure that the target policy eventually becomes the optimal policy. One straightfoward way to accomplish this is to make the target policy equal to the deterministic greedy policy derived from the Q-Value Function estimate at every step. Thus, the update for Q-Learning Control algorithm is as follows:
+
+$$\Delta \bm{w} = \alpha \cdot \delta_t \cdot \nabla_{\bm{w}} Q(S_t, A_t; \bm{w})$$
+where
+
+\begin{align*}
+\delta_t & = R_{t+1} + \gamma \cdot Q(S_{t+1}, \argmax_{a \in \mathcal{A}} Q(S_{t+1}, a; \bm{w}); \bm{w}) - Q(S_t, A_t;\bm{w}) \\
+& = R_{t+1} + \gamma \cdot \max_{a \in \mathcal{A}} Q(S_{t+1}, a; \bm{w}) - Q(S_t, A_t;\bm{w})
+\end{align*}
+
+Although we have highlighted some attractive features of Q-Learning (on account of being Off-Policy), it turns out that Q-Learning when combined with function approximation of the Q-Value Function leads to convergence issues (more on this later). However, Tabular Q-Learning Control converges under the usual appropriate conditions. There is considerable literature on convergence of Tabular Q-Learning Control and we won't go over those convergence theorems in this book - here it suffices to say that the convergence proofs for Tabular Q-Learning Control require infinite exploration of all (state, action) pairs and appropriate stochastic approximation conditions for step sizes.
+
+#### Importance Sampling
