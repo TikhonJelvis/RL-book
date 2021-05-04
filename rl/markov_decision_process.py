@@ -192,7 +192,7 @@ class MarkovDecisionProcess(ABC, Generic[S, A]):
             yield self.simulate_actions(start_states, policy)
 
 
-def policy_from_q(
+def epsilon_greedy_policy(
         q: FunctionApprox[Tuple[S, A]],
         mdp: MarkovDecisionProcess[S, A],
         ϵ: float = 0.0
