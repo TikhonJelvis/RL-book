@@ -6,7 +6,7 @@ Markov Decision Processes.
 from typing import Callable, Iterable, Iterator, TypeVar, Tuple, Mapping, Set
 from rl.function_approx import FunctionApprox
 import rl.markov_process as mp
-from rl.markov_decision_process import MarkovDecisionProcess
+from rl.markov_decision_process import MarkovDecisionProcess, Policy
 from rl.markov_decision_process import TransitionStep
 import rl.iterate as iterate
 from rl.distribution import Distribution, Categorical
@@ -114,12 +114,18 @@ def glie_sarsa(
             state = next_state
 
 
+PolicyFromQType = Callable[
+    [FunctionApprox[Tuple[S, A]], MarkovDecisionProcess[S, A]],
+    Policy[S, A]
+]
+
+
 def q_learning(
     mdp: MarkovDecisionProcess[S, A],
+    policy_from_q: PolicyFromQType,
     states: Distribution[S],
     approx_0: FunctionApprox[Tuple[S, A]],
     γ: float,
-    ϵ: float,
     max_episode_length: int
 ) -> Iterator[FunctionApprox[Tuple[S, A]]]:
     q: FunctionApprox[Tuple[S, A]] = approx_0
@@ -128,12 +134,8 @@ def q_learning(
         state: S = states.sample()
         steps: int = 0
         while not mdp.is_terminal(state) and steps < max_episode_length:
-            action: A = epsilon_greedy_action(
-                q=q,
-                nt_state=state,
-                actions=set(mdp.actions(state)),
-                ϵ=ϵ
-            )
+            policy: Policy[S, A] = policy_from_q(q, mdp)
+            action: A = policy.act(state).sample()
             next_state, reward = mdp.step(state, action).sample()
             q = q.update([(
                 (state, action),
