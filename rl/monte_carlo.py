@@ -9,7 +9,7 @@ from rl.distribution import Distribution
 from rl.function_approx import FunctionApprox
 import rl.markov_process as mp
 from rl.markov_decision_process import MarkovDecisionProcess, Policy
-from rl.markov_decision_process import policy_from_q, TransitionStep
+from rl.markov_decision_process import epsilon_greedy_policy, TransitionStep
 from rl.returns import returns
 
 S = TypeVar('S')
@@ -76,7 +76,7 @@ def glie_mc_control(
 
     '''
     q: FunctionApprox[Tuple[S, A]] = approx_0
-    p: Policy[S, A] = policy_from_q(q, mdp)
+    p: Policy[S, A] = epsilon_greedy_policy(q, mdp)
     yield q
 
     num_episodes: int = 0
@@ -88,5 +88,5 @@ def glie_mc_control(
             ((step.state, step.action), step.return_)
             for step in returns(trace, γ, episode_length_tolerance)
         )
-        p = policy_from_q(q, mdp, ϵ_as_func_of_episodes(num_episodes))
+        p = epsilon_greedy_policy(q, mdp, ϵ_as_func_of_episodes(num_episodes))
         yield q
