@@ -3,7 +3,7 @@ from rl.function_approx import FunctionApprox, Tabular
 from rl.distribution import Distribution, Choose, Constant
 from rl.markov_decision_process import (
     MarkovDecisionProcess, FiniteMarkovDecisionProcess,
-    FiniteMarkovRewardProcess, FinitePolicy)
+    FiniteMarkovRewardProcess, FinitePolicy, epsilon_greedy_policy)
 import itertools
 import rl.iterate as iterate
 from rl.returns import returns
@@ -143,10 +143,14 @@ def q_learning_learning_rate(
 ) -> Iterator[FunctionApprox[Tuple[S, A]]]:
     return td.q_learning(
         mdp=mdp,
+        policy_from_q=lambda f, m: epsilon_greedy_policy(
+            q=f,
+            mdp=m,
+            ϵ=epsilon
+        ),
         states=start_state_distribution,
         approx_0=initial_func_approx,
         γ=gamma,
-        ϵ=epsilon,
         max_episode_length=max_episode_length
     )
 
@@ -170,13 +174,17 @@ def q_learning_finite_learning_rate(
     )
     return td.q_learning(
         mdp=fmdp,
+        policy_from_q=lambda f, m: epsilon_greedy_policy(
+            q=f,
+            mdp=m,
+            ϵ=epsilon
+        ),
         states=Choose(set(fmdp.non_terminal_states)),
         approx_0=Tabular(
             values_map=initial_qvf_dict,
             count_to_weight_func=learning_rate_func
         ),
         γ=gamma,
-        ϵ=epsilon,
         max_episode_length=max_episode_length
     )
 
