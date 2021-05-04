@@ -263,6 +263,7 @@ if __name__ == '__main__':
             learning_rate=learning_rate,
             num_updates=num_updates
         )
+        print("SARSA\n")
         wg.print_vf_and_policy(
             vf_dict=sarsa_vf_dict,
             policy=sarsa_policy
@@ -273,6 +274,7 @@ if __name__ == '__main__':
             learning_rate=learning_rate,
             num_updates=num_updates
         )
+        print("Q-Learning\n")
         wg.print_vf_and_policy(
             vf_dict=ql_vf_dict,
             policy=ql_policy
