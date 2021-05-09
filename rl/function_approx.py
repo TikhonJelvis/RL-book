@@ -10,11 +10,12 @@ import numpy as np
 from operator import itemgetter
 from scipy.interpolate import splrep, BSpline
 from typing import (Callable, Dict, Generic, Iterator, Iterable, List,
-                    Mapping, Optional, Sequence, Tuple, TypeVar)
+                    Mapping, Optional, Sequence, Tuple, TypeVar, overload)
 
 import rl.iterate as iterate
 
 X = TypeVar('X')
+Self = TypeVar('Self')
 SMALL_NUM = 1e-6
 
 
@@ -26,7 +27,15 @@ class FunctionApprox(ABC, Generic[X]):
     '''
 
     @abstractmethod
-    def representational_gradient(self, x_value: X) -> FunctionApprox[X]:
+    def __add__(self: Self, x: Self) -> Self:
+        pass
+
+    @abstractmethod
+    def __mul__(self: Self, x: float) -> Self:
+        pass
+
+    @abstractmethod
+    def representational_gradient(self: Self, x_value: X) -> Gradient[Self]:
         '''Computes the gradient of the self FunctionApprox with respect
         to the parameters in the internal representation of the
         FunctionApprox, i.e., computes Gradient with respect to internal
@@ -122,6 +131,31 @@ class FunctionApprox(ABC, Generic[X]):
     ) -> Iterator[FunctionApprox[X]]:
         for x_val in x_values_seq:
             yield self.representational_gradient(x_val)
+
+
+F = TypeVar('F', bound=FunctionApprox)
+
+
+@dataclass(frozen=True)
+class Gradient(Generic[F]):
+    function_approx: F
+
+    @overload
+    def __add__(self, x: Gradient[F]) -> Gradient[F]:
+        ...
+
+    @overload
+    def __add__(self, x: F) -> F:
+        ...
+
+    def __add__(self, x):
+        if isinstance(x, Gradient):
+            return Gradient(self.function_approx + x.function_approx)
+
+        return self.function_approx + x
+
+    def __mul__(self: Gradient[F], x: float) -> Gradient[F]:
+        return Gradient(self.function_approx * x)
 
 
 @dataclass(frozen=True)
