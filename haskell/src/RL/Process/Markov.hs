@@ -106,13 +106,13 @@ data Step s = Step
 -- | Run a simulation trace of the given reward process, yielding the
 -- state transition and *instantaneous* reward for each step.
 simulateReward :: Monad m
-               => m s
+               => MarkovRewardProcess m s
+               -- ^ The reward process to simulate.
+               -> m s
                -- ^ A distribution of states to draw from to start the
                -- trace.
-               -> MarkovRewardProcess m s
-               -- ^ The reward process to simulate.
                -> Trace m (Step s)
-simulateReward start MarkovProcess { step } = lift start >>= go
+simulateReward MarkovProcess { step } start = lift start >>= go
  where
   go !state = do
     (next, reward) <- lift $ runWithReward (step state)
