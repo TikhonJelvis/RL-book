@@ -16,7 +16,7 @@ from typing import (Callable, Dict, Generic, Iterator, Iterable, List,
 import rl.iterate as iterate
 
 X = TypeVar('X')
-Self = TypeVar('Self')
+F = TypeVar('F', bound='FunctionApprox')
 SMALL_NUM = 1e-6
 
 
@@ -28,33 +28,24 @@ class FunctionApprox(ABC, Generic[X]):
     '''
 
     @abstractmethod
-    def __add__(self: Self, x: Self) -> Self:
+    def __add__(self: F, x: F) -> F:
         pass
 
     @abstractmethod
-    def __mul__(self: Self, x: float) -> Self:
+    def __mul__(self: F, x: float) -> F:
         pass
 
+    @abstractmethod
     def objective_gradient(
-        self,
+        self: F,
         xy_vals_seq: Iterable[Tuple[X, float]],
         obj_deriv_y_func: Callable[[X, float], float]
-    ) -> FunctionApprox[X]:
+    ) -> Gradient[F]:
         '''Computes the gradient of an objective function of the self
         FunctionApprox with respect to the parameters in the internal
         representation of the FunctionApprox. The gradient is output
         in the form of a FunctionApprox whose internal parameters are
         equal to the gradient values.
-        '''
-
-    @abstractmethod
-    def linear_combination(
-        self,
-        a: float,
-        b: float,
-        other: FunctionApprox[X]
-    ) -> FunctionApprox[X]:
-        '''return a FunctionApprox representing a * self + b * other
         '''
 
     @abstractmethod
@@ -69,17 +60,17 @@ class FunctionApprox(ABC, Generic[X]):
 
     @abstractmethod
     def update_with_gradient(
-        self,
-        gradient: FunctionApprox[X]
-    ) -> FunctionApprox[X]:
+        self: F,
+        gradient: Gradient[F]
+    ) -> F:
         '''Update the internal parameters of self FunctionApprox
         using the input gradient that is presented as a FunctionApprox
         '''
 
     def update(
-        self,
+        self: F,
         xy_vals_seq: Iterable[Tuple[X, float]]
-    ) -> FunctionApprox[X]:
+    ) -> F:
 
         '''Update the internal parameters of the FunctionApprox
         based on incremental data provided in the form of (x,y)
@@ -94,10 +85,10 @@ class FunctionApprox(ABC, Generic[X]):
 
     @abstractmethod
     def solve(
-        self,
+        self: F,
         xy_vals_seq: Iterable[Tuple[X, float]],
         error_tolerance: Optional[float] = None
-    ) -> FunctionApprox[X]:
+    ) -> F:
         '''Assuming the entire data set of (x,y) pairs is available
         in the form of the given input xy_vals_seq data structure,
         solve for the internal parameters of the FunctionApprox
@@ -109,7 +100,7 @@ class FunctionApprox(ABC, Generic[X]):
         '''
 
     @abstractmethod
-    def within(self, other: FunctionApprox[X], tolerance: float) -> bool:
+    def within(self: F, other: F, tolerance: float) -> bool:
         '''Is this function approximation within a given tolerance of
         another function approximation of the same type?
         '''
@@ -135,9 +126,9 @@ class FunctionApprox(ABC, Generic[X]):
         return np.sqrt(np.mean(errors * errors))
 
     def iterate_updates(
-        self,
+        self: F,
         xy_seq_stream: Iterator[Iterable[Tuple[X, float]]]
-    ) -> Iterator[FunctionApprox[X]]:
+    ) -> Iterator[F]:
         '''Given a stream (Iterator) of data sets of (x,y) pairs,
         perform a series of incremental updates to the internal
         parameters (using update method), with each internal
@@ -149,9 +140,6 @@ class FunctionApprox(ABC, Generic[X]):
             lambda fa, xy: fa.update(xy),
             initial=self
         )
-
-
-F = TypeVar('F', bound=FunctionApprox)
 
 
 @dataclass(frozen=True)
@@ -188,17 +176,23 @@ class Dynamic(FunctionApprox[X]):
 
     values_map: Mapping[X, float]
 
+    def __add__(self, x):
+        pass
+
+    def __mul__(self, x):
+        pass
+
     def objective_gradient(
         self,
         xy_vals_seq: Iterable[Tuple[X, float]],
         obj_deriv_y_func: Callable[[X, float], float]
-    ) -> Dynamic[X]:
+    ) -> Gradient[Dynamic[X]]:
         x_vals, y_vals = zip(*xy_vals_seq)
         obj_deriv_y: np.ndarray = obj_deriv_y_func(x_vals, y_vals)
         d: Dict[X, float] = {}
         for x, o in zip(x_vals, obj_deriv_y):
             d[x] = o
-        return Dynamic(values_map=d)
+        return Gradient(Dynamic(values_map=d))
 
     def linear_combination(
         self,
