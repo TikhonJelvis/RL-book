@@ -71,7 +71,7 @@ class SimpleInventoryMDPNoCap(MarkovDecisionProcess[InventoryState, int]):
                 time_steps
             )
             for step in steps:
-                if step.reward < -self.holding_cost * step.next_state.on_hand:
+                if step.reward < -self.holding_cost * step.state.on_hand:
                     count += 1
 
         return float(count) / (time_steps * num_traces)
