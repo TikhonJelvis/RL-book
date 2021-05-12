@@ -76,7 +76,7 @@ def glie_mc_control(
 
     '''
     q: FunctionApprox[Tuple[S, A]] = approx_0
-    p: Policy[S, A] = epsilon_greedy_policy(q, mdp)
+    p: Policy[S, A] = epsilon_greedy_policy(q, mdp, 1.0)
     yield q
 
     num_episodes: int = 0
