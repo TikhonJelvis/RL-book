@@ -1,5 +1,4 @@
-from typing import Tuple, Callable, Sequence, Set, Mapping, Dict, \
-    Optional, Iterator
+from typing import Tuple, Callable, Sequence, Set, Mapping, Dict, Iterator
 from rl.chapter11.control_utils import glie_sarsa_finite_learning_rate
 from rl.chapter11.control_utils import q_learning_finite_learning_rate
 from rl.chapter11.control_utils import get_vf_and_policy_from_qvf
@@ -20,7 +19,7 @@ Cell = Tuple[int, int]
 CellSet = Set[Cell]
 Move = Tuple[int, int]
 '''
-WindSpec specifies a random vectical wind for each column.
+WindSpec specifies a random vertical wind for each column.
 Each random vertical wind is specified by a (p1, p2) pair
 where p1 specifies probability of Downward Wind (could take you
 one step lower in row coordinate unless prevented by a block or
@@ -71,8 +70,8 @@ class WindyGrid:
         print()
 
     @staticmethod
-    def add_tuples(a: Cell, b: Cell) -> Cell:
-        return a[0] + b[0], a[1] + b[1]
+    def add_move_to_cell(cell: Cell, move: Move) -> Cell:
+        return cell[0] + move[0], cell[1] + move[1]
 
     def is_valid_state(self, cell: Cell) -> bool:
         '''
@@ -94,8 +93,10 @@ class WindyGrid:
         given a non-terminal state, returns the set of all possible
         (action, next_state) pairs
         '''
-        temp: Set[Tuple[Move, Cell]] = {(a, WindyGrid.add_tuples(nt_state, a))
-                                        for a in possible_moves}
+        temp: Set[Tuple[Move, Cell]] = {(a, WindyGrid.add_move_to_cell(
+            nt_state,
+            a
+        )) for a in possible_moves}
         return {(a, s) for a, s in temp if self.is_valid_state(s)}
 
     def get_transition_probabilities(self, nt_state: Cell) \
@@ -147,19 +148,6 @@ class WindyGrid:
         (as a FinitePolicy[Cell, Move])
         '''
         return value_iteration_result(self.get_finite_mdp(), gamma=1.)
-
-    def get_states_actions_dict(self) -> Mapping[Cell, Optional[Set[Move]]]:
-        '''
-        Returns a dictionary whose keys are the states and the corresponding
-        values are the set of actions for the state (if the key is a
-        non-terminal state) or is None if the state is a terminal state.
-        '''
-        d1: Mapping[Cell, Optional[Set[Move]]] = \
-            {s: {a for a, _ in self.get_actions_and_next_states(s)}
-             for s in self.get_all_nt_states()}
-        d2: Mapping[Cell, Optional[Set[Move]]] = \
-            {s: None for s in self.terminals}
-        return {**d1, **d2}
 
     def get_glie_sarsa_vf_and_policy(
         self,
