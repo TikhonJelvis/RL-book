@@ -10,6 +10,7 @@ from rl.returns import returns
 import rl.monte_carlo as mc
 from rl.function_approx import learning_rate_schedule
 import rl.td as td
+import rl.td_lambda as td_lambda
 import numpy as np
 from math import sqrt
 from pprint import pprint
@@ -151,6 +152,56 @@ def td_finite_prediction_learning_rate(
     )
 
 
+def td_lambda_prediction_learning_rate(
+    mrp: MarkovRewardProcess[S],
+    start_state_distribution: Distribution[S],
+    gamma: float,
+    lambd: float,
+    episode_length: int,
+    initial_func_approx: FunctionApprox[S]
+) -> Iterator[FunctionApprox[S]]:
+    episodes: Iterable[Iterable[TransitionStep[S]]] = \
+        mrp_episodes_stream(mrp, start_state_distribution)
+    curtailed_episodes: Iterable[Iterable[TransitionStep[S]]] = \
+        (itertools.islice(episode, episode_length) for episode in episodes)
+    return td_lambda.td_lambda_prediction(
+        traces=curtailed_episodes,
+        approx_0=initial_func_approx,
+        γ=gamma,
+        lambd=lambd
+    )
+
+
+def td_lambda_finite_prediction_learning_rate(
+    fmrp: FiniteMarkovRewardProcess[S],
+    gamma: float,
+    lambd: float,
+    episode_length: int,
+    initial_learning_rate: float,
+    half_life: float,
+    exponent: float,
+    initial_vf_dict: Mapping[S, float]
+) -> Iterator[FunctionApprox[S]]:
+    episodes: Iterable[Iterable[TransitionStep[S]]] = \
+        fmrp_episodes_stream(fmrp)
+    curtailed_episodes: Iterable[Iterable[TransitionStep[S]]] = \
+        (itertools.islice(episode, episode_length) for episode in episodes)
+    learning_rate_func: Callable[[int], float] = learning_rate_schedule(
+        initial_learning_rate=initial_learning_rate,
+        half_life=half_life,
+        exponent=exponent
+    )
+    return td_lambda.td_lambda_prediction(
+        traces=curtailed_episodes,
+        approx_0=Tabular(
+            values_map=initial_vf_dict,
+            count_to_weight_func=learning_rate_func
+        ),
+        γ=gamma,
+        lambd=lambd
+    )
+
+
 def mc_finite_equal_wts_correctness(
     fmrp: FiniteMarkovRewardProcess[S],
     gamma: float,
@@ -227,6 +278,41 @@ def td_finite_learning_rate_correctness(
     print("Decaying-Learning-Rate-TD Value Function with " +
           f"{num_episodes:d} episodes")
     pprint({s: round(final_td_vf(s), 3) for s in fmrp.non_terminal_states})
+    print("True Value Function")
+    fmrp.display_value_function(gamma=gamma)
+
+
+def td_lambda_finite_learning_rate_correctness(
+    fmrp: FiniteMarkovRewardProcess[S],
+    gamma: float,
+    lambd: float,
+    episode_length: int,
+    num_episodes: int,
+    initial_learning_rate: float,
+    half_life: float,
+    exponent: float,
+    initial_vf_dict: Mapping[S, float]
+) -> None:
+    td_lambda_vfs: Iterator[FunctionApprox[S]] = \
+        td_lambda_finite_prediction_learning_rate(
+            fmrp=fmrp,
+            gamma=gamma,
+            lambd=lambd,
+            episode_length=episode_length,
+            initial_learning_rate=initial_learning_rate,
+            half_life=half_life,
+            exponent=exponent,
+            initial_vf_dict=initial_vf_dict
+        )
+    final_td_lambda_vf: FunctionApprox[S] = \
+        iterate.last(itertools.islice(
+            td_lambda_vfs,
+            episode_length * num_episodes
+        ))
+    print("Decaying-Learning-Rate-TD-Lambda Value Function with " +
+          f"{num_episodes:d} episodes")
+    pprint({s: round(final_td_lambda_vf(s), 3)
+            for s in fmrp.non_terminal_states})
     print("True Value Function")
     fmrp.display_value_function(gamma=gamma)
 
