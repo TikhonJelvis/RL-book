@@ -16,7 +16,7 @@ S = TypeVar('S')
 def td_prediction(
         transitions: Iterable[mp.TransitionStep[S]],
         approx_0: FunctionApprox[S],
-        γ: float,
+        γ: float
 ) -> Iterator[FunctionApprox[S]]:
     '''Evaluate an MRP using TD(0) using the given sequence of
     transitions.
