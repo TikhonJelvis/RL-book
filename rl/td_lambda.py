@@ -29,6 +29,7 @@ def lambda_return_prediction(
       lambd -- lambda parameter (0 <= lambd <= 1)
     '''
     func_approx: FunctionApprox[S] = approx_0
+    yield func_approx
 
     for trace in traces:
         gp: List[float] = [1.]
@@ -57,7 +58,8 @@ def lambda_return_prediction(
             lp.append(lp[-1] * lambd)
         responses: Sequence[float] = [np.dot(p, w) for p, w in
                                       zip(partials, weights)]
-        func_approx = func_approx.update(zip(predictors, responses))
+        for p, r in zip(predictors, responses):
+            func_approx = func_approx.update([(p, r)])
         yield func_approx
 
 
@@ -83,14 +85,13 @@ def td_lambda_prediction(
     yield func_approx
 
     for trace in traces:
-        el_tr: Gradient[FunctionApprox[S]] = \
-            Gradient(func_approx.zero_function())
+        el_tr: Gradient[FunctionApprox[S]] = Gradient(func_approx).zero()
         for step in trace:
             x: S = step.state
             y: float = step.reward + γ * func_approx(step.next_state)
             el_tr = el_tr * (γ * lambd) + func_approx.objective_gradient(
                 xy_vals_seq=[(x, y)],
-                obj_deriv_out_func=lambda x1, y1: 1.
+                obj_deriv_out_func=lambda pairs: np.ones(len(list(pairs)))
             )
             func_approx = func_approx.update_with_gradient(
                 el_tr * (func_approx(x) - y)
