@@ -974,7 +974,8 @@ def lambda_return_prediction(
             lp.append(lp[-1] * lambd)
         responses: Sequence[float] = [np.dot(p, w) for p, w in
                                       zip(partials, weights)]
-        func_approx = func_approx.update(zip(predictors, responses))
+        for p, r in zip(predictors, responses):
+            func_approx = func_approx.update([(p, r)])
         yield func_approx
 ```
 
