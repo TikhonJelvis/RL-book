@@ -568,8 +568,9 @@ class LinearFunctionApprox(FunctionApprox[X]):
         x_vals, y_vals = zip(*xy_vals_seq)
         obj_deriv_out: np.ndarray = obj_deriv_out_func(x_vals, y_vals)
         features: np.ndarray = self.get_feature_values(x_vals)
-        gradient: np.ndarray = features.T.dot(obj_deriv_out) + \
-            self.regularization_coeff * self.weights.weights
+        gradient: np.ndarray = \
+            features.T.dot(obj_deriv_out) / len(obj_deriv_out) \
+            + self.regularization_coeff * self.weights.weights
         return Gradient(replace(
             self,
             weights=replace(
