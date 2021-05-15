@@ -11,6 +11,7 @@ import rl.markov_process as mp
 import rl.markov_decision_process as markov_decision_process
 from rl.markov_decision_process import (MarkovDecisionProcess)
 from rl.returns import returns
+from rl.iterate import last
 
 S = TypeVar('S')
 A = TypeVar('A')
@@ -40,11 +41,13 @@ def mc_prediction(
     '''
     episodes: Iterator[Iterator[mp.ReturnStep[S]]] = \
         (returns(trace, γ, tolerance) for trace in traces)
-
-    return approx_0.iterate_updates(
-        ((step.state, step.return_) for step in episode)
-        for episode in episodes
-    )
+    f = approx_0
+    yield f
+    for episode in episodes:
+        f = last(f.iterate_updates(
+            [(step.state, step.return_)] for step in episode
+        ))
+        yield f
 
 
 def mc_control(
@@ -76,13 +79,16 @@ def mc_control(
     '''
     q = approx_0
     p = markov_decision_process.policy_from_q(q, mdp)
+    yield q
 
     while True:
         trace: Iterable[markov_decision_process.TransitionStep[S, A]] =\
             mdp.simulate_actions(states, p)
-        q = q.update(
-            ((step.state, step.action), step.return_)
-            for step in returns(trace, γ, tolerance)
-        )
+#         q = q.update(
+#             ((step.state, step.action), step.return_)
+#             for step in returns(trace, γ, tolerance)
+#         )
+        for step in returns(trace, γ, tolerance):
+            q = q.update([((step.state, step.action), step.return_)])
         p = markov_decision_process.policy_from_q(q, mdp, ϵ)
         yield q
