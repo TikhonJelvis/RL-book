@@ -74,13 +74,13 @@ Monte-Carlo (MC) Prediction is a very simple RL algorithm that performs supervis
 import MarkovRewardProcess as mp
 
 def mc_prediction(
-        traces: Iterable[Iterable[mp.TransitionStep[S]]],
-        approx_0: FunctionApprox[S],
-        gamma: float,
-        tolerance: float = 1e-6
+    traces: Iterable[Iterable[mp.TransitionStep[S]]],
+    approx_0: FunctionApprox[S],
+    gamma: float,
+    episode_length_tolerance: float = 1e-6
 ) -> Iterator[FunctionApprox[S]]:
     episodes: Iterator[Iterator[mp.ReturnStep[S]]] = \
-        (returns(trace, gamma, tolerance) for trace in traces)
+        (returns(trace, gamma, episode_length_tolerance) for trace in traces)
 
     return approx_0.iterate_updates(
         ((step.state, step.return_) for step in episode)
@@ -89,7 +89,7 @@ def mc_prediction(
 ```
 
 
-The core of the `mc_prediction` function above is the call to the `returns` function (detailed below and available in the file [rl/returns.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/returns.py)). `returns` takes as input `trace` representing a trace experience (`Iterable` of `TransitionStep`), the discount factor `gamma`, and a `tolerance` that determines how many time steps to cover in each trace experience when $\gamma < 1$ (as many steps as until $\gamma^{steps} \leq tolerance$ or until the trace experience ends in a terminal state, whichever happens first). If $\gamma = 1$, each trace experience needs to end in a terminal state (else the `returns` function will loop forever). 
+The core of the `mc_prediction` function above is the call to the `returns` function (detailed below and available in the file [rl/returns.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/returns.py)). `returns` takes as input `trace` representing a trace experience (`Iterable` of `TransitionStep`), the discount factor `gamma`, and an `episodes_length_tolerance` that determines how many time steps to cover in each trace experience when $\gamma < 1$ (as many steps as until $\gamma^{steps}$ falls below `episodes_length_tolerance` or until the trace experience ends in a terminal state, whichever happens first). If $\gamma = 1$, each trace experience needs to end in a terminal state (else the `returns` function will loop forever). 
 
 The `returns` function calculates the returns $G_t$ (accumulated discounted rewards) starting from each state $S_t$ in the trace experience. The key is to walk backwards from the end of the trace experience to the start (so as to reuse the calculated returns while walking backwards: $G_t = R_{t+1} + \gamma \cdot G_{t+1}$). Note the use of `iterate.accumulate` to perform this backwards-walk calculation, which in turn uses the `add_return` method in `TransitionStep` to create an instance of `ReturnStep`. The `ReturnStep` (as seen in the code below) class is derived from the `TransitionStep` class and includes the additional attribute named `return_`. We add a method called `add_return` in `TransitionStep` so we can augment the attributes `state`, `reward`, `next_state` with the additional attribute `return_` that is comprised of the reward plus gamma times the `return_` from the next state. 
 
@@ -282,7 +282,7 @@ it: Iterator[FunctionApprox[InventoryState]] = mc_prediction(
     traces=traces,
     approx_0=Tabular(),
     gamma=user_gamma,
-    tolerance=1e-6
+    episode_length_tolerance=1e-6
 )
 
 num_traces = 100000
@@ -320,7 +320,7 @@ V(S_t) \leftarrow V(S_t) + \alpha \cdot (R_{t+1} + \gamma \cdot V(S_{t+1}) - V(S
 \label{eq:td-tabular-update}
 \end{equation}
 
-To facilitate understanding, for the remainder of the book, we shall interpret $V(S_{t+1})$ as being equal to 0 if $S_{t+1} \in \mathcal{T}$ (note: technically, this notation is incorrect because $V(\cdot)$ is a function with domain $\mathcal{N}$). Likewise, we shall interpret the function approximation notation $V(S_{t+1};\bm{w})$ as being equal to 0 of $S_{t+1} \in \mathcal{T}$.
+To facilitate understanding, for the remainder of the book, we shall interpret $V(S_{t+1})$ as being equal to 0 if $S_{t+1} \in \mathcal{T}$ (note: technically, this notation is incorrect because $V(\cdot)$ is a function with domain $\mathcal{N}$). Likewise, we shall interpret the function approximation notation $V(S_{t+1};\bm{w})$ as being equal to 0 if $S_{t+1} \in \mathcal{T}$.
 
 We refer to $R_{t+1} + \gamma \cdot V(S_{t+1})$ as the TD target and we refer to $\delta_t = R_{t+1} + \gamma \cdot V(S_{t+1}) - V(S_t)$ as the TD Error. The TD Error is the crucial quantity since it represents the "sample Bellman Error" and hence, the TD Error can be used to move $V(S_t)$ appropriately (as shown in the above adjustment to $V(S_t)$), which in turn has the effect of bridging the TD error (on an expected basis).
 
@@ -486,7 +486,7 @@ Perhaps the most attractive thing about TD is that it is akin to how humans lear
 
 If you think about career decisions and relationship decisions in our lives, MC-style learning is quite infeasible because we simply don't have sufficient "episodes" (for certain decisions, our entire life might be a single episode), and waiting to analyze and adjust until the end of an episode might be far too late in our lives. Rather, we learn and adjust our evaluations of situations constantly in very much a TD-style. Think about various important decisions we make in our lives and you will see that we learn by perpetual adjustment of estimates and efficiency in the use of limited experiences we obtain in our lives.
 
-#### Bias, Variance and Convergence
+#### Bias, Variance and Convergence {#sec:bias-variance-convergence}
 
 Now let's talk about bias and variance of the MC and TD prediction estimates, and their convergence properties.
 
@@ -498,7 +498,7 @@ The stochastic approximation conditions above are known as the [Robbins-Monro sc
 
 The bad news with TD (due to the bias in it's update) is that TD Prediction with function approximation does not always converge to the true value function. Most TD Prediction convergence proofs are for the Tabular case, however some proofs are for the case of linear function approximation of the Value Function.
 
-The flip side of MC's bias advantage over TD is that the TD Target $R_{t+1} + \gamma \cdot V(S_{t+1}; \bm{w})$ has much lower variance that $G_t$ because $G_t$ depends on many random state transitions and random rewards (on the remainder of the trace experience) whose variances accumulate, whereas the TD Target depends on only the next random state transition $S_{t+1}$ and the next random reward $R_{t+1}$.
+The flip side of MC's bias advantage over TD is that the TD Target $R_{t+1} + \gamma \cdot V(S_{t+1}; \bm{w})$ has much lower variance than $G_t$ because $G_t$ depends on many random state transitions and random rewards (on the remainder of the trace experience) whose variances accumulate, whereas the TD Target depends on only the next random state transition $S_{t+1}$ and the next random reward $R_{t+1}$.
   
 As for speed of convergence and efficiency in use of limited set of experiences data, we still don't have formal proofs on whether MC is better or TD. More importantly, because MC and TD have significant differences in their usage of data, nature of updates, and frequency of updates, it is not even clear how to create a level-playing field when comparing MC and TD for speed of convergence or for efficiency in usage of limited experiences data. The typical comparisons between MC and TD are done with constant learning rates, and it's been determined that practically TD learns faster than MC with constant learning rates.
 
@@ -537,7 +537,7 @@ The above code is in the file [rl/chapter10/random_walk_mrp.py](https://github.c
 
 ![MC and TD Convergence for Random Walk MRP \label{fig:random_walk_mrp_convergence}](./chapter10/random_walk_mrp_convergence.png "MC and TD Convergence for Random Walk MRP")
 
-Figure \ref{fig:random_walk_mrp_convergence} depicts the convergence for our implementations of MC and TD Prediction for constant learnings rates of $\alpha = 0.01$ (blue curves) and $\alpha = 0.05$ (green curves). We produced this Figure by using data from 700 episodes generated from the random walk MRP with barrier $B = 10$, $p = 0.5$ and discount factor $\gamma = 1$ (a single episode refers to a single trace experience that terminates either at state $0$ or state $B$). We plotted the RMSE after each batch of 7 episodes, hence each of the 4 curves shown in the Figure has 100 RMSE data points plotted. Firstly, we clearly see that MC has significantly more variance as evidenced by the choppy MC RMSE progression curves. Secondly, we note that $\alpha = 0.01$ is a fairly small learning rate and so, the progression of RMSE is quite slow on the blue curves. On the other hand, notice the quick learning for $\alpha = 0.05$ (green curves). MC RMSE is not just choppy, it's evident that it progresses quite quickly in the first few episode batches (relative to the corresponding TD) but the MC RMSE progression is slow after the first few episode batches (relative to the corresponding TD). This results in TD reaching fairly small RMSE quicker than the corresponding MC (this is especially stark for TD with $\alpha = 0.005$, i.e. the dashed green curve in the Figure). This behavior of TD outperforming the comparable MC (with constant learning rate) is typical in most MRP problems.
+Figure \ref{fig:random_walk_mrp_convergence} depicts the convergence for our implementations of MC and TD Prediction for constant learnings rates of $\alpha = 0.01$ (blue curves) and $\alpha = 0.05$ (green curves). We produced this Figure by using data from 700 episodes generated from the random walk MRP with barrier $B = 10$, $p = 0.5$ and discount factor $\gamma = 1$ (a single episode refers to a single trace experience that terminates either at state $0$ or state $B$). We plotted the RMSE after each batch of 7 episodes, hence each of the 4 curves shown in the Figure has 100 RMSE data points plotted. Firstly, we clearly see that MC has significantly more variance as evidenced by the choppy MC RMSE progression curves. Secondly, we note that $\alpha = 0.01$ is a fairly small learning rate and so, the progression of RMSE is quite slow on the blue curves. On the other hand, notice the quick learning for $\alpha = 0.05$ (green curves). MC RMSE curve is not just choppy, it's evident that it progresses quite quickly in the first few episode batches (relative to the corresponding TD) but is slow after the first few episode batches (relative to the corresponding TD). This results in TD reaching fairly small RMSE quicker than the corresponding MC (this is especially stark for TD with $\alpha = 0.005$, i.e. the dashed green curve in the Figure). This behavior of TD outperforming the comparable MC (with constant learning rate) is typical in most MRP problems.
 
 Lastly, it's important to recognize that MC is not very sensitive to the initial Value Function while TD is more sensitive to the initial Value Function. We encourage you to play with the initial Value Function for this random walk example and evaluate how it affects MC and TD convergence speed.
 
@@ -692,7 +692,7 @@ def mc_prediction(
             traces=episodes_stream,
             approx_0=Tabular(),
             gamma=gamma,
-            tolerance=1e-10
+            episode_length_tolerance=1e-10
         ),
         num_episodes
     )).values_map
