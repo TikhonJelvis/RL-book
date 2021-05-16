@@ -148,8 +148,7 @@ def q_learning(
             state = next_state
 
 
-# TODO: More specific name (ie experience replay?)
-def td_control(
+def q_learning_experience_replay(
         transitions: Iterable[TransitionStep[S, A]],
         actions: Callable[[S], Iterable[A]],
         approx_0: FunctionApprox[Tuple[S, A]],
