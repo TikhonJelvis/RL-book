@@ -96,7 +96,7 @@ class TestEvaluate(unittest.TestCase):
                 uniform_policy
             )
 
-        qs = td.td_control(
+        qs = td.q_learning_experience_replay(
             transitions,
             self.finite_mdp.actions,
             q_0,

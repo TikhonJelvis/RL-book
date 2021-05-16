@@ -11,6 +11,7 @@ import rl.markov_process as mp
 from rl.markov_decision_process import MarkovDecisionProcess, Policy
 from rl.markov_decision_process import epsilon_greedy_policy, TransitionStep
 from rl.returns import returns
+from rl.iterate import last
 
 S = TypeVar('S')
 A = TypeVar('A')
@@ -40,11 +41,13 @@ def mc_prediction(
     '''
     episodes: Iterator[Iterator[mp.ReturnStep[S]]] = \
         (returns(trace, γ, episode_length_tolerance) for trace in traces)
-
-    return approx_0.iterate_updates(
-        ((step.state, step.return_) for step in episode)
-        for episode in episodes
-    )
+    f = approx_0
+    yield f
+    for episode in episodes:
+        f = last(f.iterate_updates(
+            [(step.state, step.return_)] for step in episode
+        ))
+        yield f
 
 
 def glie_mc_control(
@@ -84,9 +87,7 @@ def glie_mc_control(
         trace: Iterable[TransitionStep[S, A]] = \
             mdp.simulate_actions(states, p)
         num_episodes += 1
-        q = q.update(
-            ((step.state, step.action), step.return_)
-            for step in returns(trace, γ, episode_length_tolerance)
-        )
+        for step in returns(trace, γ, episode_length_tolerance):
+            q = q.update([((step.state, step.action), step.return_)])
         p = epsilon_greedy_policy(q, mdp, ϵ_as_func_of_episodes(num_episodes))
         yield q
