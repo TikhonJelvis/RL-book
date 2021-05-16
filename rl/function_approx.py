@@ -39,16 +39,16 @@ class FunctionApprox(ABC, Generic[X]):
     def objective_gradient(
         self: F,
         xy_vals_seq: Iterable[Tuple[X, float]],
-        obj_deriv_out_func: Callable[[Iterable[Tuple[X, float]]], np.ndarray]
+        obj_deriv_out_fun: Callable[[Sequence[X], Sequence[float]], np.ndarray]
     ) -> Gradient[F]:
         '''Computes the gradient of an objective function of the self
         FunctionApprox with respect to the parameters in the internal
         representation of the FunctionApprox. The gradient is output
-        in the form of a FunctionApprox whose internal parameters are
-        equal to the gradient values. The argument `obj_deriv_out_func'
-        refers to a function from (x,y) pairs to float, representing
-        the derivative of the objective with respect to the function
-        output f(x).
+        in the form of a Gradient[FunctionApprox] whose internal parameters are
+        equal to the gradient values. The argument `obj_deriv_out_fun'
+        represents the derivative of the objective with respect to the output
+        (evaluate) of the FunctionApprox, when evaluated at a Sequence of
+        x values and a Sequence of y values (to be obtained from 'xy_vals_seq')
         '''
 
     @abstractmethod
@@ -66,8 +66,8 @@ class FunctionApprox(ABC, Generic[X]):
         self: F,
         gradient: Gradient[F]
     ) -> F:
-        '''Update the internal parameters of self FunctionApprox
-        using the input gradient that is presented as a FunctionApprox
+        '''Update the internal parameters of self FunctionApprox using the
+        input gradient that is presented as a Gradient[FunctionApprox]
         '''
 
     def update(
@@ -79,9 +79,8 @@ class FunctionApprox(ABC, Generic[X]):
         based on incremental data provided in the form of (x,y)
         pairs as a xy_vals_seq data structure
         '''
-        def deriv_func(xy_pairs_seq: Iterable[Tuple[X, float]]) -> np.ndarray:
-            x_vals, y_vals = zip(*xy_pairs_seq)
-            return self.evaluate(x_vals) - np.array(y_vals)
+        def deriv_func(x: Sequence[X], y: Sequence[float]) -> np.ndarray:
+            return self.evaluate(x) - np.array(y)
 
         return self.update_with_gradient(
             self.objective_gradient(xy_vals_seq, deriv_func)
@@ -202,11 +201,13 @@ class Dynamic(FunctionApprox[X]):
     def objective_gradient(
         self,
         xy_vals_seq: Iterable[Tuple[X, float]],
-        obj_deriv_out_func: Callable[[Iterable[Tuple[X, float]]], np.ndarray]
+        obj_deriv_out_fun: Callable[[Sequence[X], Sequence[float]], np.ndarray]
     ) -> Gradient[Dynamic[X]]:
-        obj_deriv_out: np.ndarray = obj_deriv_out_func(xy_vals_seq)
-        d: Mapping[X, float] = {x: o for (x, _), o in
-                                zip(xy_vals_seq, obj_deriv_out)}
+        x_vals, y_vals = zip(*xy_vals_seq)
+        obj_deriv_out: np.ndarray = obj_deriv_out_fun(x_vals, y_vals)
+        d: Dict[X, float] = {}
+        for x, o in zip(x_vals, obj_deriv_out):
+            d[x] = o
         return Gradient(Dynamic(values_map=d))
 
     def evaluate(self, x_values_seq: Iterable[X]) -> np.ndarray:
@@ -217,13 +218,19 @@ class Dynamic(FunctionApprox[X]):
         was not initialized.
 
         '''
-        return np.array([self.values_map[x] for x in x_values_seq])
+        return np.array([self.values_map.get(x, 0.0) for x in x_values_seq])
 
     def update_with_gradient(
         self,
         gradient: Gradient[Dynamic[X]]
     ) -> Dynamic[X]:
-        return gradient * -1.0 + self
+        d: Dict[X, float] = dict(self.values_map)
+        for key, val in gradient.function_approx.values_map.items():
+            d[key] = d.get(key, 0.) - val
+        return replace(
+            self,
+            values_map=d
+        )
 
     def solve(
         self,
@@ -277,12 +284,13 @@ class Tabular(FunctionApprox[X]):
     def objective_gradient(
         self,
         xy_vals_seq: Iterable[Tuple[X, float]],
-        obj_deriv_out_func: Callable[[Iterable[Tuple[X, float]]], np.ndarray]
+        obj_deriv_out_fun: Callable[[Sequence[X], Sequence[float]], float]
     ) -> Gradient[Tabular[X]]:
-        obj_deriv_out: np.ndarray = obj_deriv_out_func(xy_vals_seq)
+        x_vals, y_vals = zip(*xy_vals_seq)
+        obj_deriv_out: np.ndarray = obj_deriv_out_fun(x_vals, y_vals)
         sums_map: Dict[X, float] = defaultdict(float)
         counts_map: Dict[X, int] = defaultdict(int)
-        for (x, _), o in zip(xy_vals_seq, obj_deriv_out):
+        for x, o in zip(x_vals, obj_deriv_out):
             sums_map[x] += o
             counts_map[x] += 1
         return Gradient(replace(
@@ -547,10 +555,10 @@ class LinearFunctionApprox(FunctionApprox[X]):
     def objective_gradient(
         self,
         xy_vals_seq: Iterable[Tuple[X, float]],
-        obj_deriv_out_func: Callable[[Iterable[Tuple[X, float]]], np.ndarray]
+        obj_deriv_out_fun: Callable[[Sequence[X], Sequence[float]], float]
     ) -> Gradient[LinearFunctionApprox[X]]:
-        x_vals = [a for a, _ in xy_vals_seq]
-        obj_deriv_out: np.ndarray = obj_deriv_out_func(xy_vals_seq)
+        x_vals, y_vals = zip(*xy_vals_seq)
+        obj_deriv_out: np.ndarray = obj_deriv_out_fun(x_vals, y_vals)
         features: np.ndarray = self.get_feature_values(x_vals)
         gradient: np.ndarray = \
             features.T.dot(obj_deriv_out) / len(obj_deriv_out) \
@@ -775,10 +783,10 @@ class DNNApprox(FunctionApprox[X]):
     def objective_gradient(
         self,
         xy_vals_seq: Iterable[Tuple[X, float]],
-        obj_deriv_out_func: Callable[[Iterable[Tuple[X, float]]], float]
+        obj_deriv_out_fun: Callable[[Sequence[X], Sequence[float]], float]
     ) -> Gradient[DNNApprox[X]]:
-        x_vals = [a for a, _ in xy_vals_seq]
-        obj_deriv_out: np.ndarray = obj_deriv_out_func(xy_vals_seq)
+        x_vals, y_vals = zip(*xy_vals_seq)
+        obj_deriv_out: np.ndarray = obj_deriv_out_fun(x_vals, y_vals)
         fwd_prop: Sequence[np.ndarray] = self.forward_propagation(x_vals)[:-1]
         gradient: Sequence[np.ndarray] = \
             [x + self.regularization_coeff * self.weights[i].weights
