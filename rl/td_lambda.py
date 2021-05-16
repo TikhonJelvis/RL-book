@@ -91,7 +91,7 @@ def td_lambda_prediction(
             y: float = step.reward + γ * func_approx(step.next_state)
             el_tr = el_tr * (γ * lambd) + func_approx.objective_gradient(
                 xy_vals_seq=[(x, y)],
-                obj_deriv_out_func=lambda pairs: np.ones(len(list(pairs)))
+                obj_deriv_out_fun=lambda x1, y1: np.ones(len(x1))
             )
             func_approx = func_approx.update_with_gradient(
                 el_tr * (func_approx(x) - y)
