@@ -245,7 +245,7 @@ if __name__ == '__main__':
         )
         epsilon_as_func_of_episodes: Callable[[int], float] = lambda k: 1. / k
         learning_rate: float = 0.01
-        num_updates: int = 1000000
+        num_updates: int = 3000000
         sarsa_vf_dict, sarsa_policy = wg.get_glie_sarsa_vf_and_policy(
             epsilon_as_func_of_episodes=epsilon_as_func_of_episodes,
             learning_rate=learning_rate,
