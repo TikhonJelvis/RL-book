@@ -108,27 +108,6 @@ class FunctionApprox(ABC, Generic[X]):
         another function approximation of the same type?
         '''
 
-    def argmax(self, xs: Iterable[X]) -> X:
-        '''Return the input X that maximizes the function being approximated.
-        Arguments:
-          xs -- list of inputs to evaluate and maximize, cannot be empty
-        Returns the X that maximizes the function this approximates.
-        '''
-        args: Sequence[X] = list(xs)
-        return args[np.argmax(self.evaluate(args))]
-
-    def rmse(
-        self,
-        xy_vals_seq: Iterable[Tuple[X, float]]
-    ) -> float:
-        '''The Root-Mean-Squared-Error between FunctionApprox's
-        predictions (from evaluate) and the associated (supervisory)
-        y values
-        '''
-        x_seq, y_seq = zip(*xy_vals_seq)
-        errors: np.ndarray = self.evaluate(x_seq) - np.array(y_seq)
-        return np.sqrt(np.mean(errors * errors))
-
     def iterate_updates(
         self: F,
         xy_seq_stream: Iterator[Iterable[Tuple[X, float]]]
@@ -144,6 +123,27 @@ class FunctionApprox(ABC, Generic[X]):
             lambda fa, xy: fa.update(xy),
             initial=self
         )
+
+    def rmse(
+        self,
+        xy_vals_seq: Iterable[Tuple[X, float]]
+    ) -> float:
+        '''The Root-Mean-Squared-Error between FunctionApprox's
+        predictions (from evaluate) and the associated (supervisory)
+        y values
+        '''
+        x_seq, y_seq = zip(*xy_vals_seq)
+        errors: np.ndarray = self.evaluate(x_seq) - np.array(y_seq)
+        return np.sqrt(np.mean(errors * errors))
+
+    def argmax(self, xs: Iterable[X]) -> X:
+        '''Return the input X that maximizes the function being approximated.
+        Arguments:
+          xs -- list of inputs to evaluate and maximize, cannot be empty
+        Returns the X that maximizes the function this approximates.
+        '''
+        args: Sequence[X] = list(xs)
+        return args[np.argmax(self.evaluate(args))]
 
 
 @dataclass(frozen=True)
@@ -706,7 +706,7 @@ class DNNApprox(FunctionApprox[X]):
         x_values_seq: Iterable[X]
     ) -> Sequence[np.ndarray]:
         """
-        :param x_values_seq: a n-length-sequence of input points
+        :param x_values_seq: a n-length iterable of input points
         :return: list of length (L+2) where the first (L+1) values
                  each represent the 2-D input arrays (of size n x |I_l|),
                  for each of the (L+1) layers (L of which are hidden layers),
@@ -740,12 +740,10 @@ class DNNApprox(FunctionApprox[X]):
         obj_deriv_out: np.ndarray
     ) -> Sequence[np.ndarray]:
         """
-        :param
-        fwd_prop represents the result of forward propagation (without the
-        final output), a sequence of L 2-D np.ndarrays of the DNN.
-        obj_deriv_out represents the derivative of the objective
-        function with respect to the linear predictor of the output layer of
-        the DNN.
+        :param fwd_prop represents the result of forward propagation (without
+        the final output), a sequence of L 2-D np.ndarrays of the DNN.
+        : param obj_deriv_out represents the derivative of the objective
+        function with respect to the linear predictor of the final layer.
 
         :return: list (of length L+1) of |O_l| x |I_l| 2-D arrays,
                  i.e., same as the type of self.weights.weights
@@ -753,9 +751,8 @@ class DNNApprox(FunctionApprox[X]):
         the objective where the output layer activation function
         is the canonical link function of the conditional distribution of y|x
         """
-        layer_inputs: Sequence[np.ndarray] = fwd_prop
         deriv: np.ndarray = obj_deriv_out.reshape(1, -1)
-        back_prop: List[np.ndarray] = [np.dot(deriv, layer_inputs[-1]) /
+        back_prop: List[np.ndarray] = [np.dot(deriv, fwd_prop[-1]) /
                                        deriv.shape[1]]
         # L is the number of hidden layers, n is the number of points
         # layer l deriv represents dObj/dS_l where S_l = I_l . weights_l
@@ -769,15 +766,15 @@ class DNNApprox(FunctionApprox[X]):
             # Note: g'(S_{l-1}) is expressed as hidden layer activation
             # derivative as a function of O_{l-1} (=I_l).
             deriv = np.dot(self.weights[i + 1].weights.T, deriv) * \
-                self.dnn_spec.hidden_activation_deriv(layer_inputs[i + 1].T)
+                self.dnn_spec.hidden_activation_deriv(fwd_prop[i + 1].T)
             # If self.dnn_spec.bias is True, then I_l = O_{l-1} + 1, in which
             # case # the first row of the calculated deriv is removed to yield
             # a 2-D array of dimension |O_{l-1}| x n.
             if self.dnn_spec.bias:
                 deriv = deriv[1:]
-            # layer l gradient is deriv_l inner layer_inputs_l, which is
+            # layer l gradient is deriv_l inner fwd_prop[l], which is
             # of dimension (|O_l| x n) inner (n x (|I_l|) = |O_l| x |I_l|
-            back_prop.append(np.dot(deriv, layer_inputs[i]) / deriv.shape[1])
+            back_prop.append(np.dot(deriv, fwd_prop[i]) / deriv.shape[1])
         return back_prop[::-1]
 
     def objective_gradient(
