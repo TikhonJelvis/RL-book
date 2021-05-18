@@ -21,67 +21,113 @@ Our framework will allow for incremental estimation wherein at each iteration $t
 
 $$[(x_{t,i}, y_{t,i})|1 \leq i \leq n_t]$$
 
-is used to update the parameters from $w_{t-1}$ to $w_t$ (parameters initialized at iteration $t=0$ to $w_0$). This framework can be used to update the parameters incrementally, with say a gradient descent algorithm, either stochastic gradient descent (where a single $(x,y)$ pair is used for each iteration's gradient calculation) or mini-batch gradient descent (where an appropriate subset of the available data is used for each iteration's gradient calculation) or simply re-using the entire data available for each iteration's gradient calculation (and consequent, parameter update). Moreover, the flexibility of our framework, allowing for incremental estimation, is particularly important for Reinforcement Learning algorithms wherein we update the parameters of the function approximation from the new data that is generated from each state transition as a result of interaction with either the real environment or a simulated environment.
+is used to update the parameters from $w_{t-1}$ to $w_t$ (parameters initialized at iteration $t=0$ to $w_0$). This framework can be used to update the parameters incrementally with a gradient descent algorithm, either stochastic gradient descent (where a single $(x,y)$ pair is used for each iteration's gradient calculation) or mini-batch gradient descent (where an appropriate subset of the available data is used for each iteration's gradient calculation) or simply re-using the entire data available for each iteration's gradient calculation (and consequent, parameters update). Moreover, the flexibility of our framework, allowing for incremental estimation, is particularly important for Reinforcement Learning algorithms wherein we update the parameters of the function approximation from the new data that is generated from each state transition as a result of interaction with either the real environment or a simulated environment.
 
 Among other things, the estimate $f$ (parameterized by $w$) gives us the model-expected value of $y$ conditional on $x$, i.e.
 
 $$\mathbb{E}_M[y|x] = \mathbb{E}_{f(x;w)}[y] = \int_{-\infty}^{+\infty} y \cdot f(x;w)(y) \cdot dy$$
 
-For the purposes of Approximate Dynamic Programming and Reinforcement Learning, the above expectation will provide an estimate of the Value Function for any state ($x$ takes the role of the state, and $y$ takes the role of the Value Function for that state). In the case of function approximation for policies, $x$ takes the role of the state, and $y$ takes the role of the action for that policy, and $f(x;w)$ will provide the probability distribution of the actions for state $x$ (for a stochastic policy). It's also worthwhile pointing out that the broader theory of function approximations covers the case of multi-dimensional $y$ (where $y$ is a real-valued vector, rather than scalar) - this allows us to solve classification problems, along with regression problems. However, for ease of exposition and for sufficient coverage of function approximation applications in this book, we will only cover the case of scalar $y$.
+We refer to $\mathbb{E}_M[y|x]$ as the function approximation's prediction for a given predictor variable $x$.
 
-Now let us write some code that captures this framework. We write an abstract base class `FunctionApprox` parameterized by `X` (to permit arbitrary data types $\mathcal{X}$), representing $f(x;w)$, with the following 3 key `@abstractmethod`s, each of which will work with inputs of generic `Iterable` type (`Iterable` is any data type that we can iterate over, such as `Sequence` types or `Iterator` type):
+For the purposes of Approximate Dynamic Programming and Reinforcement Learning, the function approximation's prediction $\mathbb{E}[y|x]$ will provide an estimate of the Value Function for any state ($x$ takes the role of the *State*, and $y$ takes the role of the *Return* or *Expected Return Estimate* for that State). In the case of function approximation for policies, $x$ takes the role of the *State*, and $y$ takes the role of the *Action* for that policy, and $f(x;w)$ will provide the probability distribution of the actions for state $x$ (for a stochastic policy). It's also worthwhile pointing out that the broader theory of function approximations covers the case of multi-dimensional $y$ (where $y$ is a real-valued vector, rather than scalar) - this allows us to solve classification problems, along with regression problems. However, for ease of exposition and for sufficient coverage of function approximation applications in this book, we will only cover the case of scalar $y$.
 
-1. `solve`: takes as input an `Iterable` of $(x,y)$ pairs and solves for the optimal internal parameters $w^*$ that minimizes the cross-entropy between the empirical probability distribution of the input data of $(x,y)$ pairs and the model probability distribution $f(x;w)$. Some implementations of `solve` are iterative numerical methods and would require an additional input of `error_tolerance` that specifies the required precision of the best-fit parameters $w^*$. When an implementation of `solve` is an analytical solution not requiring an error tolerance, we specify the input `error_tolerance` as `None`. The output of `solve` is the `FunctionApprox` $f(x;w^*)$ (i.e., corresponding to the solved parameters $w^*$).
+Now let us write some code that captures this framework. We write an abstract base class `FunctionApprox` type-parameterized by `X` (to permit arbitrary data types $\mathcal{X}$), representing $f(x;w)$, with the following 3 key methods, each of which will work with inputs of generic `Iterable` type (`Iterable` is any data type that we can iterate over, such as `Sequence` types or `Iterator` type):
+
+1. `@abstractmethod solve`: takes as input an `Iterable` of $(x,y)$ pairs and solves for the optimal internal parameters $w^*$ that minimizes the cross-entropy between the empirical probability distribution of the input data of $(x,y)$ pairs and the model probability distribution $f(x;w)$. Some implementations of `solve` are iterative numerical methods and would require an additional input of `error_tolerance` that specifies the required precision of the best-fit parameters $w^*$. When an implementation of `solve` is an analytical solution not requiring an error tolerance, we specify the input `error_tolerance` as `None`. The output of `solve` is the `FunctionApprox` $f(x;w^*)$ (i.e., corresponding to the solved parameters $w^*$).
 2. `update`: takes as input an `Iterable` of $(x,y)$ pairs and updates the parameters $w$ defining $f(x;w)$. The purpose of `update` is to perform an incremental (iterative) improvement to the parameters $w$, given the input data of $(x,y)$ pairs in the current iteration. The output of `update` is the `FunctionApprox` corresponding to the updated parameters. Note that we should be able to `solve` based on an appropriate series of incremental `update`s (upto a specified `error_tolerance`). 
-3. `evaluate`: takes as input an `Iterable` of $x$ values and calculates $\mathbb{E}_M[y|x] = \mathbb{E}_{f(x;w)}[y]$ for each of the input $x$ values, and outputs these expected values in the form of a `numpy.ndarray`.
+3. `@abstractmethod evaluate`: takes as input an `Iterable` of $x$ values and calculates $\mathbb{E}_M[y|x] = \mathbb{E}_{f(x;w)}[y]$ for each of the input $x$ values, and outputs these expected values in the form of a `numpy.ndarray`.
+
+As we've explained, an incremental update to the parameters $w$ involves calculating a gradient and then using the gradient to adjust the parameters $w$. Hence the method `update` is supported by the following two `@abstractmethod`s.
+
+- `@abstractmethod objective_gradient`: computes the gradient of an objective function (call it $Obj(x,y)$) of the `FunctionApprox` with respect to the parameters $w$ in the internal representation of the `FunctionApprox`. The gradient is output in the form of a `Gradient` type. The second argument `obj_deriv_out_fun` of the `objective_gradient` method represents the partial derivative of $Obj$ with respect to an appropriate model-computed value (call it $Out(x)$), i.e., $\frac {\partial Obj(x,y)} {\partial Out(x)}$, when evaluated at a `Sequence` of $x$ values and a `Sequence` of $y$ values (to be obtained from the first argument `xy_vals_seq` of the `objective_gradient` method).
+- `@abstractmethod update_with_gradient`: takes as input a `Gradient` and updates the internal parameters using the gradient values (eg: gradient descent update to the parameters), returning the updated `FunctionApprox`.
+
+The `update` method is written with $\frac {\partial Obj(x_i,y_i)} {\partial Out(x_i)}$ defined as follows, for each training data point $(x_i, y_i)$:
+
+$$\frac {\partial Obj(x_i, y_i)} {\partial Out(x_i)} = \mathbb{E}_M[y|x_i] - y_i$$
+
+It turns out that for each concrete function approximation that we'd want to implement, if the Objective $Obj(x_i, y_i)$ is the cross-entropy loss function, we can identify a model-computed value $Out(x_i)$ (either the output of the model or an intermediate computation of the model) such that $\frac {\partial Obj(x_i, y_i)} {\partial Out(x_i)}$ is equal to the prediction error $\mathbb{E}_M[y|x_i] - y_i$ (for each training data point $(x_i, y_i)$) and we can come up with a numerical algorithm to compute $\nabla_w Out(x_i)$, so that by chain-rule, we have the required gradient:
+
+$$\nabla_w Obj(x_i, y_i) = \frac {\partial Obj(x_i, y_i)} {\partial Out(x_i)} \cdot \nabla_w Out(x_i) = (\mathbb{E}_M[y|x_i] - y_i) \cdot \nabla_w Out(x_i)$$
+
+The `update` method implements this chain-rule calculation, by setting `obj_deriv_out_fun` to be the prediction error $\mathbb{E}_M[y|x_i] - y_i$, delegating the calculation of $\nabla_w Out(x_i)$ to the concrete implementation of the `@abstractmethod objective_gradient`
+
+Note that the `Gradient` class contains a single attribute of type `FunctionApprox` so that a `Gradient` object can represent the gradient values in the form of the internal parameters of the `FunctionApprox` attribute (since each gradient value is simply a partial derivative with respect to an internal parameter).
+
+We use the `TypeVar` `F` to refer to a concrete class that would implement the abstract interface of `FunctionApprox`.
 
 ```python
 from abc import ABC, abstractmethod
 import numpy as np
 
 X = TypeVar('X')
+F = TypeVar('F', bound='FunctionApprox')
 
 class FunctionApprox(ABC, Generic[X]):
+
+    @abstractmethod
+    def objective_gradient(
+        self: F,
+        xy_vals_seq: Iterable[Tuple[X, float]],
+        obj_deriv_out_fun: Callable[[Sequence[X], Sequence[float]], np.ndarray]
+    ) -> Gradient[F]:
+        pass
 
     @abstractmethod
     def evaluate(self, x_values_seq: Iterable[X]) -> np.ndarray:
         pass
 
     @abstractmethod
-    def update(
-        self,
-        xy_vals_seq: Iterable[Tuple[X, float]]
-    ) -> FunctionApprox[X]:
+    def update_with_gradient(
+        self: F,
+        gradient: Gradient[F]
+    ) -> F:
         pass
+
+    def update(
+        self: F,
+        xy_vals_seq: Iterable[Tuple[X, float]]
+    ) -> F:
+        def deriv_func(x: Sequence[X], y: Sequence[float]) -> np.ndarray:
+            return self.evaluate(x) - np.array(y)
+
+        return self.update_with_gradient(
+            self.objective_gradient(xy_vals_seq, deriv_func)
+        )
 
     @abstractmethod
     def solve(
-        self,
+        self: F,
         xy_vals_seq: Iterable[Tuple[X, float]],
         error_tolerance: Optional[float] = None
-    ) -> FunctionApprox[X]:
+    ) -> F:
         pass
+
+
+@dataclass(frozen=True)
+class Gradient(Generic[F]):
+    function_approx: F
 ```
 
 When concrete classes implementing `FunctionApprox` write the `solve` method in terms of the `update` method, they will need to check if a newly updated `FunctionApprox` is "close enough" to the previous `FunctionApprox`. So each of them will need to implement their own version of "Are two `FunctionApprox` instances within a certain `error_tolerance` of each other?". Hence, we need the following `@abstractmethod within`:
 
 ```python
     @abstractmethod
-    def within(self, other: FunctionApprox[X], tolerance: float) -> bool:
+    def within(self: F, other: F, tolerance: float) -> bool:
         pass
 ```
 
-Any concrete class that implement this abstract class `FunctionApprox` will need to implement these four `abstractmethod`s of `FunctionApprox`, based on the specific assumptions that the concrete class makes for $f$. 
+Any concrete class that implement this abstract class `FunctionApprox` will need to implement these five `abstractmethod`s of `FunctionApprox`, based on the specific assumptions that the concrete class makes for $f$. 
 
-Next, we write some useful methods that the concrete classes implementing `FunctionApprox` can inherit and utilize. Firstly, we write a method called `iterate_updates` that takes as input a stream (`Iterator`) of `Iterable` of $(x,y)$ pairs, and performs a series of incremental updates to the parameters $w$ (each using the `update` method), with each `update` done for each `Iterable` of $(x,y)$ pairs in the input stream `xy_seq: Iterator[Iterable[Tuple[X, float]]]`. `iterate_updates` returns an `Iterator[FunctionApprox[X]]` representing the successively updated `FunctionApprox` instances as a consequence of the repeated invocations to `update`. Note the use of the `rl.iterate.accumulate` function (a wrapped version of [`itertools.accumulate`](https://docs.python.org/3/library/itertools.html#itertools.accumulate)) that calculates accumulated results (including intermediate results) on an `Iterable`, based on a provided function to govern the accumulation. In the code below, the `Iterable` is the input stream `xy_seq_stream` and the function governing the accumulation is the `update` method of `FunctionApprox`.
+Next, we write some useful methods that the concrete classes implementing `FunctionApprox` can inherit and utilize. Firstly, we write a method called `iterate_updates` that takes as input a stream (`Iterator`) of `Iterable` of $(x,y)$ pairs, and performs a series of incremental updates to the parameters $w$ (each using the `update` method), with each `update` done for each `Iterable` of $(x,y)$ pairs in the input stream `xy_seq: Iterator[Iterable[Tuple[X, float]]]`. `iterate_updates` returns an `Iterator` of `FunctionApprox` representing the successively updated `FunctionApprox` instances as a consequence of the repeated invocations to `update`. Note the use of the `rl.iterate.accumulate` function (a wrapped version of [`itertools.accumulate`](https://docs.python.org/3/library/itertools.html#itertools.accumulate)) that calculates accumulated results (including intermediate results) on an `Iterable`, based on a provided function to govern the accumulation. In the code below, the `Iterable` is the input stream `xy_seq_stream` and the function governing the accumulation is the `update` method of `FunctionApprox`.
 
 ```python
 import rl.iterate as iterate
 
     def iterate_updates(
-        self,
+        self: F,
         xy_seq_stream: Iterator[Iterable[Tuple[X, float]]]
-    ) -> Iterator[FunctionApprox[X]]:
+    ) -> Iterator[F]:
         return iterate.accumulate(
             xy_seq_stream,
             lambda fa, xy: fa.update(xy),
@@ -101,14 +147,14 @@ Next, we write a method called `rmse` to calculate the Root-Mean-Squared-Error o
         return np.sqrt(np.mean(errors * errors))
 ```
 
-Finally, we write a method `argmax` that takes as input an `Iterable` of $x$ values and returns the $x$ value that maximizes $\mathbb{E}_{f(x;w)}[x]$.
+Finally, we write a method `argmax` that takes as input an `Iterable` of $x$ values and returns the $x$ value that maximizes $\mathbb{E}_{f(x;w)}[y]$.
 
 ```python
     def argmax(self, xs: Iterable[X]) -> X:
         return list(xs)[np.argmax(self.evaluate(xs))]
 ```
 
-The above code for `FunctionApprox` is in the file [rl/function_approx.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/function_approx.py).
+The above code for `FunctionApprox` and `Gradient` is in the file [rl/function_approx.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/function_approx.py). rl/function_approx.py also contains the convenience methods `@abstractmethod __add__` (to add two `FunctionApprox`), `@abstractmethod __mul__` (to multiply a `FunctionApprox` with a real-valued scalar), and `__call__` (to treat a `FunctionApprox` object syntactically as a function taking an `x: X` as input, essentially a shorthand for `evaluate` on a single $x$ value). `__add__` and `__mul__` are meant to perform element-wise addition and scalar-multiplication on the internal parameters $w$ of the Function Approximation (see Appendix [-@sec:function-space-appendix] on viewing Function Approximations as Vector Spaces). Likewise, it contains the methods `__add__` and `__mul__` for the `Gradient` class that simply delegates to the `__add__` and `__mul__` methods of the `FunctionApprox` within `Gradient`, and it also contains the method `zero` that returns a `Gradient` which is uniformly zero for each of the parameter values.
 
 Now we are ready to cover a concrete but simple function approximation - the case of linear function approximation. 
 
@@ -121,7 +167,7 @@ $$\bm{\phi}(x) = (\phi_1(x), \phi_2(x), \ldots, \phi_m(x)) \text{ for all } x \i
 We treat $\bm{\phi}(x)$ as a column vector for all $x \in \mathcal{X}$.
 
 For linear function approximation, the internal parameters $w$ are represented as a weights column-vector $\bm{w} = (w_1, w_2, \ldots, w_m) \in \mathbb{R}^m$. Linear function approximation is based on the assumption of a Gaussian distribution for $y|x$ with mean
-$$\sum_{j=1}^m \phi_j(x) \cdot w_j = \bm{\phi}(x)^T \cdot \bm{w}$$
+$$\mathbb{E}_M[y|x] = \sum_{j=1}^m \phi_j(x) \cdot w_j = \bm{\phi}(x)^T \cdot \bm{w}$$
 and constant variance $\sigma^2$, i.e.,
 $$\mathbb{P}[y|x] = f(x;\bm{w})(y) = \frac {1} {\sqrt{2\pi \sigma^2}} \cdot e^{-\frac {(y - \bm{\phi}(x)^T \cdot \bm{w})^2} {2\sigma^2}}$$
 
@@ -136,6 +182,16 @@ $$\mathcal{L}(\bm{w}) = \frac 1 {2n} (\sum_{i=1}^n (\bm{\phi}(x_i)^T \cdot \bm{w
 The gradient of $\mathcal{L}(\bm{w})$ with respect to $\bm{w}$ works out to:
 
 $$\nabla_{\bm{w}} \mathcal{L}(\bm{w}) = \frac 1 n \cdot (\sum_{i=1}^n \bm{\phi}(x_i) \cdot (\bm{\phi}(x_i)^T \cdot \bm{w} - y_i)) + \lambda \cdot \bm{w}$$
+
+We had said previously that for each concrete function approximation that we'd want to implement, if the Objective $Obj(x_i, y_i)$ is the cross-entropy loss function, we can identify a model-computed value $Out(x_i)$ (either the output of the model or an intermediate computation of the model) such that $\frac {\partial Obj(x_i, y_i)} {\partial Out(x_i)}$ is equal to the prediction error $\mathbb{E}_M[y|x_i] - y_i$ (for each training data point $(x_i, y_i)$) and we can come up with a numerical algorithm to compute $\nabla_w Out(x_i)$, so that by chain-rule, we have the required gradient $\nabla_w Obj(x_i, y_i)$ (without regularization). In the case of this linear function approximation, the model-computed value $Out(x_i)$ is simply the model prediction for predictor variable $x_i$, i.e.,
+
+$$Out(x_i) = \mathbb{E}_M[y|x_i] = \bm{\phi}(x_i)^T \cdot \bm{w}$$
+
+This is confirmed by noting that with $Obj(x_i, y_i)$ set to be the cross-entropy loss function $\mathcal{L}(\bm{w})$ and $Out(x_i)$ set to be the model prediction $\bm{\phi}(x_i)^T \cdot \bm{w}$ (for training data point $(x_i, y_i)$),
+
+$$\frac {\partial Obj(x_i, y_i)} {\partial Out(x_i)} = \bm{\phi}(x_i)^T \cdot \bm{w} - y_i = \mathbb{E}_M[y|x_i] - y_i$$
+
+$$\nabla_{\bm{w}} Out(x_i) = \nabla_{\bm{w}} (\bm{\phi}(x_i)^T \cdot \bm{w}) = \bm{\phi}(x_i)$$
 
 We can solve for $\bm{w^*}$ by incremental estimation using gradient descent (change in $\bm{w}$ proportional to the gradient estimate of $\mathcal{L}(\bm{w})$ with respect to $\bm{w}$). If the $(x_t, y_t)$ data at time $t$ is:
 
@@ -227,7 +283,9 @@ class Weights:
         return np.all(np.abs(self.weights - other.weights) <= tolerance).item()
 ```
 
-Given this `Weights` dataclass, we are now ready to write the `@dataclass LinearFunctionApprox` for linear function approximation that implements the abstract base class `FunctionApprox`. It has attributes `feature_functions` that represents $\phi_j: \mathcal{X} \rightarrow \mathbb{R}$ for all $j = 1, 2, \ldots, m$, `regularization_coeff` that represents the regularization coefficient $\lambda$, `weights` which is an instance of the `Weights` class we wrote above, and `direct_solve` (which we will explain shortly. The `@staticmethod create` serves as a factory method to create a new instance of `LinearFunctionApprox`. The method `get_feature_values` takes as input an `x_values_seq: Iterable[X]` (representing a data set of $x \in \mathcal{X}$), and produces as output the corresponding feature vectors $\bm{\phi}(x) \in \mathbb{R}^m$ for each of the input $x$. The feature vectors are output in the form of a 2-D numpy array, with each feature vector $\bm{\phi}(x)$ (for each $x$ in the input sequence) appearing as a row in the output 2-D numpy array (the number of rows in this numpy array is the length of the input `x_values_seq` and the number of columns is the number of feature functions). Note that often we want to include a bias term in our linear function approximation, in which case we need to prepend the sequence of feature functions we want to provide as input with an artificial feature function `lambda _: 1.` to represent the constant feature with value 1. This will ensure we have a bias weight in addition to each of the weights that serve as coefficients to the (non-artificial) feature functions. The method `evaluate` (an `@abstractmethod` in `FunctionApprox`) calculates the prediction $\mathbb{E}_M[y|x]$ for each input $x$ as: $\bm{\phi}(x)^T \cdot \bm{w} = \sum_{j=1}^m \phi_j(x) \cdot w_i$. The method `regularized_loss_gradient` performs the calculation $\mathcal{G}_{(x_t, y_t)}(\bm{w}_t)$ shown above. The method `update` (`@abstractmethod` in `FunctionApprox`) invokes `regularized_loss_gradient` and returns a new instance of `LinearFunctionApprox` that contains the updated weights, along with the ADAM cache updates (invoking the `update` method of the `Weights` class to ensure there are no in-place updates).
+Given this `Weights` dataclass, we are now ready to write the `@dataclass LinearFunctionApprox` for linear function approximation that implements the abstract base class `FunctionApprox`. It has attributes `feature_functions` that represents $\phi_j: \mathcal{X} \rightarrow \mathbb{R}$ for all $j = 1, 2, \ldots, m$, `regularization_coeff` that represents the regularization coefficient $\lambda$, `weights` which is an instance of the `Weights` class we wrote above, and `direct_solve` (which we will explain shortly. The `@staticmethod create` serves as a factory method to create a new instance of `LinearFunctionApprox`. The method `get_feature_values` takes as input an `x_values_seq: Iterable[X]` (representing a data set of $x \in \mathcal{X}$), and produces as output the corresponding feature vectors $\bm{\phi}(x) \in \mathbb{R}^m$ for each of the input $x$. The feature vectors are output in the form of a 2-D numpy array, with each feature vector $\bm{\phi}(x)$ (for each $x$ in the input sequence) appearing as a row in the output 2-D numpy array (the number of rows in this numpy array is the length of the input `x_values_seq` and the number of columns is the number of feature functions). Note that often we want to include a bias term in our linear function approximation, in which case we need to prepend the sequence of feature functions we want to provide as input with an artificial feature function `lambda _: 1.` to represent the constant feature with value 1. This will ensure we have a bias weight in addition to each of the weights that serve as coefficients to the (non-artificial) feature functions.
+
+The method `evaluate` (an `@abstractmethod` in `FunctionApprox`) calculates the prediction $\mathbb{E}_M[y|x]$ for each input $x$ as: $\bm{\phi}(x)^T \cdot \bm{w} = \sum_{j=1}^m \phi_j(x) \cdot w_i$. The method `objective_gradient` (`@abstractmethod` in `FunctionApprox`) performs the calculation $\mathcal{G}_{(x_t, y_t)}(\bm{w}_t)$ shown above: the mean of the feature vectors $\bm{\phi}(x_i)$ weighted by the (scalar) linear prediction errors $\bm{\phi}(x_i)^T \cdot \bm{w}_t - y_{t,i}$ (plus regularization term $\lambda \cdot \bm{w}_t$). The variable `obj_deriv_out` takes the role of the linear prediction errors, when `objective_gradient` is invoked by the `update` method through the method `update_with_gradient`. The method `update_with_gradient` (`@abstractmethod` in `FunctionApprox`) updates the weights using the calculated gradient along with the ADAM cache updates (invoking the `update` method of the `Weights` class to ensure there are no in-place updates), and returns a new `LinearFunctionApprox` object containing the updated weights.
 
 
 ```python
@@ -264,36 +322,41 @@ class LinearFunctionApprox(FunctionApprox[X]):
             [[f(x) for f in self.feature_functions] for x in x_values_seq]
         )
 
+    def objective_gradient(
+        self,
+        xy_vals_seq: Iterable[Tuple[X, float]],
+        obj_deriv_out_fun: Callable[[Sequence[X], Sequence[float]], float]
+    ) -> Gradient[LinearFunctionApprox[X]]:
+        x_vals, y_vals = zip(*xy_vals_seq)
+        obj_deriv_out: np.ndarray = obj_deriv_out_fun(x_vals, y_vals)
+        features: np.ndarray = self.get_feature_values(x_vals)
+        gradient: np.ndarray = \
+            features.T.dot(obj_deriv_out) / len(obj_deriv_out) \
+            + self.regularization_coeff * self.weights.weights
+        return Gradient(replace(
+            self,
+            weights=replace(
+                self.weights,
+                weights=gradient
+            )
+        ))
+
     def evaluate(self, x_values_seq: Iterable[X]) -> np.ndarray:
         return np.dot(
             self.get_feature_values(x_values_seq),
             self.weights.weights
         )
 
-    def within(self, other: FunctionApprox[X], tolerance: float) -> bool:
-        if isinstance(other, LinearFunctionApprox):
-            return self.weights.within(other.weights, tolerance)
-        else:
-            return False
-
-    def regularized_loss_gradient(
+    def update_with_gradient(
         self,
-        xy_vals_seq: Iterable[Tuple[X, float]]
-    ) -> np.ndarray:
-        x_vals, y_vals = zip(*xy_vals_seq)
-        feature_vals: np.ndarray = self.get_feature_values(x_vals)
-        diff: np.ndarray = np.dot(feature_vals, self.weights.weights) \
-            - np.array(y_vals)
-        return np.dot(feature_vals.T, diff) / len(diff) \
-            + self.regularization_coeff * self.weights.weights
-
-    def update(
-        self,
-        xy_vals_seq: Iterable[Tuple[X, float]]
+        gradient: Gradient[LinearFunctionApprox[X]]
     ) -> LinearFunctionApprox[X]:
-        gradient: np.ndarray = self.regularized_loss_gradient(xy_vals_seq)
-        new_weights: np.ndarray = self.weights.update(gradient)
-        return replace(self, weights=new_weights)
+        return replace(
+            self,
+            weights=self.weights.update(
+                gradient.function_approx.weights.weights
+            )
+        )
 ```
 
 We also require the `within` method, that simply delegates to the `within` method of the `Weights` class.
@@ -358,7 +421,7 @@ import rl.iterate import iterate
         return ret
 ```
 
-The above code is in the file [rl/function_approx.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/function_approx.py). Note that the `FunctionApprox` class implemented in this file has another `@abstractclass` called `representational_gradient` which we can ignore for now, and will be covered later when we get to Module III of the book. For now, assume that this `@abstractclass representational_gradient` doesn't exist in the `FunctionApprox` class as it is an unnecessary distraction for the purpose of the contents in Modules I and II.
+The above code is in the file [rl/function_approx.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/function_approx.py). 
 
 ### Neural Network Function Approximation
 
@@ -570,20 +633,26 @@ The method `get_feature_values` is identical to the case of `LinearFunctionAppro
 
 The method `forward_propagation` implements the forward-propagation calculation that was covered earlier (combining Equations \eqref{eq:layers_input_output_connect} (potentially adjusted for the bias term, as mentioned above), \eqref{eq:layer_linearity} and \eqref{eq:layer_non_linearity}). `forward_propagation` takes as input the same data type as the input of `get_feature_values` (`x_values_seq: Iterable[X]`) and returns a list with $L+2$ numpy arrays. The last element of the returned list is a 1-D numpy array representing the final output of the neural network: $O_L = \mathbb{E}_M[y|x]$ for each of the $x$ values in the input `x_values_seq`. The remaining $L+1$ elements in the returned list are each 2-D numpy arrays, consisting of $\bm{I_l}$ for all $l = 0, 1, \ldots L$ (for each of the $x$ values provided as input in `x_values_seq`).
 
-The method `evaluate` (an `@abstractmethod` in `FunctionApprox`) returns the last element ($O_L = \mathbb{E}_M[y|x]$) of the list returned by `forward_propagation`.
+The method `evaluate` (`@abstractmethod` in `FunctionApprox`) returns the last element ($O_L = \mathbb{E}_M[y|x]$) of the list returned by `forward_propagation`.
 
-The method `backward_propagation` is the most important method of `DNNApprox` and deserves a detailed explanation. `backward_propagation` takes two inputs:
+The method `backward_propagation` is the most important method of `DNNApprox`, calculating $\nabla_{\bm{w_l}} Obj$ for all $l = 0, 1, \ldots, L$, some objective function $Obj$. We had said previously that for each concrete function approximation that we'd want to implement, if the Objective $Obj(x_i, y_i)$ is the cross-entropy loss function, we can identify a model-computed value $Out(x_i)$ (either the output of the model or an intermediate computation of the model) such that $\frac {\partial Obj(x_i, y_i)} {\partial Out(x_i)}$ is equal to the prediction error $\mathbb{E}_M[y|x_i] - y_i$ (for each training data point $(x_i, y_i)$) and we can come up with a numerical algorithm to compute $\nabla_w Out(x_i)$, so that by chain-rule, we have the required gradient $\nabla_w Obj(x_i, y_i)$ (without regularization). In the case of this DNN function approximation, the model-computed value $Out(x_i)$ is $S_L$. Thus,
 
-1. `fwd_prop: Sequence[np.ndarray]` which represents the output of the `forward_propagation` method, i.e., a sequence of $L+2$ numpy arrays with the first $L+1$ elements as the 2-D numpy arrays representing the inputs to layers $l = 0, 1, \ldots L$ (for each of an `Iterable` of $x$-values provided as input to the neural network), and the last element as the 1-D numpy array representing the output $O_L = \mathbb{E}_M[y|x]$ of the neural network (for each of the `Iterable` of $x$-values provided as input to the neural network).
-2. `objective_derivative_output: Callable[[np.ndarray], np.ndarray]`, a function representing the partial derivative of an arbitrary objective function $Obj$ with respect to $O_L$ (the output of the neural network), i.e., a function representing $\frac {\partial Obj}{\partial O_L}$.
+$$\frac {\partial Obj(x_i, y_i)} {\partial Out(x_i)} = \frac {\partial \mathcal{L}} {\partial S_L} = P_L = O_L - y_i = \mathbb{E}_M[y|x_i] - y_i$$
 
-The output of `backward_propagation` is an estimate of $\nabla_{\bm{w_l}} Obj$ for all $l = 0, 1, \ldots, L$. If we generalize the objective function from the cross-entropy loss function $\mathcal{L}$ to an arbitrary objective function $Obj$ and generalize $\bm{P_l}$ to be $\nabla_{\bm{S_l}} Obj$ (from $\nabla_{\bm{S_l}} \mathcal{L}$), then the output of `backward_propagation` would be equal to $\bm{P_l} \cdot \bm{I_l}^T$ (i.e., without the regularization term) for all $l = 0, 1, \ldots L$. 
+`backward_propagation` takes two inputs:
 
-The first step in `backward_propagation` is to extract $\bm{I_l}$ as the first $L+1$ elements of `fwd_prop` and store in the variable `layer_inputs`. The next step is to construct $\bm{P_L} = \frac {\partial Obj} {\partial S_L} = \frac {\partial Obj} {\partial O_L} \cdot \frac {\partial O_L} {\partial S_L}$ (variable `deriv` is initialized to $\bm{P_L}$) which is the product of the input `objective_derivative_output` (evaluated at each value in the 1-D numpy array `fwd_prop[-1]`, representing the outputs $O_L$ of the neural network) and the attribute `self.output_activation_deriv` representing $\frac {\partial O_L} {\partial S_L}$ as a function of $O_L$ (also evaluated at each value in the 1-D numpy array `fwd_prop[-1]`). The variable `deriv` represents $\bm{P_l} = \nabla_{\bm{S_l}} Obj$, evaluated for each of the values made available by `fwd_prop` (note that `deriv` is updated in each iteration of the loop reflecting Theorem \ref{th:recursive_gradient_formulation}: $\bm{P_l} = (\bm{w_{l+1}}^T \cdot \bm{P_{l+1}}) \circ g_l'(\bm{S_l})$). Note also that the returned list `back_prop` is populated with the result of Equation \eqref{eq:loss_gradient_formula}: $\nabla_{\bm{w_l}} \mathcal{L} = \bm{P_l} \cdot \bm{I_l}^T$.
+1. `fwd_prop: Sequence[np.ndarray]` which represents the output of `forward_propagation` except for the last element (which is the final output of the neural network), i.e., a sequence of $L+1$ 2-D numpy arrays representing the inputs to layers $l = 0, 1, \ldots L$ (for each of an `Iterable` of $x$-values provided as input to the neural network).
+2. `obj_deriv_out: np.ndarray`, which represents the partial derivative of an arbitrary objective function $Obj$ with respect to an arbitrary model-produced value $Out$, evaluated at each of the `Iterable` of $(x,y)$ pairs that are provided as training data.
 
-The method `regularized_loss_gradient` takes as input an `Iterable` of $(x,y)$ pairs, invokes the `forward_propagation` method (to be passed as input to `backward_propagation`), prepares a function `obj_deriv_output` (to be passed as the other input to `backward_propagation`), invokes `backward_propagation` and simply adds on the regularization term $\lambda \cdot \bm{w_l}$ to the output of `backward_propagation`.
+If we generalize the objective function from the cross-entropy loss function $\mathcal{L}$ to an arbitrary objective function $Obj$ and define $\bm{P_l}$ to be $\nabla_{\bm{S_l}} Obj$ (generalized from $\nabla_{\bm{S_l}} \mathcal{L}$), then the output of `backward_propagation` would be equal to $\bm{P_l} \cdot \bm{I_l}^T$ (i.e., without the regularization term) for all $l = 0, 1, \ldots L$. 
 
-The method `update` (`@abstractmethod` in `FunctionApprox`) invokes `regularized_loss_gradient` and returns a new instance of `DNNApprox` that contains the updated weights, along with the ADAM cache updates (invoking the `update` method of the `Weights` class to ensure there are no in-place updates). Finally, the method `solve` (`@abstractmethod` in `FunctionApprox`) utilizes the method `iterate_updates` (inherited from `FunctionApprox`) along with the method `within` to perform a best-fit of the weights that minimizes the cross-entropy loss function (basically, a series of incremental `update`s based on gradient descent).
+The first step in `backward_propagation` is to set $P_L$ (variable `deriv` in the code) equal to `obj_deriv_out` (which in the case of cross-entropy loss as $Obj$ and $S_L$ as $Out$, reduces to the prediction error $\mathbb{E}_M[y|x_i] - y_i$). As we walk back through the layers of the DNN, the variable `deriv` represents $\bm{P_l} = \nabla_{\bm{S_l}} Obj$, evaluated for each of the values made available by `fwd_prop` (note that `deriv` is updated in each iteration of the loop reflecting Theorem \ref{th:recursive_gradient_formulation}: $\bm{P_l} = (\bm{w_{l+1}}^T \cdot \bm{P_{l+1}}) \circ g_l'(\bm{S_l})$). Note also that the returned list `back_prop` is populated with the result of Equation \eqref{eq:loss_gradient_formula}: $\nabla_{\bm{w_l}} \mathcal{L} = \bm{P_l} \cdot \bm{I_l}^T$.
+
+The method `objective_gradient` (`@abstractmethod` in `FunctionApprox`) takes as input an `Iterable` of $(x,y)$ pairs and the $\frac {\partial Obj} {\partial Out}$ function, invokes the `forward_propagation` method (to be passed as input to `backward_propagation`), then invokes `backward_propagation`, and finally adds on the regularization term $\lambda \cdot \bm{w_l}$ to the output of `backward_propagation` to return the gradient $\nabla_{\bm{w_l}} Obj$ for all $l = 0, 1, \ldots L$.
+
+The method `update_with_gradient` (`@abstractmethod` in `FunctionApprox`) takes as input a gradient (eg: $\nabla_{\bm{w_l}} Obj$), updates the weights $\bm{w_l}$ for all $l = 0, 1, \ldots, L$ along with the ADAM cache updates (invoking the `update` method of the `Weights` class to ensure there are no in-place updates), and returns a new instance of `DNNApprox` that contains the updated weights.
+
+Finally, the method `solve` (`@abstractmethod` in `FunctionApprox`) utilizes the method `iterate_updates` (inherited from `FunctionApprox`) along with the method `within` to perform a best-fit of the weights that minimizes the cross-entropy loss function (basically, a series of incremental `update`s based on gradient descent).
 
 ```python
 from dataclasses import replace
@@ -610,7 +679,7 @@ class DNNApprox(FunctionApprox[X]):
             inputs: Sequence[int] = [len(feature_functions)] + \
                 [n + (1 if dnn_spec.bias else 0)
                  for i, n in enumerate(dnn_spec.neurons)]
-            outputs: Sequence[int] = dnn_spec.neurons + [1]
+            outputs: Sequence[int] = list(dnn_spec.neurons) + [1]
             wts = [Weights.create(
                 weights=np.random.randn(output, inp) / np.sqrt(inp),
                 adam_gradient=adam_gradient
@@ -634,6 +703,14 @@ class DNNApprox(FunctionApprox[X]):
         self,
         x_values_seq: Iterable[X]
     ) -> Sequence[np.ndarray]:
+        """
+        :param x_values_seq: a n-length iterable of input points
+        :return: list of length (L+2) where the first (L+1) values
+                 each represent the 2-D input arrays (of size n x |I_l|),
+                 for each of the (L+1) layers (L of which are hidden layers),
+                 and the last value represents the output of the DNN (as a
+                 1-D array of length n)
+        """
         inp: np.ndarray = self.get_feature_values(x_values_seq)
         ret: List[np.ndarray] = [inp]
         for w in self.weights[:-1]:
@@ -655,23 +732,25 @@ class DNNApprox(FunctionApprox[X]):
     def evaluate(self, x_values_seq: Iterable[X]) -> np.ndarray:
         return self.forward_propagation(x_values_seq)[-1]
 
-    def within(self, other: FunctionApprox[X], tolerance: float) -> bool:
-        if isinstance(other, DNNApprox):
-            return all(w1.within(w2, tolerance)
-                       for w1, w2 in zip(self.weights, other.weights))
-        else:
-            return False
-
     def backward_propagation(
         self,
         fwd_prop: Sequence[np.ndarray],
-        objective_derivative_output: Callable[[np.ndarray], np.ndarray]
+        obj_deriv_out: np.ndarray
     ) -> Sequence[np.ndarray]:
-        layer_inputs: Sequence[np.ndarray] = fwd_prop[:-1]
-        deriv: np.ndarray = objective_derivative_output(fwd_prop[-1]) * \
-            self.dnn_spec.output_activation_deriv(fwd_prop[-1])
-        deriv = deriv.reshape(1, -1)
-        back_prop: List[np.ndarray] = [np.dot(deriv, layer_inputs[-1]) /
+        """
+        :param fwd_prop represents the result of forward propagation (without
+        the final output), a sequence of L 2-D np.ndarrays of the DNN.
+        : param obj_deriv_out represents the derivative of the objective
+        function with respect to the linear predictor of the final layer.
+
+        :return: list (of length L+1) of |O_l| x |I_l| 2-D arrays,
+                 i.e., same as the type of self.weights.weights
+        This function computes the gradient (with respect to weights) of
+        the objective where the output layer activation function
+        is the canonical link function of the conditional distribution of y|x
+        """
+        deriv: np.ndarray = obj_deriv_out.reshape(1, -1)
+        back_prop: List[np.ndarray] = [np.dot(deriv, fwd_prop[-1]) /
                                        deriv.shape[1]]
         # L is the number of hidden layers, n is the number of points
         # layer l deriv represents dObj/dS_l where S_l = I_l . weights_l
@@ -685,45 +764,36 @@ class DNNApprox(FunctionApprox[X]):
             # Note: g'(S_{l-1}) is expressed as hidden layer activation
             # derivative as a function of O_{l-1} (=I_l).
             deriv = np.dot(self.weights[i + 1].weights.T, deriv) * \
-                self.dnn_spec.hidden_activation_deriv(layer_inputs[i + 1].T)
+                self.dnn_spec.hidden_activation_deriv(fwd_prop[i + 1].T)
             # If self.dnn_spec.bias is True, then I_l = O_{l-1} + 1, in which
             # case # the first row of the calculated deriv is removed to yield
             # a 2-D array of dimension |O_{l-1}| x n.
             if self.dnn_spec.bias:
                 deriv = deriv[1:]
-            # layer l gradient is deriv_l inner layer_inputs_l, which is
+            # layer l gradient is deriv_l inner fwd_prop[l], which is
             # of dimension (|O_l| x n) inner (n x (|I_l|) = |O_l| x |I_l|
-            back_prop.append(np.dot(deriv, layer_inputs[i]) / deriv.shape[1])
+            back_prop.append(np.dot(deriv, fwd_prop[i]) / deriv.shape[1])
         return back_prop[::-1]
 
-    def regularized_loss_gradient(
+    def objective_gradient(
         self,
-        xy_vals_seq: Iterable[Tuple[X, float]]
-    ) -> Sequence[np.ndarray]:
+        xy_vals_seq: Iterable[Tuple[X, float]],
+        obj_deriv_out_fun: Callable[[Sequence[X], Sequence[float]], float]
+    ) -> Gradient[DNNApprox[X]]:
         x_vals, y_vals = zip(*xy_vals_seq)
-        fwd_prop: Sequence[np.ndarray] = self.forward_propagation(x_vals)
-
-        def obj_deriv_output(out: np.ndarray) -> np.ndarray:
-            return (out - np.array(y_vals)) / \
-                self.dnn_spec.output_activation_deriv(out)
-
-        return [x + self.regularization_coeff * self.weights[i].weights
-                for i, x in enumerate(self.backward_propagation(
-                    fwd_prop=fwd_prop,
-                    objective_derivative_output=obj_deriv_output
-                ))]
-
-    def update(
-        self,
-        xy_vals_seq: Iterable[Tuple[X, float]]
-    ) -> DNNApprox[X]:
-        return replace(
+        obj_deriv_out: np.ndarray = obj_deriv_out_fun(x_vals, y_vals)
+        fwd_prop: Sequence[np.ndarray] = self.forward_propagation(x_vals)[:-1]
+        gradient: Sequence[np.ndarray] = \
+            [x + self.regularization_coeff * self.weights[i].weights
+             for i, x in enumerate(self.backward_propagation(
+                 fwd_prop=fwd_prop,
+                 obj_deriv_out=obj_deriv_out
+             ))]
+        return Gradient(replace(
             self,
-            weights=[w.update(g) for w, g in zip(
-                self.weights,
-                self.regularized_loss_gradient(xy_vals_seq)
-            )]
-        )
+            weights=[replace(w, weights=g) for
+                     w, g in zip(self.weights, gradient)]
+        ))
 
     def solve(
         self,
@@ -881,15 +951,15 @@ The plot of `linear_model_rmse_seq` and `dnn_model_rmse_seq` is shown in Figure 
 
 ### Tabular as a form of `FunctionApprox` {#sec:tabular-funcapprox-section}
 
-Now we consider a simple case where we have a fixed and finite set of $x$-values $\mathcal{X} = \{x_1, x_2, \ldots, x_n\}$, and any data set of $(x,y)$ made available to us needs to have it's $x$-values from within this finite set $\mathcal{X}$. The prediction $\mathbb{E}[y|x]$ for each $x \in \mathcal{X}$ needs to be calculated only from the $y$-values associated with this $x$ within the data set of $(x,y)$ pairs. In other words, the $y$-values in the data associated with other $x$ should not influence the prediction for $x$. Since we'd like the prediction for $x$ to be $\mathbb{E}[y|x]$, it would make sense for the prediction for a given $x$ to be *some sort of average* of all the $y$-values associated with $x$ within the data set of $(x,y)$ pairs seen so far. This simple case is refered to as *Tabular* because we can store all $x \in \mathcal{X}$ together with their corresponding predictions $\mathbb{E}[y|x]$ in a finite data structure (loosely refered to as a "table").
+Now we consider a simple case where we have a fixed and finite set of $x$-values $\mathcal{X} = \{x_1, x_2, \ldots, x_n\}$, and any data set of $(x,y)$ pairs made available to us needs to have it's $x$-values from within this finite set $\mathcal{X}$. The prediction $\mathbb{E}[y|x]$ for each $x \in \mathcal{X}$ needs to be calculated only from the $y$-values associated with this $x$ within the data set of $(x,y)$ pairs. In other words, the $y$-values in the data associated with other $x$ should not influence the prediction for $x$. Since we'd like the prediction for $x$ to be $\mathbb{E}[y|x]$, it would make sense for the prediction for a given $x$ to be *some sort of average* of all the $y$-values associated with $x$ within the data set of $(x,y)$ pairs seen so far. This simple case is refered to as *Tabular* because we can store all $x \in \mathcal{X}$ together with their corresponding predictions $\mathbb{E}[y|x]$ in a finite data structure (loosely refered to as a "table").
 
-So the calculations for Tabular prediction of $\mathbb{E}[y|x]$ is particularly straightforward. What is interesting though is the fact that Tabular prediction actually fits the interface of `FunctionApprox` in terms of implementing:
+So the calculations for Tabular prediction of $\mathbb{E}[y|x]$ is particularly straightforward. What is interesting though is the fact that Tabular prediction actually fits the interface of `FunctionApprox` in terms of the following three methods that we have emphasized as the essence of `FunctionApprox`:
 
 * the `solve` method, that would simply take the average of all the $y$-values associated with each $x$ in the given data set, and store those averages in a dictionary data structure.
 * the `update` method, that would update the current averages in the dictionary data structure, based on the new data set of $(x,y)$ pairs that is provided.
 * the `evaluate` method, that would simply look up the dictionary data structure for the $y$-value averages associated with each $x$-value provided as input.
 
- This view of Tabular prediction as a special case of `FunctionApprox` also permits us to cast the tabular algorithms of Dynamic Programming and Reinforcement Learning as special cases of the function approximation versions of the algorithms (using the `Tabular` class we develop below).
+This view of Tabular prediction as a special case of `FunctionApprox` also permits us to cast the tabular algorithms of Dynamic Programming and Reinforcement Learning as special cases of the function approximation versions of the algorithms (using the `Tabular` class we develop below).
 
 So now let us write the code for `@dataclass Tabular` as an implementation of the abstract base class `FunctionApprox`. The attributes of `@dataclass Tabular` are:
 
@@ -897,31 +967,51 @@ So now let us write the code for `@dataclass Tabular` as an implementation of th
 * `counts_map` which is a dictionary mapping each $x$-value to the count of $y$-values associated with $x$ that have been seen so far in the data. We need to track the count of $y$-values associated with each $x$ because this enables us to update `values_map` appropriately upon seeing a new $y$-value associated a given $x$.
 * `count_to_weight_func` which defines a function from number of $y$-values seen so far (associated with a given $x$) to the weight assigned to the most recent $y$. This enables us to do a weighted average of the $y$-values seen so far, controlling the emphasis to be placed on more recent $y$-values relative to previously seen $y$-values (associated with a given $x$).
 
-The `evaluate`, `update`, `solve` and `within` methods are now self-explanatory.
+The `evaluate`, `objective_gradient`, `update_with_gradient`, `solve` and `within` methods should now be self-explanatory.
 
 ```python
-from dataclasses import field
+from dataclasses import field, replace
 
 @dataclass(frozen=True)
 class Tabular(FunctionApprox[X]):
-
     values_map: Mapping[X, float] = field(default_factory=lambda: {})
     counts_map: Mapping[X, int] = field(default_factory=lambda: {})
     count_to_weight_func: Callable[[int], float] = \
-        field(default_factory=lambda: lambda n: 1. / n)
+        field(default_factory=lambda: lambda n: 1.0 / n)
+
+    def objective_gradient(
+        self,
+        xy_vals_seq: Iterable[Tuple[X, float]],
+        obj_deriv_out_fun: Callable[[Sequence[X], Sequence[float]], float]
+    ) -> Gradient[Tabular[X]]:
+        x_vals, y_vals = zip(*xy_vals_seq)
+        obj_deriv_out: np.ndarray = obj_deriv_out_fun(x_vals, y_vals)
+        sums_map: Dict[X, float] = defaultdict(float)
+        counts_map: Dict[X, int] = defaultdict(int)
+        for x, o in zip(x_vals, obj_deriv_out):
+            sums_map[x] += o
+            counts_map[x] += 1
+        return Gradient(replace(
+            self,
+            values_map={x: sums_map[x] / counts_map[x] for x in sums_map},
+            counts_map=counts_map
+        ))
 
     def evaluate(self, x_values_seq: Iterable[X]) -> np.ndarray:
         return np.array([self.values_map.get(x, 0.) for x in x_values_seq])
 
-    def update(self, xy_vals_seq: Iterable[Tuple[X, float]]) -> Tabular[X]:
+    def update_with_gradient(
+        self,
+        gradient: Gradient[Tabular[X]]
+    ) -> Tabular[X]:
         values_map: Dict[X, float] = dict(self.values_map)
         counts_map: Dict[X, int] = dict(self.counts_map)
-
-        for x, y in xy_vals_seq:
-            counts_map[x] = counts_map.get(x, 0) + 1
-            weight: float = self.count_to_weight_func(counts_map.get(x, 0))
-            values_map[x] = weight * y + (1 - weight) * values_map.get(x, 0.)
-
+        for key in gradient.function_approx.values_map:
+            counts_map[key] = counts_map.get(key, 0) + \
+                gradient.function_approx.counts_map[key]
+            weight: float = self.count_to_weight_func(counts_map[key])
+            values_map[key] = values_map.get(key, 0.) - \
+                weight * gradient.function_approx.values_map[key]
         return replace(
             self,
             values_map=values_map,
@@ -937,7 +1027,7 @@ class Tabular(FunctionApprox[X]):
         counts_map: Dict[X, int] = {}
         for x, y in xy_vals_seq:
             counts_map[x] = counts_map.get(x, 0) + 1
-            weight: float = self.count_to_weight_func(counts_map.get(x, 0))
+            weight: float = self.count_to_weight_func(counts_map[x])
             values_map[x] = weight * y + (1 - weight) * values_map.get(x, 0.)
         return replace(
             self,
