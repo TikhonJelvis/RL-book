@@ -42,7 +42,7 @@ class Affine (f a) => Approx f a where
   -- | Evaluate a whole bunch of inputs and produce a vector of the
   -- results.
   eval' :: f a -> (V.Vector a -> Vector R)
-  eval' f xs = Matrix.storable $ eval f <$> xs
+  eval' f xs = Matrix.storable (eval f <$> xs)
 
   -- | Improve the function approximation given a list of
   -- observations. The two vectors have to be the same length and

@@ -49,6 +49,12 @@ instance Additive (Vector R) where
 
 -- | A vector space is an additive group that can be multiplied by
 -- scalars from some field (denoted by the type @Scalar v@ here).
+--
+-- Scalar multiplication has to be distributive over vector addition:
+--
+-- @
+-- α *: (v₁ + v₂) = (α *: v₁) + (α *: v₂)
+-- @
 class Additive v => VectorSpace v where
   -- | The type of scalars for this vector space. Should be a field.
   type Scalar v
