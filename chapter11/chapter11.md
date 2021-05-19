@@ -926,8 +926,8 @@ wg.print_vf_and_policy(
     policy=vi_policy
 )
 epsilon_as_func_of_episodes: Callable[[int], float] = lambda k: 1. / k
-learning_rate: float = 0.01
-num_updates: int = 1000000
+learning_rate: float = 0.03
+num_updates: int = 50000
 sarsa_vf_dict, sarsa_policy = wg.get_glie_sarsa_vf_and_policy(
     epsilon_as_func_of_episodes=epsilon_as_func_of_episodes,
     learning_rate=learning_rate,
@@ -975,16 +975,15 @@ Value Iteration
  3  X  R  R  R  T
  2  R  U  U  X  U
  1  R  U  L  L  U
- 0  U  X  X  U  X
 
-SARSA
+ SARSA
 
        0     1     2     3     4
- 4 XXXXX  5.38  2.03  1.12  1.00
- 3 XXXXX  8.67  5.25  1.00  0.00
- 2  9.35  7.02  8.59 XXXXX  1.00
- 1  8.34  9.31  8.39 12.24 11.45
- 0 10.16 XXXXX XXXXX 16.93 XXXXX
+ 4 XXXXX  4.88  2.01  1.11  1.00
+ 3 XXXXX  8.15  5.29  1.00  0.00
+ 2  8.95  6.73  8.58 XXXXX  1.00
+ 1  8.29  9.00  8.10 12.04 11.20
+ 0 10.05 XXXXX XXXXX 17.17 XXXXX
 
     0  1  2  3  4
  4  X  R  R  R  D
@@ -996,11 +995,11 @@ SARSA
 Q-Learning
 
        0     1     2     3     4
- 4 XXXXX  5.32  2.02  1.11  1.00
- 3 XXXXX  8.26  5.12  1.00  0.00
- 2  9.06  6.73  8.24 XXXXX  1.00
- 1  8.32  9.03  8.25 12.07 11.96
- 0 10.07 XXXXX XXXXX 17.43 XXXXX
+ 4 XXXXX  5.05  2.02  1.13  1.00
+ 3 XXXXX  8.26  4.88  1.00  0.00
+ 2  8.95  6.92  8.28 XXXXX  1.00
+ 1  8.37  9.05  8.39 12.45 11.71
+ 0  9.99 XXXXX XXXXX 17.73 XXXXX
 
     0  1  2  3  4
  4  X  R  R  R  D
@@ -1008,10 +1007,9 @@ Q-Learning
  2  R  U  U  X  U
  1  R  U  L  L  U
  0  U  X  X  U  X
-
 ```
 
-Value Iteration should be considered as the benchmark since it calculates the Optimal Value Function within the default tolerance of 1e-5. We see that both SARSA and Q-Learning get fairly close to the Optimal Value Function after a million updates (i.e., million moves). We also see that both SARSA and Q-Learning obtain the true Optimal Policy, consistent with Value Iteration.
+Value Iteration should be considered as the benchmark since it calculates the Optimal Value Function within the default tolerance of 1e-5. We see that both SARSA and Q-Learning get fairly close to the Optimal Value Function after only 50,000 updates (i.e., 50,000 moves). We also see that both SARSA and Q-Learning obtain the true Optimal Policy, consistent with Value Iteration.
 
 Now let's explore SARSA and Q-Learning's speed of convergence to the Optimal Value Function.
 
