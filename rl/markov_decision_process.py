@@ -23,7 +23,7 @@ class Policy(ABC, Generic[S, A]):
 
     '''
     @abstractmethod
-    def act(self, state: S) -> Optional[Distribution[A]]:
+    def act(self, state: NonTerminal[S]) -> Distribution[A]:
         pass
 
 
@@ -33,7 +33,7 @@ class Always(Policy[S, A]):
     def __init__(self, action: A):
         self.action = action
 
-    def act(self, _: S) -> Optional[Distribution[A]]:
+    def act(self, _: S) -> Distribution[A]:
         return Constant(self.action)
 
 
@@ -76,9 +76,9 @@ class TransitionStep(Generic[S, A]):
     next_state -- the state we ended up in after the action
     reward -- the instantaneous reward we got for this transition
     '''
-    state: S
+    state: NonTerminal[S]
     action: A
-    next_state: S
+    next_state: State[S]
     reward: float
 
     def add_return(self, γ: float, return_: float) -> ReturnStep[S, A]:
@@ -104,6 +104,24 @@ class ReturnStep(TransitionStep[S, A]):
     return_: float
 
 
+class State(ABC, Generic[S]):
+    def on_non_terminal(self, f: Callable[[S], X], default: X) -> X:
+        if isinstance(self, NonTerminal):
+            return f(self.state)
+        else:
+            return default
+
+
+@dataclass(frozen=True)
+class Terminal(State[S]):
+    state: S
+
+
+@dataclass(frozen=True)
+class NonTerminal(State[S]):
+    state: S
+
+
 class MarkovDecisionProcess(ABC, Generic[S, A]):
     def apply_policy(self, policy: Policy[S, A]) -> MarkovRewardProcess[S]:
         mdp = self
@@ -111,50 +129,29 @@ class MarkovDecisionProcess(ABC, Generic[S, A]):
         class RewardProcess(MarkovRewardProcess[S]):
             def transition_reward(
                 self,
-                state: S
-            ) -> Optional[Distribution[Tuple[S, float]]]:
-                actions: Optional[Distribution[A]] = policy.act(state)
+                state: NonTerminal[S]
+            ) -> Distribution[Tuple[State[S], float]]:
+                actions: Distribution[A] = policy.act(state)
 
-                if actions is None:
-                    return None
-
-                # TODO: Handle the case where mdp.step(state, a)
-                # returns None
-                #
-                # Idea: use an exception for termination instead of
-                # return None?
                 return actions.apply(lambda a: mdp.step(state, a))
 
         return RewardProcess()
 
     @abstractmethod
-    def actions(self, state: S) -> Iterable[A]:
+    def actions(self, state: NonTerminal[S]) -> Iterable[A]:
         pass
-
-    def is_terminal(self, state: S) -> bool:
-        '''Is the given state a terminal state?
-
-        We cannot take any actions from a terminal state. This means
-        that a state is terminal iff `self.actions(s)` is empty.
-
-        '''
-        try:
-            next(iter(self.actions(state)))
-            return False
-        except StopIteration:
-            return True
 
     @abstractmethod
     def step(
         self,
-        state: S,
+        state: NonTerminal[S],
         action: A
-    ) -> Optional[Distribution[Tuple[S, float]]]:
+    ) -> Distribution[Tuple[State[S], float]]:
         pass
 
     def simulate_actions(
             self,
-            start_states: Distribution[S],
+            start_states: Distribution[NonTerminal[S]],
             policy: Policy[S, A]
     ) -> Iterable[TransitionStep[S, A]]:
         '''Simulate this MDP with the given policy, yielding the
@@ -162,18 +159,14 @@ class MarkovDecisionProcess(ABC, Generic[S, A]):
         encountered in the simulation trace.
 
         '''
-        state: S = start_states.sample()
+        state: State[S] = start_states.sample()
         reward: float = 0
 
-        while True:
+        while isinstance(state, NonTerminal):
             action_distribution = policy.act(state)
-            if action_distribution is None:
-                return
 
             action = action_distribution.sample()
             next_distribution = self.step(state, action)
-            if next_distribution is None:
-                return
 
             next_state, reward = next_distribution.sample()
             yield TransitionStep(state, action, next_state, reward)
@@ -181,7 +174,7 @@ class MarkovDecisionProcess(ABC, Generic[S, A]):
 
     def action_traces(
             self,
-            start_states: Distribution[S],
+            start_states: Distribution[NonTerminal[S]],
             policy: Policy[S, A]
     ) -> Iterable[Iterable[TransitionStep[S, A]]]:
         '''Yield an infinite number of traces as returned by
@@ -212,10 +205,7 @@ def epsilon_greedy_policy(
     explore = Bernoulli(ϵ)
 
     class QPolicy(Policy[S, A]):
-        def act(self, s: S) -> Optional[Distribution[A]]:
-            if mdp.is_terminal(s):
-                return None
-
+        def act(self, s: NonTerminal[S]) -> Distribution[A]:
             if explore.sample():
                 return Choose(set(mdp.actions(s)))
 
@@ -225,7 +215,7 @@ def epsilon_greedy_policy(
     return QPolicy()
 
 
-ActionMapping = Mapping[A, StateReward[S]]
+ActionMapping = Mapping[A, StateReward[State[S]]]
 StateActionMapping = Mapping[S, Optional[ActionMapping[A, S]]]
 
 
@@ -234,10 +224,9 @@ class FiniteMarkovDecisionProcess(MarkovDecisionProcess[S, A]):
 
     '''
 
-    mapping: StateActionMapping[S, A]
-    non_terminal_states: Sequence[S]
+    mapping: StateActionMapping[NonTerminal[S], A]
 
-    def __init__(self, mapping: StateActionMapping[S, A]):
+    def __init__(self, mapping: StateActionMapping[NonTerminal[S], A]):
         self.mapping = mapping
         self.non_terminal_states = [s for s, v in mapping.items()
                                     if v is not None]
@@ -256,11 +245,9 @@ class FiniteMarkovDecisionProcess(MarkovDecisionProcess[S, A]):
                             + f"Reward {r:.3f}] with Probability {p:.3f}\n"
         return display
 
-    def step(self, state: S, action: A) -> Optional[StateReward]:
-        action_map: Optional[ActionMapping[A, S]] = self.mapping[state]
+    def step(self, state: NonTerminal[S], action: A) -> StateReward:
+        action_map: ActionMapping[A, NonTerminal[S]] = self.mapping[state]
 
-        if action_map is None:
-            return None
         return action_map[action]
 
     def apply_finite_policy(self, policy: FinitePolicy[S, A])\
