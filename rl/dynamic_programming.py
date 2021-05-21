@@ -3,6 +3,7 @@ import operator
 from typing import Mapping, Iterator, TypeVar, Tuple, Dict
 
 from rl.iterate import converged, iterate
+from rl.markov_process import (NonTerminal)
 from rl.markov_decision_process import (FiniteMarkovDecisionProcess,
                                         FiniteMarkovRewardProcess,
                                         FinitePolicy)
@@ -15,7 +16,7 @@ DEFAULT_TOLERANCE = 1e-5
 
 # A representation of a value function for a finite MDP with states of
 # type S
-V = Mapping[S, float]
+V = Mapping[NonTerminal[S], float]
 
 
 def evaluate_mrp(

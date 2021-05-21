@@ -6,27 +6,48 @@ from dataclasses import dataclass
 import graphviz
 import numpy as np
 from pprint import pprint
-from typing import (Dict, Iterable, Generic, Sequence, Tuple,
+from typing import (Callable, Dict, Iterable, Generic, Sequence, Tuple,
                     Mapping, Optional, TypeVar)
 
 from rl.distribution import (Categorical, Distribution, FiniteDistribution,
                              SampledDistribution)
 
 S = TypeVar('S')
+X = TypeVar('X')
 
-Transition = Mapping[S, Optional[FiniteDistribution[S]]]
+
+class State(ABC, Generic[S]):
+    def on_non_terminal(self, f: Callable[[S], X], default: X) -> X:
+        if isinstance(self, NonTerminal):
+            return f(self.state)
+        else:
+            return default
+
+
+@dataclass(frozen=True)
+class Terminal(State[S]):
+    state: S
+
+
+@dataclass(frozen=True)
+class NonTerminal(State[S]):
+    state: S
+
+
+Transition = Mapping[NonTerminal[S], FiniteDistribution[State[S]]]
 
 
 class MarkovProcess(ABC, Generic[S]):
     '''A Markov process with states of type S.
     '''
     @abstractmethod
-    def transition(self, state: S) -> Optional[Distribution[S]]:
+    def transition(self, state: NonTerminal[S]) -> Distribution[State[S]]:
         '''Given a state of the process, returns a distribution of
         the next states.  Returning None means we are in a terminal state.
         '''
 
-    def is_terminal(self, state: S) -> bool:
+    # TODO: This is redundant now
+    def is_terminal(self, state: State[S]) -> bool:
         '''Return whether the given state is a terminal state.
 
         The default implementation of is_terminal calculates a transition
@@ -34,12 +55,12 @@ class MarkovProcess(ABC, Generic[S]):
         method if your process has a cheaper way of determing whether
         a state is terminal.
         '''
-        return self.transition(state) is None
+        return isinstance(state, Terminal)
 
     def simulate(
         self,
-        start_state_distribution: Distribution[S]
-    ) -> Iterable[S]:
+        start_state_distribution: Distribution[NonTerminal[S]]
+    ) -> Iterable[State[S]]:
         '''Run a simulation trace of this Markov process, generating the
         states visited during the trace.
 
@@ -47,19 +68,17 @@ class MarkovProcess(ABC, Generic[S]):
         subsequent states forever or until we hit a terminal state.
         '''
 
-        state: S = start_state_distribution.sample()
-        while True:
-            yield state
-            next_states = self.transition(state)
-            if next_states is None:
-                return
+        state: State[S] = start_state_distribution.sample()
+        yield state
 
-            state = next_states.sample()
+        while isinstance(state, NonTerminal):
+            state = self.transition(state).sample()
+            yield state
 
     def traces(
             self,
-            start_state_distribution: Distribution[S]
-    ) -> Iterable[Iterable[S]]:
+            start_state_distribution: Distribution[NonTerminal[S]]
+    ) -> Iterable[Iterable[State[S]]]:
         '''Yield simulation traces (the output of `simulate'), sampling a
         start state from the given distribution each time.
 
@@ -76,12 +95,11 @@ class FiniteMarkovProcess(MarkovProcess[S]):
 
     '''
 
-    non_terminal_states: Sequence[S]
+    non_terminal_states: Sequence[NonTerminal[S]]
     transition_map: Transition[S]
 
     def __init__(self, transition_map: Transition[S]):
-        self.non_terminal_states = [s for s, v in transition_map.items()
-                                    if v is not None]
+        self.non_terminal_states = list(transition_map.keys())
         self.transition_map = transition_map
 
     def __repr__(self) -> str:
@@ -107,13 +125,14 @@ class FiniteMarkovProcess(MarkovProcess[S]):
 
         return mat
 
-    def transition(self, state: S) -> Optional[FiniteDistribution[S]]:
+    def transition(self, state: NonTerminal[S]) -> FiniteDistribution[State[S]]:
         return self.transition_map[state]
 
-    def states(self) -> Iterable[S]:
+    # TODO: Do we want this to cover terminal states too?
+    def states(self) -> Iterable[NonTerminal[S]]:
         return self.transition_map.keys()
 
-    def get_stationary_distribution(self) -> FiniteDistribution[S]:
+    def get_stationary_distribution(self) -> FiniteDistribution[State[S]]:
         eig_vals, eig_vecs = np.linalg.eig(self.get_transition_matrix().T)
         index_of_first_unit_eig_val = np.where(
             np.abs(eig_vals - 1) < 1e-8)[0][0]
@@ -227,8 +246,8 @@ class MarkovRewardProcess(MarkovProcess[S]):
             yield self.simulate_reward(start_state_distribution)
 
 
-StateReward = FiniteDistribution[Tuple[S, float]]
-RewardTransition = Mapping[S, Optional[StateReward[S]]]
+StateReward = FiniteDistribution[Tuple[State[S], float]]
+RewardTransition = Mapping[NonTerminal[S], StateReward[S]]
 
 
 class FiniteMarkovRewardProcess(FiniteMarkovProcess[S],
@@ -238,18 +257,14 @@ class FiniteMarkovRewardProcess(FiniteMarkovProcess[S],
     reward_function_vec: np.ndarray
 
     def __init__(self, transition_reward_map: RewardTransition[S]):
-
-        transition_map: Dict[S, Optional[FiniteDistribution[S]]] = {}
+        transition_map: Dict[NonTerminal[S], FiniteDistribution[State[S]]] = {}
 
         for state, trans in transition_reward_map.items():
-            if trans is None:
-                transition_map[state] = None
-            else:
-                probabilities: Dict[S, float] = defaultdict(float)
-                for (next_state, _), probability in trans:
-                    probabilities[next_state] += probability
+            probabilities: Dict[State[S], float] = defaultdict(float)
+            for (next_state, _), probability in trans:
+                probabilities[next_state] += probability
 
-                transition_map[state] = Categorical(probabilities)
+            transition_map[state] = Categorical(probabilities)
 
         super().__init__(transition_map)
 
@@ -274,7 +289,7 @@ class FiniteMarkovRewardProcess(FiniteMarkovProcess[S],
                         + f" with Probability {p:.3f}\n"
         return display
 
-    def transition_reward(self, state: S) -> Optional[StateReward[S]]:
+    def transition_reward(self, state: NonTerminal[S]) -> StateReward[S]:
         return self.transition_reward_map[state]
 
     def get_value_function_vec(self, gamma: float) -> np.ndarray:

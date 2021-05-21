@@ -10,7 +10,7 @@ from rl.distribution import (Bernoulli, Constant, Categorical, Choose,
 from rl.function_approx import (FunctionApprox)
 
 from rl.markov_process import (
-    FiniteMarkovRewardProcess, MarkovRewardProcess, StateReward
+    FiniteMarkovRewardProcess, MarkovRewardProcess, StateReward, State, NonTerminal
 )
 
 A = TypeVar('A')
@@ -41,11 +41,11 @@ class FinitePolicy(Policy[S, A]):
     ''' A policy where the state and action spaces are finite.
 
     '''
-    policy_map: Mapping[S, Optional[FiniteDistribution[A]]]
+    policy_map: Mapping[NonTerminal[S], FiniteDistribution[A]]
 
     def __init__(
         self,
-        policy_map: Mapping[S, Optional[FiniteDistribution[A]]]
+        policy_map: Mapping[NonTerminal[S], FiniteDistribution[A]]
     ):
         self.policy_map = policy_map
 
@@ -60,10 +60,10 @@ class FinitePolicy(Policy[S, A]):
                     display += f"  Do Action {a} with Probability {p:.3f}\n"
         return display
 
-    def act(self, state: S) -> Optional[FiniteDistribution[A]]:
+    def act(self, state: NonTerminal[S]) -> FiniteDistribution[A]:
         return self.policy_map[state]
 
-    def states(self) -> Iterable[S]:
+    def states(self) -> Iterable[NonTerminal[S]]:
         return self.policy_map.keys()
 
 
@@ -102,24 +102,6 @@ class ReturnStep(TransitionStep[S, A]):
 
     '''
     return_: float
-
-
-class State(ABC, Generic[S]):
-    def on_non_terminal(self, f: Callable[[S], X], default: X) -> X:
-        if isinstance(self, NonTerminal):
-            return f(self.state)
-        else:
-            return default
-
-
-@dataclass(frozen=True)
-class Terminal(State[S]):
-    state: S
-
-
-@dataclass(frozen=True)
-class NonTerminal(State[S]):
-    state: S
 
 
 class MarkovDecisionProcess(ABC, Generic[S, A]):
@@ -186,7 +168,7 @@ class MarkovDecisionProcess(ABC, Generic[S, A]):
 
 
 def epsilon_greedy_policy(
-        q: FunctionApprox[Tuple[S, A]],
+        q: FunctionApprox[Tuple[NonTerminal[S], A]],
         mdp: MarkovDecisionProcess[S, A],
         ϵ: float = 0.0
 ) -> Policy[S, A]:
@@ -215,8 +197,8 @@ def epsilon_greedy_policy(
     return QPolicy()
 
 
-ActionMapping = Mapping[A, StateReward[State[S]]]
-StateActionMapping = Mapping[S, Optional[ActionMapping[A, S]]]
+ActionMapping = Mapping[A, StateReward[S]]
+StateActionMapping = Mapping[NonTerminal[S], ActionMapping[A, S]]
 
 
 class FiniteMarkovDecisionProcess(MarkovDecisionProcess[S, A]):
@@ -224,9 +206,9 @@ class FiniteMarkovDecisionProcess(MarkovDecisionProcess[S, A]):
 
     '''
 
-    mapping: StateActionMapping[NonTerminal[S], A]
+    mapping: StateActionMapping[S, A]
 
-    def __init__(self, mapping: StateActionMapping[NonTerminal[S], A]):
+    def __init__(self, mapping: StateActionMapping[S, A]):
         self.mapping = mapping
         self.non_terminal_states = [s for s, v in mapping.items()
                                     if v is not None]
@@ -245,48 +227,44 @@ class FiniteMarkovDecisionProcess(MarkovDecisionProcess[S, A]):
                             + f"Reward {r:.3f}] with Probability {p:.3f}\n"
         return display
 
-    def step(self, state: NonTerminal[S], action: A) -> StateReward:
-        action_map: ActionMapping[A, NonTerminal[S]] = self.mapping[state]
+    def step(self, state: NonTerminal[S], action: A) -> StateReward[S]:
+        action_map: ActionMapping[A, S] = self.mapping[state]
 
         return action_map[action]
 
     def apply_finite_policy(self, policy: FinitePolicy[S, A])\
             -> FiniteMarkovRewardProcess[S]:
 
-        transition_mapping: Dict[S, Optional[StateReward[S]]] = {}
+        transition_mapping: Dict[NonTerminal[S], StateReward[S]] = {}
 
         for state in self.mapping:
             action_map: Optional[ActionMapping[A, S]] = self.mapping[state]
 
-            if action_map is None:
-                transition_mapping[state] = None
-            else:
-                outcomes: DefaultDict[Tuple[S, float], float]\
-                    = defaultdict(float)
+            outcomes: DefaultDict[Tuple[State[S], float], float]\
+                = defaultdict(float)
 
-                actions = policy.act(state)
-                if actions is not None:
-                    for action, p_action in actions:
-                        for outcome, p_state_reward in action_map[action]:
-                            outcomes[outcome] += p_action * p_state_reward
+            actions = policy.act(state)
+            for action, p_action in actions:
+                for outcome, p_state_reward in action_map[action]:
+                    outcomes[outcome] += p_action * p_state_reward
 
-                transition_mapping[state] = Categorical(outcomes)
+            transition_mapping[state] = Categorical(outcomes)
 
         return FiniteMarkovRewardProcess(transition_mapping)
 
-    def action_mapping(self, state: S) -> Optional[ActionMapping[A, S]]:
+    def action_mapping(self, state: NonTerminal[S]) -> ActionMapping[A, S]:
         return self.mapping[state]
 
-    def actions(self, state: S) -> Iterable[A]:
+    def actions(self, state: NonTerminal[S]) -> Iterable[A]:
         '''All the actions allowed for the given state.
 
         This will be empty for terminal states.
 
         '''
-        actions = self.mapping[state]
-        return iter([]) if actions is None else actions.keys()
+        return self.mapping[state].keys()
 
-    def states(self) -> Iterable[S]:
+    # TODO: Should this include terminal states too?
+    def states(self) -> Iterable[NonTerminal[S]]:
         '''Iterate over all the states in this process—terminal *and*
         non-terminal.
 
