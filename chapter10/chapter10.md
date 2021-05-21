@@ -68,7 +68,7 @@ The code above is in the file [rl/markov_process.py](https://github.com/TikhonJe
 
 ### Monte-Carlo (MC) Prediction
 
-Monte-Carlo (MC) Prediction is a very simple RL algorithm that performs supervised learning to predict the expected return from any state of an MRP (i.e., it estimates the Value Function of an MRP), given a stream of trace experiences. Note that we wrote the abstract class `FunctionApprox` in Chapter [-@sec:funcapprox-chapter] for supervised learning that takes data in the form of $(x,y)$ pairs where $x$ is the predictor variable and $y \in \mathbb{R}$ is the response variable. For the Monte-Carlo prediction problem, the $x$-values are the encountered states across the stream of input trace experiences and the $y$-values are the associated returns on the trace experience (starting from the corresponding encountered state). The following function (in the file [rl/monte_carlo.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/monte_carlo.py)) `mc_prediction` takes as input an `Iterable` of trace experiences, with each trace experience represented as an `Iterable` of `TransitionStep`s. `mc_prediction` performs the requisite supervised learning in an incremental manner, by calling the method `iterate_updates` of `approx_0: FunctionApprox[S]` on an `Iterator` of (state, return) pairs that are extracted from the input trace experiences. As a reminder, the method `iterate_updates` calls the method `update` of `FunctionApprox` iteratively to drive towards convergence of the function approximation. `mc_prediction` produces as output an `Iterator` of `FunctionApprox[S]`, i.e., an updated function approximation of the Value Function at the end of each trace experience in the input trace experiences (note that function approximation updates can be done only at the end of trace experiences because the trace experience returns are available only at the end of trace experiences).
+Monte-Carlo (MC) Prediction is a very simple RL algorithm that performs supervised learning to predict the expected return from any state of an MRP (i.e., it estimates the Value Function of an MRP), given a stream of trace experiences. Note that we wrote the abstract class `FunctionApprox` in Chapter [-@sec:funcapprox-chapter] for supervised learning that takes data in the form of $(x,y)$ pairs where $x$ is the predictor variable and $y \in \mathbb{R}$ is the response variable. For the Monte-Carlo prediction problem, the $x$-values are the encountered states across the stream of input trace experiences and the $y$-values are the associated returns on the trace experience (starting from the corresponding encountered state). The following function (in the file [rl/monte_carlo.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/monte_carlo.py)) `mc_prediction` takes as input an `Iterable` of trace experiences, with each trace experience represented as an `Iterable` of `TransitionStep`s. `mc_prediction` performs the requisite supervised learning in an incremental manner, by calling the method `iterate_updates` of `approx_0: FunctionApprox[S]` on an `Iterator` of (state, return) pairs that are extracted from each trace experience. As a reminder, the method `iterate_updates` calls the method `update` of `FunctionApprox` iteratively (in this case, each call to `update` updates the `FunctionApprox` for a single (state, return) data point). `mc_prediction` produces as output an `Iterator` of `FunctionApprox[S]`, i.e., an updated function approximation of the Value Function at the end of each trace experience (note that function approximation updates can be done only at the end of trace experiences because the trace experience returns are available only at the end of trace experiences).
 
 ```python
 import MarkovRewardProcess as mp
@@ -81,13 +81,14 @@ def mc_prediction(
 ) -> Iterator[FunctionApprox[S]]:
     episodes: Iterator[Iterator[mp.ReturnStep[S]]] = \
         (returns(trace, gamma, episode_length_tolerance) for trace in traces)
-
-    return approx_0.iterate_updates(
-        ((step.state, step.return_) for step in episode)
-        for episode in episodes
-    )
+    f = approx_0
+    yield f
+    for episode in episodes:
+        f = last(f.iterate_updates(
+            [(step.state, step.return_)] for step in episode
+        ))
+        yield f
 ```
-
 
 The core of the `mc_prediction` function above is the call to the `returns` function (detailed below and available in the file [rl/returns.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/returns.py)). `returns` takes as input `trace` representing a trace experience (`Iterable` of `TransitionStep`), the discount factor `gamma`, and an `episodes_length_tolerance` that determines how many time steps to cover in each trace experience when $\gamma < 1$ (as many steps as until $\gamma^{steps}$ falls below `episodes_length_tolerance` or until the trace experience ends in a terminal state, whichever happens first). If $\gamma = 1$, each trace experience needs to end in a terminal state (else the `returns` function will loop forever). 
 
@@ -151,7 +152,7 @@ def returns(
 
 We say that the trace experiences are *episodic traces* if each trace experience ends in a terminal state to signify that each trace experience is an episode, after whose termination we move on to the next episode. Trace experiences that do not terminate are known as *continuing traces*. We say that an RL problem is *episodic* if the input trace experiences are *episodic* (likewise, we say that an RL problem is *continuing* if the input trace experiences as *continuing*).
 
-It is common to assume that the probability distribution of returns conditional on a state is a normal distribution with mean given by a function approximation for the Value Function that we denote as $V(s; \bm{w})$ where $s$ is a state for which the function approximation is being evaluated and $\bm{w}$ is the set of parameters in the function approximation (eg: the weights in a neural network). Then, the loss function for supervised learning of the Value Function is the sum of squares of differences between observed returns and the Value Function estimate from the function approximation. For a state $S_t$ visited at time $t$ in a trace experience and the associated return $G_t$ on the trace experience, the contribution to the loss function is:
+Assume that the probability distribution of returns conditional on a state is a normal distribution with mean given by a function approximation for the Value Function that we denote as $V(s; \bm{w})$ where $s$ is a state for which the function approximation is being evaluated and $\bm{w}$ is the set of parameters in the function approximation (eg: the weights in a neural network). Then, the loss function for supervised learning of the Value Function is the sum of squares of differences between observed returns and the Value Function estimate from the function approximation. For a state $S_t$ visited at time $t$ in a trace experience and the associated return $G_t$ on the trace experience, the contribution to the loss function is:
 
 \begin{equation}
 \mathcal{L}_{(S_t,G_t)}(\bm{w}) = \frac 1 2 \cdot (V(S_t;\bm{w}) - G_t)^2
@@ -946,6 +947,7 @@ def lambda_return_prediction(
         lambd: float
 ) -> Iterator[FunctionApprox[S]]:
     func_approx: FunctionApprox[S] = approx_0
+    yield func_approx
 
     for trace in traces:
         gp: List[float] = [1.]
@@ -974,7 +976,8 @@ def lambda_return_prediction(
             lp.append(lp[-1] * lambd)
         responses: Sequence[float] = [np.dot(p, w) for p, w in
                                       zip(partials, weights)]
-        func_approx = func_approx.update(zip(predictors, responses))
+        for p, r in zip(predictors, responses):
+            func_approx = func_approx.update([(p, r)])
         yield func_approx
 ```
 
@@ -1117,7 +1120,100 @@ where $\delta_t$ now denotes the TD Error based on the function approximation fo
 
 #### Implementation of the TD($\lambda$) Prediction algorithm
 
-coming soon …
+You'd have observed that the TD($\lambda$) update is a bit unusual, compared to the more-straightforward MC and TD updates, where we were able to use the `FunctionApprox` interface in a straightforward manner. For TD($\lambda$), it might appear that we can't quite use the `FunctionApprox` interface and would need to write custom-code for it's implementation. However, by noting that the `FunctionApprox` method `objective_gradient` is quite generic and that `FunctionApprox` and `Gradient` support methods `__add__` and `__mul__` (vector space operations), we can actually implement the TD($\lambda$) in terms of the `FunctionApprox` interface.
+
+The function `td_lambda_prediction` below takes as input an `Iterable` of trace experiences (`traces`), an initial `FunctionApprox` (`approx_0`), and the $\gamma$ and $\lambda$ parameters. At the start of each trace experience, we need to initialize the eligibility trace to 0, i.e., $E_0 = 0$. The type of the eligibility trace is the `Gradient` type and so we invoke the `zero` method for `Gradient(func_approx)` to set $E_0 = 0$. Then, at every time step in every trace experience, we first set the predictor variable $x_t$ to be the state and the response variable $y_t$ to be the TD target. Then we need to update the eligibility trace `el_tr` and update the function approximation `func_approx` using the updated `el_tr`.
+
+Thankfully, the `__mul__` method of `Gradient` class enables us to conveniently multiply `el_tr` with $\gamma \cdot \lambda$ and then, it also enables us to multiply the updated `el_tr` with the prediction error $\mathbb{E}_M[y|x_t] - y_t = V(S_t; \bm{w}) - (R_{t+1} + \gamma \cdot V(S_{t+1}; \bm{w}))$ (in the code as `func_approx(x) - y`), which is then used (as a `Gradient` type) to update the internal parameters of the `func_approx`. The `__add__` method of `Gradient` enables us to add $\nabla_{\bm{w}} V(S_t;\bm{w})$ (as a `Gradient` type) to `el_tr * gamma * lambd`. The only seemingly difficult part is calculating $\nabla_{\bm{w}} V(S_t; \bm{w})$. The `FunctionApprox` interface gives us a method to calculate the gradient of an "objective" (call it $Obj(x,y)$). But here we have to calculate the gradient of the prediction of the function approximation. Thankfully, the interface of `objective_gradient` is fairly generic and we actually have a choice of constructing $Obj(x,y)$ to be whatever function we want (not necessarily a minimizing Objective Function). We specify $Obj(x,y)$ in terms of the `obj_deriv_out_func` argument, which as a reminder represents $\frac {\partial Obj(x,y)} {\partial Out(x)}$. Note that we have assumed a gaussian distribution for the returns conditioned on the state, So we can set $Out(x)$ to be the function approximation's prediction $V(S_t; \bm{w})$ and we can set $Obj(x,y) = Out(x)$, meaning `obj_deriv_out_func` ($\frac {\partial Obj(x,y)} {\partial Out(x)}$) is a function returning the constant value of 1 (as seen in the code below).
+
+```python
+import rl.markov_process as mp
+import numpy as np
+from rl.function_approx import FunctionApprox, Gradient
+
+def td_lambda_prediction(
+        traces: Iterable[Iterable[mp.TransitionStep[S]]],
+        approx_0: FunctionApprox[S],
+        gamma: float,
+        lambd: float
+) -> Iterator[FunctionApprox[S]]:
+    func_approx: FunctionApprox[S] = approx_0
+    yield func_approx
+
+    for trace in traces:
+        el_tr: Gradient[FunctionApprox[S]] = Gradient(func_approx).zero()
+        for step in trace:
+            x: S = step.state
+            y: float = step.reward + gamma * func_approx(step.next_state)
+            el_tr = el_tr * (gamma * lambd) + func_approx.objective_gradient(
+                xy_vals_seq=[(x, y)],
+                obj_deriv_out_fun=lambda x1, y1: np.ones(len(x1))
+            )
+            func_approx = func_approx.update_with_gradient(
+                el_tr * (func_approx(x) - y)
+            )
+            yield func_approx
+```
+
+Let's use the same instance `si_mrp: SimpleInventoryMRPFinite` that we had created above when testing MC and TD Prediction. We use the same number of episodes (100000) we had used when testing MC Prediction. Just like in the case of testing TD prediction, we set initial learning rate $\alpha = 0.03$, half life $H = 1000$ and exponent $\beta = 0.5$. We set the episode length (number of atomic experiences in a single trace experience) to be 100 (same as with the settings we had for testing TD Prediction and consistent with MC Prediction as well). We use the same discount factor $\gamma = 0.9$. Let's set $\lambda = 0.3$.
+
+```python
+import rl.iterate as iterate
+import rl.td_lambda as td_lambda
+import itertools
+from pprint import pprint
+from rl.chapter10.prediction_utils import fmrp_episodes_stream
+from rl.function_approx import learning_rate_schedule
+
+gamma: float = 0.9
+episode_length: int = 100
+initial_learning_rate: float = 0.03
+half_life: float = 1000.0
+exponent: float = 0.5
+lambda_param = 0.3
+
+episodes: Iterable[Iterable[TransitionStep[S]]] = \
+    fmrp_episodes_stream(si_mrp)
+curtailed_episodes: Iterable[Iterable[TransitionStep[S]]] = \
+        (itertools.islice(episode, episode_length) for episode in episodes)
+learning_rate_func: Callable[[int], float] = learning_rate_schedule(
+    initial_learning_rate=initial_learning_rate,
+    half_life=half_life,
+    exponent=exponent
+)
+td_lambda_vfs: Iterator[FunctionApprox[S]] = td_lambda.td_lambda_prediction(
+    traces=curtailed_episodes,
+    approx_0=Tabular(count_to_weight_func=learning_rate_func),
+    gamma=gamma,
+    lambd=lambda_param
+)
+
+num_episodes = 100000
+
+final_td_lambda_vf: FunctionApprox[S] = \
+    iterate.last(itertools.islice(td_lambda_vfs, episode_length * num_episodes))
+pprint({s: round(final_td_lambda_vf(s), 3) for s in si_mrp.non_terminal_states})
+```
+
+This prints the following:
+
+```
+{InventoryState(on_hand=0, on_order=0): -35.67,
+ InventoryState(on_hand=1, on_order=0): -29.023,
+ InventoryState(on_hand=0, on_order=1): -28.039,
+ InventoryState(on_hand=0, on_order=2): -28.566,
+ InventoryState(on_hand=2, on_order=0): -30.564,
+ InventoryState(on_hand=1, on_order=1): -29.514}
+True Value Function
+{InventoryState(on_hand=0, on_order=0): -35.511,
+ InventoryState(on_hand=1, on_order=0): -28.932,
+ InventoryState(on_hand=0, on_order=1): -27.932,
+ InventoryState(on_hand=0, on_order=2): -28.345,
+ InventoryState(on_hand=2, on_order=0): -30.345,
+ InventoryState(on_hand=1, on_order=1): -29.345}   
+```
+
+Thus, we see that our implementation of TD($\lambda$) prediction with the above settings fetches us an estimated Value Function fairly close to the true Value Function. As ever, we encourage you to play with various settings for TD($\lambda$) prediction to develop an intuition for how the results change as you change the settings, and particularly as you change the $\lambda$ parameter. You can play with the code in the file [rl/chapter10/simple_inventory_mrp.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/chapter10/simple_inventory_mrp.py).
 
 ### Key Takeaways from this Chapter
 

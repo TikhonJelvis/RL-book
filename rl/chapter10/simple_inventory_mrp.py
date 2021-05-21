@@ -5,6 +5,7 @@ from rl.chapter10.prediction_utils import (
     mc_finite_equal_wts_correctness,
     mc_finite_learning_rate_correctness,
     td_finite_learning_rate_correctness,
+    td_lambda_finite_learning_rate_correctness,
     compare_td_and_mc
 )
 
@@ -31,6 +32,9 @@ td_episode_length: int = 100
 initial_learning_rate: float = 0.03
 half_life: float = 1000.0
 exponent: float = 0.5
+
+lambda_param = 0.3
+
 mc_finite_equal_wts_correctness(
     fmrp=si_mrp,
     gamma=gamma,
@@ -51,6 +55,17 @@ mc_finite_learning_rate_correctness(
 td_finite_learning_rate_correctness(
     fmrp=si_mrp,
     gamma=gamma,
+    episode_length=td_episode_length,
+    num_episodes=num_episodes,
+    initial_learning_rate=initial_learning_rate,
+    half_life=half_life,
+    exponent=exponent,
+    initial_vf_dict=initial_vf_dict
+)
+td_lambda_finite_learning_rate_correctness(
+    fmrp=si_mrp,
+    gamma=gamma,
+    lambd=lambda_param,
     episode_length=td_episode_length,
     num_episodes=num_episodes,
     initial_learning_rate=initial_learning_rate,

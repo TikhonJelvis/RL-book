@@ -4,17 +4,19 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from collections import defaultdict
 from dataclasses import dataclass, replace, field
 import itertools
 import numpy as np
-from operator import itemgetter
-from scipy.interpolate import splrep, BSpline
+# from operator import itemgetter
+# from scipy.interpolate import splrep, BSpline
 from typing import (Callable, Dict, Generic, Iterator, Iterable, List,
-                    Mapping, Optional, Sequence, Tuple, TypeVar)
+                    Mapping, Optional, Sequence, Tuple, TypeVar, overload)
 
 import rl.iterate as iterate
 
 X = TypeVar('X')
+F = TypeVar('F', bound='FunctionApprox')
 SMALL_NUM = 1e-6
 
 
@@ -26,15 +28,27 @@ class FunctionApprox(ABC, Generic[X]):
     '''
 
     @abstractmethod
-    def representational_gradient(self, x_value: X) -> FunctionApprox[X]:
-        '''Computes the gradient of the self FunctionApprox with respect
-        to the parameters in the internal representation of the
-        FunctionApprox, i.e., computes Gradient with respect to internal
-        parameters of expected value of y for the input x, where the
-        expectation is with respect tp the FunctionApprox's model of
-        the probability distribution of y|x. The gradient is output
-        in the form of a FunctionApprox whose internal parameters are
-        equal to the gradient values.
+    def __add__(self: F, other: F) -> F:
+        pass
+
+    @abstractmethod
+    def __mul__(self: F, scalar: float) -> F:
+        pass
+
+    @abstractmethod
+    def objective_gradient(
+        self: F,
+        xy_vals_seq: Iterable[Tuple[X, float]],
+        obj_deriv_out_fun: Callable[[Sequence[X], Sequence[float]], np.ndarray]
+    ) -> Gradient[F]:
+        '''Computes the gradient of an objective function of the self
+        FunctionApprox with respect to the parameters in the internal
+        representation of the FunctionApprox. The gradient is output
+        in the form of a Gradient[FunctionApprox] whose internal parameters are
+        equal to the gradient values. The argument `obj_deriv_out_fun'
+        represents the derivative of the objective with respect to the output
+        (evaluate) of the FunctionApprox, when evaluated at a Sequence of
+        x values and a Sequence of y values (to be obtained from 'xy_vals_seq')
         '''
 
     @abstractmethod
@@ -48,22 +62,36 @@ class FunctionApprox(ABC, Generic[X]):
         return self.evaluate([x_value]).item()
 
     @abstractmethod
+    def update_with_gradient(
+        self: F,
+        gradient: Gradient[F]
+    ) -> F:
+        '''Update the internal parameters of self FunctionApprox using the
+        input gradient that is presented as a Gradient[FunctionApprox]
+        '''
+
     def update(
-        self,
+        self: F,
         xy_vals_seq: Iterable[Tuple[X, float]]
-    ) -> FunctionApprox[X]:
+    ) -> F:
 
         '''Update the internal parameters of the FunctionApprox
         based on incremental data provided in the form of (x,y)
         pairs as a xy_vals_seq data structure
         '''
+        def deriv_func(x: Sequence[X], y: Sequence[float]) -> np.ndarray:
+            return self.evaluate(x) - np.array(y)
+
+        return self.update_with_gradient(
+            self.objective_gradient(xy_vals_seq, deriv_func)
+        )
 
     @abstractmethod
     def solve(
-        self,
+        self: F,
         xy_vals_seq: Iterable[Tuple[X, float]],
         error_tolerance: Optional[float] = None
-    ) -> FunctionApprox[X]:
+    ) -> F:
         '''Assuming the entire data set of (x,y) pairs is available
         in the form of the given input xy_vals_seq data structure,
         solve for the internal parameters of the FunctionApprox
@@ -75,19 +103,26 @@ class FunctionApprox(ABC, Generic[X]):
         '''
 
     @abstractmethod
-    def within(self, other: FunctionApprox[X], tolerance: float) -> bool:
+    def within(self: F, other: F, tolerance: float) -> bool:
         '''Is this function approximation within a given tolerance of
         another function approximation of the same type?
         '''
 
-    def argmax(self, xs: Iterable[X]) -> X:
-        '''Return the input X that maximizes the function being approximated.
-        Arguments:
-          xs -- list of inputs to evaluate and maximize, cannot be empty
-        Returns the X that maximizes the function this approximates.
+    def iterate_updates(
+        self: F,
+        xy_seq_stream: Iterator[Iterable[Tuple[X, float]]]
+    ) -> Iterator[F]:
+        '''Given a stream (Iterator) of data sets of (x,y) pairs,
+        perform a series of incremental updates to the internal
+        parameters (using update method), with each internal
+        parameter update done for each data set of (x,y) pairs in the
+        input stream of xy_seq_stream
         '''
-        args: Sequence[X] = list(xs)
-        return args[np.argmax(self.evaluate(args))]
+        return iterate.accumulate(
+            xy_seq_stream,
+            lambda fa, xy: fa.update(xy),
+            initial=self
+        )
 
     def rmse(
         self,
@@ -101,28 +136,39 @@ class FunctionApprox(ABC, Generic[X]):
         errors: np.ndarray = self.evaluate(x_seq) - np.array(y_seq)
         return np.sqrt(np.mean(errors * errors))
 
-    def iterate_updates(
-        self,
-        xy_seq_stream: Iterator[Iterable[Tuple[X, float]]]
-    ) -> Iterator[FunctionApprox[X]]:
-        '''Given a stream (Iterator) of data sets of (x,y) pairs,
-        perform a series of incremental updates to the internal
-        parameters (using update method), with each internal
-        parameter update done for each data set of (x,y) pairs in the
-        input stream of xy_seq_stream
+    def argmax(self, xs: Iterable[X]) -> X:
+        '''Return the input X that maximizes the function being approximated.
+        Arguments:
+          xs -- list of inputs to evaluate and maximize, cannot be empty
+        Returns the X that maximizes the function this approximates.
         '''
-        return iterate.accumulate(
-            xy_seq_stream,
-            lambda fa, xy: fa.update(xy),
-            initial=self
-        )
+        args: Sequence[X] = list(xs)
+        return args[np.argmax(self.evaluate(args))]
 
-    def representational_gradient_stream(
-        self,
-        x_values_seq: Iterable[X]
-    ) -> Iterator[FunctionApprox[X]]:
-        for x_val in x_values_seq:
-            yield self.representational_gradient(x_val)
+
+@dataclass(frozen=True)
+class Gradient(Generic[F]):
+    function_approx: F
+
+    @overload
+    def __add__(self, x: Gradient[F]) -> Gradient[F]:
+        ...
+
+    @overload
+    def __add__(self, x: F) -> F:
+        ...
+
+    def __add__(self, x):
+        if isinstance(x, Gradient):
+            return Gradient(self.function_approx + x.function_approx)
+
+        return self.function_approx + x
+
+    def __mul__(self: Gradient[F], x: float) -> Gradient[F]:
+        return Gradient(self.function_approx * x)
+
+    def zero(self) -> Gradient[F]:
+        return Gradient(self.function_approx * 0.0)
 
 
 @dataclass(frozen=True)
@@ -137,8 +183,32 @@ class Dynamic(FunctionApprox[X]):
 
     values_map: Mapping[X, float]
 
-    def representational_gradient(self, x_value: X) -> Dynamic[X]:
-        return Dynamic({x_value: 1.0})
+    def __add__(self, other: Dynamic[X]) -> Dynamic[X]:
+        d: Dict[X, float] = {}
+        for key in set.union(
+            set(self.values_map.keys()),
+            set(other.values_map.keys())
+        ):
+            d[key] = self.values_map.get(key, 0.) + \
+                other.values_map.get(key, 0.)
+        return Dynamic(values_map=d)
+
+    def __mul__(self, scalar: float) -> Dynamic[X]:
+        return Dynamic(
+            values_map={x: scalar * y for x, y in self.values_map.items()}
+        )
+
+    def objective_gradient(
+        self,
+        xy_vals_seq: Iterable[Tuple[X, float]],
+        obj_deriv_out_fun: Callable[[Sequence[X], Sequence[float]], np.ndarray]
+    ) -> Gradient[Dynamic[X]]:
+        x_vals, y_vals = zip(*xy_vals_seq)
+        obj_deriv_out: np.ndarray = obj_deriv_out_fun(x_vals, y_vals)
+        d: Dict[X, float] = {}
+        for x, o in zip(x_vals, obj_deriv_out):
+            d[x] = o
+        return Gradient(Dynamic(values_map=d))
 
     def evaluate(self, x_values_seq: Iterable[X]) -> np.ndarray:
         '''Evaluate the function approximation by looking up the value in the
@@ -148,19 +218,19 @@ class Dynamic(FunctionApprox[X]):
         was not initialized.
 
         '''
-        return np.array([self.values_map[x] for x in x_values_seq])
+        return np.array([self.values_map.get(x, 0.0) for x in x_values_seq])
 
-    def update(self, xy_vals_seq: Iterable[Tuple[X, float]]) -> Dynamic[X]:
-        '''Update each X value by replacing its saved Y with a new one. Pairs
-        later in the list take precedence over pairs earlier in the
-        list.
-
-        '''
-        new_map = dict(self.values_map)
-        for x, y in xy_vals_seq:
-            new_map[x] = y
-
-        return replace(self, values_map=new_map)
+    def update_with_gradient(
+        self,
+        gradient: Gradient[Dynamic[X]]
+    ) -> Dynamic[X]:
+        d: Dict[X, float] = dict(self.values_map)
+        for key, val in gradient.function_approx.values_map.items():
+            d[key] = d.get(key, 0.) - val
+        return replace(
+            self,
+            values_map=d
+        )
 
     def solve(
         self,
@@ -211,32 +281,75 @@ class Tabular(FunctionApprox[X]):
     count_to_weight_func: Callable[[int], float] = \
         field(default_factory=lambda: lambda n: 1.0 / n)
 
-    def representational_gradient(self, x_value: X) -> Tabular[X]:
-        return Tabular({x_value: 1.0})
+    def objective_gradient(
+        self,
+        xy_vals_seq: Iterable[Tuple[X, float]],
+        obj_deriv_out_fun: Callable[[Sequence[X], Sequence[float]], float]
+    ) -> Gradient[Tabular[X]]:
+        x_vals, y_vals = zip(*xy_vals_seq)
+        obj_deriv_out: np.ndarray = obj_deriv_out_fun(x_vals, y_vals)
+        sums_map: Dict[X, float] = defaultdict(float)
+        counts_map: Dict[X, int] = defaultdict(int)
+        for x, o in zip(x_vals, obj_deriv_out):
+            sums_map[x] += o
+            counts_map[x] += 1
+        return Gradient(replace(
+            self,
+            values_map={x: sums_map[x] / counts_map[x] for x in sums_map},
+            counts_map=counts_map
+        ))
+
+    def __add__(self, other: Tabular[X]) -> Tabular[X]:
+        values_map: Dict[X, float] = {}
+        counts_map: Dict[X, int] = {}
+        for key in set.union(
+                set(self.values_map.keys()),
+                set(other.values_map.keys())
+        ):
+            values_map[key] = self.values_map.get(key, 0.) + \
+                other.values_map.get(key, 0.)
+            counts_map[key] = counts_map.get(key, 0) + \
+                other.counts_map.get(key, 0)
+        return replace(
+            self,
+            values_map=values_map,
+            counts_map=counts_map
+        )
+
+    def __mul__(self, scalar: float) -> Tabular[X]:
+        return replace(
+            self,
+            values_map={x: scalar * y for x, y in self.values_map.items()}
+        )
 
     def evaluate(self, x_values_seq: Iterable[X]) -> np.ndarray:
-        '''Evaluate the approximation at each given X.
+        '''Evaluate the function approximation by looking up the value in the
+        mapping for each state.
 
-        If an X has not been seen before, will return 0.0.
+        if an X value has not been seen before and hence not initialized,
+        returns 0
+
         '''
         return np.array([self.values_map.get(x, 0.) for x in x_values_seq])
 
-    def update(self, xy_vals_seq: Iterable[Tuple[X, float]]) -> Tabular[X]:
-        '''Update the approximation with the given points.
-
+    def update_with_gradient(
+        self,
+        gradient: Gradient[Tabular[X]]
+    ) -> Tabular[X]:
+        '''Update the approximation with the given gradient.
         Each X keeps a count n of how many times it was updated, and
-        each subsequent update is discounted by
-        count_to_weight_func(n), which defines our learning rate.
+        each subsequent update is scaled by count_to_weight_func(n),
+        which defines our learning rate.
 
         '''
         values_map: Dict[X, float] = dict(self.values_map)
         counts_map: Dict[X, int] = dict(self.counts_map)
-
-        for x, y in xy_vals_seq:
-            counts_map[x] = counts_map.get(x, 0) + 1
-            weight: float = self.count_to_weight_func(counts_map.get(x, 0))
-            values_map[x] = weight * y + (1 - weight) * values_map.get(x, 0.)
-
+        for key in gradient.function_approx.values_map:
+            counts_map[key] = counts_map.get(key, 0) + \
+                gradient.function_approx.counts_map[key]
+            weight: float = self.count_to_weight_func(counts_map[key])
+            values_map[key] = values_map.get(key, 0.) - \
+                weight * gradient.function_approx.values_map[key]
         return replace(
             self,
             values_map=values_map,
@@ -252,7 +365,7 @@ class Tabular(FunctionApprox[X]):
         counts_map: Dict[X, int] = {}
         for x, y in xy_vals_seq:
             counts_map[x] = counts_map.get(x, 0) + 1
-            weight: float = self.count_to_weight_func(counts_map.get(x, 0))
+            weight: float = self.count_to_weight_func(counts_map[x])
             values_map[x] = weight * y + (1 - weight) * values_map.get(x, 0.)
         return replace(
             self,
@@ -269,76 +382,76 @@ class Tabular(FunctionApprox[X]):
         return False
 
 
-@dataclass(frozen=True)
-class BSplineApprox(FunctionApprox[X]):
-    feature_function: Callable[[X], float]
-    degree: int
-    knots: np.ndarray = field(default_factory=lambda: np.array([]))
-    coeffs: np.ndarray = field(default_factory=lambda: np.array([]))
-
-    def get_feature_values(self, x_values_seq: Iterable[X]) -> Sequence[float]:
-        return [self.feature_function(x) for x in x_values_seq]
-
-    def representational_gradient(self, x_value: X) -> BSplineApprox[X]:
-        feature_val: float = self.feature_function(x_value)
-        eps: float = 1e-6
-        one_hots: np.array = np.eye(len(self.coeffs))
-        return replace(
-            self,
-            coeffs=np.array([(
-                BSpline(
-                    self.knots,
-                    c + one_hots[i] * eps,
-                    self.degree
-                )(feature_val) -
-                BSpline(
-                    self.knots,
-                    c - one_hots[i] * eps,
-                    self.degree
-                )(feature_val)
-            ) / (2 * eps) for i, c in enumerate(self.coeffs)]))
-
-    def evaluate(self, x_values_seq: Iterable[X]) -> np.ndarray:
-        spline_func: Callable[[Sequence[float]], np.ndarray] = \
-            BSpline(self.knots, self.coeffs, self.degree)
-        return spline_func(self.get_feature_values(x_values_seq))
-
-    def update(
-        self,
-        xy_vals_seq: Iterable[Tuple[X, float]]
-    ) -> BSplineApprox[X]:
-        x_vals, y_vals = zip(*xy_vals_seq)
-        feature_vals: Sequence[float] = self.get_feature_values(x_vals)
-        sorted_pairs: Sequence[Tuple[float, float]] = \
-            sorted(zip(feature_vals, y_vals), key=itemgetter(0))
-        new_knots, new_coeffs, _ = splrep(
-            [f for f, _ in sorted_pairs],
-            [y for _, y in sorted_pairs],
-            k=self.degree
-        )
-        return replace(
-            self,
-            knots=new_knots,
-            coeffs=new_coeffs
-        )
-
-    def solve(
-        self,
-        xy_vals_seq: Iterable[Tuple[X, float]],
-        error_tolerance: Optional[float] = None
-    ) -> BSplineApprox[X]:
-        return self.update(xy_vals_seq)
-
-    def within(self, other: FunctionApprox[X], tolerance: float) -> bool:
-        if isinstance(other, BSplineApprox):
-            return \
-                np.all(np.abs(self.knots - other.knots) <= tolerance).item() \
-                and \
-                np.all(np.abs(self.coeffs - other.coeffs) <= tolerance).item()
-
-        return False
-
-
+# @dataclass(frozen=True)
+# class BSplineApprox(FunctionApprox[X]):
+#     feature_function: Callable[[X], float]
+#     degree: int
+#     knots: np.ndarray = field(default_factory=lambda: np.array([]))
+#     coeffs: np.ndarray = field(default_factory=lambda: np.array([]))
+# 
+#     def get_feature_values(self, x_values_seq: Iterable[X]) -> Sequence[float]:
+#         return [self.feature_function(x) for x in x_values_seq]
+# 
+#     def representational_gradient(self, x_value: X) -> BSplineApprox[X]:
+#         feature_val: float = self.feature_function(x_value)
+#         eps: float = 1e-6
+#         one_hots: np.array = np.eye(len(self.coeffs))
+#         return replace(
+#             self,
+#             coeffs=np.array([(
+#                 BSpline(
+#                     self.knots,
+#                     c + one_hots[i] * eps,
+#                     self.degree
+#                 )(feature_val) -
+#                 BSpline(
+#                     self.knots,
+#                     c - one_hots[i] * eps,
+#                     self.degree
+#                 )(feature_val)
+#             ) / (2 * eps) for i, c in enumerate(self.coeffs)]))
+# 
+#     def evaluate(self, x_values_seq: Iterable[X]) -> np.ndarray:
+#         spline_func: Callable[[Sequence[float]], np.ndarray] = \
+#             BSpline(self.knots, self.coeffs, self.degree)
+#         return spline_func(self.get_feature_values(x_values_seq))
+# 
+#     def update(
+#         self,
+#         xy_vals_seq: Iterable[Tuple[X, float]]
+#     ) -> BSplineApprox[X]:
+#         x_vals, y_vals = zip(*xy_vals_seq)
+#         feature_vals: Sequence[float] = self.get_feature_values(x_vals)
+#         sorted_pairs: Sequence[Tuple[float, float]] = \
+#             sorted(zip(feature_vals, y_vals), key=itemgetter(0))
+#         new_knots, new_coeffs, _ = splrep(
+#             [f for f, _ in sorted_pairs],
+#             [y for _, y in sorted_pairs],
+#             k=self.degree
+#         )
+#         return replace(
+#             self,
+#             knots=new_knots,
+#             coeffs=new_coeffs
+#         )
+# 
+#     def solve(
+#         self,
+#         xy_vals_seq: Iterable[Tuple[X, float]],
+#         error_tolerance: Optional[float] = None
+#     ) -> BSplineApprox[X]:
+#         return self.update(xy_vals_seq)
+# 
+#     def within(self, other: FunctionApprox[X], tolerance: float) -> bool:
+#         if isinstance(other, BSplineApprox):
+#             return \
+#                 np.all(np.abs(self.knots - other.knots) <= tolerance).item() \
+#                 and \
+#                 np.all(np.abs(self.coeffs - other.coeffs) <= tolerance).item()
+# 
+#         return False
+# 
+# 
 @dataclass(frozen=True)
 class AdamGradient:
     learning_rate: float
@@ -439,12 +552,41 @@ class LinearFunctionApprox(FunctionApprox[X]):
             [[f(x) for f in self.feature_functions] for x in x_values_seq]
         )
 
-    def representational_gradient(self, x_value: X) -> LinearFunctionApprox[X]:
+    def objective_gradient(
+        self,
+        xy_vals_seq: Iterable[Tuple[X, float]],
+        obj_deriv_out_fun: Callable[[Sequence[X], Sequence[float]], float]
+    ) -> Gradient[LinearFunctionApprox[X]]:
+        x_vals, y_vals = zip(*xy_vals_seq)
+        obj_deriv_out: np.ndarray = obj_deriv_out_fun(x_vals, y_vals)
+        features: np.ndarray = self.get_feature_values(x_vals)
+        gradient: np.ndarray = \
+            features.T.dot(obj_deriv_out) / len(obj_deriv_out) \
+            + self.regularization_coeff * self.weights.weights
+        return Gradient(replace(
+            self,
+            weights=replace(
+                self.weights,
+                weights=gradient
+            )
+        ))
+
+    def __add__(self, other: LinearFunctionApprox[X]) -> \
+            LinearFunctionApprox[X]:
         return replace(
             self,
             weights=replace(
                 self.weights,
-                weights=np.array([f(x_value) for f in self.feature_functions])
+                weights=self.weights.weights + other.weights.weights
+            )
+        )
+
+    def __mul__(self, scalar: float) -> LinearFunctionApprox[X]:
+        return replace(
+            self,
+            weights=replace(
+                self.weights,
+                weights=self.weights.weights * scalar
             )
         )
 
@@ -454,30 +596,16 @@ class LinearFunctionApprox(FunctionApprox[X]):
             self.weights.weights
         )
 
-    def within(self, other: FunctionApprox[X], tolerance: float) -> bool:
-        if isinstance(other, LinearFunctionApprox):
-            return self.weights.within(other.weights, tolerance)
-
-        return False
-
-    def regularized_loss_gradient(
+    def update_with_gradient(
         self,
-        xy_vals_seq: Iterable[Tuple[X, float]]
-    ) -> np.ndarray:
-        x_vals, y_vals = zip(*xy_vals_seq)
-        feature_vals: np.ndarray = self.get_feature_values(x_vals)
-        diff: np.ndarray = np.dot(feature_vals, self.weights.weights) \
-            - np.array(y_vals)
-        return np.dot(feature_vals.T, diff) / len(diff) \
-            + self.regularization_coeff * self.weights.weights
-
-    def update(
-        self,
-        xy_vals_seq: Iterable[Tuple[X, float]]
+        gradient: Gradient[LinearFunctionApprox[X]]
     ) -> LinearFunctionApprox[X]:
-        gradient: np.ndarray = self.regularized_loss_gradient(xy_vals_seq)
-        new_weights: np.ndarray = self.weights.update(gradient)
-        return replace(self, weights=new_weights)
+        return replace(
+            self,
+            weights=self.weights.update(
+                gradient.function_approx.weights.weights
+            )
+        )
 
     def solve(
         self,
@@ -515,6 +643,12 @@ class LinearFunctionApprox(FunctionApprox[X]):
             )
 
         return ret
+
+    def within(self, other: FunctionApprox[X], tolerance: float) -> bool:
+        if isinstance(other, LinearFunctionApprox):
+            return self.weights.within(other.weights, tolerance)
+
+        return False
 
 
 @dataclass(frozen=True)
@@ -572,7 +706,7 @@ class DNNApprox(FunctionApprox[X]):
         x_values_seq: Iterable[X]
     ) -> Sequence[np.ndarray]:
         """
-        :param x_values_seq: a n-length-sequence of input points
+        :param x_values_seq: a n-length iterable of input points
         :return: list of length (L+2) where the first (L+1) values
                  each represent the 2-D input arrays (of size n x |I_l|),
                  for each of the (L+1) layers (L of which are hidden layers),
@@ -600,37 +734,25 @@ class DNNApprox(FunctionApprox[X]):
     def evaluate(self, x_values_seq: Iterable[X]) -> np.ndarray:
         return self.forward_propagation(x_values_seq)[-1]
 
-    def within(self, other: FunctionApprox[X], tolerance: float) -> bool:
-        if isinstance(other, DNNApprox):
-            return all(w1.within(w2, tolerance)
-                       for w1, w2 in zip(self.weights, other.weights))
-        else:
-            return False
-
     def backward_propagation(
         self,
         fwd_prop: Sequence[np.ndarray],
-        objective_derivative_output: Callable[[np.ndarray], np.ndarray]
+        obj_deriv_out: np.ndarray
     ) -> Sequence[np.ndarray]:
         """
-        :param
-        fwd_prop represents the result of forward propagation, a sequence
-        of (L+1) 2-D np.ndarrays, followed by a 1-D np.ndarray for the output
-        of the DNN.
-        objective_derivative_output represents the derivative of the objective
-        function with respect to the output of the DNN
+        :param fwd_prop represents the result of forward propagation (without
+        the final output), a sequence of L 2-D np.ndarrays of the DNN.
+        : param obj_deriv_out represents the derivative of the objective
+        function with respect to the linear predictor of the final layer.
 
         :return: list (of length L+1) of |O_l| x |I_l| 2-D arrays,
                  i.e., same as the type of self.weights.weights
         This function computes the gradient (with respect to weights) of
-        cross-entropy loss where the output layer activation function
+        the objective where the output layer activation function
         is the canonical link function of the conditional distribution of y|x
         """
-        layer_inputs: Sequence[np.ndarray] = fwd_prop[:-1]
-        deriv: np.ndarray = objective_derivative_output(fwd_prop[-1]) * \
-            self.dnn_spec.output_activation_deriv(fwd_prop[-1])
-        deriv = deriv.reshape(1, -1)
-        back_prop: List[np.ndarray] = [np.dot(deriv, layer_inputs[-1]) /
+        deriv: np.ndarray = obj_deriv_out.reshape(1, -1)
+        back_prop: List[np.ndarray] = [np.dot(deriv, fwd_prop[-1]) /
                                        deriv.shape[1]]
         # L is the number of hidden layers, n is the number of points
         # layer l deriv represents dObj/dS_l where S_l = I_l . weights_l
@@ -644,65 +766,59 @@ class DNNApprox(FunctionApprox[X]):
             # Note: g'(S_{l-1}) is expressed as hidden layer activation
             # derivative as a function of O_{l-1} (=I_l).
             deriv = np.dot(self.weights[i + 1].weights.T, deriv) * \
-                self.dnn_spec.hidden_activation_deriv(layer_inputs[i + 1].T)
+                self.dnn_spec.hidden_activation_deriv(fwd_prop[i + 1].T)
             # If self.dnn_spec.bias is True, then I_l = O_{l-1} + 1, in which
             # case # the first row of the calculated deriv is removed to yield
             # a 2-D array of dimension |O_{l-1}| x n.
             if self.dnn_spec.bias:
                 deriv = deriv[1:]
-            # layer l gradient is deriv_l inner layer_inputs_l, which is
+            # layer l gradient is deriv_l inner fwd_prop[l], which is
             # of dimension (|O_l| x n) inner (n x (|I_l|) = |O_l| x |I_l|
-            back_prop.append(np.dot(deriv, layer_inputs[i]) / deriv.shape[1])
+            back_prop.append(np.dot(deriv, fwd_prop[i]) / deriv.shape[1])
         return back_prop[::-1]
 
-    def representational_gradient(self, x_value: X) -> DNNApprox[X]:
+    def objective_gradient(
+        self,
+        xy_vals_seq: Iterable[Tuple[X, float]],
+        obj_deriv_out_fun: Callable[[Sequence[X], Sequence[float]], float]
+    ) -> Gradient[DNNApprox[X]]:
+        x_vals, y_vals = zip(*xy_vals_seq)
+        obj_deriv_out: np.ndarray = obj_deriv_out_fun(x_vals, y_vals)
+        fwd_prop: Sequence[np.ndarray] = self.forward_propagation(x_vals)[:-1]
+        gradient: Sequence[np.ndarray] = \
+            [x + self.regularization_coeff * self.weights[i].weights
+             for i, x in enumerate(self.backward_propagation(
+                 fwd_prop=fwd_prop,
+                 obj_deriv_out=obj_deriv_out
+             ))]
+        return Gradient(replace(
+            self,
+            weights=[replace(w, weights=g) for
+                     w, g in zip(self.weights, gradient)]
+        ))
+
+    def __add__(self, other: DNNApprox[X]) -> DNNApprox[X]:
         return replace(
             self,
-            weights=replace(
-                self.weights,
-                weights=self.backward_propagation(
-                    fwd_prop=self.forward_propagation([x_value]),
-                    objective_derivative_output=lambda arr: np.ones_like(arr)
-                )
-            )
+            weights=[replace(w, weights=w.weights + o.weights) for
+                     w, o in zip(self.weights, other.weights)]
         )
 
-    def regularized_loss_gradient(
+    def __mul__(self, scalar: float) -> DNNApprox[X]:
+        return replace(
+            self,
+            weights=[replace(w, weights=w.weights * scalar)
+                     for w in self.weights]
+        )
+
+    def update_with_gradient(
         self,
-        xy_vals_seq: Iterable[Tuple[X, float]]
-    ) -> Sequence[np.ndarray]:
-        """
-        :param pairs: list of pairs of n (x, y) points
-        :return: list (of length L+1) of |O_l| x |I_l| 2-D array,
-                 i.e., same as the type of self.weights.weights
-        This function computes the regularized gradient (with respect to
-        weights) of cross-entropy loss where the output layer activation
-        function is the canonical link function of the conditional
-        distribution of y|x
-        """
-        x_vals, y_vals = zip(*xy_vals_seq)
-        fwd_prop: Sequence[np.ndarray] = self.forward_propagation(x_vals)
-
-        def obj_deriv_output(out: np.ndarray) -> np.ndarray:
-            return (out - np.array(y_vals)) / \
-                self.dnn_spec.output_activation_deriv(out)
-
-        return [x + self.regularization_coeff * self.weights[i].weights
-                for i, x in enumerate(self.backward_propagation(
-                    fwd_prop=fwd_prop,
-                    objective_derivative_output=obj_deriv_output
-                ))]
-
-    def update(
-        self,
-        xy_vals_seq: Iterable[Tuple[X, float]]
+        gradient: Gradient[DNNApprox[X]]
     ) -> DNNApprox[X]:
         return replace(
             self,
-            weights=[w.update(g) for w, g in zip(
-                self.weights,
-                self.regularized_loss_gradient(xy_vals_seq)
-            )]
+            weights=[w.update(g.weights) for w, g in
+                     zip(self.weights, gradient.function_approx.weights)]
         )
 
     def solve(
@@ -723,6 +839,13 @@ class DNNApprox(FunctionApprox[X]):
             self.iterate_updates(itertools.repeat(xy_vals_seq)),
             done=done
         )
+
+    def within(self, other: FunctionApprox[X], tolerance: float) -> bool:
+        if isinstance(other, DNNApprox):
+            return all(w1.within(w2, tolerance)
+                       for w1, w2 in zip(self.weights, other.weights))
+        else:
+            return False
 
 
 def learning_rate_schedule(

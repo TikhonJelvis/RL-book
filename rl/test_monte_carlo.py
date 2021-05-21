@@ -33,8 +33,8 @@ class TestEvaluate(unittest.TestCase):
         traces = self.finite_flip_flop.reward_traces(Choose({True, False}))
         v = iterate.converged(
             mc.mc_prediction(traces, γ=0.99, approx_0=start),
-            # Loose bound of 0.025 to speed up test.
-            done=lambda a, b: a.within(b, 0.025)
+            # Loose bound of 0.01 to speed up test.
+            done=lambda a, b: a.within(b, 0.01)
         )
 
         self.assertEqual(len(v.values_map), 2)

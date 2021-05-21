@@ -3,7 +3,7 @@
 '''
 
 from typing import Iterable, Iterator, TypeVar, List, Sequence
-from rl.function_approx import FunctionApprox
+from rl.function_approx import FunctionApprox, Gradient
 import rl.markov_process as mp
 import numpy as np
 
@@ -29,6 +29,7 @@ def lambda_return_prediction(
       lambd -- lambda parameter (0 <= lambd <= 1)
     '''
     func_approx: FunctionApprox[S] = approx_0
+    yield func_approx
 
     for trace in traces:
         gp: List[float] = [1.]
@@ -57,5 +58,42 @@ def lambda_return_prediction(
             lp.append(lp[-1] * lambd)
         responses: Sequence[float] = [np.dot(p, w) for p, w in
                                       zip(partials, weights)]
-        func_approx = func_approx.update(zip(predictors, responses))
+        for p, r in zip(predictors, responses):
+            func_approx = func_approx.update([(p, r)])
         yield func_approx
+
+
+def td_lambda_prediction(
+        traces: Iterable[Iterable[mp.TransitionStep[S]]],
+        approx_0: FunctionApprox[S],
+        γ: float,
+        lambd: float
+) -> Iterator[FunctionApprox[S]]:
+    '''Evaluate an MRP using TD(lambda) using the given sequence of traces.
+
+    Each value this function yields represents the approximated value function
+    for the MRP after an additional transition within each trace
+
+    Arguments:
+      transitions -- a sequence of transitions from an MRP which don't
+                     have to be in order or from the same simulation
+      approx_0 -- initial approximation of value function
+      γ -- discount rate (0 < γ ≤ 1)
+      lambd -- lambda parameter (0 <= lambd <= 1)
+    '''
+    func_approx: FunctionApprox[S] = approx_0
+    yield func_approx
+
+    for trace in traces:
+        el_tr: Gradient[FunctionApprox[S]] = Gradient(func_approx).zero()
+        for step in trace:
+            x: S = step.state
+            y: float = step.reward + γ * func_approx(step.next_state)
+            el_tr = el_tr * (γ * lambd) + func_approx.objective_gradient(
+                xy_vals_seq=[(x, y)],
+                obj_deriv_out_fun=lambda x1, y1: np.ones(len(x1))
+            )
+            func_approx = func_approx.update_with_gradient(
+                el_tr * (func_approx(x) - y)
+            )
+            yield func_approx
