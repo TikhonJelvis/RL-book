@@ -36,7 +36,7 @@ class Affine (f a) => Approx f a where
       -> V.Vector a
       -- ^ x values—should map 1:1 to y values
       -> Vector R
-    -- ^ y values—should map 1:1 to x values
+      -- ^ y values—should map 1:1 to x values
       -> f a
 
   -- | Evaluate a whole bunch of inputs and produce a vector of the
