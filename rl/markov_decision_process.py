@@ -82,7 +82,7 @@ class FiniteDeterministicPolicy(FinitePolicy[S, A]):
     def __repr__(self) -> str:
         display = ""
         for s, a in self.deterministic_policy_map.items():
-            display += f"For State {s.state}, Do Action {a}:\n"
+            display += f"For State {s.state}: Do Action {a}\n"
         return display
 
 
