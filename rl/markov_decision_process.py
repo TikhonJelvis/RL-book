@@ -69,9 +69,6 @@ class FinitePolicy(Policy[S, A]):
     def act(self, state: NonTerminal[S]) -> FiniteDistribution[A]:
         return self.policy_map[state]
 
-    def states(self) -> Iterable[NonTerminal[S]]:
-        return self.policy_map.keys()
-
 
 class FiniteDeterministicPolicy(FinitePolicy[S, A]):
 
