@@ -4,7 +4,7 @@ from rl.distribution import Categorical
 from rl.dynamic_programming import evaluate_mrp_result
 from rl.finite_horizon import (finite_horizon_MRP, evaluate,
                                unwrap_finite_horizon_MRP, WithTime)
-from rl.markov_process import FiniteMarkovRewardProcess
+from rl.markov_process import FiniteMarkovRewardProcess, NonTerminal
 
 
 class FlipFlop(FiniteMarkovRewardProcess[bool]):
@@ -42,8 +42,12 @@ class TestEvaluate(unittest.TestCase):
         finite_v =\
             list(evaluate(unwrap_finite_horizon_MRP(finite_horizon), gamma=1))
 
-        for time in range(0, 10):
-            self.assertAlmostEqual(v[WithTime(state=True, time=time)],
-                                   finite_v[time][True])
-            self.assertAlmostEqual(v[WithTime(state=False, time=time)],
-                                   finite_v[time][False])
+        for time in range(10):
+            self.assertAlmostEqual(
+                v[NonTerminal(WithTime(state=True, time=time))],
+                finite_v[time][NonTerminal(True)]
+            )
+            self.assertAlmostEqual(
+                v[NonTerminal(WithTime(state=False, time=time))],
+                finite_v[time][NonTerminal(False)]
+            )

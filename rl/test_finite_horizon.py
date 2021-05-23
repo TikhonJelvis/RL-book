@@ -5,8 +5,9 @@ import dataclasses
 from rl.distribution import Categorical, Constant
 import rl.test_distribution as distribution
 from rl.markov_process import FiniteMarkovRewardProcess
-from rl.markov_decision_process import (
-    ActionMapping, FiniteMarkovDecisionProcess)
+from rl.markov_decision_process import (ActionMapping,
+                                        FiniteMarkovDecisionProcess,
+                                        NonTerminal, Terminal)
 
 from rl.finite_horizon import (finite_horizon_MDP, finite_horizon_MRP,
                                WithTime, unwrap_finite_horizon_MDP,
@@ -34,21 +35,27 @@ class TestFiniteMRP(unittest.TestCase):
     def test_finite_horizon_MRP(self):
         finite = finite_horizon_MRP(self.finite_flip_flop, 10)
 
-        trues = [WithTime(True, time) for time in range(0, 10)]
-        falses = [WithTime(False, time) for time in range(0, 10)]
+        trues = [NonTerminal(WithTime(True, time)) for time in range(10)]
+        falses = [NonTerminal(WithTime(False, time)) for time in range(10)]
         non_terminal_states = set(trues + falses)
-        terminal_states = {WithTime(True, 10), WithTime(False, 10)}
-        expected_states = non_terminal_states.union(terminal_states)
-
-        self.assertEqual(set(finite.states()), expected_states)
+        self.assertEqual(set(finite.non_terminal_states), non_terminal_states)
 
         expected_transition = {}
         for state in non_terminal_states:
-            expected_transition[state] =\
-                Categorical({
-                    (WithTime(state.state, state.time + 1), 1.0): 0.3,
-                    (WithTime(not state.state, state.time + 1), 2.0): 0.7
-                })
+            t: int = state.state.time
+            st: bool = state.state.state
+            if t < 9:
+                prob = {
+                    (NonTerminal(WithTime(st, t + 1)), 1.0): 0.3,
+                    (NonTerminal(WithTime(not st, t + 1)), 2.0): 0.7
+                }
+            else:
+                prob = {
+                    (Terminal(WithTime(st, t + 1)), 1.0): 0.3,
+                    (Terminal(WithTime(not st, t + 1)), 2.0): 0.7
+                }
+
+            expected_transition[state] = Categorical(prob)
 
         for state in non_terminal_states:
             distribution.assert_almost_equal(
@@ -56,37 +63,51 @@ class TestFiniteMRP(unittest.TestCase):
                 finite.transition_reward(state),
                 expected_transition[state])
 
-        for state in terminal_states:
-            self.assertEqual(finite.transition(state), None)
-
     def test_unwrap_finite_horizon_MRP(self):
         finite = finite_horizon_MRP(self.finite_flip_flop, 10)
 
         def transition_for(time):
             return {
                 True: Categorical({
-                    (True, 1.0): 0.3,
-                    (False, 2.0): 0.7,
+                    (NonTerminal(True), 1.0): 0.3,
+                    (NonTerminal(False), 2.0): 0.7
                 }),
                 False: Categorical({
-                    (True, 2.0): 0.7,
-                    (False, 1.0): 0.3,
+                    (NonTerminal(True), 2.0): 0.7,
+                    (NonTerminal(False), 1.0): 0.3
                 })
             }
 
         unwrapped = unwrap_finite_horizon_MRP(finite)
         self.assertEqual(len(unwrapped), 10)
 
-        expected_transitions = [transition_for(n) for n in range(0, 10)]
-        for time in range(0, 10):
+        expected_transitions = [transition_for(n) for n in range(10)]
+        for time in range(9):
             got = unwrapped[time]
             expected = expected_transitions[time]
             distribution.assert_almost_equal(
-                self, got[True],
-                expected[True])
+                self, got[NonTerminal(True)],
+                expected[True]
+            )
             distribution.assert_almost_equal(
-                self, got[False],
-                expected[False])
+                self, got[NonTerminal(False)],
+                expected[False]
+            )
+
+        distribution.assert_almost_equal(
+            self, unwrapped[9][NonTerminal(True)],
+            Categorical({
+                (Terminal(True), 1.0): 0.3,
+                (Terminal(False), 2.0): 0.7
+            })
+        )
+        distribution.assert_almost_equal(
+            self, unwrapped[9][NonTerminal(False)],
+            Categorical({
+                (Terminal(True), 2.0): 0.7,
+                (Terminal(False), 1.0): 0.3
+            })
+        )
 
     def test_evaluate(self):
         process = finite_horizon_MRP(self.finite_flip_flop, 10)
@@ -94,14 +115,14 @@ class TestFiniteMRP(unittest.TestCase):
 
         self.assertEqual(len(vs), 10)
 
-        self.assertAlmostEqual(vs[0][True], 17)
-        self.assertAlmostEqual(vs[0][False], 17)
+        self.assertAlmostEqual(vs[0][NonTerminal(True)], 17)
+        self.assertAlmostEqual(vs[0][NonTerminal(False)], 17)
 
-        self.assertAlmostEqual(vs[5][True], 17 / 2)
-        self.assertAlmostEqual(vs[5][False], 17 / 2)
+        self.assertAlmostEqual(vs[5][NonTerminal(True)], 17 / 2)
+        self.assertAlmostEqual(vs[5][NonTerminal(False)], 17 / 2)
 
-        self.assertAlmostEqual(vs[9][True], 17 / 10)
-        self.assertAlmostEqual(vs[9][False], 17 / 10)
+        self.assertAlmostEqual(vs[9][NonTerminal(True)], 17 / 10)
+        self.assertAlmostEqual(vs[9][NonTerminal(False)], 17 / 10)
 
 
 class TestFiniteMDP(unittest.TestCase):
@@ -120,21 +141,18 @@ class TestFiniteMDP(unittest.TestCase):
     def test_finite_horizon_MDP(self):
         finite = finite_horizon_MDP(self.finite_flip_flop, limit=10)
 
-        self.assertEqual(len(finite.states()), 22)
+        self.assertEqual(len(finite.non_terminal_states), 20)
 
-        for s in finite.states():
-            if len(set(finite.actions(s))) > 0:
-                self.assertEqual(set(finite.actions(s)), {False, True})
+        for s in finite.non_terminal_states:
+            self.assertEqual(set(finite.actions(s)), {False, True})
 
-        start = WithTime(state=True, time=0)
+        start = NonTerminal(WithTime(state=True, time=0))
         result = finite.action_mapping(start)[False]
         expected_result = Categorical({
-            (WithTime(False, time=1), 2.0): 0.7,
-            (WithTime(True, time=1), 1.0): 0.3
+            (NonTerminal(WithTime(False, time=1)), 2.0): 0.7,
+            (NonTerminal(WithTime(True, time=1)), 1.0): 0.3
         })
         distribution.assert_almost_equal(self, result, expected_result)
-
-        self.assertEqual(finite.step(WithTime(True, 10), True), None)
 
     def test_unwrap_finite_horizon_MDP(self):
         finite = finite_horizon_MDP(self.finite_flip_flop, 10)
@@ -142,11 +160,13 @@ class TestFiniteMDP(unittest.TestCase):
 
         self.assertEqual(len(unwrapped), 10)
 
-        def action_mapping_for(
-                s: WithTime[bool]
-        ) -> ActionMapping[bool, WithTime[bool]]:
-            same = s.step_time()
-            different = dataclasses.replace(s.step_time(), state=not s.state)
+        def action_mapping_for(s: WithTime[bool]) -> \
+                ActionMapping[bool, WithTime[bool]]:
+            same = NonTerminal(s.step_time())
+            different = NonTerminal(dataclasses.replace(
+                s.step_time(),
+                state=not s.state
+            ))
 
             return {
                 True: Categorical({
@@ -159,27 +179,48 @@ class TestFiniteMDP(unittest.TestCase):
                 })
             }
 
-        for t in range(0, 10):
+        for t in range(9):
             for s in True, False:
                 s_time = WithTime(state=s, time=t)
                 for a in True, False:
                     distribution.assert_almost_equal(
                         self,
-                        finite.action_mapping(s_time)[a],
-                        action_mapping_for(s_time)[a])
+                        finite.action_mapping(NonTerminal(s_time))[a],
+                        action_mapping_for(s_time)[a]
+                    )
 
-        self.assertEqual(
-            finite.action_mapping(WithTime(state=True, time=10)),
-            None
-        )
+        for s in True, False:
+            s_time = WithTime(state=s, time=9)
+            same = Terminal(s_time.step_time())
+            different = Terminal(dataclasses.replace(
+                s_time.step_time(),
+                state=not s_time.state
+            ))
+            act_map = {
+                True: Categorical({
+                    (same, 1.0): 0.7,
+                    (different, 2.0): 0.3
+                }),
+                False: Categorical({
+                    (same, 1.0): 0.3,
+                    (different, 2.0): 0.7
+                })
+
+            }
+            for a in True, False:
+                distribution.assert_almost_equal(
+                    self,
+                    finite.action_mapping(NonTerminal(s_time))[a],
+                    act_map[a]
+                )
 
     def test_optimal_policy(self):
         finite = finite_horizon_MDP(self.finite_flip_flop, limit=10)
         steps = unwrap_finite_horizon_MDP(finite)
         *v_ps, (v, p) = optimal_vf_and_policy(steps, gamma=1)
 
-        for s in p.states():
-            self.assertEqual(p.act(s), Constant(False))
+        for _, a in p.deterministic_policy_map.items():
+            self.assertEqual(a, False)
 
-        self.assertAlmostEqual(v_ps[0][0][True], 17)
-        self.assertAlmostEqual(v_ps[5][0][False], 17 / 2)
+        self.assertAlmostEqual(v_ps[0][0][NonTerminal(True)], 17)
+        self.assertAlmostEqual(v_ps[5][0][NonTerminal(False)], 17 / 2)
