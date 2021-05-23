@@ -3,11 +3,12 @@ import operator
 from typing import Mapping, Iterator, TypeVar, Tuple, Dict
 
 from rl.iterate import converged, iterate
-from rl.markov_process import (NonTerminal)
+from rl.markov_process import NonTerminal, State
 from rl.markov_decision_process import (FiniteMarkovDecisionProcess,
                                         FiniteMarkovRewardProcess,
-                                        FinitePolicy)
-from rl.distribution import FiniteDistribution, Categorical, Constant, Choose
+                                        FinitePolicy,
+                                        FiniteDeterministicPolicy)
+from rl.distribution import Categorical, Choose
 
 A = TypeVar('A')
 S = TypeVar('S')
@@ -17,6 +18,12 @@ DEFAULT_TOLERANCE = 1e-5
 # A representation of a value function for a finite MDP with states of
 # type S
 V = Mapping[NonTerminal[S], float]
+
+
+def extended_vf(v: V[S], s: State[S]) -> float:
+    def non_terminal_vf(st: NonTerminal[S], v=v) -> float:
+        return v[st]
+    return s.on_non_terminal(non_terminal_vf, 0.0)
 
 
 def evaluate_mrp(
@@ -63,20 +70,18 @@ def greedy_policy_from_vf(
     mdp: FiniteMarkovDecisionProcess[S, A],
     vf: V[S],
     gamma: float
-) -> FinitePolicy[S, A]:
-    greedy_policy_dict: Dict[S, FiniteDistribution[A]] = {}
+) -> FiniteDeterministicPolicy[S, A]:
+    greedy_policy_dict: Dict[S, A] = {}
 
     for s in mdp.non_terminal_states:
-
         q_values: Iterator[Tuple[A, float]] = \
             ((a, mdp.mapping[s][a].expectation(
-                lambda s_r: s_r[1] + gamma * vf.get(s_r[0], 0.)
+                lambda s_r: s_r[1] + gamma * extended_vf(vf, s_r[0])
             )) for a in mdp.actions(s))
+        greedy_policy_dict[s.state] = \
+            max(q_values, key=operator.itemgetter(1))[0]
 
-        greedy_policy_dict[s] =\
-            Constant(max(q_values, key=operator.itemgetter(1))[0])
-
-    return FinitePolicy(greedy_policy_dict)
+    return FiniteDeterministicPolicy(greedy_policy_dict)
 
 
 def policy_iteration(
@@ -89,14 +94,14 @@ def policy_iteration(
     '''
 
     def update(vf_policy: Tuple[V[S], FinitePolicy[S, A]])\
-            -> Tuple[V[S], FinitePolicy[S, A]]:
+            -> Tuple[V[S], FiniteDeterministicPolicy[S, A]]:
 
         vf, pi = vf_policy
         mrp: FiniteMarkovRewardProcess[S] = mdp.apply_finite_policy(pi)
         policy_vf: V[S] = {mrp.non_terminal_states[i]: v for i, v in
                            enumerate(mrp.get_value_function_vec(gamma))}\
             if matrix_method_for_mrp_eval else evaluate_mrp_result(mrp, gamma)
-        improved_pi: FinitePolicy[S, A] = greedy_policy_from_vf(
+        improved_pi: FiniteDeterministicPolicy[S, A] = greedy_policy_from_vf(
             mdp,
             policy_vf,
             gamma
@@ -106,7 +111,7 @@ def policy_iteration(
 
     v_0: V[S] = {s: 0.0 for s in mdp.non_terminal_states}
     pi_0: FinitePolicy[S, A] = FinitePolicy(
-        {s: Choose(set(mdp.actions(s))) for s in mdp.non_terminal_states}
+        {s.state: Choose(set(mdp.actions(s))) for s in mdp.non_terminal_states}
     )
     return iterate(update, (v_0, pi_0))
 
@@ -123,7 +128,7 @@ def almost_equal_vf_pis(
 def policy_iteration_result(
     mdp: FiniteMarkovDecisionProcess[S, A],
     gamma: float,
-) -> Tuple[V[S], FinitePolicy[S, A]]:
+) -> Tuple[V[S], FiniteDeterministicPolicy[S, A]]:
     return converged(policy_iteration(mdp, gamma), done=almost_equal_vf_pis)
 
 
@@ -137,7 +142,7 @@ def value_iteration(
     '''
     def update(v: V[S]) -> V[S]:
         return {s: max(mdp.mapping[s][a].expectation(
-            lambda s_r: s_r[1] + gamma * v.get(s_r[0], 0.)
+            lambda s_r: s_r[1] + gamma * extended_vf(v, s_r[0])
         ) for a in mdp.actions(s)) for s in v}
 
     v_0: V[S] = {s: 0.0 for s in mdp.non_terminal_states}
@@ -159,12 +164,12 @@ def almost_equal_vfs(
 def value_iteration_result(
     mdp: FiniteMarkovDecisionProcess[S, A],
     gamma: float
-) -> Tuple[V[S], FinitePolicy[S, A]]:
+) -> Tuple[V[S], FiniteDeterministicPolicy[S, A]]:
     opt_vf: V[S] = converged(
         value_iteration(mdp, gamma),
         done=almost_equal_vfs
     )
-    opt_policy: FinitePolicy[S, A] = greedy_policy_from_vf(
+    opt_policy: FiniteDeterministicPolicy[S, A] = greedy_policy_from_vf(
         mdp,
         opt_vf,
         gamma
