@@ -143,14 +143,14 @@ class FiniteMarkovProcess(MarkovProcess[S]):
     def states(self) -> Iterable[NonTerminal[S]]:
         return self.transition_map.keys()
 
-    def get_stationary_distribution(self) -> FiniteDistribution[State[S]]:
+    def get_stationary_distribution(self) -> FiniteDistribution[S]:
         eig_vals, eig_vecs = np.linalg.eig(self.get_transition_matrix().T)
         index_of_first_unit_eig_val = np.where(
             np.abs(eig_vals - 1) < 1e-8)[0][0]
         eig_vec_of_unit_eig_val = np.real(
             eig_vecs[:, index_of_first_unit_eig_val])
         return Categorical({
-            self.non_terminal_states[i]: ev
+            self.non_terminal_states[i].state: ev
             for i, ev in enumerate(eig_vec_of_unit_eig_val /
                                    sum(eig_vec_of_unit_eig_val))
         })
