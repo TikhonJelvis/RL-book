@@ -56,11 +56,11 @@ def converge(values: Iterator[X], done: Callable[[X, X], bool]) -> Iterator[X]:
     yield a
 
     for b in values:
+        yield b
         if done(a, b):
             return
 
         a = b
-        yield b
 
 
 def converged(values: Iterator[X],
