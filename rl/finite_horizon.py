@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from operator import itemgetter
 from typing import (Dict, List, Generic, Sequence, Tuple, TypeVar, Iterator)
 
-from rl.distribution import Constant, FiniteDistribution
+from rl.distribution import FiniteDistribution
 from rl.dynamic_programming import V, extended_vf
 from rl.markov_process import (FiniteMarkovRewardProcess, RewardTransition,
                                StateReward, NonTerminal, Terminal, State)
@@ -50,7 +50,7 @@ def finite_horizon_MRP(
     # Non-terminal states
     for time in range(limit):
 
-        for s in process.states():
+        for s in process.non_terminal_states:
             result: StateReward[S] = process.transition_reward(s)
             s_time = WithTime(state=s.state, time=time)
 
