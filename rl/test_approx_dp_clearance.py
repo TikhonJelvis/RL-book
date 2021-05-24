@@ -3,22 +3,22 @@ from rl.approximate_dynamic_programming import (
     backward_evaluate_finite, backward_evaluate,
     back_opt_vf_and_policy_finite, back_opt_vf_and_policy)
 import numpy as np
-from rl.distribution import Constant, Choose
+from rl.distribution import Choose
 from rl.function_approx import Dynamic, Tabular
 from rl.markov_process import FiniteMarkovRewardProcess
 from rl.markov_decision_process import (FiniteMarkovDecisionProcess,
-                                        FinitePolicy)
+                                        FiniteDeterministicPolicy)
 from rl.chapter4.clearance_pricing_mdp import ClearancePricingMDP
 from rl.finite_horizon import (
     unwrap_finite_horizon_MRP, finite_horizon_MRP, evaluate,
     unwrap_finite_horizon_MDP, finite_horizon_MDP, optimal_vf_and_policy)
 
 
-@unittest.skip("Explanation (ie test is too slow)")
+# @unittest.skip("Explanation (ie test is too slow)")
 class TestEvaluate(unittest.TestCase):
     def setUp(self):
-        ii = 12
-        self.steps = 8
+        ii = 10
+        self.steps = 6
         pairs = [(1.0, 0.5), (0.7, 1.0), (0.5, 1.5), (0.3, 2.5)]
         self.cp: ClearancePricingMDP = ClearancePricingMDP(
             initial_inventory=ii,
@@ -29,9 +29,10 @@ class TestEvaluate(unittest.TestCase):
         def policy_func(x: int) -> int:
             return 0 if x < 2 else (1 if x < 5 else (2 if x < 8 else 3))
 
-        stationary_policy: FinitePolicy[int, int] = FinitePolicy(
-            {s: Constant(policy_func(s)) for s in range(ii + 1)}
-        )
+        stationary_policy: FiniteDeterministicPolicy[int, int] = \
+            FiniteDeterministicPolicy(
+                {s: policy_func(s) for s in range(ii + 1)}
+            )
 
         self.single_step_mrp: FiniteMarkovRewardProcess[int] = \
             self.cp.single_step_mdp.apply_finite_policy(stationary_policy)
@@ -49,7 +50,7 @@ class TestEvaluate(unittest.TestCase):
 
     def test_evaluate_mrp(self):
         vf = evaluate(self.mrp_seq, 1.)
-        states = self.single_step_mrp.states()
+        states = self.single_step_mrp.non_terminal_states
         fa_dynamic = Dynamic({s: 0.0 for s in states})
         fa_tabular = Tabular()
         distribution = Choose(set(states))
@@ -79,7 +80,7 @@ class TestEvaluate(unittest.TestCase):
 
     def test_value_iteration(self):
         vpstar = optimal_vf_and_policy(self.mdp_seq, 1.)
-        states = self.single_step_mdp.states()
+        states = self.single_step_mdp.non_terminal_states
         fa_dynamic = Dynamic({s: 0.0 for s in states})
         fa_tabular = Tabular()
         distribution = Choose(set(states))
