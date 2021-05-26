@@ -27,12 +27,16 @@ class Policy(ABC, Generic[S, A]):
         pass
 
 
-@dataclass(frozen=True)
 class DeterministicPolicy(Policy[S, A]):
-    policy_map: Callable[[S], A]
+    deterministic_policy_func: Callable[[NonTerminal[S]], A]
+
+    def __init__(self, policy_func: Callable[[S], A]):
+        def dp_func(state: NonTerminal[S], policy_func=policy_func) -> A:
+            return policy_func(state.state)
+        self.deterministic_policy_func = dp_func
 
     def act(self, state: NonTerminal[S]) -> Distribution[A]:
-        return Constant(self.policy_map(state.state))
+        return Constant(self.deterministic_policy_func(state))
 
 
 class Always(DeterministicPolicy[S, A]):
@@ -284,11 +288,3 @@ class FiniteMarkovDecisionProcess(MarkovDecisionProcess[S, A]):
 
         '''
         return self.mapping[state].keys()
-
-    # TODO: Should this include terminal states too?
-    def states(self) -> Iterable[NonTerminal[S]]:
-        '''Iterate over all the states in this process—terminal *and*
-        non-terminal.
-
-        '''
-        return self.mapping.keys()
