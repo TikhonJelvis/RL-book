@@ -1,11 +1,11 @@
 from dataclasses import dataclass
 from typing import Sequence, Callable, Tuple, Iterator, List
 from rl.distribution import Distribution, SampledDistribution, Choose, Gaussian
-from rl.markov_decision_process import MarkovDecisionProcess, Policy, \
-    NonTerminal, State
-from rl.function_approx import DNNSpec, AdamGradient, DNNApprox, FunctionApprox
-from rl.approximate_dynamic_programming import back_opt_vf_and_policy
-from rl.approximate_dynamic_programming import back_opt_qvf
+from rl.markov_decision_process import MarkovDecisionProcess, \
+    DeterministicPolicy, NonTerminal, State, Terminal
+from rl.function_approx import DNNSpec, AdamGradient, DNNApprox
+from rl.approximate_dynamic_programming import back_opt_vf_and_policy, \
+    back_opt_qvf, ValueFunctionApprox, QValueFunctionApprox
 from operator import itemgetter
 import numpy as np
 
@@ -49,12 +49,14 @@ class AssetAllocDiscrete:
                 def sr_sampler_func(
                     wealth=wealth,
                     alloc=alloc
-                ) -> Tuple[NonTerminal[float], float]:
+                ) -> Tuple[State[float], float]:
                     next_wealth: float = alloc * (1 + distr.sample()) \
                         + (wealth.state - alloc) * (1 + rate)
                     reward: float = utility_f(next_wealth) \
                         if t == steps - 1 else 0.
-                    return (NonTerminal(next_wealth), reward)
+                    next_state: State[float] = Terminal(next_wealth) \
+                        if t == steps - 1 else NonTerminal(next_wealth)
+                    return (next_state, reward)
 
                 return SampledDistribution(
                     sampler=sr_sampler_func,
@@ -104,7 +106,7 @@ class AssetAllocDiscrete:
         return SampledDistribution(states_sampler_func)
 
     def backward_induction_qvf(self) -> \
-            Iterator[FunctionApprox[Tuple[NonTerminal[float], float]]]:
+            Iterator[QValueFunctionApprox[float, float]]:
 
         init_fa: DNNApprox[Tuple[NonTerminal[float], float]] = \
             self.get_qvf_func_approx()
@@ -148,8 +150,8 @@ class AssetAllocDiscrete:
     def backward_induction_vf_and_pi(
         self,
         ff: Sequence[Callable[[NonTerminal[float]], float]]
-    ) -> Iterator[Tuple[FunctionApprox[NonTerminal[float]],
-                        Policy[float, float]]]:
+    ) -> Iterator[Tuple[ValueFunctionApprox[float],
+                        DeterministicPolicy[float, float]]]:
 
         init_fa: DNNApprox[NonTerminal[float]] = self.get_vf_func_approx(ff)
 
@@ -226,7 +228,7 @@ if __name__ == '__main__':
     )
 
     # vf_ff: Sequence[Callable[[NonTerminal[float]], float]] = [lambda _: 1., lambda w: w.state]
-    # it_vf: Iterator[Tuple[DNNApprox[NonTerminal[float], Policy[float, float]]] = \
+    # it_vf: Iterator[Tuple[DNNApprox[NonTerminal[float], DeterministicPolicy[float, float]]] = \
     #     aad.backward_induction_vf_and_pi(vf_ff)
 
     # print("Backward Induction: VF And Policy")
@@ -235,7 +237,7 @@ if __name__ == '__main__':
     # for t, (v, p) in enumerate(it_vf):
     #     print(f"Time {t:d}")
     #     print()
-    #     opt_alloc: float = p.act(NonTerminal(init_wealth)).value
+    #     opt_alloc: float = p.deterministic_policy_func(NonTerminal(init_wealth))
     #     val: float = v(NonTerminal(init_wealth))
     #     print(f"Opt Risky Allocation = {opt_alloc:.2f}, Opt Val = {val:.3f}")
     #     print("Weights")
@@ -243,7 +245,7 @@ if __name__ == '__main__':
     #         print(w.weights)
     #     print()
 
-    it_qvf: Iterator[FunctionApprox[Tuple[NonTerminal[float], float]]] = \
+    it_qvf: Iterator[QValueFunctionApprox[float, float]] = \
         aad.backward_induction_qvf()
 
     print("Backward Induction on Q-Value Function")

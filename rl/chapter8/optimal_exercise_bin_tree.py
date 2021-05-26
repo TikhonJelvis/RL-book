@@ -3,7 +3,8 @@ from typing import Callable, Tuple, Iterator, Sequence, List
 import numpy as np
 from rl.dynamic_programming import V
 from scipy.stats import norm
-from rl.markov_decision_process import FinitePolicy
+from rl.markov_decision_process import FiniteDeterministicPolicy, \
+    Terminal, NonTerminal
 from rl.distribution import Constant, Categorical
 from rl.finite_horizon import optimal_vf_and_policy
 
@@ -40,24 +41,24 @@ class OptimalExerciseBinTree:
                                         np.sqrt(self.dt()))
 
     def get_opt_vf_and_policy(self) -> \
-            Iterator[Tuple[V[int], FinitePolicy[int, bool]]]:
+            Iterator[Tuple[V[int], FiniteDeterministicPolicy[int, bool]]]:
         dt: float = self.dt()
         up_factor: float = np.exp(self.vol * np.sqrt(dt))
         up_prob: float = (np.exp(self.rate * dt) * up_factor - 1) / \
             (up_factor * up_factor - 1)
         return optimal_vf_and_policy(
             steps=[
-                {j: None if j == -1 else {
+                {NonTerminal(j): {
                     True: Constant(
                         (
-                            -1,
+                            Terminal(-1),
                             self.payoff(i * dt, self.state_price(i, j))
                         )
                     ),
                     False: Categorical(
                         {
-                            (j + 1, 0.): up_prob,
-                            (j, 0.): 1 - up_prob
+                            (NonTerminal(j + 1), 0.): up_prob,
+                            (NonTerminal(j), 0.): 1 - up_prob
                         }
                     )
                 } for j in range(i + 1)}
@@ -68,14 +69,14 @@ class OptimalExerciseBinTree:
 
     def option_exercise_boundary(
         self,
-        policy_seq: Sequence[FinitePolicy[int, bool]],
+        policy_seq: Sequence[FiniteDeterministicPolicy[int, bool]],
         is_call: bool
     ) -> Sequence[Tuple[float, float]]:
         dt: float = self.dt()
         ex_boundary: List[Tuple[float, float]] = []
         for i in range(self.num_steps + 1):
             ex_points = [j for j in range(i + 1)
-                         if policy_seq[i].act(j).value and
+                         if policy_seq[i].deterministic_policy_map[NonTerminal(j)] and
                          self.payoff(i * dt, self.state_price(i, j)) > 0]
             if len(ex_points) > 0:
                 boundary_pt = min(ex_points) if is_call else max(ex_points)
@@ -127,5 +128,5 @@ if __name__ == '__main__':
     european: float = opt_ex_bin_tree.european_price(is_call, strike)
     print(f"European Price = {european:.3f}")
 
-    am_price: float = vf_seq[0][0]
+    am_price: float = vf_seq[0][NonTerminal(0)]
     print(f"American Price = {am_price:.3f}")

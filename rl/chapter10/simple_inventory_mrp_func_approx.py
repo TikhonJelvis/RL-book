@@ -1,7 +1,9 @@
 from typing import Sequence, Iterable, Callable
 from rl.function_approx import AdamGradient
-from rl.function_approx import FunctionApprox, LinearFunctionApprox
+from rl.function_approx import LinearFunctionApprox
+from rl.approximate_dynamic_programming import ValueFunctionApprox
 from rl.distribution import Choose
+from rl.markov_decision_process import NonTerminal
 from rl.chapter2.simple_inventory_mrp import SimpleInventoryMRPFinite
 from rl.chapter2.simple_inventory_mrp import InventoryState
 from rl.chapter10.prediction_utils import (
@@ -25,7 +27,7 @@ si_mrp: SimpleInventoryMRPFinite = SimpleInventoryMRPFinite(
     holding_cost=holding_cost,
     stockout_cost=stockout_cost
 )
-nt_states: Sequence[InventoryState] = si_mrp.non_terminal_states
+nt_states: Sequence[NonTerminal[InventoryState]] = si_mrp.non_terminal_states
 true_vf: np.ndarray = si_mrp.get_value_function_vec(gamma=gamma)
 
 mc_episode_length_tol: float = 1e-6
@@ -36,8 +38,8 @@ initial_learning_rate: float = 0.03
 half_life: float = 1000.0
 exponent: float = 0.5
 
-ffs: Sequence[Callable[[InventoryState], float]] = \
-    [(lambda x, s=s: float(x == s)) for s in nt_states]
+ffs: Sequence[Callable[[NonTerminal[InventoryState]], float]] = \
+    [(lambda x, s=s: float(x.state == s.state)) for s in nt_states]
 
 mc_ag: AdamGradient = AdamGradient(
     learning_rate=0.05,
@@ -51,19 +53,19 @@ td_ag: AdamGradient = AdamGradient(
     decay2=0.999
 )
 
-mc_func_approx: LinearFunctionApprox[InventoryState] = \
+mc_func_approx: LinearFunctionApprox[NonTerminal[InventoryState]] = \
     LinearFunctionApprox.create(
         feature_functions=ffs,
         adam_gradient=mc_ag
     )
 
-td_func_approx: LinearFunctionApprox[InventoryState] = \
+td_func_approx: LinearFunctionApprox[NonTerminal[InventoryState]] = \
     LinearFunctionApprox.create(
         feature_functions=ffs,
         adam_gradient=td_ag
     )
 
-it_mc: Iterable[FunctionApprox[InventoryState]] = \
+it_mc: Iterable[ValueFunctionApprox[InventoryState]] = \
     mc_prediction_learning_rate(
         mrp=si_mrp,
         start_state_distribution=Choose(set(nt_states)),
@@ -72,7 +74,7 @@ it_mc: Iterable[FunctionApprox[InventoryState]] = \
         initial_func_approx=mc_func_approx
     )
 
-it_td: Iterable[FunctionApprox[InventoryState]] = \
+it_td: Iterable[ValueFunctionApprox[InventoryState]] = \
     td_prediction_learning_rate(
         mrp=si_mrp,
         start_state_distribution=Choose(set(nt_states)),
