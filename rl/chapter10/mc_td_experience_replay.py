@@ -1,6 +1,6 @@
-from typing import Sequence, TypeVar, Tuple, Mapping, Iterator, Dict, Optional
-from rl.markov_process import (TransitionStep, ReturnStep,
-                               FiniteMarkovRewardProcess)
+from typing import Sequence, TypeVar, Tuple, Mapping, Iterator, Dict
+from rl.markov_process import TransitionStep, ReturnStep, \
+    NonTerminal, Terminal, FiniteMarkovRewardProcess
 from rl.function_approx import Tabular
 from rl.distribution import Categorical
 from rl.returns import returns
@@ -20,9 +20,10 @@ def get_fixed_episodes_from_sr_pairs_seq(
     terminal_state: S
 ) -> Sequence[Sequence[TransitionStep[S]]]:
     return [[TransitionStep(
-        state=s,
+        state=NonTerminal(s),
         reward=r,
-        next_state=trace[i+1][0] if i < len(trace) - 1 else terminal_state
+        next_state=NonTerminal(trace[i+1][0])
+        if i < len(trace) - 1 else Terminal(terminal_state)
     ) for i, (s, r) in enumerate(trace)] for trace in sr_pairs_seq]
 
 
@@ -36,15 +37,15 @@ def get_return_steps_from_fixed_episodes(
 
 def get_mean_returns_from_return_steps(
     returns_seq: Sequence[ReturnStep[S]]
-) -> Mapping[S, float]:
+) -> Mapping[NonTerminal[S], float]:
     def by_state(ret: ReturnStep[S]) -> S:
-        return ret.state
+        return ret.state.state
 
     sorted_returns_seq: Sequence[ReturnStep[S]] = sorted(
         returns_seq,
         key=by_state
     )
-    return {s: np.mean([r.return_ for r in l])
+    return {NonTerminal(s): np.mean([r.return_ for r in l])
             for s, l in itertools.groupby(
                 sorted_returns_seq,
                 key=by_state
@@ -63,7 +64,7 @@ def mc_prediction(
     episodes_stream: Iterator[Sequence[TransitionStep[S]]],
     gamma: float,
     num_episodes: int
-) -> Mapping[S, float]:
+) -> Mapping[NonTerminal[S], float]:
     return iterate.last(itertools.islice(
         mc.mc_prediction(
             traces=episodes_stream,
@@ -85,21 +86,18 @@ def finite_mrp(
     fixed_experiences: Sequence[TransitionStep[S]]
 ) -> FiniteMarkovRewardProcess[S]:
     def by_state(tr: TransitionStep[S]) -> S:
-        return tr.state
-
-    terminal_state: S = fixed_experiences[-1].next_state
+        return tr.state.state
 
     d: Mapping[S, Sequence[Tuple[S, float]]] = \
-        {s: [(t.next_state, t.reward) for t in l] for s, l in
+        {s: [(t.next_state.state, t.reward) for t in l] for s, l in
          itertools.groupby(
              sorted(fixed_experiences, key=by_state),
              key=by_state
          )}
-    mrp: Dict[S, Optional[Categorical[Tuple[S, float]]]] = \
+    mrp: Dict[S, Categorical[Tuple[S, float]]] = \
         {s: Categorical({x: y / len(l) for x, y in
                          collections.Counter(l).items()})
          for s, l in d.items()}
-    mrp[terminal_state] = None
     return FiniteMarkovRewardProcess(mrp)
 
 
@@ -115,7 +113,7 @@ def td_prediction(
     experiences_stream: Iterator[TransitionStep[S]],
     gamma: float,
     num_experiences: int
-) -> Mapping[S, float]:
+) -> Mapping[NonTerminal[S], float]:
     return iterate.last(itertools.islice(
         td.td_prediction(
             transitions=experiences_stream,
@@ -157,15 +155,14 @@ if __name__ == '__main__':
             gamma=gamma
         )
 
-    mean_returns: Mapping[str, float] = get_mean_returns_from_return_steps(
-        returns_seq
-    )
+    mean_returns: Mapping[NonTerminal[str], float] = \
+        get_mean_returns_from_return_steps(returns_seq)
     pprint(mean_returns)
 
     episodes: Iterator[Sequence[TransitionStep[str]]] = \
         get_episodes_stream(fixed_episodes)
 
-    mc_pred: Mapping[str, float] = mc_prediction(
+    mc_pred: Mapping[NonTerminal[str], float] = mc_prediction(
         episodes_stream=episodes,
         gamma=gamma,
         num_episodes=num_mc_episodes
@@ -181,7 +178,7 @@ if __name__ == '__main__':
     experiences: Iterator[TransitionStep[str]] = \
         get_experiences_stream(fixed_experiences)
 
-    td_pred: Mapping[str, float] = td_prediction(
+    td_pred: Mapping[NonTerminal[str], float] = td_prediction(
         experiences_stream=experiences,
         gamma=gamma,
         num_experiences=num_td_experiences
