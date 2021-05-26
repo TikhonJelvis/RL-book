@@ -143,7 +143,7 @@ def finite_horizon_MDP(
 
     # Non-terminal states
     for time in range(0, limit):
-        for s in process.states():
+        for s in process.non_terminal_states:
             s_time = WithTime(state=s.state, time=time)
             actions_map = process.action_mapping(s)
             mapping[s_time] = {a: result.map(
