@@ -49,17 +49,6 @@ class MarkovProcess(ABC, Generic[S]):
         the next states.  Returning None means we are in a terminal state.
         '''
 
-    # TODO: This is redundant now
-    def is_terminal(self, state: State[S]) -> bool:
-        '''Return whether the given state is a terminal state.
-
-        The default implementation of is_terminal calculates a transition
-        from the current state, so it could be worth overloading this
-        method if your process has a cheaper way of determing whether
-        a state is terminal.
-        '''
-        return isinstance(state, Terminal)
-
     def simulate(
         self,
         start_state_distribution: Distribution[NonTerminal[S]]
@@ -138,10 +127,6 @@ class FiniteMarkovProcess(MarkovProcess[S]):
     def transition(self, state: NonTerminal[S])\
             -> FiniteDistribution[State[S]]:
         return self.transition_map[state]
-
-    # TODO: Do we want this to cover terminal states too?
-    def states(self) -> Iterable[NonTerminal[S]]:
-        return self.transition_map.keys()
 
     def get_stationary_distribution(self) -> FiniteDistribution[S]:
         eig_vals, eig_vecs = np.linalg.eig(self.get_transition_matrix().T)
