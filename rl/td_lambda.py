@@ -3,19 +3,22 @@
 '''
 
 from typing import Iterable, Iterator, TypeVar, List, Sequence
-from rl.function_approx import FunctionApprox, Gradient
+from rl.function_approx import Gradient
 import rl.markov_process as mp
+from rl.markov_decision_process import NonTerminal
 import numpy as np
+from rl.approximate_dynamic_programming import ValueFunctionApprox
+from rl.approximate_dynamic_programming import extended_vf
 
 S = TypeVar('S')
 
 
 def lambda_return_prediction(
         traces: Iterable[Iterable[mp.TransitionStep[S]]],
-        approx_0: FunctionApprox[S],
+        approx_0: ValueFunctionApprox[S],
         γ: float,
         lambd: float
-) -> Iterator[FunctionApprox[S]]:
+) -> Iterator[ValueFunctionApprox[S]]:
     '''Value Function Prediction using the lambda-return method given a
     sequence of traces.
 
@@ -28,13 +31,13 @@ def lambda_return_prediction(
       γ -- discount rate (0 < γ ≤ 1)
       lambd -- lambda parameter (0 <= lambd <= 1)
     '''
-    func_approx: FunctionApprox[S] = approx_0
+    func_approx: ValueFunctionApprox[S] = approx_0
     yield func_approx
 
     for trace in traces:
         gp: List[float] = [1.]
         lp: List[float] = [1.]
-        predictors: List[S] = []
+        predictors: List[NonTerminal[S]] = []
         partials: List[List[float]] = []
         weights: List[List[float]] = []
         trace_seq: Sequence[mp.TransitionStep[S]] = list(trace)
@@ -43,7 +46,7 @@ def lambda_return_prediction(
                 partial.append(
                     partial[-1] +
                     gp[t - i] * (tr.reward - func_approx(tr.state)) +
-                    (gp[t - i] * γ * func_approx(tr.next_state)
+                    (gp[t - i] * γ * extended_vf(func_approx, tr.next_state)
                      if t < len(trace_seq) - 1 else 0.)
                 )
                 weights[i].append(
@@ -51,8 +54,9 @@ def lambda_return_prediction(
                     else lp[t - i]
                 )
             predictors.append(tr.state)
-            partials.append([tr.reward + (γ * func_approx(tr.next_state)
-                             if t < len(trace_seq) - 1 else 0.)])
+            partials.append([tr.reward +
+                             (γ * extended_vf(func_approx, tr.next_state)
+                              if t < len(trace_seq) - 1 else 0.)])
             weights.append([1. - (lambd if t < len(trace_seq) else 0.)])
             gp.append(gp[-1] * γ)
             lp.append(lp[-1] * lambd)
@@ -65,10 +69,10 @@ def lambda_return_prediction(
 
 def td_lambda_prediction(
         traces: Iterable[Iterable[mp.TransitionStep[S]]],
-        approx_0: FunctionApprox[S],
+        approx_0: ValueFunctionApprox[S],
         γ: float,
         lambd: float
-) -> Iterator[FunctionApprox[S]]:
+) -> Iterator[ValueFunctionApprox[S]]:
     '''Evaluate an MRP using TD(lambda) using the given sequence of traces.
 
     Each value this function yields represents the approximated value function
@@ -81,14 +85,15 @@ def td_lambda_prediction(
       γ -- discount rate (0 < γ ≤ 1)
       lambd -- lambda parameter (0 <= lambd <= 1)
     '''
-    func_approx: FunctionApprox[S] = approx_0
+    func_approx: ValueFunctionApprox[S] = approx_0
     yield func_approx
 
     for trace in traces:
-        el_tr: Gradient[FunctionApprox[S]] = Gradient(func_approx).zero()
+        el_tr: Gradient[ValueFunctionApprox[S]] = Gradient(func_approx).zero()
         for step in trace:
-            x: S = step.state
-            y: float = step.reward + γ * func_approx(step.next_state)
+            x: NonTerminal[S] = step.state
+            y: float = step.reward + γ * \
+                extended_vf(func_approx, step.next_state)
             el_tr = el_tr * (γ * lambd) + func_approx.objective_gradient(
                 xy_vals_seq=[(x, y)],
                 obj_deriv_out_fun=lambda x1, y1: np.ones(len(x1))
