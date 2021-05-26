@@ -9,12 +9,13 @@ from typing import Iterator, Mapping, Tuple, TypeVar, Sequence, List
 from operator import itemgetter
 import numpy as np
 
-from rl.distribution import Distribution, Constant
+from rl.distribution import Distribution
 from rl.function_approx import FunctionApprox
 from rl.iterate import iterate
 from rl.markov_process import (FiniteMarkovRewardProcess, MarkovRewardProcess,
                                RewardTransition, NonTerminal, State)
-from rl.markov_decision_process import (FiniteMarkovDecisionProcess, Policy,
+from rl.markov_decision_process import (FiniteMarkovDecisionProcess,
+                                        DeterministicPolicy,
                                         MarkovDecisionProcess,
                                         StateActionMapping)
 
@@ -35,14 +36,14 @@ def extended_vf(vf: ValueFunctionApprox[S], s: State[S]) -> float:
     return s.on_non_terminal(non_terminal_vf, 0.0)
 
 
-def extended_qvf(
-    qvf: FunctionApprox[Tuple[NonTerminal[S], A]],
-    s: State[S],
-    a: A
-) -> float:
-    def non_terminal_qvf(st: NonTerminal[S], a=a, qvf=qvf) -> float:
-        return qvf((st, a))
-    return s.on_non_terminal(non_terminal_qvf, 0.0)
+# def extended_qvf(
+#     qvf: FunctionApprox[Tuple[NonTerminal[S], A]],
+#     s: State[S],
+#     a: A
+# ) -> float:
+#     def non_terminal_qvf(st: NonTerminal[S], a=a, qvf=qvf) -> float:
+#         return qvf((st, a))
+#     return s.on_non_terminal(non_terminal_qvf, 0.0)
 
 
 def evaluate_finite_mrp(
@@ -217,12 +218,12 @@ def back_opt_vf_and_policy_finite(
     step_f0s: Sequence[Tuple[StateActionMapping[S, A],
                              ValueFunctionApprox[S]]],
     γ: float,
-) -> Iterator[Tuple[ValueFunctionApprox[S], Policy[S, A]]]:
+) -> Iterator[Tuple[ValueFunctionApprox[S], DeterministicPolicy[S, A]]]:
     '''Use backwards induction to find the optimal value function and optimal
     policy at each time step
 
     '''
-    vp: List[Tuple[ValueFunctionApprox[S], Policy[S, A]]] = []
+    vp: List[Tuple[ValueFunctionApprox[S], DeterministicPolicy[S, A]]] = []
 
     for i, (step, approx0) in enumerate(reversed(step_f0s)):
 
@@ -236,15 +237,14 @@ def back_opt_vf_and_policy_finite(
              for s, actions_map in step.items()]
         )
 
-        class ThisPolicy(Policy[S, A]):
-            def act(self, state: NonTerminal[S]) -> Constant[A]:
-                return Constant(max(
-                    ((res.expectation(return_), a)
-                     for a, res in step[state].items()),
-                    key=itemgetter(0)
-                )[1])
+        def deter_policy(state: S) -> A:
+            return max(
+                ((res.expectation(return_), a) for a, res in
+                 step[NonTerminal(state)].items()),
+                key=itemgetter(0)
+            )[1]
 
-        vp.append((this_v, ThisPolicy()))
+        vp.append((this_v, DeterministicPolicy(deter_policy)))
 
     return reversed(vp)
 
@@ -261,13 +261,13 @@ def back_opt_vf_and_policy(
     γ: float,
     num_state_samples: int,
     error_tolerance: float
-) -> Iterator[Tuple[ValueFunctionApprox[S], Policy[S, A]]]:
+) -> Iterator[Tuple[ValueFunctionApprox[S], DeterministicPolicy[S, A]]]:
     '''Use backwards induction to find the optimal value function and optimal
     policy at each time step, using the given FunctionApprox for each time step
     for a random sample of the time step's states.
 
     '''
-    vp: List[Tuple[ValueFunctionApprox[S], Policy[S, A]]] = []
+    vp: List[Tuple[ValueFunctionApprox[S], DeterministicPolicy[S, A]]] = []
 
     for i, (mdp, approx0, mu) in enumerate(reversed(mdp_f0_mu_triples)):
 
@@ -282,15 +282,14 @@ def back_opt_vf_and_policy(
             error_tolerance
         )
 
-        class ThisPolicy(Policy[S, A]):
-            def act(self, state: NonTerminal[S]) -> Constant[A]:
-                return Constant(max(
-                    ((mdp.step(state, a).expectation(return_), a)
-                     for a in mdp.actions(state)),
-                    key=itemgetter(0)
-                )[1])
+        def deter_policy(state: S) -> A:
+            return max(
+                ((mdp.step(NonTerminal(state), a).expectation(return_), a)
+                 for a in mdp.actions(NonTerminal(state))),
+                key=itemgetter(0)
+            )[1]
 
-        vp.append((this_v, ThisPolicy()))
+        vp.append((this_v, DeterministicPolicy(deter_policy)))
 
     return reversed(vp)
 
@@ -320,11 +319,11 @@ def back_opt_qvf(
 
         def return_(s_r: Tuple[State[S], float], i=i) -> float:
             s1, r = s_r
-            return r + γ * (
-                max(extended_qvf(qvf[i-1], s1, a)
-                    for a in mdp_f0_mu_triples[horizon - i][0].actions(s1))
-                if i > 0 else 0.
-            )
+            next_return: float = max(
+                qvf[i-1]((s1, a)) for a in
+                mdp_f0_mu_triples[horizon - i][0].actions(s1)
+            ) if i > 0 and isinstance(s1, NonTerminal) else 0.
+            return r + γ * next_return
 
         this_qvf = approx0.solve(
             [((s, a), mdp.step(s, a).expectation(return_))
