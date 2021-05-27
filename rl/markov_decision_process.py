@@ -57,10 +57,7 @@ class FinitePolicy(Policy[S, A]):
         self,
         policy_map: Mapping[S, FiniteDistribution[A]]
     ):
-        self.policy_map = {
-            NonTerminal(s): Categorical({a: p for a, p in v.table().items()})
-            for s, v in policy_map.items()
-        }
+        self.policy_map = {NonTerminal(s): a for s, a in policy_map.items()}
 
     def __repr__(self) -> str:
         display = ""
@@ -137,7 +134,6 @@ class MarkovDecisionProcess(ABC, Generic[S, A]):
                 state: NonTerminal[S]
             ) -> Distribution[Tuple[State[S], float]]:
                 actions: Distribution[A] = policy.act(state)
-
                 return actions.apply(lambda a: mdp.step(state, a))
 
         return RewardProcess()
