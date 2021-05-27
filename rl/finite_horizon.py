@@ -11,8 +11,8 @@ from rl.dynamic_programming import V, extended_vf
 from rl.markov_process import (FiniteMarkovRewardProcess, RewardTransition,
                                StateReward, NonTerminal, Terminal, State)
 from rl.markov_decision_process import (
-    ActionMapping, FiniteMarkovDecisionProcess, FiniteDeterministicPolicy,
-    StateActionMapping)
+    ActionMapping, FiniteMarkovDecisionProcess, StateActionMapping)
+from rl.policy import FiniteDeterministicPolicy
 
 S = TypeVar('S')
 

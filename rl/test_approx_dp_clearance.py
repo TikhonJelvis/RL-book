@@ -1,20 +1,23 @@
 import unittest
-from rl.approximate_dynamic_programming import (
-    backward_evaluate_finite, backward_evaluate,
-    back_opt_vf_and_policy_finite, back_opt_vf_and_policy)
+
 import numpy as np
-from rl.distribution import Choose
-from rl.function_approx import Dynamic, Tabular
-from rl.markov_process import FiniteMarkovRewardProcess
-from rl.markov_decision_process import (FiniteMarkovDecisionProcess,
-                                        FiniteDeterministicPolicy)
-from rl.chapter4.clearance_pricing_mdp import ClearancePricingMDP
+
+from rl.distribution import (Choose)
 from rl.finite_horizon import (
     unwrap_finite_horizon_MRP, finite_horizon_MRP, evaluate,
     unwrap_finite_horizon_MDP, finite_horizon_MDP, optimal_vf_and_policy)
+from rl.function_approx import (Dynamic, Tabular)
+from rl.markov_process import (FiniteMarkovRewardProcess)
+from rl.markov_decision_process import (FiniteMarkovDecisionProcess)
+from rl.policy import (FiniteDeterministicPolicy)
+
+from rl.chapter4.clearance_pricing_mdp import ClearancePricingMDP
+
+from rl.approximate_dynamic_programming import (
+    backward_evaluate_finite, backward_evaluate,
+    back_opt_vf_and_policy_finite, back_opt_vf_and_policy)
 
 
-# @unittest.skip("Explanation (ie test is too slow)")
 class TestEvaluate(unittest.TestCase):
     def setUp(self):
         ii = 10

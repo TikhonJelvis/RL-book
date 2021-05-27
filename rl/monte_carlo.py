@@ -4,14 +4,15 @@ Markov Decision Processes.
 '''
 
 from typing import Iterable, Iterator, TypeVar, Callable
-import rl.markov_process as mp
+
+from rl.approximate_dynamic_programming import (ValueFunctionApprox,
+                                                QValueFunctionApprox,
+                                                NTStateDistribution)
+from rl.iterate import last
 from rl.markov_decision_process import MarkovDecisionProcess, Policy
 from rl.markov_decision_process import epsilon_greedy_policy, TransitionStep
+import rl.markov_process as mp
 from rl.returns import returns
-from rl.iterate import last
-from rl.approximate_dynamic_programming import ValueFunctionApprox
-from rl.approximate_dynamic_programming import QValueFunctionApprox
-from rl.approximate_dynamic_programming import NTStateDistribution
 
 S = TypeVar('S')
 A = TypeVar('A')
@@ -43,10 +44,12 @@ def mc_prediction(
         (returns(trace, γ, episode_length_tolerance) for trace in traces)
     f = approx_0
     yield f
+
     for episode in episodes:
         f = last(f.iterate_updates(
             [(step.state, step.return_)] for step in episode
         ))
+        assert f is not None
         yield f
 
 

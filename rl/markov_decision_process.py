@@ -4,7 +4,8 @@ from abc import ABC, abstractmethod
 from collections import defaultdict
 from dataclasses import dataclass
 from typing import (DefaultDict, Dict, Iterable, Generic, Mapping,
-                    Tuple, Sequence, TypeVar, Set, Callable)
+                    Tuple, Sequence, TypeVar, Set)
+
 from rl.distribution import (Bernoulli, Constant, Categorical, Choose,
                              Distribution, FiniteDistribution)
 from rl.function_approx import (FunctionApprox)
@@ -12,82 +13,10 @@ from rl.function_approx import (FunctionApprox)
 from rl.markov_process import (
     FiniteMarkovRewardProcess, MarkovRewardProcess, StateReward, State,
     NonTerminal, Terminal)
+from rl.policy import (Policy, FinitePolicy)
 
 A = TypeVar('A')
 S = TypeVar('S')
-
-
-class Policy(ABC, Generic[S, A]):
-    '''A policy is a function that specifies what we should do (the
-    action) at a given state of our MDP.
-
-    '''
-    @abstractmethod
-    def act(self, state: NonTerminal[S]) -> Distribution[A]:
-        pass
-
-
-class DeterministicPolicy(Policy[S, A]):
-    deterministic_policy_func: Callable[[NonTerminal[S]], A]
-
-    def __init__(self, policy_func: Callable[[S], A]):
-        def dp_func(state: NonTerminal[S], policy_func=policy_func) -> A:
-            return policy_func(state.state)
-        self.deterministic_policy_func = dp_func
-
-    def act(self, state: NonTerminal[S]) -> Distribution[A]:
-        return Constant(self.deterministic_policy_func(state))
-
-
-class Always(DeterministicPolicy[S, A]):
-    action: A
-
-    def __init__(self, action: A):
-        super().__init__(lambda _: action)
-        self.action = action
-
-
-class FinitePolicy(Policy[S, A]):
-    ''' A policy where the state and action spaces are finite.
-
-    '''
-    policy_map: Mapping[NonTerminal[S], FiniteDistribution[A]]
-
-    def __init__(
-        self,
-        policy_map: Mapping[S, FiniteDistribution[A]]
-    ):
-        self.policy_map = {
-            NonTerminal(s): Categorical({a: p for a, p in v.table().items()})
-            for s, v in policy_map.items()
-        }
-
-    def __repr__(self) -> str:
-        display = ""
-        for s, d in self.policy_map.items():
-            display += f"For State {s.state}:\n"
-            for a, p in d:
-                display += f"  Do Action {a} with Probability {p:.3f}\n"
-        return display
-
-    def act(self, state: NonTerminal[S]) -> FiniteDistribution[A]:
-        return self.policy_map[state]
-
-
-class FiniteDeterministicPolicy(FinitePolicy[S, A]):
-
-    deterministic_policy_map: Mapping[NonTerminal[S], A]
-
-    def __init__(self, policy_map: Mapping[S, A]):
-        super().__init__({s: Constant(a) for s, a in policy_map.items()})
-        self.deterministic_policy_map = {NonTerminal(s): a
-                                         for s, a in policy_map.items()}
-
-    def __repr__(self) -> str:
-        display = ""
-        for s, a in self.deterministic_policy_map.items():
-            display += f"For State {s.state}: Do Action {a}\n"
-        return display
 
 
 @dataclass(frozen=True)
