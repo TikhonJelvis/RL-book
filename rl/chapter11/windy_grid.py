@@ -145,7 +145,7 @@ class WindyGrid:
         '''
         Performs the Value Iteration DP algorithm returning the
         Optimal Value Function (as a V[Cell]) and the Optimal Policy
-        (as a FinitePolicy[Cell, Move])
+        (as a FiniteDeterministicPolicy[Cell, Move])
         '''
         return value_iteration_result(self.get_finite_mdp(), gamma=1.)
 
