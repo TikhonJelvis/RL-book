@@ -30,7 +30,7 @@ class UniformRandom(Policy[S, A]):
     valid_actions: Callable[[NonTerminal[S]], Iterable[A]]
 
     def act(self, state: NonTerminal[S]) -> Choose[A]:
-        return Choose(set(self.valid_actions(state.state)))
+        return Choose(set(self.valid_actions(state)))
 
 
 @dataclass(frozen=True)
@@ -53,10 +53,10 @@ class RandomPolicy(Policy[S, A]):
 
 @dataclass(frozen=True)
 class DeterministicPolicy(Policy[S, A]):
-    action_for: Callable[[S], A]
+    action_for: Callable[[NonTerminal[S]], A]
 
     def act(self, state: NonTerminal[S]) -> Constant[A]:
-        return Constant(self.action_for(state.state))
+        return Constant(self.action_for(state))
 
 
 class Always(DeterministicPolicy[S, A]):

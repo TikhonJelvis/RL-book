@@ -5,11 +5,11 @@ state space.
 
 '''
 
-from typing import Iterator, Tuple, TypeVar, Sequence, List
+from typing import Callable, Iterable, Iterator, Tuple, TypeVar, Sequence, List
 from operator import itemgetter
 import numpy as np
 
-from rl.distribution import Distribution
+from rl.distribution import (Categorical, Distribution)
 from rl.function_approx import FunctionApprox
 from rl.iterate import iterate
 from rl.markov_process import (FiniteMarkovRewardProcess, MarkovRewardProcess,
@@ -17,7 +17,7 @@ from rl.markov_process import (FiniteMarkovRewardProcess, MarkovRewardProcess,
 from rl.markov_decision_process import (FiniteMarkovDecisionProcess,
                                         MarkovDecisionProcess,
                                         StateActionMapping)
-from rl.policy import (DeterministicPolicy)
+from rl.policy import (DeterministicPolicy, Policy, RandomPolicy)
 
 S = TypeVar('S')
 A = TypeVar('A')
@@ -27,6 +27,24 @@ A = TypeVar('A')
 ValueFunctionApprox = FunctionApprox[NonTerminal[S]]
 QValueFunctionApprox = FunctionApprox[Tuple[NonTerminal[S], A]]
 NTStateDistribution = Distribution[NonTerminal[S]]
+
+
+def optimal_q_policy(q: QValueFunctionApprox[S, A],
+                     actions: Callable[[NonTerminal[S]], Iterable[A]]) -> DeterministicPolicy[S, A]:
+    '''Return the policy that takes the optimal action at each state based
+    on the given approximation of the process's Q function.
+
+    '''
+    def optimal_action(s: NonTerminal[S]) -> A:
+        _, a = q.argmax((s, a) for a in actions(s))
+        return a
+    return DeterministicPolicy(optimal_action)
+
+def epsilon_greedy_policy(q: QValueFunctionApprox[S, A],
+                          mdp: MarkovDecisionProcess[S, A],
+                          ε: float = 0.0) -> Policy[S, A]:
+    return RandomPolicy(Categorical({mdp.explore_policy(): ε,
+                                     optimal_q_policy(q, mdp.actions): 1 - ε}))
 
 
 def extended_vf(vf: ValueFunctionApprox[S], s: State[S]) -> float:

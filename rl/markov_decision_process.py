@@ -6,14 +6,12 @@ from dataclasses import dataclass
 from typing import (DefaultDict, Dict, Iterable, Generic, Mapping,
                     Tuple, Sequence, TypeVar, Set)
 
-from rl.distribution import (Bernoulli, Constant, Categorical, Choose,
-                             Distribution, FiniteDistribution)
-from rl.function_approx import (FunctionApprox)
+from rl.distribution import (Categorical, Distribution, FiniteDistribution)
 
 from rl.markov_process import (
     FiniteMarkovRewardProcess, MarkovRewardProcess, StateReward, State,
     NonTerminal, Terminal)
-from rl.policy import (Policy, FinitePolicy)
+from rl.policy import (FinitePolicy, Policy, UniformRandom)
 
 A = TypeVar('A')
 S = TypeVar('S')
@@ -74,6 +72,13 @@ class MarkovDecisionProcess(ABC, Generic[S, A]):
     def actions(self, state: NonTerminal[S]) -> Iterable[A]:
         pass
 
+    def explore_policy(self) -> UniformRandom[S, A]:
+        '''The policy that selects a random valid action for each state
+        uniformly at random.
+
+        '''
+        return UniformRandom(self.actions)
+
     @abstractmethod
     def step(
         self,
@@ -116,36 +121,6 @@ class MarkovDecisionProcess(ABC, Generic[S, A]):
         '''
         while True:
             yield self.simulate_actions(start_states, policy)
-
-
-def epsilon_greedy_policy(
-        q: FunctionApprox[Tuple[NonTerminal[S], A]],
-        mdp: MarkovDecisionProcess[S, A],
-        ϵ: float = 0.0
-) -> Policy[S, A]:
-    '''Return a policy that chooses the action that maximizes the reward
-    for each state in the given Q function.
-
-    Arguments:
-      q -- approximation of the Q function for the MDP
-      mdp -- the process for which we're generating a policy
-      ϵ -- the fraction of the actions where we explore rather
-      than following the optimal policy
-
-    Returns a policy based on the given Q function.
-
-    '''
-    explore = Bernoulli(ϵ)
-
-    class QPolicy(Policy[S, A]):
-        def act(self, s: NonTerminal[S]) -> Distribution[A]:
-            if explore.sample():
-                return Choose(set(mdp.actions(s)))
-
-            _, action = q.argmax((s, a) for a in mdp.actions(s))
-            return Constant(action)
-
-    return QPolicy()
 
 
 ActionMapping = Mapping[A, StateReward[S]]

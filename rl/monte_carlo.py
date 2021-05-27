@@ -7,10 +7,10 @@ from typing import Iterable, Iterator, TypeVar, Callable
 
 from rl.approximate_dynamic_programming import (ValueFunctionApprox,
                                                 QValueFunctionApprox,
-                                                NTStateDistribution)
+                                                NTStateDistribution,
+                                                epsilon_greedy_policy)
 from rl.iterate import last
-from rl.markov_decision_process import MarkovDecisionProcess, Policy
-from rl.markov_decision_process import epsilon_greedy_policy, TransitionStep
+from rl.markov_decision_process import MarkovDecisionProcess, Policy, TransitionStep
 import rl.markov_process as mp
 from rl.returns import returns
 
