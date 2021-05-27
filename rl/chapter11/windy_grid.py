@@ -145,7 +145,7 @@ class WindyGrid:
         '''
         Performs the Value Iteration DP algorithm returning the
         Optimal Value Function (as a V[Cell]) and the Optimal Policy
-        (as a FinitePolicy[Cell, Move])
+        (as a FiniteDeterministicPolicy[Cell, Move])
         '''
         return value_iteration_result(self.get_finite_mdp(), gamma=1.)
 
@@ -245,7 +245,7 @@ if __name__ == '__main__':
         )
         epsilon_as_func_of_episodes: Callable[[int], float] = lambda k: 1. / k
         learning_rate: float = 0.03
-        num_updates: int = 50000
+        num_updates: int = 100000
         sarsa_vf_dict, sarsa_policy = wg.get_glie_sarsa_vf_and_policy(
             epsilon_as_func_of_episodes=epsilon_as_func_of_episodes,
             learning_rate=learning_rate,

@@ -5,7 +5,7 @@ state space.
 
 '''
 
-from typing import Iterator, Mapping, Tuple, TypeVar, Sequence, List
+from typing import Iterator, Tuple, TypeVar, Sequence, List
 from operator import itemgetter
 import numpy as np
 
@@ -24,26 +24,13 @@ A = TypeVar('A')
 
 # A representation of a value function for a finite MDP with states of
 # type S
-V = Mapping[S, float]
 ValueFunctionApprox = FunctionApprox[NonTerminal[S]]
 QValueFunctionApprox = FunctionApprox[Tuple[NonTerminal[S], A]]
 NTStateDistribution = Distribution[NonTerminal[S]]
 
 
 def extended_vf(vf: ValueFunctionApprox[S], s: State[S]) -> float:
-    def non_terminal_vf(st: NonTerminal[S], vf=vf) -> float:
-        return vf(st)
-    return s.on_non_terminal(non_terminal_vf, 0.0)
-
-
-# def extended_qvf(
-#     qvf: FunctionApprox[Tuple[NonTerminal[S], A]],
-#     s: State[S],
-#     a: A
-# ) -> float:
-#     def non_terminal_qvf(st: NonTerminal[S], a=a, qvf=qvf) -> float:
-#         return qvf((st, a))
-#     return s.on_non_terminal(non_terminal_qvf, 0.0)
+    return s.on_non_terminal(vf, 0.0)
 
 
 def evaluate_finite_mrp(

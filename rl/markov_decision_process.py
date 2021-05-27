@@ -66,7 +66,6 @@ class MarkovDecisionProcess(ABC, Generic[S, A]):
                 state: NonTerminal[S]
             ) -> Distribution[Tuple[State[S], float]]:
                 actions: Distribution[A] = policy.act(state)
-
                 return actions.apply(lambda a: mdp.step(state, a))
 
         return RewardProcess()
