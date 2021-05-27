@@ -1,10 +1,11 @@
 from dataclasses import dataclass
-from typing import Sequence, Callable, Tuple, Iterator
+from typing import Sequence, Callable, Tuple, Iterator, List
 from rl.distribution import Distribution, SampledDistribution, Choose, Gaussian
-from rl.markov_decision_process import MarkovDecisionProcess, Policy
+from rl.markov_decision_process import MarkovDecisionProcess, \
+    DeterministicPolicy, NonTerminal, State, Terminal
 from rl.function_approx import DNNSpec, AdamGradient, DNNApprox
-from rl.approximate_dynamic_programming import back_opt_vf_and_policy
-from rl.approximate_dynamic_programming import back_opt_qvf
+from rl.approximate_dynamic_programming import back_opt_vf_and_policy, \
+    back_opt_qvf, ValueFunctionApprox, QValueFunctionApprox
 from operator import itemgetter
 import numpy as np
 
@@ -41,48 +42,58 @@ class AssetAllocDiscrete:
 
             def step(
                 self,
-                wealth: float,
+                wealth: NonTerminal[float],
                 alloc: float
-            ) -> SampledDistribution[Tuple[float, float]]:
+            ) -> SampledDistribution[Tuple[State[float], float]]:
 
                 def sr_sampler_func(
                     wealth=wealth,
                     alloc=alloc
-                ) -> Tuple[float, float]:
+                ) -> Tuple[State[float], float]:
                     next_wealth: float = alloc * (1 + distr.sample()) \
-                        + (wealth - alloc) * (1 + rate)
+                        + (wealth.state - alloc) * (1 + rate)
                     reward: float = utility_f(next_wealth) \
                         if t == steps - 1 else 0.
-                    return (next_wealth, reward)
+                    next_state: State[float] = Terminal(next_wealth) \
+                        if t == steps - 1 else NonTerminal(next_wealth)
+                    return (next_state, reward)
 
                 return SampledDistribution(
                     sampler=sr_sampler_func,
                     expectation_samples=1000
                 )
 
-            def actions(self, wealth: float) -> Sequence[float]:
+            def actions(self, wealth: NonTerminal[float]) -> Sequence[float]:
                 return alloc_choices
 
         return AssetAllocMDP()
 
-    def get_qvf_func_approx(self) -> DNNApprox[Tuple[float, float]]:
+    def get_qvf_func_approx(self) -> \
+            DNNApprox[Tuple[NonTerminal[float], float]]:
 
         adam_gradient: AdamGradient = AdamGradient(
             learning_rate=0.1,
             decay1=0.9,
             decay2=0.999
         )
+        ffs: List[Callable[[Tuple[NonTerminal[float], float]], float]] = []
+        for f in self.feature_functions:
+            def this_f(pair: Tuple[NonTerminal[float], float], f=f) -> float:
+                return f((pair[0].state, pair[1]))
+            ffs.append(this_f)
+
         return DNNApprox.create(
-            feature_functions=self.feature_functions,
+            feature_functions=ffs,
             dnn_spec=self.dnn_spec,
             adam_gradient=adam_gradient
         )
 
-    def get_states_distribution(self, t: int) -> SampledDistribution[float]:
+    def get_states_distribution(self, t: int) -> \
+            SampledDistribution[NonTerminal[float]]:
 
         actions_distr: Choose[float] = self.uniform_actions()
 
-        def states_sampler_func() -> float:
+        def states_sampler_func() -> NonTerminal[float]:
             wealth: float = self.initial_wealth_distribution.sample()
             for i in range(t):
                 distr: Distribution[float] = self.risky_return_distributions[i]
@@ -90,19 +101,20 @@ class AssetAllocDiscrete:
                 alloc: float = actions_distr.sample()
                 wealth = alloc * (1 + distr.sample()) + \
                     (wealth - alloc) * (1 + rate)
-            return wealth
+            return NonTerminal(wealth)
 
         return SampledDistribution(states_sampler_func)
 
     def backward_induction_qvf(self) -> \
-            Iterator[DNNApprox[Tuple[float, float]]]:
+            Iterator[QValueFunctionApprox[float, float]]:
 
-        init_fa: DNNApprox[Tuple[float, float]] = self.get_qvf_func_approx()
+        init_fa: DNNApprox[Tuple[NonTerminal[float], float]] = \
+            self.get_qvf_func_approx()
 
         mdp_f0_mu_triples: Sequence[Tuple[
             MarkovDecisionProcess[float, float],
-            DNNApprox[Tuple[float, float]],
-            SampledDistribution[float]
+            DNNApprox[Tuple[NonTerminal[float], float]],
+            SampledDistribution[NonTerminal[float]]
         ]] = [(
             self.get_mdp(i),
             init_fa,
@@ -121,8 +133,8 @@ class AssetAllocDiscrete:
 
     def get_vf_func_approx(
         self,
-        ff: Sequence[Callable[[float], float]]
-    ) -> DNNApprox[float]:
+        ff: Sequence[Callable[[NonTerminal[float]], float]]
+    ) -> DNNApprox[NonTerminal[float]]:
 
         adam_gradient: AdamGradient = AdamGradient(
             learning_rate=0.1,
@@ -137,15 +149,16 @@ class AssetAllocDiscrete:
 
     def backward_induction_vf_and_pi(
         self,
-        ff: Sequence[Callable[[float], float]]
-    ) -> Iterator[Tuple[DNNApprox[float], Policy[float, float]]]:
+        ff: Sequence[Callable[[NonTerminal[float]], float]]
+    ) -> Iterator[Tuple[ValueFunctionApprox[float],
+                        DeterministicPolicy[float, float]]]:
 
-        init_fa: DNNApprox[float] = self.get_vf_func_approx(ff)
+        init_fa: DNNApprox[NonTerminal[float]] = self.get_vf_func_approx(ff)
 
         mdp_f0_mu_triples: Sequence[Tuple[
             MarkovDecisionProcess[float, float],
-            DNNApprox[float],
-            SampledDistribution[float]
+            DNNApprox[NonTerminal[float]],
+            SampledDistribution[NonTerminal[float]]
         ]] = [(
             self.get_mdp(i),
             init_fa,
@@ -214,8 +227,8 @@ if __name__ == '__main__':
         initial_wealth_distribution=init_wealth_distr
     )
 
-    # vf_ff: Sequence[Callable[[float], float]] = [lambda _: 1., lambda w: w]
-    # it_vf: Iterator[Tuple[DNNApprox[float], Policy[float, float]]] = \
+    # vf_ff: Sequence[Callable[[NonTerminal[float]], float]] = [lambda _: 1., lambda w: w.state]
+    # it_vf: Iterator[Tuple[DNNApprox[NonTerminal[float], DeterministicPolicy[float, float]]] = \
     #     aad.backward_induction_vf_and_pi(vf_ff)
 
     # print("Backward Induction: VF And Policy")
@@ -224,15 +237,15 @@ if __name__ == '__main__':
     # for t, (v, p) in enumerate(it_vf):
     #     print(f"Time {t:d}")
     #     print()
-    #     opt_alloc: float = p.act(init_wealth).value
-    #     val: float = v.evaluate([init_wealth])[0]
+    #     opt_alloc: float = p.deterministic_policy_func(NonTerminal(init_wealth))
+    #     val: float = v(NonTerminal(init_wealth))
     #     print(f"Opt Risky Allocation = {opt_alloc:.2f}, Opt Val = {val:.3f}")
     #     print("Weights")
     #     for w in v.weights:
     #         print(w.weights)
     #     print()
 
-    it_qvf: Iterator[DNNApprox[Tuple[float, float]]] = \
+    it_qvf: Iterator[QValueFunctionApprox[float, float]] = \
         aad.backward_induction_qvf()
 
     print("Backward Induction on Q-Value Function")
@@ -242,10 +255,10 @@ if __name__ == '__main__':
         print(f"Time {t:d}")
         print()
         opt_alloc: float = max(
-            ((q.evaluate([(init_wealth, ac)])[0], ac) for ac in alloc_choices),
+            ((q((NonTerminal(init_wealth), ac)), ac) for ac in alloc_choices),
             key=itemgetter(0)
         )[1]
-        val: float = max(q.evaluate([(init_wealth, ac)])[0]
+        val: float = max(q((NonTerminal(init_wealth), ac))
                          for ac in alloc_choices)
         print(f"Opt Risky Allocation = {opt_alloc:.3f}, Opt Val = {val:.3f}")
         print("Optimal Weights below:")
@@ -263,15 +276,15 @@ if __name__ == '__main__':
         left: int = steps - t
         growth: float = (1 + r) ** (left - 1)
         alloc: float = base_alloc / growth
-        val: float = - np.exp(- excess * excess * left / (2 * var)
-                              - a * growth * (1 + r) * init_wealth) / a
+        vval: float = - np.exp(- excess * excess * left / (2 * var)
+                               - a * growth * (1 + r) * init_wealth) / a
         bias_wt: float = excess * excess * (left - 1) / (2 * var) + \
             np.log(np.abs(a))
         w_t_wt: float = a * growth * (1 + r)
         x_t_wt: float = a * excess * growth
         x_t2_wt: float = - var * (a * growth) ** 2 / 2
 
-        print(f"Opt Risky Allocation = {alloc:.3f}, Opt Val = {val:.3f}")
+        print(f"Opt Risky Allocation = {alloc:.3f}, Opt Val = {vval:.3f}")
         print(f"Bias Weight = {bias_wt:.3f}")
         print(f"W_t Weight = {w_t_wt:.3f}")
         print(f"x_t Weight = {x_t_wt:.3f}")

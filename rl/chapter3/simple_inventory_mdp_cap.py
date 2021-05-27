@@ -1,7 +1,7 @@
 from dataclasses import dataclass
-from typing import Tuple, Dict
+from typing import Tuple, Dict, Mapping
 from rl.markov_decision_process import FiniteMarkovDecisionProcess
-from rl.markov_decision_process import FinitePolicy, StateActionMapping
+from rl.markov_decision_process import FinitePolicy
 from rl.markov_process import FiniteMarkovProcess, FiniteMarkovRewardProcess
 from rl.distribution import Categorical, Constant
 from scipy.stats import poisson
@@ -16,7 +16,10 @@ class InventoryState:
         return self.on_hand + self.on_order
 
 
-InvOrderMapping = StateActionMapping[InventoryState, int]
+InvOrderMapping = Mapping[
+    InventoryState,
+    Mapping[int, Categorical[Tuple[InventoryState, float]]]
+]
 
 
 class SimpleInventoryMDPCap(FiniteMarkovDecisionProcess[InventoryState, int]):

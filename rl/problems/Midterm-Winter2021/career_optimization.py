@@ -1,4 +1,5 @@
 from typing import Tuple, Mapping, Dict, Sequence, Iterable
+from rl.markov_process import NonTerminal
 from rl.markov_decision_process import FiniteMarkovDecisionProcess
 from rl.dynamic_programming import value_iteration_result
 from rl.distribution import Categorical
@@ -71,10 +72,11 @@ if __name__ == '__main__':
         beta=beta
     )
 
-    _, opt_policy = value_iteration_result(co, gamma=gamma)
+    _, opt_det_policy = value_iteration_result(co, gamma=gamma)
     wages: Iterable[int] = range(1, co.wage_cap + 1)
     opt_actions: Mapping[int, Tuple[int, int]] = \
-        {w: opt_policy.act(w).value for w in wages}
+        {w: opt_det_policy.deterministic_policy_map[NonTerminal(w)]
+         for w in wages}
     searching: Sequence[int] = [s for _, (s, _) in opt_actions.items()]
     learning: Sequence[int] = [l for _, (_, l) in opt_actions.items()]
     working: Sequence[int] = [co.hours - s - l for _, (s, l) in

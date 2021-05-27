@@ -1,9 +1,13 @@
 from typing import TypeVar, Callable, Iterator, Sequence, Tuple, Mapping
-from rl.function_approx import FunctionApprox, Tabular
-from rl.distribution import Distribution, Choose, Constant
+from rl.function_approx import Tabular
+from rl.distribution import Choose
+from rl.markov_process import NonTerminal
 from rl.markov_decision_process import (
     MarkovDecisionProcess, FiniteMarkovDecisionProcess,
-    FiniteMarkovRewardProcess, FinitePolicy, epsilon_greedy_policy)
+    FiniteMarkovRewardProcess, FiniteDeterministicPolicy,
+    FinitePolicy, epsilon_greedy_policy)
+from rl.approximate_dynamic_programming import QValueFunctionApprox
+from rl.approximate_dynamic_programming import NTStateDistribution
 import itertools
 import rl.iterate as iterate
 from rl.returns import returns
@@ -23,8 +27,8 @@ def glie_mc_finite_control_equal_wts(
     gamma: float,
     epsilon_as_func_of_episodes: Callable[[int], float],
     episode_length_tolerance: float = 1e-5,
-) -> Iterator[FunctionApprox[Tuple[S, A]]]:
-    initial_qvf_dict: Mapping[Tuple[S, A], float] = {
+) -> Iterator[QValueFunctionApprox[S, A]]:
+    initial_qvf_dict: Mapping[Tuple[NonTerminal[S], A], float] = {
         (s, a): 0. for s in fmdp.non_terminal_states for a in fmdp.actions(s)
     }
     return mc.glie_mc_control(
@@ -39,12 +43,12 @@ def glie_mc_finite_control_equal_wts(
 
 def glie_mc_control_learning_rate(
     mdp: MarkovDecisionProcess[S, A],
-    start_state_distribution: Distribution[S],
-    initial_func_approx: FunctionApprox[Tuple[S, A]],
+    start_state_distribution: NTStateDistribution,
+    initial_func_approx: QValueFunctionApprox[S, A],
     gamma: float,
     epsilon_as_func_of_episodes: Callable[[int], float],
     episode_length_tolerance: float = 1e-5
-) -> Iterator[FunctionApprox[Tuple[S, A]]]:
+) -> Iterator[QValueFunctionApprox[S, A]]:
     return mc.glie_mc_control(
         mdp=mdp,
         states=start_state_distribution,
@@ -63,8 +67,8 @@ def glie_mc_finite_control_learning_rate(
     gamma: float,
     epsilon_as_func_of_episodes: Callable[[int], float],
     episode_length_tolerance: float = 1e-5
-) -> Iterator[FunctionApprox[Tuple[S, A]]]:
-    initial_qvf_dict: Mapping[Tuple[S, A], float] = {
+) -> Iterator[QValueFunctionApprox[S, A]]:
+    initial_qvf_dict: Mapping[Tuple[NonTerminal[S], A], float] = {
         (s, a): 0. for s in fmdp.non_terminal_states for a in fmdp.actions(s)
     }
     learning_rate_func: Callable[[int], float] = learning_rate_schedule(
@@ -87,12 +91,12 @@ def glie_mc_finite_control_learning_rate(
 
 def glie_sarsa_learning_rate(
     mdp: MarkovDecisionProcess[S, A],
-    start_state_distribution: Distribution[S],
-    initial_func_approx: FunctionApprox[Tuple[S, A]],
+    start_state_distribution: NTStateDistribution[S],
+    initial_func_approx: QValueFunctionApprox[S, A],
     gamma: float,
     epsilon_as_func_of_episodes: Callable[[int], float],
     max_episode_length: int
-) -> Iterator[FunctionApprox[Tuple[S, A]]]:
+) -> Iterator[QValueFunctionApprox[S, A]]:
     return td.glie_sarsa(
         mdp=mdp,
         states=start_state_distribution,
@@ -111,8 +115,8 @@ def glie_sarsa_finite_learning_rate(
     gamma: float,
     epsilon_as_func_of_episodes: Callable[[int], float],
     max_episode_length: int
-) -> Iterator[FunctionApprox[Tuple[S, A]]]:
-    initial_qvf_dict: Mapping[Tuple[S, A], float] = {
+) -> Iterator[QValueFunctionApprox[S, A]]:
+    initial_qvf_dict: Mapping[Tuple[NonTerminal[S], A], float] = {
         (s, a): 0. for s in fmdp.non_terminal_states for a in fmdp.actions(s)
     }
     learning_rate_func: Callable[[int], float] = learning_rate_schedule(
@@ -135,12 +139,12 @@ def glie_sarsa_finite_learning_rate(
 
 def q_learning_learning_rate(
     mdp: MarkovDecisionProcess[S, A],
-    start_state_distribution: Distribution[S],
-    initial_func_approx: FunctionApprox[Tuple[S, A]],
+    start_state_distribution: NTStateDistribution[S],
+    initial_func_approx: QValueFunctionApprox[S, A],
     gamma: float,
     epsilon: float,
     max_episode_length: int
-) -> Iterator[FunctionApprox[Tuple[S, A]]]:
+) -> Iterator[QValueFunctionApprox[S, A]]:
     return td.q_learning(
         mdp=mdp,
         policy_from_q=lambda f, m: epsilon_greedy_policy(
@@ -163,8 +167,8 @@ def q_learning_finite_learning_rate(
     gamma: float,
     epsilon: float,
     max_episode_length: int
-) -> Iterator[FunctionApprox[Tuple[S, A]]]:
-    initial_qvf_dict: Mapping[Tuple[S, A], float] = {
+) -> Iterator[QValueFunctionApprox[S, A]]:
+    initial_qvf_dict: Mapping[Tuple[NonTerminal[S], A], float] = {
         (s, a): 0. for s in fmdp.non_terminal_states for a in fmdp.actions(s)
     }
     learning_rate_func: Callable[[int], float] = learning_rate_schedule(
@@ -191,16 +195,17 @@ def q_learning_finite_learning_rate(
 
 def get_vf_and_policy_from_qvf(
     mdp: FiniteMarkovDecisionProcess[S, A],
-    qvf: FunctionApprox[Tuple[S, A]]
-) -> Tuple[V[S], FinitePolicy[S, A]]:
+    qvf: QValueFunctionApprox[S, A]
+) -> Tuple[V[S], FiniteDeterministicPolicy[S, A]]:
     opt_vf: V[S] = {
         s: max(qvf((s, a)) for a in mdp.actions(s))
         for s in mdp.non_terminal_states
     }
-    opt_policy: FinitePolicy[S, A] = FinitePolicy({
-        s: Constant(qvf.argmax((s, a) for a in mdp.actions(s))[1])
-        for s in mdp.non_terminal_states
-    })
+    opt_policy: FiniteDeterministicPolicy[S, A] = \
+        FiniteDeterministicPolicy({
+            s.state: qvf.argmax((s, a) for a in mdp.actions(s))[1]
+            for s in mdp.non_terminal_states
+        })
     return opt_vf, opt_policy
 
 
@@ -211,14 +216,14 @@ def glie_mc_finite_equal_wts_correctness(
     episode_length_tolerance: float,
     num_episodes: int
 ) -> None:
-    qvfs: Iterator[FunctionApprox[Tuple[S, A]]] = \
+    qvfs: Iterator[QValueFunctionApprox[S, A]] = \
         glie_mc_finite_control_equal_wts(
             fmdp=fmdp,
             gamma=gamma,
             epsilon_as_func_of_episodes=epsilon_as_func_of_episodes,
             episode_length_tolerance=episode_length_tolerance
         )
-    final_qvf: FunctionApprox[Tuple[S, A]] = \
+    final_qvf: QValueFunctionApprox[S, A] = \
         iterate.last(itertools.islice(qvfs, num_episodes))
     opt_vf, opt_policy = get_vf_and_policy_from_qvf(
         mdp=fmdp,
@@ -248,7 +253,7 @@ def glie_mc_finite_learning_rate_correctness(
     episode_length_tolerance: float,
     num_episodes: int
 ) -> None:
-    qvfs: Iterator[FunctionApprox[Tuple[S, A]]] = \
+    qvfs: Iterator[QValueFunctionApprox[S, A]] = \
         glie_mc_finite_control_learning_rate(
             fmdp=fmdp,
             initial_learning_rate=initial_learning_rate,
@@ -258,7 +263,7 @@ def glie_mc_finite_learning_rate_correctness(
             epsilon_as_func_of_episodes=epsilon_as_func_of_episodes,
             episode_length_tolerance=episode_length_tolerance
         )
-    final_qvf: FunctionApprox[Tuple[S, A]] = \
+    final_qvf: QValueFunctionApprox[S, A] = \
         iterate.last(itertools.islice(qvfs, num_episodes))
     opt_vf, opt_policy = get_vf_and_policy_from_qvf(
         mdp=fmdp,
@@ -288,7 +293,7 @@ def glie_sarsa_finite_learning_rate_correctness(
     max_episode_length: int,
     num_updates: int,
 ) -> None:
-    qvfs: Iterator[FunctionApprox[Tuple[S, A]]] = \
+    qvfs: Iterator[QValueFunctionApprox[S, A]] = \
         glie_sarsa_finite_learning_rate(
             fmdp=fmdp,
             initial_learning_rate=initial_learning_rate,
@@ -298,7 +303,7 @@ def glie_sarsa_finite_learning_rate_correctness(
             epsilon_as_func_of_episodes=epsilon_as_func_of_episodes,
             max_episode_length=max_episode_length
         )
-    final_qvf: FunctionApprox[Tuple[S, A]] = \
+    final_qvf: QValueFunctionApprox[S, A] = \
         iterate.last(itertools.islice(qvfs, num_updates))
     opt_vf, opt_policy = get_vf_and_policy_from_qvf(
         mdp=fmdp,
@@ -328,7 +333,7 @@ def q_learning_finite_learning_rate_correctness(
     max_episode_length: int,
     num_updates: int,
 ) -> None:
-    qvfs: Iterator[FunctionApprox[Tuple[S, A]]] = \
+    qvfs: Iterator[QValueFunctionApprox[S, A]] = \
         q_learning_finite_learning_rate(
             fmdp=fmdp,
             initial_learning_rate=initial_learning_rate,
@@ -338,7 +343,7 @@ def q_learning_finite_learning_rate_correctness(
             epsilon=epsilon,
             max_episode_length=max_episode_length
         )
-    final_qvf: FunctionApprox[Tuple[S, A]] = \
+    final_qvf: QValueFunctionApprox[S, A] = \
         iterate.last(itertools.islice(qvfs, num_updates))
     opt_vf, opt_policy = get_vf_and_policy_from_qvf(
         mdp=fmdp,
@@ -371,7 +376,7 @@ def compare_mc_sarsa_ql(
     plot_start: int
 ) -> None:
     true_vf: V[S] = value_iteration_result(fmdp, gamma)[0]
-    states: Sequence[S] = fmdp.non_terminal_states
+    states: Sequence[NonTerminal[S]] = fmdp.non_terminal_states
     colors: Sequence[str] = ['b', 'g', 'r', 'k', 'c', 'm', 'y']
 
     import matplotlib.pyplot as plt
@@ -379,7 +384,7 @@ def compare_mc_sarsa_ql(
 
     if method_mask[0]:
         for k, (init_lr, half_life, exponent) in enumerate(learning_rates):
-            mc_funcs_it: Iterator[FunctionApprox[Tuple[S, A]]] = \
+            mc_funcs_it: Iterator[QValueFunctionApprox[S, A]] = \
                 glie_mc_finite_control_learning_rate(
                     fmdp=fmdp,
                     initial_learning_rate=init_lr,
@@ -416,8 +421,9 @@ def compare_mc_sarsa_ql(
             )
 
     sample_episodes: int = 1000
-    uniform_policy: FinitePolicy[S, A] = FinitePolicy(
-        {s: Choose(set(fmdp.actions(s))) for s in states}
+    uniform_policy: FinitePolicy[S, A] = \
+        FinitePolicy(
+            {s.state: Choose(set(fmdp.actions(s))) for s in states}
     )
     fmrp: FiniteMarkovRewardProcess[S] = \
         fmdp.apply_finite_policy(uniform_policy)
@@ -431,7 +437,7 @@ def compare_mc_sarsa_ql(
 
     if method_mask[1]:
         for k, (init_lr, half_life, exponent) in enumerate(learning_rates):
-            sarsa_funcs_it: Iterator[FunctionApprox[Tuple[S, A]]] = \
+            sarsa_funcs_it: Iterator[QValueFunctionApprox[S, A]] = \
                 glie_sarsa_finite_learning_rate(
                     fmdp=fmdp,
                     initial_learning_rate=init_lr,
@@ -459,7 +465,8 @@ def compare_mc_sarsa_ql(
                     (sarsa_vf[s] - true_vf[s]) ** 2 for s in states
                 ) / len(states)))
                 if i % transitions_batch == transitions_batch - 1:
-                    sarsa_errors.append(sum(batch_sarsa_errs) / transitions_batch)
+                    sarsa_errors.append(sum(batch_sarsa_errs) /
+                                        transitions_batch)
                     batch_sarsa_errs = []
             sarsa_plot = sarsa_errors[plot_start:]
             label = f"SARSA InitRate={init_lr:.3f},HalfLife" + \
@@ -474,7 +481,7 @@ def compare_mc_sarsa_ql(
 
     if method_mask[2]:
         for k, (init_lr, half_life, exponent) in enumerate(learning_rates):
-            ql_funcs_it: Iterator[FunctionApprox[Tuple[S, A]]] = \
+            ql_funcs_it: Iterator[QValueFunctionApprox[S, A]] = \
                 q_learning_finite_learning_rate(
                     fmdp=fmdp,
                     initial_learning_rate=init_lr,

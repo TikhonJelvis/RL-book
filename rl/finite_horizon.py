@@ -4,15 +4,14 @@ from itertools import groupby
 import dataclasses
 from dataclasses import dataclass
 from operator import itemgetter
-from typing import (
-    Dict, List, Generic, Optional, Sequence, Tuple, TypeVar, Iterator)
+from typing import (Dict, List, Generic, Sequence, Tuple, TypeVar, Iterator)
 
-from rl.distribution import Constant, FiniteDistribution
-from rl.dynamic_programming import V
-from rl.markov_process import (
-    FiniteMarkovRewardProcess, RewardTransition, StateReward)
+from rl.distribution import FiniteDistribution
+from rl.dynamic_programming import V, extended_vf
+from rl.markov_process import (FiniteMarkovRewardProcess, RewardTransition,
+                               StateReward, NonTerminal, Terminal, State)
 from rl.markov_decision_process import (
-    ActionMapping, FiniteMarkovDecisionProcess, FinitePolicy,
+    ActionMapping, FiniteMarkovDecisionProcess, FiniteDeterministicPolicy,
     StateActionMapping)
 
 S = TypeVar('S')
@@ -46,22 +45,18 @@ def finite_horizon_MRP(
     every single time step up to the limit.
 
     '''
-    transition_map: Dict[WithTime[S], Optional[RewardOutcome]] = {}
+    transition_map: Dict[WithTime[S], RewardOutcome] = {}
 
     # Non-terminal states
-    for time in range(0, limit):
+    for time in range(limit):
 
-        for s in process.states():
-            result: Optional[StateReward[S]] = process.transition_reward(s)
-            s_time = WithTime(state=s, time=time)
+        for s in process.non_terminal_states:
+            result: StateReward[S] = process.transition_reward(s)
+            s_time = WithTime(state=s.state, time=time)
 
-            transition_map[s_time] = None if result is None else result.map(
-                lambda s_r: (WithTime(state=s_r[0], time=time + 1), s_r[1])
+            transition_map[s_time] = result.map(
+                lambda sr: (WithTime(state=sr[0].state, time=time + 1), sr[1])
             )
-
-    # Terminal states
-    for s in process.states():
-        transition_map[WithTime(state=s, time=limit)] = None
 
     return FiniteMarkovRewardProcess(transition_map)
 
@@ -79,18 +74,30 @@ def unwrap_finite_horizon_MRP(
     def time(x: WithTime[S]) -> int:
         return x.time
 
-    def without_time(
-        arg: Optional[StateReward[WithTime[S]]]
-    ) -> Optional[StateReward[S]]:
-        return None if arg is None else arg.map(
-            lambda s_r: (s_r[0].state, s_r[1])
-        )
+    def single_without_time(
+        s_r: Tuple[State[WithTime[S]], float]
+    ) -> Tuple[State[S], float]:
+        if isinstance(s_r[0], NonTerminal):
+            ret: Tuple[State[S], float] = (
+                NonTerminal(s_r[0].state.state),
+                s_r[1]
+            )
+        else:
+            ret = (Terminal(s_r[0].state.state), s_r[1])
+        return ret
 
-    return [{s.state: without_time(process.transition_reward(s))
-             for s in states} for _, states in groupby(
-                 sorted(process.states(), key=time),
-                 key=time
-             )][:-1]
+    def without_time(arg: StateReward[WithTime[S]]) -> StateReward[S]:
+        return arg.map(single_without_time)
+
+    return [{NonTerminal(s.state): without_time(
+        process.transition_reward(NonTerminal(s))
+    ) for s in states} for _, states in groupby(
+        sorted(
+            (nt.state for nt in process.non_terminal_states),
+            key=time
+        ),
+        key=time
+    )]
 
 
 def evaluate(
@@ -102,14 +109,14 @@ def evaluate(
 
     '''
 
-    v: List[Dict[S, float]] = []
+    v: List[V[S]] = []
 
     for step in reversed(steps):
         v.append({s: res.expectation(
-            lambda s_r: s_r[1] + gamma * (v[-1][s_r[0]] if
-                                          len(v) > 0 and s_r[0] in v[-1]
-                                          else 0.)
-            ) for s, res in step.items() if res is not None})
+            lambda s_r: s_r[1] + gamma * (
+                extended_vf(v[-1], s_r[0]) if len(v) > 0 else 0.
+            )
+        ) for s, res in step.items()})
 
     return reversed(v)
 
@@ -131,24 +138,17 @@ def finite_horizon_MDP(
     every single time step up to the limit.
 
     '''
-    mapping: Dict[WithTime[S], Optional[Dict[A, StateReward[WithTime[S]]]]] =\
-        {}
+    mapping: Dict[WithTime[S], Dict[A, FiniteDistribution[
+        Tuple[WithTime[S], float]]]] = {}
 
     # Non-terminal states
     for time in range(0, limit):
-        for s in process.states():
-            s_time = WithTime(state=s, time=time)
+        for s in process.non_terminal_states:
+            s_time = WithTime(state=s.state, time=time)
             actions_map = process.action_mapping(s)
-            if actions_map is None:
-                mapping[s_time] = None
-            else:
-                mapping[s_time] = {a: result.map(
-                    lambda s_r: (WithTime(state=s_r[0], time=time + 1), s_r[1])
-                ) for a, result in actions_map.items()}
-
-    # Terminal states
-    for s in process.states():
-        mapping[WithTime(state=s, time=limit)] = None
+            mapping[s_time] = {a: result.map(
+                lambda sr: (WithTime(state=sr[0].state, time=time + 1), sr[1])
+            ) for a, result in actions_map.items()}
 
     return FiniteMarkovDecisionProcess(mapping)
 
@@ -164,45 +164,56 @@ def unwrap_finite_horizon_MDP(
     def time(x: WithTime[S]) -> int:
         return x.time
 
-    def without_time(
-        arg: Optional[ActionMapping[A, WithTime[S]]]
-    ) -> Optional[ActionMapping[A, S]]:
-        return None if arg is None else {
-            a: sr_distr.map(lambda s_r: (s_r[0].state, s_r[1]))
-            for a, sr_distr in arg.items()
-        }
+    def single_without_time(
+        s_r: Tuple[State[WithTime[S]], float]
+    ) -> Tuple[State[S], float]:
+        if isinstance(s_r[0], NonTerminal):
+            ret: Tuple[State[S], float] = (
+                NonTerminal(s_r[0].state.state),
+                s_r[1]
+            )
+        else:
+            ret = (Terminal(s_r[0].state.state), s_r[1])
+        return ret
 
-    return [{s.state: without_time(process.action_mapping(s))
-             for s in states} for _, states in groupby(
-                sorted(process.states(), key=time),
-                key=time
-             )][:-1]
+    def without_time(arg: ActionMapping[A, WithTime[S]]) -> \
+            ActionMapping[A, S]:
+        return {a: sr_distr.map(single_without_time)
+                for a, sr_distr in arg.items()}
+
+    return [{NonTerminal(s.state): without_time(
+        process.action_mapping(NonTerminal(s))
+    ) for s in states} for _, states in groupby(
+        sorted(
+            (nt.state for nt in process.non_terminal_states),
+            key=time
+        ),
+        key=time
+    )]
 
 
 def optimal_vf_and_policy(
     steps: Sequence[StateActionMapping[S, A]],
     gamma: float
-) -> Iterator[Tuple[V[S], FinitePolicy[S, A]]]:
+) -> Iterator[Tuple[V[S], FiniteDeterministicPolicy[S, A]]]:
     '''Use backwards induction to find the optimal value function and optimal
     policy at each time step
 
     '''
-    v_p: List[Tuple[Dict[S, float], FinitePolicy[S, A]]] = []
+    v_p: List[Tuple[V[S], FiniteDeterministicPolicy[S, A]]] = []
 
     for step in reversed(steps):
-        this_v: Dict[S, float] = {}
-        this_a: Dict[S, FiniteDistribution[A]] = {}
+        this_v: Dict[NonTerminal[S], float] = {}
+        this_a: Dict[S, A] = {}
         for s, actions_map in step.items():
-            if actions_map is not None:
-                action_values = ((res.expectation(
-                    lambda s_r: s_r[1] + gamma * (v_p[-1][0][s_r[0]] if
-                                                  len(v_p) > 0 and
-                                                  s_r[0] in v_p[-1][0]
-                                                  else 0.)
-                ), a) for a, res in actions_map.items())
-                v_star, a_star = max(action_values, key=itemgetter(0))
-                this_v[s] = v_star
-                this_a[s] = Constant(a_star)
-        v_p.append((this_v, FinitePolicy(this_a)))
+            action_values = ((res.expectation(
+                lambda s_r: s_r[1] + gamma * (
+                    extended_vf(v_p[-1][0], s_r[0]) if len(v_p) > 0 else 0.
+                )
+            ), a) for a, res in actions_map.items())
+            v_star, a_star = max(action_values, key=itemgetter(0))
+            this_v[s] = v_star
+            this_a[s.state] = a_star
+        v_p.append((this_v, FiniteDeterministicPolicy(this_a)))
 
     return reversed(v_p)

@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import Mapping, Dict
-from rl.distribution import Categorical
-from rl.markov_process import Transition, FiniteMarkovProcess
+from rl.distribution import Categorical, FiniteDistribution
+from rl.markov_process import FiniteMarkovProcess
 from scipy.stats import poisson
 
 
@@ -27,7 +27,8 @@ class SimpleInventoryMPFinite(FiniteMarkovProcess[InventoryState]):
         self.poisson_distr = poisson(poisson_lambda)
         super().__init__(self.get_transition_map())
 
-    def get_transition_map(self) -> Transition[InventoryState]:
+    def get_transition_map(self) -> \
+            Mapping[InventoryState, FiniteDistribution[InventoryState]]:
         d: Dict[InventoryState, Categorical[InventoryState]] = {}
         for alpha in range(self.capacity + 1):
             for beta in range(self.capacity + 1 - alpha):

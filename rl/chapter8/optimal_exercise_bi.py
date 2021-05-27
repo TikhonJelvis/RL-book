@@ -3,16 +3,17 @@ from typing import Callable, Sequence, Tuple, Iterator, List
 import numpy as np
 from scipy.stats import norm
 from rl.distribution import SampledDistribution
-from rl.markov_decision_process import MarkovDecisionProcess, Policy
+from rl.markov_decision_process import MarkovDecisionProcess, \
+    DeterministicPolicy, NonTerminal, State, Terminal
 from rl.function_approx import FunctionApprox, LinearFunctionApprox
 from rl.approximate_dynamic_programming import back_opt_vf_and_policy
 from numpy.polynomial.laguerre import lagval
 
-StateType = Tuple[float, bool]
-
 
 @dataclass(frozen=True)
 class OptimalExerciseBI:
+    '''Optimal Exercise with Backward Induction when the underlying
+    price follows a lognormal process'''
 
     spot_price: float
     payoff: Callable[[float], float]
@@ -31,55 +32,47 @@ class OptimalExerciseBI:
         return strike * np.exp(-self.rate * self.expiry) * norm.cdf(-d2) \
             - self.spot_price * norm.cdf(-d1)
 
-    def get_mdp(self, t: int) -> MarkovDecisionProcess[StateType, bool]:
+    def get_mdp(self, t: int) -> MarkovDecisionProcess[float, bool]:
         dt: float = self.expiry / self.num_steps
         exer_payoff: Callable[[float], float] = self.payoff
         r: float = self.rate
         s: float = self.vol
 
-        class OptExerciseBIMDP(MarkovDecisionProcess[StateType, bool]):
+        class OptExerciseBIMDP(MarkovDecisionProcess[float, bool]):
 
             def step(
                 self,
-                price_exer: StateType,
+                price: NonTerminal[float],
                 exer: bool
-            ) -> SampledDistribution[Tuple[StateType, float]]:
+            ) -> SampledDistribution[Tuple[State[float], float]]:
 
                 def sr_sampler_func(
-                    price_exer=price_exer,
+                    price=price,
                     exer=exer
-                ) -> Tuple[StateType, float]:
-                    price, exercised = price_exer
-                    if exercised:
-                        ret = ((price, True), 0.)
-                    elif exer:
-                        ret = ((price, True), exer_payoff(price))
+                ) -> Tuple[State[float], float]:
+                    if exer:
+                        return Terminal(0.), exer_payoff(price.state)
                     else:
                         next_price: float = np.exp(np.random.normal(
-                            np.log(price) + (r - s * s / 2) * dt,
+                            np.log(price.state) + (r - s * s / 2) * dt,
                             s * np.sqrt(dt)
                         ))
-                        ret = ((next_price, False), 0.)
-                    return ret
+                        return NonTerminal(next_price), 0.
 
                 return SampledDistribution(
                     sampler=sr_sampler_func,
                     expectation_samples=200
                 )
 
-            def actions(self, price_exer: StateType) -> Sequence[bool]:
-                if price_exer[1]:
-                    ret = []
-                else:
-                    ret = [True, False]
-                return ret
+            def actions(self, price: NonTerminal[float]) -> Sequence[bool]:
+                return [True, False]
 
         return OptExerciseBIMDP()
 
     def get_states_distribution(
         self,
         t: int
-    ) -> SampledDistribution[StateType]:
+    ) -> SampledDistribution[NonTerminal[float]]:
         spot_mean2: float = self.spot_price * self.spot_price
         spot_var: float = spot_mean2 * \
             self.spot_price_frac * self.spot_price_frac
@@ -88,22 +81,22 @@ class OptimalExerciseBI:
 
         time: float = t * self.expiry / self.num_steps
 
-        def states_sampler_func() -> StateType:
+        def states_sampler_func() -> NonTerminal[float]:
             start: float = np.random.lognormal(log_mean, log_stdev)
             price = np.exp(np.random.normal(
                 np.log(start) + (self.rate - self.vol * self.vol / 2) * time,
                 self.vol * np.sqrt(time)
             ))
-            return (price, False)
+            return NonTerminal(price)
 
         return SampledDistribution(states_sampler_func)
 
     def get_vf_func_approx(
         self,
         t: int,
-        features: Sequence[Callable[[StateType], float]],
+        features: Sequence[Callable[[NonTerminal[float]], float]],
         reg_coeff: float
-    ) -> LinearFunctionApprox[StateType]:
+    ) -> LinearFunctionApprox[NonTerminal[float]]:
         return LinearFunctionApprox.create(
             feature_functions=features,
             regularization_coeff=reg_coeff,
@@ -112,16 +105,17 @@ class OptimalExerciseBI:
 
     def backward_induction_vf_and_pi(
         self,
-        features: Sequence[Callable[[StateType], float]],
+        features: Sequence[Callable[[NonTerminal[float]], float]],
         reg_coeff: float
     ) -> Iterator[
-        Tuple[FunctionApprox[StateType], Policy[StateType, bool]]
+        Tuple[FunctionApprox[NonTerminal[float]],
+              DeterministicPolicy[float, bool]]
     ]:
 
         mdp_f0_mu_triples: Sequence[Tuple[
-            MarkovDecisionProcess[StateType, bool],
-            FunctionApprox[StateType],
-            SampledDistribution[StateType]
+            MarkovDecisionProcess[float, bool],
+            FunctionApprox[NonTerminal[float]],
+            SampledDistribution[NonTerminal[float]]
         ]] = [(
             self.get_mdp(t=i),
             self.get_vf_func_approx(
@@ -143,10 +137,10 @@ class OptimalExerciseBI:
 
     def optimal_value_curve(
         self,
-        func: FunctionApprox[StateType],
+        func: FunctionApprox[NonTerminal[float]],
         prices: Sequence[float]
     ) -> np.ndarray:
-        return func.evaluate([(p, False) for p in prices])
+        return func.evaluate([NonTerminal(p) for p in prices])
 
     def exercise_curve(
         self,
@@ -156,7 +150,7 @@ class OptimalExerciseBI:
 
     def put_option_exercise_boundary(
         self,
-        opt_vfs: Sequence[FunctionApprox[StateType]],
+        opt_vfs: Sequence[FunctionApprox[NonTerminal[float]]],
         strike: float
     ) -> Sequence[float]:
         ret: List[float] = []
@@ -184,7 +178,7 @@ if __name__ == '__main__':
     expiry_val: float = 1.0
     rate_val: float = 0.05
     vol_val: float = 0.25
-    num_steps_val: int = 200
+    num_steps_val: int = 10
     spot_price_frac_val: float = 0.02
 
     opt_ex_bi: OptimalExerciseBI = OptimalExerciseBI(
@@ -201,9 +195,9 @@ if __name__ == '__main__':
     reglr_coeff: float = 0.001
 
     ident: np.ndarray = np.eye(num_laguerre)
-    ffs: List[Callable[[StateType], float]] = [lambda _: 1.]
-    ffs += [(lambda s_e: np.log(1 + np.exp(-s_e[0] / (2 * strike))) *
-            lagval(s_e[0] / strike, ident[i]))
+    ffs: List[Callable[[NonTerminal[float]], float]] = [lambda _: 1.]
+    ffs += [(lambda s: np.log(1 + np.exp(-s.state / (2 * strike))) *
+            lagval(s.state / strike, ident[i]))
             for i in range(num_laguerre)]
     it_vf = opt_ex_bi.backward_induction_vf_and_pi(
         features=ffs,
@@ -216,7 +210,7 @@ if __name__ == '__main__':
     print("---------------------------------")
     print()
 
-    all_funcs: List[FunctionApprox[StateType]] = []
+    all_funcs: List[FunctionApprox[NonTerminal[float]]] = []
     for t, (v, p) in enumerate(it_vf):
         print(f"Time {t:d}")
         print()
@@ -243,8 +237,10 @@ if __name__ == '__main__':
 
         all_funcs.append(v)
 
-        opt_alloc: float = p.act((spot_price_val, False)).value
-        val: float = v.evaluate([(spot_price_val, False)])[0]
+        opt_alloc: float = p.deterministic_policy_func(
+            NonTerminal(spot_price_val)
+        )
+        val: float = v(NonTerminal(spot_price_val))
         print(f"Opt Action = {opt_alloc}, Opt Val = {val:.3f}")
         print()
 
@@ -255,7 +251,6 @@ if __name__ == '__main__':
     plt.plot(range(num_steps_val + 1), ex_bound)
     plt.title("Exercise Boundary")
     plt.show()
-
 
     print("European Put Price")
     print("------------------")
