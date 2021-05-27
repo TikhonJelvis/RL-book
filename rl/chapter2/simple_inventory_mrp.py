@@ -1,10 +1,11 @@
 from dataclasses import dataclass
-from typing import Tuple, Dict
+from typing import Tuple, Dict, Mapping
 from rl.markov_process import MarkovRewardProcess
 from rl.markov_process import FiniteMarkovRewardProcess
-from rl.markov_process import RewardTransition
+from rl.markov_process import State, NonTerminal
 from scipy.stats import poisson
-from rl.distribution import SampledDistribution, Categorical
+from rl.distribution import SampledDistribution, Categorical, \
+    FiniteDistribution
 import numpy as np
 
 
@@ -33,20 +34,20 @@ class SimpleInventoryMRP(MarkovRewardProcess[InventoryState]):
 
     def transition_reward(
         self,
-        state: InventoryState
-    ) -> SampledDistribution[Tuple[InventoryState, float]]:
+        state: NonTerminal[InventoryState]
+    ) -> SampledDistribution[Tuple[State[InventoryState], float]]:
 
         def sample_next_state_reward(state=state) ->\
-                Tuple[InventoryState, float]:
+                Tuple[State[InventoryState], float]:
             demand_sample: int = np.random.poisson(self.poisson_lambda)
-            ip: int = state.inventory_position()
+            ip: int = state.state.inventory_position()
             next_state: InventoryState = InventoryState(
                 max(ip - demand_sample, 0),
                 max(self.capacity - ip, 0)
             )
             reward: float = - self.holding_cost * state.on_hand\
                 - self.stockout_cost * max(demand_sample - ip, 0)
-            return next_state, reward
+            return NonTerminal(next_state), reward
 
         return SampledDistribution(sample_next_state_reward)
 
@@ -68,7 +69,11 @@ class SimpleInventoryMRPFinite(FiniteMarkovRewardProcess[InventoryState]):
         self.poisson_distr = poisson(poisson_lambda)
         super().__init__(self.get_transition_reward_map())
 
-    def get_transition_reward_map(self) -> RewardTransition[InventoryState]:
+    def get_transition_reward_map(self) -> \
+            Mapping[
+                InventoryState,
+                FiniteDistribution[Tuple[InventoryState, float]]
+            ]:
         d: Dict[InventoryState, Categorical[Tuple[InventoryState, float]]] = {}
         for alpha in range(self.capacity + 1):
             for beta in range(self.capacity + 1 - alpha):

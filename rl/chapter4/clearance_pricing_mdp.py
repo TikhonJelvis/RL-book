@@ -55,6 +55,7 @@ class ClearancePricingMDP:
 
 if __name__ == '__main__':
     from pprint import pprint
+    from rl.markov_process import NonTerminal
     ii = 12
     steps = 8
     pairs = [(1.0, 0.5), (0.7, 1.0), (0.5, 1.5), (0.3, 2.5)]
@@ -97,7 +98,9 @@ if __name__ == '__main__':
         print("---------------")
         pprint(vf)
         print(policy)
-        prices.append([pairs[policy.act(s).value][0] for s in range(ii + 1)])
+        prices.append(
+            [pairs[policy.deterministic_policy_map[NonTerminal(s)]][0]
+             for s in range(ii + 1)])
 
     import matplotlib.pyplot as plt
     from matplotlib import cm

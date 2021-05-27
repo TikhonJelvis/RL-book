@@ -6,7 +6,7 @@ import unittest
 from rl.distribution import (Bernoulli, Categorical, Distribution,
                              SampledDistribution, Constant)
 from rl.markov_process import (FiniteMarkovProcess, MarkovProcess,
-                               MarkovRewardProcess)
+                               MarkovRewardProcess, NonTerminal, State)
 
 
 # Example classes:
@@ -22,10 +22,12 @@ class FlipFlop(MarkovProcess[bool]):
     def __init__(self, p: float):
         self.p = p
 
-    def transition(self, state: bool) -> Distribution[bool]:
+    def transition(self, state: NonTerminal[bool]) -> \
+            Distribution[State[bool]]:
         def next_state(state=state):
             switch_states = Bernoulli(self.p).sample()
-            return not state if switch_states else state
+            next_st: bool = not state.state if switch_states else state.state
+            return NonTerminal(next_st)
 
         return SampledDistribution(next_state)
 
@@ -48,17 +50,18 @@ class RewardFlipFlop(MarkovRewardProcess[bool]):
     def __init__(self, p: float):
         self.p = p
 
-    def transition_reward(self,
-                          state: bool) -> Distribution[Tuple[bool, float]]:
+    def transition_reward(self, state: NonTerminal[bool]) -> \
+            Distribution[Tuple[State[bool], float]]:
         def next_state(state=state):
             switch_states = Bernoulli(self.p).sample()
 
+            st: bool = state.state
             if switch_states:
-                next_s = not state
-                reward = 1 if state else 0.5
-                return next_s, reward
+                next_s: bool = not st
+                reward = 1 if st else 0.5
+                return NonTerminal(next_s), reward
             else:
-                return state, 0.5
+                return NonTerminal(st), 0.5
 
         return SampledDistribution(next_state)
 
@@ -69,17 +72,19 @@ class TestMarkovProcess(unittest.TestCase):
 
     def test_flip_flop(self):
         trace = list(itertools.islice(
-            self.flip_flop.simulate(Constant(True)),
+            self.flip_flop.simulate(Constant(NonTerminal(True))),
             10
         ))
 
-        self.assertTrue(all(isinstance(outcome, bool) for outcome in trace))
+        self.assertTrue(all(isinstance(outcome.state, bool)
+                            for outcome in trace))
 
         longer_trace = itertools.islice(
-            self.flip_flop.simulate(Constant(True)),
+            self.flip_flop.simulate(Constant(NonTerminal(True))),
             10000
         )
-        count_trues = len(list(outcome for outcome in longer_trace if outcome))
+        count_trues = len(list(outcome for outcome in longer_trace
+                               if outcome.state))
 
         # If the code is correct, this should fail with a vanishingly
         # small probability
@@ -94,17 +99,19 @@ class TestFiniteMarkovProcess(unittest.TestCase):
 
     def test_flip_flop(self):
         trace = list(itertools.islice(
-            self.flip_flop.simulate(Constant(True)),
+            self.flip_flop.simulate(Constant(NonTerminal(True))),
             10
         ))
 
-        self.assertTrue(all(isinstance(outcome, bool) for outcome in trace))
+        self.assertTrue(all(isinstance(outcome.state, bool)
+                            for outcome in trace))
 
         longer_trace = itertools.islice(
-            self.flip_flop.simulate(Constant(True)),
+            self.flip_flop.simulate(Constant(NonTerminal(True))),
             10000
         )
-        count_trues = len(list(outcome for outcome in longer_trace if outcome))
+        count_trues = len(list(outcome for outcome in longer_trace
+                               if outcome.state))
 
         # If the code is correct, this should fail with a vanishingly
         # small probability
@@ -144,12 +151,12 @@ class TestRewardMarkovProcess(unittest.TestCase):
 
     def test_flip_flop(self):
         trace = list(itertools.islice(
-            self.flip_flop.simulate_reward(Constant(True)),
+            self.flip_flop.simulate_reward(Constant(NonTerminal(True))),
             10
         ))
 
         self.assertTrue(
-            all(isinstance(step.next_state, bool) for step in trace)
+            all(isinstance(step.next_state.state, bool) for step in trace)
         )
 
         cumulative_reward = sum(step.reward for step in trace)

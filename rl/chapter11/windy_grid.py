@@ -4,11 +4,11 @@ from rl.chapter11.control_utils import q_learning_finite_learning_rate
 from rl.chapter11.control_utils import get_vf_and_policy_from_qvf
 from dataclasses import dataclass
 from rl.distribution import Categorical
+from rl.markov_process import NonTerminal
 from rl.markov_decision_process import FiniteMarkovDecisionProcess
-from rl.markov_decision_process import StateActionMapping
-from rl.markov_decision_process import FinitePolicy
+from rl.markov_decision_process import FiniteDeterministicPolicy
+from rl.approximate_dynamic_programming import QValueFunctionApprox
 from rl.dynamic_programming import value_iteration_result, V
-from rl.function_approx import FunctionApprox
 import itertools
 import rl.iterate as iterate
 
@@ -135,17 +135,17 @@ class WindyGrid:
         '''
         returns the FiniteMarkovDecision object for this windy grid problem
         '''
-        d1: StateActionMapping[Cell, Move] = \
+        return FiniteMarkovDecisionProcess(
             {s: self.get_transition_probabilities(s) for s in
              self.get_all_nt_states()}
-        d2: StateActionMapping[Cell, Move] = {s: None for s in self.terminals}
-        return FiniteMarkovDecisionProcess({**d1, **d2})
+        )
 
-    def get_vi_vf_and_policy(self) -> Tuple[V[Cell], FinitePolicy[Cell, Move]]:
+    def get_vi_vf_and_policy(self) -> \
+            Tuple[V[Cell], FiniteDeterministicPolicy[Cell, Move]]:
         '''
         Performs the Value Iteration DP algorithm returning the
         Optimal Value Function (as a V[Cell]) and the Optimal Policy
-        (as a FinitePolicy[Cell, Move])
+        (as a FiniteDeterministicPolicy[Cell, Move])
         '''
         return value_iteration_result(self.get_finite_mdp(), gamma=1.)
 
@@ -154,8 +154,8 @@ class WindyGrid:
         epsilon_as_func_of_episodes: Callable[[int], float],
         learning_rate: float,
         num_updates: int
-    ) -> Tuple[V[Cell], FinitePolicy[Cell, Move]]:
-        qvfs: Iterator[FunctionApprox[Tuple[Cell, Move]]] = \
+    ) -> Tuple[V[Cell], FiniteDeterministicPolicy[Cell, Move]]:
+        qvfs: Iterator[QValueFunctionApprox[Cell, Move]] = \
             glie_sarsa_finite_learning_rate(
                 fmdp=self.get_finite_mdp(),
                 initial_learning_rate=learning_rate,
@@ -165,7 +165,7 @@ class WindyGrid:
                 epsilon_as_func_of_episodes=epsilon_as_func_of_episodes,
                 max_episode_length=int(1e8)
             )
-        final_qvf: FunctionApprox[Tuple[Cell, Move]] = \
+        final_qvf: QValueFunctionApprox[Cell, Move] = \
             iterate.last(itertools.islice(qvfs, num_updates))
         return get_vf_and_policy_from_qvf(
             mdp=self.get_finite_mdp(),
@@ -177,8 +177,8 @@ class WindyGrid:
         epsilon: float,
         learning_rate: float,
         num_updates: int
-    ) -> Tuple[V[Cell], FinitePolicy[Cell, Move]]:
-        qvfs: Iterator[FunctionApprox[Tuple[Cell, Move]]] = \
+    ) -> Tuple[V[Cell], FiniteDeterministicPolicy[Cell, Move]]:
+        qvfs: Iterator[QValueFunctionApprox[Cell, Move]] = \
             q_learning_finite_learning_rate(
                 fmdp=self.get_finite_mdp(),
                 initial_learning_rate=learning_rate,
@@ -188,7 +188,7 @@ class WindyGrid:
                 epsilon=epsilon,
                 max_episode_length=int(1e8)
             )
-        final_qvf: FunctionApprox[Tuple[Cell, Move]] = \
+        final_qvf: QValueFunctionApprox[Cell, Move] = \
             iterate.last(itertools.islice(qvfs, num_updates))
         return get_vf_and_policy_from_qvf(
             mdp=self.get_finite_mdp(),
@@ -198,12 +198,12 @@ class WindyGrid:
     def print_vf_and_policy(
         self,
         vf_dict: V[Cell],
-        policy: FinitePolicy[Cell, Move]
+        policy: FiniteDeterministicPolicy[Cell, Move]
     ) -> None:
         display = "%5.2f"
         display1 = "%5d"
         vf_full_dict = {
-            **{s: display % -v for s, v in vf_dict.items()},
+            **{s.state: display % -v for s, v in vf_dict.items()},
             **{s: display % 0.0 for s in self.terminals},
             **{s: 'X' * 5 for s in self.blocks}
         }
@@ -213,7 +213,7 @@ class WindyGrid:
                                         for j in range(self.columns)))
         print()
         pol_full_dict = {
-            **{s: possible_moves[policy.act(s).value]
+            **{s: possible_moves[policy.deterministic_policy_map[NonTerminal(s)]]
                for s in self.get_all_nt_states()},
             **{s: 'T' for s in self.terminals},
             **{s: 'X' for s in self.blocks}
@@ -245,7 +245,7 @@ if __name__ == '__main__':
         )
         epsilon_as_func_of_episodes: Callable[[int], float] = lambda k: 1. / k
         learning_rate: float = 0.03
-        num_updates: int = 50000
+        num_updates: int = 100000
         sarsa_vf_dict, sarsa_policy = wg.get_glie_sarsa_vf_and_policy(
             epsilon_as_func_of_episodes=epsilon_as_func_of_episodes,
             learning_rate=learning_rate,

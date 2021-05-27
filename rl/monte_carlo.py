@@ -3,15 +3,15 @@ Markov Decision Processes.
 
 '''
 
-from typing import Iterable, Iterator, Tuple, TypeVar, Callable
-
-from rl.distribution import Distribution
-from rl.function_approx import FunctionApprox
+from typing import Iterable, Iterator, TypeVar, Callable
 import rl.markov_process as mp
 from rl.markov_decision_process import MarkovDecisionProcess, Policy
 from rl.markov_decision_process import epsilon_greedy_policy, TransitionStep
 from rl.returns import returns
 from rl.iterate import last
+from rl.approximate_dynamic_programming import ValueFunctionApprox
+from rl.approximate_dynamic_programming import QValueFunctionApprox
+from rl.approximate_dynamic_programming import NTStateDistribution
 
 S = TypeVar('S')
 A = TypeVar('A')
@@ -19,10 +19,10 @@ A = TypeVar('A')
 
 def mc_prediction(
     traces: Iterable[Iterable[mp.TransitionStep[S]]],
-    approx_0: FunctionApprox[S],
+    approx_0: ValueFunctionApprox[S],
     γ: float,
     episode_length_tolerance: float = 1e-6
-) -> Iterator[FunctionApprox[S]]:
+) -> Iterator[ValueFunctionApprox[S]]:
     '''Evaluate an MRP using the monte carlo method, simulating episodes
     of the given number of steps.
 
@@ -52,12 +52,12 @@ def mc_prediction(
 
 def glie_mc_control(
     mdp: MarkovDecisionProcess[S, A],
-    states: Distribution[S],
-    approx_0: FunctionApprox[Tuple[S, A]],
+    states: NTStateDistribution[S],
+    approx_0: QValueFunctionApprox[S, A],
     γ: float,
     ϵ_as_func_of_episodes: Callable[[int], float],
     episode_length_tolerance: float = 1e-6
-) -> Iterator[FunctionApprox[Tuple[S, A]]]:
+) -> Iterator[QValueFunctionApprox[S, A]]:
     '''Evaluate an MRP using the monte carlo method, simulating episodes
     of the given number of steps.
 
@@ -78,7 +78,7 @@ def glie_mc_control(
     after each episode.
 
     '''
-    q: FunctionApprox[Tuple[S, A]] = approx_0
+    q: QValueFunctionApprox[S, A] = approx_0
     p: Policy[S, A] = epsilon_greedy_policy(q, mdp, 1.0)
     yield q
 

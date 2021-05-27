@@ -5,16 +5,17 @@ state space.
 
 '''
 
-from typing import Iterator, Mapping, Tuple, TypeVar, Sequence, List
+from typing import Iterator, Tuple, TypeVar, Sequence, List
 from operator import itemgetter
 import numpy as np
 
-from rl.distribution import Distribution, Constant
+from rl.distribution import Distribution
 from rl.function_approx import FunctionApprox
 from rl.iterate import iterate
 from rl.markov_process import (FiniteMarkovRewardProcess, MarkovRewardProcess,
-                               RewardTransition)
-from rl.markov_decision_process import (FiniteMarkovDecisionProcess, Policy,
+                               RewardTransition, NonTerminal, State)
+from rl.markov_decision_process import (FiniteMarkovDecisionProcess,
+                                        DeterministicPolicy,
                                         MarkovDecisionProcess,
                                         StateActionMapping)
 
@@ -23,25 +24,31 @@ A = TypeVar('A')
 
 # A representation of a value function for a finite MDP with states of
 # type S
-V = Mapping[S, float]
+ValueFunctionApprox = FunctionApprox[NonTerminal[S]]
+QValueFunctionApprox = FunctionApprox[Tuple[NonTerminal[S], A]]
+NTStateDistribution = Distribution[NonTerminal[S]]
+
+
+def extended_vf(vf: ValueFunctionApprox[S], s: State[S]) -> float:
+    return s.on_non_terminal(vf, 0.0)
 
 
 def evaluate_finite_mrp(
         mrp: FiniteMarkovRewardProcess[S],
         γ: float,
-        approx_0: FunctionApprox[S]
-) -> Iterator[FunctionApprox[S]]:
+        approx_0: ValueFunctionApprox[S]
+) -> Iterator[ValueFunctionApprox[S]]:
 
     '''Iteratively calculate the value function for the give finite Markov
     Reward Process, using the given FunctionApprox to approximate the
     value function at each step.
 
     '''
-    def update(v: FunctionApprox[S]) -> FunctionApprox[S]:
+    def update(v: ValueFunctionApprox[S]) -> ValueFunctionApprox[S]:
         vs: np.ndarray = v.evaluate(mrp.non_terminal_states)
         updated: np.ndarray = mrp.reward_function_vec + γ * \
             mrp.get_transition_matrix().dot(vs)
-        return v.update(zip(mrp.states(), updated))
+        return v.update(zip(mrp.non_terminal_states, updated))
 
     return iterate(update, approx_0)
 
@@ -49,24 +56,23 @@ def evaluate_finite_mrp(
 def evaluate_mrp(
     mrp: MarkovRewardProcess[S],
     γ: float,
-    approx_0: FunctionApprox[S],
-    non_terminal_states_distribution: Distribution[S],
+    approx_0: ValueFunctionApprox[S],
+    non_terminal_states_distribution: NTStateDistribution[S],
     num_state_samples: int
-) -> Iterator[FunctionApprox[S]]:
+) -> Iterator[ValueFunctionApprox[S]]:
 
     '''Iteratively calculate the value function for the given Markov Reward
     Process, using the given FunctionApprox to approximate the value function
     at each step for a random sample of the process' non-terminal states.
 
     '''
-    def update(v: FunctionApprox[S]) -> FunctionApprox[S]:
-        nt_states: Sequence[S] = non_terminal_states_distribution.sample_n(
-            num_state_samples
-        )
+    def update(v: ValueFunctionApprox[S]) -> ValueFunctionApprox[S]:
+        nt_states: Sequence[NonTerminal[S]] = \
+            non_terminal_states_distribution.sample_n(num_state_samples)
 
-        def return_(s_r: Tuple[S, float]) -> float:
+        def return_(s_r: Tuple[State[S], float]) -> float:
             s1, r = s_r
-            return r + γ * v.evaluate([s1]).item()
+            return r + γ * extended_vf(v, s1)
 
         return v.update(
             [(s, mrp.transition_reward(s).expectation(return_))
@@ -79,18 +85,18 @@ def evaluate_mrp(
 def value_iteration_finite(
     mdp: FiniteMarkovDecisionProcess[S, A],
     γ: float,
-    approx_0: FunctionApprox[S]
-) -> Iterator[FunctionApprox[S]]:
+    approx_0: ValueFunctionApprox[S]
+) -> Iterator[ValueFunctionApprox[S]]:
     '''Iteratively calculate the Optimal Value function for the given finite
     Markov Decision Process, using the given FunctionApprox to approximate the
     Optimal Value function at each step
 
     '''
-    def update(v: FunctionApprox[S]) -> FunctionApprox[S]:
+    def update(v: ValueFunctionApprox[S]) -> ValueFunctionApprox[S]:
 
-        def return_(s_r: Tuple[S, float]) -> float:
+        def return_(s_r: Tuple[State[S], float]) -> float:
             s1, r = s_r
-            return r + γ * v.evaluate([s1]).item()
+            return r + γ * extended_vf(v, s1)
 
         return v.update(
             [(
@@ -106,24 +112,23 @@ def value_iteration_finite(
 def value_iteration(
     mdp: MarkovDecisionProcess[S, A],
     γ: float,
-    approx_0: FunctionApprox[S],
-    non_terminal_states_distribution: Distribution[S],
+    approx_0: ValueFunctionApprox[S],
+    non_terminal_states_distribution: NTStateDistribution[S],
     num_state_samples: int
-) -> Iterator[FunctionApprox[S]]:
+) -> Iterator[ValueFunctionApprox[S]]:
     '''Iteratively calculate the Optimal Value function for the given
     Markov Decision Process, using the given FunctionApprox to approximate the
     Optimal Value function at each step for a random sample of the process'
     non-terminal states.
 
     '''
-    def update(v: FunctionApprox[S]) -> FunctionApprox[S]:
-        nt_states: Sequence[S] = non_terminal_states_distribution.sample_n(
-            num_state_samples
-        )
+    def update(v: ValueFunctionApprox[S]) -> ValueFunctionApprox[S]:
+        nt_states: Sequence[NonTerminal[S]] = \
+            non_terminal_states_distribution.sample_n(num_state_samples)
 
-        def return_(s_r: Tuple[S, float]) -> float:
+        def return_(s_r: Tuple[State[S], float]) -> float:
             s1, r = s_r
-            return r + γ * v.evaluate([s1]).item()
+            return r + γ * extended_vf(v, s1)
 
         return v.update(
             [(s, max(mdp.step(s, a).expectation(return_)
@@ -135,35 +140,34 @@ def value_iteration(
 
 
 def backward_evaluate_finite(
-    step_f0_pairs: Sequence[Tuple[RewardTransition[S], FunctionApprox[S]]],
+    step_f0_pairs: Sequence[Tuple[RewardTransition[S],
+                                  ValueFunctionApprox[S]]],
     γ: float
-) -> Iterator[FunctionApprox[S]]:
+) -> Iterator[ValueFunctionApprox[S]]:
     '''Evaluate the given finite Markov Reward Process using backwards
     induction, given that the process stops after limit time steps.
 
     '''
 
-    v: List[FunctionApprox[S]] = []
-    num_steps: int = len(step_f0_pairs)
+    v: List[ValueFunctionApprox[S]] = []
 
     for i, (step, approx0) in enumerate(reversed(step_f0_pairs)):
 
-        def return_(s_r: Tuple[S, float], i=i) -> float:
+        def return_(s_r: Tuple[State[S], float], i=i) -> float:
             s1, r = s_r
-            return r + γ * (v[i-1].evaluate([s1]).item() if i > 0 and
-                            step_f0_pairs[num_steps - i][0][s1] is not None
-                            else 0.)
+            return r + γ * (extended_vf(v[i-1], s1) if i > 0 else 0.)
 
         v.append(
             approx0.solve([(s, res.expectation(return_))
-                           for s, res in step.items() if res is not None])
+                           for s, res in step.items()])
         )
 
     return reversed(v)
 
 
-MRP_FuncApprox_Distribution = \
-    Tuple[MarkovRewardProcess[S], FunctionApprox[S], Distribution[S]]
+MRP_FuncApprox_Distribution = Tuple[MarkovRewardProcess[S],
+                                    ValueFunctionApprox[S],
+                                    NTStateDistribution[S]]
 
 
 def backward_evaluate(
@@ -171,30 +175,25 @@ def backward_evaluate(
     γ: float,
     num_state_samples: int,
     error_tolerance: float
-) -> Iterator[FunctionApprox[S]]:
+) -> Iterator[ValueFunctionApprox[S]]:
     '''Evaluate the given finite Markov Reward Process using backwards
     induction, given that the process stops after limit time steps, using
     the given FunctionApprox for each time step for a random sample of the
     time step's states.
 
     '''
-    v: List[FunctionApprox[S]] = []
-
-    num_steps: int = len(mrp_f0_mu_triples)
+    v: List[ValueFunctionApprox[S]] = []
 
     for i, (mrp, approx0, mu) in enumerate(reversed(mrp_f0_mu_triples)):
 
-        def return_(s_r: Tuple[S, float], i=i) -> float:
+        def return_(s_r: Tuple[State[S], float], i=i) -> float:
             s1, r = s_r
-            return r + γ * (v[i-1].evaluate([s1]).item() if i > 0 and not
-                            mrp_f0_mu_triples[num_steps - i][0].is_terminal(s1)
-                            else 0.)
+            return r + γ * (extended_vf(v[i-1], s1) if i > 0 else 0.)
 
         v.append(
             approx0.solve(
                 [(s, mrp.transition_reward(s).expectation(return_))
-                 for s in mu.sample_n(num_state_samples)
-                 if not mrp.is_terminal(s)],
+                 for s in mu.sample_n(num_state_samples)],
                 error_tolerance
             )
         )
@@ -203,47 +202,44 @@ def backward_evaluate(
 
 
 def back_opt_vf_and_policy_finite(
-    step_f0s: Sequence[Tuple[StateActionMapping[S, A], FunctionApprox[S]]],
+    step_f0s: Sequence[Tuple[StateActionMapping[S, A],
+                             ValueFunctionApprox[S]]],
     γ: float,
-) -> Iterator[Tuple[FunctionApprox[S], Policy[S, A]]]:
+) -> Iterator[Tuple[ValueFunctionApprox[S], DeterministicPolicy[S, A]]]:
     '''Use backwards induction to find the optimal value function and optimal
     policy at each time step
 
     '''
-    vp: List[Tuple[FunctionApprox[S], Policy[S, A]]] = []
-
-    num_steps: int = len(step_f0s)
+    vp: List[Tuple[ValueFunctionApprox[S], DeterministicPolicy[S, A]]] = []
 
     for i, (step, approx0) in enumerate(reversed(step_f0s)):
 
-        def return_(s_r: Tuple[S, float], i=i) -> float:
+        def return_(s_r: Tuple[State[S], float], i=i) -> float:
             s1, r = s_r
-            return r + γ * (vp[i-1][0].evaluate([s1]).item() if i > 0 and
-                            step_f0s[num_steps - i][0][s1] is not None else 0.)
+            return r + γ * (extended_vf(vp[i-1][0], s1) if i > 0 else 0.)
 
         this_v = approx0.solve(
             [(s, max(res.expectation(return_)
                      for a, res in actions_map.items()))
-             for s, actions_map in step.items() if actions_map is not None]
+             for s, actions_map in step.items()]
         )
 
-        class ThisPolicy(Policy[S, A]):
-            def act(self, state: S) -> Constant[A]:
-                return Constant(max(
-                    ((res.expectation(return_), a)
-                     for a, res in step[state].items()),
-                    key=itemgetter(0)
-                )[1])
+        def deter_policy(state: S) -> A:
+            return max(
+                ((res.expectation(return_), a) for a, res in
+                 step[NonTerminal(state)].items()),
+                key=itemgetter(0)
+            )[1]
 
-        vp.append((this_v, ThisPolicy()))
+        vp.append((this_v, DeterministicPolicy(deter_policy)))
 
     return reversed(vp)
 
 
 MDP_FuncApproxV_Distribution = Tuple[
     MarkovDecisionProcess[S, A],
-    FunctionApprox[S],
-    Distribution[S]
+    ValueFunctionApprox[S],
+    NTStateDistribution[S]
 ]
 
 
@@ -252,49 +248,43 @@ def back_opt_vf_and_policy(
     γ: float,
     num_state_samples: int,
     error_tolerance: float
-) -> Iterator[Tuple[FunctionApprox[S], Policy[S, A]]]:
+) -> Iterator[Tuple[ValueFunctionApprox[S], DeterministicPolicy[S, A]]]:
     '''Use backwards induction to find the optimal value function and optimal
     policy at each time step, using the given FunctionApprox for each time step
     for a random sample of the time step's states.
 
     '''
-    vp: List[Tuple[FunctionApprox[S], Policy[S, A]]] = []
-
-    num_steps: int = len(mdp_f0_mu_triples)
+    vp: List[Tuple[ValueFunctionApprox[S], DeterministicPolicy[S, A]]] = []
 
     for i, (mdp, approx0, mu) in enumerate(reversed(mdp_f0_mu_triples)):
 
-        def return_(s_r: Tuple[S, float], i=i) -> float:
+        def return_(s_r: Tuple[State[S], float], i=i) -> float:
             s1, r = s_r
-            return r + γ * (vp[i-1][0].evaluate([s1]).item() if i > 0 and not
-                            mdp_f0_mu_triples[num_steps - i][0].is_terminal(s1)
-                            else 0.)
+            return r + γ * (extended_vf(vp[i-1][0], s1) if i > 0 else 0.)
 
         this_v = approx0.solve(
             [(s, max(mdp.step(s, a).expectation(return_)
                      for a in mdp.actions(s)))
-             for s in mu.sample_n(num_state_samples)
-             if not mdp.is_terminal(s)],
+             for s in mu.sample_n(num_state_samples)],
             error_tolerance
         )
 
-        class ThisPolicy(Policy[S, A]):
-            def act(self, state: S) -> Constant[A]:
-                return Constant(max(
-                    ((mdp.step(state, a).expectation(return_), a)
-                     for a in mdp.actions(state)),
-                    key=itemgetter(0)
-                )[1])
+        def deter_policy(state: S) -> A:
+            return max(
+                ((mdp.step(NonTerminal(state), a).expectation(return_), a)
+                 for a in mdp.actions(NonTerminal(state))),
+                key=itemgetter(0)
+            )[1]
 
-        vp.append((this_v, ThisPolicy()))
+        vp.append((this_v, DeterministicPolicy(deter_policy)))
 
     return reversed(vp)
 
 
 MDP_FuncApproxQ_Distribution = Tuple[
     MarkovDecisionProcess[S, A],
-    FunctionApprox[Tuple[S, A]],
-    Distribution[S]
+    QValueFunctionApprox[S, A],
+    NTStateDistribution[S]
 ]
 
 
@@ -303,33 +293,28 @@ def back_opt_qvf(
     γ: float,
     num_state_samples: int,
     error_tolerance: float
-) -> Iterator[FunctionApprox[Tuple[S, A]]]:
+) -> Iterator[QValueFunctionApprox[S, A]]:
     '''Use backwards induction to find the optimal q-value function  policy at
     each time step, using the given FunctionApprox (for Q-Value) for each time
     step for a random sample of the time step's states.
 
     '''
     horizon: int = len(mdp_f0_mu_triples)
-    qvf: List[FunctionApprox[Tuple[S, A]]] = []
-
-    num_steps: int = len(mdp_f0_mu_triples)
+    qvf: List[QValueFunctionApprox[S, A]] = []
 
     for i, (mdp, approx0, mu) in enumerate(reversed(mdp_f0_mu_triples)):
 
-        def return_(s_r: Tuple[S, float], i=i) -> float:
+        def return_(s_r: Tuple[State[S], float], i=i) -> float:
             s1, r = s_r
-            return r + γ * (
-                max(qvf[i-1].evaluate([(s1, a)]).item()
-                    for a in mdp_f0_mu_triples[horizon - i][0].actions(s1))
-                if i > 0 and
-                not mdp_f0_mu_triples[num_steps - i][0].is_terminal(s1)
-                else 0.
-            )
+            next_return: float = max(
+                qvf[i-1]((s1, a)) for a in
+                mdp_f0_mu_triples[horizon - i][0].actions(s1)
+            ) if i > 0 and isinstance(s1, NonTerminal) else 0.
+            return r + γ * next_return
 
         this_qvf = approx0.solve(
             [((s, a), mdp.step(s, a).expectation(return_))
-             for s in mu.sample_n(num_state_samples)
-             if not mdp.is_terminal(s) for a in mdp.actions(s)],
+             for s in mu.sample_n(num_state_samples) for a in mdp.actions(s)],
             error_tolerance
         )
 

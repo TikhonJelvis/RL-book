@@ -7,7 +7,7 @@ from typing import cast, Iterable, Iterator, Optional, Tuple
 from rl.distribution import Categorical, Choose
 from rl.function_approx import Tabular
 import rl.iterate as iterate
-from rl.markov_process import FiniteMarkovRewardProcess
+from rl.markov_process import FiniteMarkovRewardProcess, NonTerminal
 import rl.markov_process as mp
 from rl.markov_decision_process import FiniteMarkovDecisionProcess
 import rl.markov_decision_process as mdp
@@ -47,13 +47,16 @@ class TestEvaluate(unittest.TestCase):
 
     def test_evaluate_finite_mrp(self) -> None:
         start = Tabular(
-            {s: 0.0 for s in self.finite_flip_flop.states()},
+            {s: 0.0 for s in self.finite_flip_flop.non_terminal_states},
             count_to_weight_func=lambda _: 0.1
         )
 
         episode_length = 20
         episodes: Iterable[Iterable[mp.TransitionStep[bool]]] =\
-            self.finite_flip_flop.reward_traces(Choose({True, False}))
+            self.finite_flip_flop.reward_traces(Choose({
+                NonTerminal(True),
+                NonTerminal(False)
+            }))
         transitions: Iterable[mp.TransitionStep[bool]] =\
             itertools.chain.from_iterable(
                 itertools.islice(episode, episode_length)
@@ -62,8 +65,10 @@ class TestEvaluate(unittest.TestCase):
 
         vs = td.td_prediction(transitions, γ=0.99, approx_0=start)
 
-        v: Optional[Tabular[bool]] = iterate.last(
-            itertools.islice(cast(Iterator[Tabular[bool]], vs), 10000)
+        v: Optional[Tabular[NonTerminal[bool]]] = iterate.last(
+            itertools.islice(
+                cast(Iterator[Tabular[NonTerminal[bool]]], vs),
+                10000)
         )
 
         if v is not None:
@@ -77,22 +82,22 @@ class TestEvaluate(unittest.TestCase):
             assert False
 
     def test_evaluate_finite_mdp(self) -> None:
-        q_0: Tabular[Tuple[bool, bool]] = Tabular(
+        q_0: Tabular[Tuple[NonTerminal[bool], bool]] = Tabular(
             {(s, a): 0.0
-             for s in self.finite_mdp.states()
+             for s in self.finite_mdp.non_terminal_states
              for a in self.finite_mdp.actions(s)},
             count_to_weight_func=lambda _: 0.1
         )
 
-        uniform_policy: mdp.Policy[bool, bool] =\
+        uniform_policy: mdp.FinitePolicy[bool, bool] =\
             mdp.FinitePolicy({
-                s: Choose(self.finite_mdp.actions(s))
-                for s in self.finite_mdp.states()
+                s.state: Choose(set(self.finite_mdp.actions(s)))
+                for s in self.finite_mdp.non_terminal_states
             })
 
         transitions: Iterable[mdp.TransitionStep[bool, bool]] =\
             self.finite_mdp.simulate_actions(
-                Choose(self.finite_mdp.states()),
+                Choose(set(self.finite_mdp.non_terminal_states)),
                 uniform_policy
             )
 
@@ -103,16 +108,16 @@ class TestEvaluate(unittest.TestCase):
             γ=0.99
         )
 
-        q: Optional[Tabular[Tuple[bool, bool]]] =\
+        q: Optional[Tabular[Tuple[NonTerminal[bool], bool]]] =\
             iterate.last(
-                cast(Iterator[Tabular[Tuple[bool, bool]]],
+                cast(Iterator[Tabular[Tuple[NonTerminal[bool], bool]]],
                      itertools.islice(qs, 20000))
             )
 
         if q is not None:
             self.assertEqual(len(q.values_map), 4)
 
-            for s in [True, False]:
+            for s in [NonTerminal(True), NonTerminal(False)]:
                 self.assertLess(abs(q((s, False)) - 170.0), 2)
                 self.assertGreater(q((s, False)), q((s, True)))
         else:

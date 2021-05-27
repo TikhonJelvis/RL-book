@@ -237,7 +237,7 @@ class Dynamic(FunctionApprox[X]):
         xy_vals_seq: Iterable[Tuple[X, float]],
         error_tolerance: Optional[float] = None
     ) -> Dynamic[X]:
-        return replace(self, value_map=dict(xy_vals_seq))
+        return replace(self, values_map=dict(xy_vals_seq))
 
     def within(self, other: FunctionApprox[X], tolerance: float) -> bool:
         '''This approximation is within a tolerance of another if the value

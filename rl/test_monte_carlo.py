@@ -5,7 +5,7 @@ import random
 from rl.distribution import Categorical, Choose
 from rl.function_approx import Tabular
 import rl.iterate as iterate
-from rl.markov_process import FiniteMarkovRewardProcess
+from rl.markov_process import FiniteMarkovRewardProcess, NonTerminal
 import rl.monte_carlo as mc
 
 
@@ -29,8 +29,12 @@ class TestEvaluate(unittest.TestCase):
         self.finite_flip_flop = FlipFlop(0.7)
 
     def test_evaluate_finite_mrp(self):
-        start = Tabular({s: 0.0 for s in self.finite_flip_flop.states()})
-        traces = self.finite_flip_flop.reward_traces(Choose({True, False}))
+        start = Tabular({s: 0.0 for s in
+                         self.finite_flip_flop.non_terminal_states})
+        traces = self.finite_flip_flop.reward_traces(Choose({
+            NonTerminal(True),
+            NonTerminal(False)
+        }))
         v = iterate.converged(
             mc.mc_prediction(traces, γ=0.99, approx_0=start),
             # Loose bound of 0.01 to speed up test.

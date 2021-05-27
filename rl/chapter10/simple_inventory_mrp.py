@@ -1,4 +1,5 @@
 from typing import Sequence, Tuple, Mapping
+from rl.markov_decision_process import NonTerminal
 from rl.chapter2.simple_inventory_mrp import SimpleInventoryMRPFinite
 from rl.chapter2.simple_inventory_mrp import InventoryState
 from rl.chapter10.prediction_utils import (
@@ -21,7 +22,7 @@ si_mrp: SimpleInventoryMRPFinite = SimpleInventoryMRPFinite(
     holding_cost=holding_cost,
     stockout_cost=stockout_cost
 )
-initial_vf_dict: Mapping[InventoryState, float] = \
+initial_vf_dict: Mapping[NonTerminal[InventoryState], float] = \
     {s: 0. for s in si_mrp.non_terminal_states}
 
 gamma: float = 0.9
