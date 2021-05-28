@@ -9,9 +9,9 @@ from rl.dynamic_programming import value_iteration_result
 from rl.distribution import Choose
 from rl.function_approx import Dynamic
 import rl.iterate as iterate
-from rl.markov_process import (FiniteMarkovRewardProcess, NonTerminal)
-from rl.markov_decision_process import (FiniteMarkovDecisionProcess)
-from rl.policy import (FiniteDeterministicPolicy)
+from rl.markov_process import FiniteMarkovRewardProcess, NonTerminal
+from rl.markov_decision_process import FiniteMarkovDecisionProcess
+from rl.policy import FiniteDeterministicPolicy
 
 from rl.chapter3.simple_inventory_mdp_cap import (InventoryState,
                                                   SimpleInventoryMDPCap)
