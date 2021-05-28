@@ -2,14 +2,14 @@ import unittest
 
 import numpy as np
 
-from rl.distribution import (Choose)
+from rl.distribution import Choose
 from rl.finite_horizon import (
     unwrap_finite_horizon_MRP, finite_horizon_MRP, evaluate,
     unwrap_finite_horizon_MDP, finite_horizon_MDP, optimal_vf_and_policy)
-from rl.function_approx import (Dynamic, Tabular)
-from rl.markov_process import (FiniteMarkovRewardProcess)
-from rl.markov_decision_process import (FiniteMarkovDecisionProcess)
-from rl.policy import (FiniteDeterministicPolicy)
+from rl.function_approx import Dynamic, Tabular
+from rl.markov_process import FiniteMarkovRewardProcess
+from rl.markov_decision_process import FiniteMarkovDecisionProcess
+from rl.policy import FiniteDeterministicPolicy
 
 from rl.chapter4.clearance_pricing_mdp import ClearancePricingMDP
 
