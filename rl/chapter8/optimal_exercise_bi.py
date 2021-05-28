@@ -4,7 +4,8 @@ import numpy as np
 from scipy.stats import norm
 from rl.distribution import SampledDistribution
 from rl.markov_decision_process import MarkovDecisionProcess, \
-    DeterministicPolicy, NonTerminal, State, Terminal
+    NonTerminal, State, Terminal
+from rl.policy import DeterministicPolicy
 from rl.function_approx import FunctionApprox, LinearFunctionApprox
 from rl.approximate_dynamic_programming import back_opt_vf_and_policy
 from numpy.polynomial.laguerre import lagval
@@ -237,9 +238,7 @@ if __name__ == '__main__':
 
         all_funcs.append(v)
 
-        opt_alloc: float = p.deterministic_policy_func(
-            NonTerminal(spot_price_val)
-        )
+        opt_alloc: float = p.action_for(spot_price_val)
         val: float = v(NonTerminal(spot_price_val))
         print(f"Opt Action = {opt_alloc}, Opt Val = {val:.3f}")
         print()

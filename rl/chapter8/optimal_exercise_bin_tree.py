@@ -3,8 +3,8 @@ from typing import Callable, Tuple, Iterator, Sequence, List
 import numpy as np
 from rl.dynamic_programming import V
 from scipy.stats import norm
-from rl.markov_decision_process import FiniteDeterministicPolicy, \
-    Terminal, NonTerminal
+from rl.markov_decision_process import Terminal, NonTerminal
+from rl.policy import FiniteDeterministicPolicy
 from rl.distribution import Constant, Categorical
 from rl.finite_horizon import optimal_vf_and_policy
 
@@ -76,7 +76,7 @@ class OptimalExerciseBinTree:
         ex_boundary: List[Tuple[float, float]] = []
         for i in range(self.num_steps + 1):
             ex_points = [j for j in range(i + 1)
-                         if policy_seq[i].deterministic_policy_map[NonTerminal(j)] and
+                         if policy_seq[i].action_for[j] and
                          self.payoff(i * dt, self.state_price(i, j)) > 0]
             if len(ex_points) > 0:
                 boundary_pt = min(ex_points) if is_call else max(ex_points)

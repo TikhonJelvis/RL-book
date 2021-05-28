@@ -1,14 +1,14 @@
-import numpy as np
 import operator
 from typing import Mapping, Iterator, TypeVar, Tuple, Dict
 
+import numpy as np
+
+from rl.distribution import Categorical, Choose
 from rl.iterate import converged, iterate
 from rl.markov_process import NonTerminal, State
 from rl.markov_decision_process import (FiniteMarkovDecisionProcess,
-                                        FiniteMarkovRewardProcess,
-                                        FinitePolicy,
-                                        FiniteDeterministicPolicy)
-from rl.distribution import Categorical, Choose
+                                        FiniteMarkovRewardProcess)
+from rl.policy import FinitePolicy, FiniteDeterministicPolicy
 
 A = TypeVar('A')
 S = TypeVar('S')

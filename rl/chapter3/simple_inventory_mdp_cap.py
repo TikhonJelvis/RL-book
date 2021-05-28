@@ -1,9 +1,9 @@
 from dataclasses import dataclass
 from typing import Tuple, Dict, Mapping
 from rl.markov_decision_process import FiniteMarkovDecisionProcess
-from rl.markov_decision_process import FinitePolicy
+from rl.policy import FiniteDeterministicPolicy
 from rl.markov_process import FiniteMarkovProcess, FiniteMarkovRewardProcess
-from rl.distribution import Categorical, Constant
+from rl.distribution import Categorical
 from scipy.stats import poisson
 
 
@@ -89,21 +89,25 @@ if __name__ == '__main__':
     print("------------------")
     print(si_mdp)
 
-    fdp: FinitePolicy[InventoryState, int] = FinitePolicy(
-        {InventoryState(alpha, beta):
-         Constant(user_capacity - (alpha + beta)) for alpha in
-         range(user_capacity + 1) for beta in range(user_capacity + 1 - alpha)}
+    fdp: FiniteDeterministicPolicy[InventoryState, int] = \
+        FiniteDeterministicPolicy(
+            {InventoryState(alpha, beta): user_capacity - (alpha + beta)
+             for alpha in range(user_capacity + 1)
+             for beta in range(user_capacity + 1 - alpha)}
     )
 
-    print("Policy Map")
-    print("----------")
+    print("Deterministic Policy Map")
+    print("------------------------")
     print(fdp)
 
     implied_mrp: FiniteMarkovRewardProcess[InventoryState] =\
         si_mdp.apply_finite_policy(fdp)
     print("Implied MP Transition Map")
     print("--------------")
-    print(FiniteMarkovProcess(implied_mrp.transition_map))
+    print(FiniteMarkovProcess(
+        {s.state: Categorical({s1.state: p for s1, p in v.table().items()})
+         for s, v in implied_mrp.transition_map.items()}
+    ))
 
     print("Implied MRP Transition Reward Map")
     print("---------------------")
