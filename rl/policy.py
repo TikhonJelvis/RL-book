@@ -4,7 +4,8 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import (Callable, Generic, Iterable, Mapping, TypeVar)
 
-from rl.distribution import (Choose, Constant, Distribution, FiniteDistribution)
+from rl.distribution import (Choose, Constant, Distribution,
+                             FiniteDistribution)
 from rl.markov_process import (NonTerminal)
 
 A = TypeVar('A')
@@ -26,11 +27,11 @@ class Policy(ABC, Generic[S, A]):
 
 
 @dataclass(frozen=True)
-class UniformRandom(Policy[S, A]):
-    valid_actions: Callable[[NonTerminal[S]], Iterable[A]]
+class UniformPolicy(Policy[S, A]):
+    valid_actions: Callable[[S], Iterable[A]]
 
     def act(self, state: NonTerminal[S]) -> Choose[A]:
-        return Choose(set(self.valid_actions(state)))
+        return Choose(set(self.valid_actions(state.state)))
 
 
 @dataclass(frozen=True)
@@ -53,10 +54,10 @@ class RandomPolicy(Policy[S, A]):
 
 @dataclass(frozen=True)
 class DeterministicPolicy(Policy[S, A]):
-    action_for: Callable[[NonTerminal[S]], A]
+    action_for: Callable[[S], A]
 
     def act(self, state: NonTerminal[S]) -> Constant[A]:
-        return Constant(self.action_for(state))
+        return Constant(self.action_for(state.state))
 
 
 class Always(DeterministicPolicy[S, A]):
@@ -71,14 +72,12 @@ class Always(DeterministicPolicy[S, A]):
         super().__init__(lambda _: action)
 
 
+@dataclass(frozen=True)
 class FinitePolicy(Policy[S, A]):
     ''' A policy where the state and action spaces are finite.
 
     '''
     policy_map: Mapping[S, FiniteDistribution[A]]
-
-    def __init__(self, policy_map: Mapping[S, FiniteDistribution[A]]):
-        self.policy_map = policy_map
 
     def __repr__(self) -> str:
         display = ""
@@ -91,6 +90,7 @@ class FinitePolicy(Policy[S, A]):
     def act(self, state: NonTerminal[S]) -> FiniteDistribution[A]:
         return self.policy_map[state.state]
 
+
 class FiniteDeterministicPolicy(FinitePolicy[S, A]):
     '''A deterministic policy where the state and action spaces are
     finite.
@@ -100,7 +100,8 @@ class FiniteDeterministicPolicy(FinitePolicy[S, A]):
 
     def __init__(self, action_for: Mapping[S, A]):
         self.action_for = action_for
-        super().__init__(policy_map={s: Constant(a) for s, a in self.action_for.items()})
+        super().__init__(policy_map={s: Constant(a) for s, a in
+                                     self.action_for.items()})
 
     def __repr__(self) -> str:
         display = ""
