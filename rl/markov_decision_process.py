@@ -11,7 +11,7 @@ from rl.distribution import (Categorical, Distribution, FiniteDistribution)
 from rl.markov_process import (
     FiniteMarkovRewardProcess, MarkovRewardProcess, StateReward, State,
     NonTerminal, Terminal)
-from rl.policy import (FinitePolicy, Policy, UniformRandom)
+from rl.policy import FinitePolicy, Policy
 
 A = TypeVar('A')
 S = TypeVar('S')
@@ -71,13 +71,6 @@ class MarkovDecisionProcess(ABC, Generic[S, A]):
     @abstractmethod
     def actions(self, state: NonTerminal[S]) -> Iterable[A]:
         pass
-
-    def explore_policy(self) -> UniformRandom[S, A]:
-        '''The policy that selects a random valid action for each state
-        uniformly at random.
-
-        '''
-        return UniformRandom(self.actions)
 
     @abstractmethod
     def step(
