@@ -2,7 +2,8 @@ from dataclasses import dataclass
 from typing import Sequence, Callable, Tuple, Iterator, List
 from rl.distribution import Distribution, SampledDistribution, Choose, Gaussian
 from rl.markov_decision_process import MarkovDecisionProcess, \
-    DeterministicPolicy, NonTerminal, State, Terminal
+    NonTerminal, State, Terminal
+from rl.policy import DeterministicPolicy
 from rl.function_approx import DNNSpec, AdamGradient, DNNApprox
 from rl.approximate_dynamic_programming import back_opt_vf_and_policy, \
     back_opt_qvf, ValueFunctionApprox, QValueFunctionApprox
@@ -228,7 +229,7 @@ if __name__ == '__main__':
     )
 
     # vf_ff: Sequence[Callable[[NonTerminal[float]], float]] = [lambda _: 1., lambda w: w.state]
-    # it_vf: Iterator[Tuple[DNNApprox[NonTerminal[float], DeterministicPolicy[float, float]]] = \
+    # it_vf: Iterator[Tuple[DNNApprox[NonTerminal[float]], DeterministicPolicy[float, float]]] = \
     #     aad.backward_induction_vf_and_pi(vf_ff)
 
     # print("Backward Induction: VF And Policy")
@@ -237,7 +238,7 @@ if __name__ == '__main__':
     # for t, (v, p) in enumerate(it_vf):
     #     print(f"Time {t:d}")
     #     print()
-    #     opt_alloc: float = p.deterministic_policy_func(NonTerminal(init_wealth))
+    #     opt_alloc: float = p.action_for(init_wealth)
     #     val: float = v(NonTerminal(init_wealth))
     #     print(f"Opt Risky Allocation = {opt_alloc:.2f}, Opt Val = {val:.3f}")
     #     print("Weights")

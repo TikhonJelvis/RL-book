@@ -3,7 +3,8 @@ from typing import Callable, Sequence, Tuple, Iterator
 from rl.distribution import Distribution, SampledDistribution, Choose
 from rl.function_approx import FunctionApprox, LinearFunctionApprox
 from rl.markov_decision_process import MarkovDecisionProcess, \
-    DeterministicPolicy, NonTerminal, State
+    NonTerminal, State
+from rl.policy import DeterministicPolicy
 from rl.approximate_dynamic_programming import back_opt_vf_and_policy, \
     ValueFunctionApprox
 
@@ -201,15 +202,15 @@ if __name__ == '__main__':
     print("Backward Induction: VF And Policy")
     print("---------------------------------")
     print()
-    for t, (v, p) in enumerate(it_vf):
+    for t, (vf, pol) in enumerate(it_vf):
         print(f"Time {t:d}")
         print()
-        opt_sale: int = p.deterministic_policy_func(NonTerminal(state))
-        val: float = v(NonTerminal(state))
+        opt_sale: int = pol.action_for(state)
+        val: float = vf(NonTerminal(state))
         print(f"Optimal Sales = {opt_sale:d}, Opt Val = {val:.3f}")
         print()
         print("Optimal Weights below:")
-        print(v.weights.weights)
+        print(vf.weights.weights)
         print()
 
     print("Analytical Solution")

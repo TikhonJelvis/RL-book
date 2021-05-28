@@ -4,9 +4,8 @@ from rl.chapter11.control_utils import q_learning_finite_learning_rate
 from rl.chapter11.control_utils import get_vf_and_policy_from_qvf
 from dataclasses import dataclass
 from rl.distribution import Categorical
-from rl.markov_process import NonTerminal
 from rl.markov_decision_process import FiniteMarkovDecisionProcess
-from rl.markov_decision_process import FiniteDeterministicPolicy
+from rl.policy import FiniteDeterministicPolicy
 from rl.approximate_dynamic_programming import QValueFunctionApprox
 from rl.dynamic_programming import value_iteration_result, V
 import itertools
@@ -213,7 +212,7 @@ class WindyGrid:
                                         for j in range(self.columns)))
         print()
         pol_full_dict = {
-            **{s: possible_moves[policy.deterministic_policy_map[NonTerminal(s)]]
+            **{s: possible_moves[policy.action_for[s]]
                for s in self.get_all_nt_states()},
             **{s: 'T' for s in self.terminals},
             **{s: 'X' for s in self.blocks}

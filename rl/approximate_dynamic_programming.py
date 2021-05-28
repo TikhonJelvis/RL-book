@@ -15,9 +15,9 @@ from rl.iterate import iterate
 from rl.markov_process import (FiniteMarkovRewardProcess, MarkovRewardProcess,
                                RewardTransition, NonTerminal, State)
 from rl.markov_decision_process import (FiniteMarkovDecisionProcess,
-                                        DeterministicPolicy,
                                         MarkovDecisionProcess,
                                         StateActionMapping)
+from rl.policy import DeterministicPolicy
 
 S = TypeVar('S')
 A = TypeVar('A')
