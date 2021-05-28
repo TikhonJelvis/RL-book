@@ -4,13 +4,14 @@ Markov Decision Processes.
 '''
 
 from typing import Iterable, Iterator, TypeVar, Callable
-
+from rl.distribution import Categorical
 from rl.approximate_dynamic_programming import (ValueFunctionApprox,
                                                 QValueFunctionApprox,
-                                                NTStateDistribution,
-                                                epsilon_greedy_policy)
+                                                NTStateDistribution)
 from rl.iterate import last
-from rl.markov_decision_process import MarkovDecisionProcess, Policy, TransitionStep
+from rl.markov_decision_process import MarkovDecisionProcess, Policy, \
+    TransitionStep, NonTerminal
+from rl.policy import DeterministicPolicy, RandomPolicy, UniformPolicy
 import rl.markov_process as mp
 from rl.returns import returns
 
@@ -51,6 +52,33 @@ def mc_prediction(
         ))
         assert f is not None
         yield f
+
+
+def optimal_q_policy(
+    q: QValueFunctionApprox[S, A],
+    actions: Callable[[NonTerminal[S]], Iterable[A]]
+) -> DeterministicPolicy[S, A]:
+    '''Return the policy that takes the optimal action at each state based
+    on the given approximation of the process's Q function.
+
+    '''
+    def optimal_action(s: S) -> A:
+        _, a = q.argmax((NonTerminal(s), a) for a in actions(NonTerminal(s)))
+        return a
+    return DeterministicPolicy(optimal_action)
+
+
+def epsilon_greedy_policy(
+    q: QValueFunctionApprox[S, A],
+    mdp: MarkovDecisionProcess[S, A],
+    ε: float = 0.0
+) -> Policy[S, A]:
+    def explore(s: S, mdp=mdp) -> Iterable[A]:
+        return mdp.actions(NonTerminal(s))
+    return RandomPolicy(Categorical(
+        {UniformPolicy(explore): ε,
+         optimal_q_policy(q, mdp.actions): 1 - ε}
+    ))
 
 
 def glie_mc_control(
