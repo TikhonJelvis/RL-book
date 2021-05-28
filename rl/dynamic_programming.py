@@ -8,7 +8,7 @@ from rl.iterate import converged, iterate
 from rl.markov_process import NonTerminal, State
 from rl.markov_decision_process import (FiniteMarkovDecisionProcess,
                                         FiniteMarkovRewardProcess)
-from rl.policy import (FinitePolicy, FiniteDeterministicPolicy)
+from rl.policy import FinitePolicy, FiniteDeterministicPolicy
 
 A = TypeVar('A')
 S = TypeVar('S')
