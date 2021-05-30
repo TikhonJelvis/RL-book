@@ -1058,11 +1058,17 @@ Now we are ready to write algorithms for Approximate Dynamic Programming (ADP). 
 
 The first Approximate Dynamic Programming (ADP) algorithm we cover is Approximate Policy Evaluation, i.e., evaluating the Value Function for a Markov Reward Process (MRP). Approximate Policy Evaluation is fundamentally the same as Tabular Policy Evaluation in terms of repeatedly applying the Bellman Policy Operator $\bm{B^}\pi$ on the Value Function $V: \mathcal{N} \rightarrow \mathbb{R}$. However, unlike Tabular Policy Evaluation algorithm, the Value Function $V(\cdot)$ is set up and updated as an instance of `FunctionApprox` rather than as a table of values for the non-terminal states. This is because unlike Tabular Policy Evaluation which operates on an instance of a `FiniteMarkovRewardProcess`, Approximate Policy Evaluation algorithm operates on an instance of `MarkovRewardProcess`. So we do not have an enumeration of states of the MRP and we do not have the transition probabilities of the MRP. This is typical in many real-world problems where the state space is either very large or is continuous-valued, and the transitions could be too many or could be continuous-valued transitions. So, here's what we do to overcome these challenges:
 
-* We specify a sampling probability distribution of non-terminal states (argument `non_terminal_states_distribution` in the code below) from which we shall sample a specified number (`num_state_samples` in the code below) of non-terminal states, and construct a list of those sampled non-terminal states (`nt_states` in the code below) in each iteration.
-* We sample pairs of (next state $s'$, reward $r$) from a given non-terminal state $s$, and calculate the expectation $\mathbb{E}[r + \gamma \cdot V(s')]$ by averaging $r+\gamma \cdot V(s')$ across the sampled pairs. Note that the method `expectation` of a `Distribution` object performs a sampled expectation. $V(s')$ is obtained from the function approximation instance of `FunctionApprox` that is being updated in each iteration.
-* The sampled list of non-terminal states $s$ comprise our $x$-values and the associated sampled expectations described above comprise our $y$-values. This list of $(x,y)$ pairs are used to update the approximation of the Value Function in each iteration (producing a new instance of `FunctionApprox` using it's `update` method).
+* We specify a sampling probability distribution of non-terminal states (argument `non_terminal_states_distribution` in the code below) from which we shall sample a specified number (`num_state_samples` in the code below) of non-terminal states, and construct a list of those sampled non-terminal states (`nt_states` in the code below) in each iteration. The type of this probability distribution of non-terminal states is aliased as follows (this type will be used not just for Approximate Dynamic Programming algorithms, but also for Reinforcement Learning algorithms):
+```python
+NTStateDistribution = Distribution[NonTerminal[S]]
+```
+* We sample pairs of (next state $s'$, reward $r$) from a given non-terminal state $s$, and calculate the expectation $\mathbb{E}[r + \gamma \cdot V(s')]$ by averaging $r+\gamma \cdot V(s')$ across the sampled pairs. Note that the method `expectation` of a `Distribution` object performs a sampled expectation. $V(s')$ is obtained from the function approximation instance of `FunctionApprox` that is being updated in each iteration. The type of the function approximation of the Value Function is aliased as follows (this type will be used not just for Approximate Dynamic Programming algorithms, but also for Reinforcement Learning Algorithms).
+```python
+ValueFunctionApprox = FunctionApprox[NonTerminal[S]]
+```
+* The sampled list of non-terminal states $s$ comprise our $x$-values and the associated sampled expectations described above comprise our $y$-values. This list of $(x,y)$ pairs are used to update the approximation of the Value Function in each iteration (producing a new instance of `ValueFunctionApprox` using it's `update` method).
 
-The entire code is shown below. `evaluate_mrp` produces an `Iterator` on `FunctionApprox` instances, and the code that calls `evaluate_mrp` can decide when/how to terminate the iterations of Approximate Policy Evaluation.
+The entire code is shown below. `evaluate_mrp` produces an `Iterator` on `ValueFunctionApprox` instances, and the code that calls `evaluate_mrp` can decide when/how to terminate the iterations of Approximate Policy Evaluation.
 
 ```python
 from rl.iterate import iterate
@@ -1070,19 +1076,18 @@ from rl.iterate import iterate
 def evaluate_mrp(
     mrp: MarkovRewardProcess[S],
     gamma: float,
-    approx_0: FunctionApprox[S],
-    non_terminal_states_distribution: Distribution[S],
+    approx_0: ValueFunctionApprox[S],
+    non_terminal_states_distribution: NTStateDistribution[S],
     num_state_samples: int
-) -> Iterator[FunctionApprox[S]]:
+) -> Iterator[ValueFunctionApprox[S]]:
 
-    def update(v: FunctionApprox[S]) -> FunctionApprox[S]:
-        nt_states: Sequence[S] = non_terminal_states_distribution.sample_n(
-            num_state_samples
-        )
+    def update(v: ValueFunctionApprox[S]) -> ValueFunctionApprox[S]:
+        nt_states: Sequence[NonTerminal[S]] = \
+            non_terminal_states_distribution.sample_n(num_state_samples)
 
-        def return_(s_r: Tuple[S, float]) -> float:
-            s, r = s_r
-            return r + gamma * v.evaluate([s]).item()
+        def return_(s_r: Tuple[State[S], float]) -> float:
+            s1, r = s_r
+            return r + gamma * extended_vf(v, s1)
 
         return v.update(
             [(s, mrp.transition_reward(s).expectation(return_))
@@ -1092,9 +1097,19 @@ def evaluate_mrp(
     return iterate(update, approx_0)
 ```
 
+Notice the function `extended_vf` used to evaluate the Value Function for the next state transitioned to. However, the next state could be terminal or non-terminal, and the Value Function is only defined for non-terminal states. `extended_vf` utilizes the method `on_non_terminal` we had written in Chapter [-@sec:mrp-chapter] when designing the `State` class - it evaluates to the default value of 0 for a terminal state (and evaluates the given `ValueFunctionApprox` for a non-terminal state). 
+
+```python
+def extended_vf(vf: ValueFunctionApprox[S], s: State[S]) -> float:
+    return s.on_non_terminal(vf, 0.0)
+```
+
+`extended_vf` will be useful not just for Approximate Dynamic Programming algorithms, but also for Reinforcement Learning algorithm.
+
+
 ### Approximate Value Iteration
 
-Now that we've understood and coded Approximate Policy Evaluation (to solve the Prediction problem), we can extend the same concepts to Approximate Value Iteration (to solve the Control problem). The code below in `value_iteration` is almost the same as the code above in `evaluate_mrp`, except that instead of a `MarkovRewardProcess` at each time step, here we have a `MarkovDecisionProcess` at each time step, and instead of the Bellman Policy Operator update, here we have the Bellman Optimality Operator update. Therefore, in the Value Function update, we maximize the $Q$-value function (over all actions $a$) for each non-terminal state $s$. Also, similar to `evaluate_mrp`, `value_iteration` produces an `Iterator` on `FunctionApprox` instances, and the code that calls `value_iteration` can decide when/how to terminate the iterations of Approximate Value Iteration.
+Now that we've understood and coded Approximate Policy Evaluation (to solve the Prediction problem), we can extend the same concepts to Approximate Value Iteration (to solve the Control problem). The code below in `value_iteration` is almost the same as the code above in `evaluate_mrp`, except that instead of a `MarkovRewardProcess` at each time step, here we have a `MarkovDecisionProcess` at each time step, and instead of the Bellman Policy Operator update, here we have the Bellman Optimality Operator update. Therefore, in the Value Function update, we maximize the $Q$-value function (over all actions $a$) for each non-terminal state $s$. Also, similar to `evaluate_mrp`, `value_iteration` produces an `Iterator` on `ValueFunctionApprox` instances, and the code that calls `value_iteration` can decide when/how to terminate the iterations of Approximate Value Iteration.
 
 ```python
 from rl.iterate import iterate
@@ -1102,19 +1117,18 @@ from rl.iterate import iterate
 def value_iteration(
     mdp: MarkovDecisionProcess[S, A],
     gamma: float,
-    approx_0: FunctionApprox[S],
-    non_terminal_states_distribution: Distribution[S],
+    approx_0: ValueFunctionApprox[S],
+    non_terminal_states_distribution: NTStateDistribution[S],
     num_state_samples: int
-) -> Iterator[FunctionApprox[S]]:
+) -> Iterator[ValueFunctionApprox[S]]:
 
-    def update(v: FunctionApprox[S]) -> FunctionApprox[S]:
-        nt_states: Sequence[S] = non_terminal_states_distribution.sample_n(
-            num_state_samples
-        )
+    def update(v: ValueFunctionApprox[S]) -> ValueFunctionApprox[S]:
+        nt_states: Sequence[NonTerminal[S]] = \
+            non_terminal_states_distribution.sample_n(num_state_samples)
 
-        def return_(s_r: Tuple[S, float]) -> float:
-            s, r = s_r
-            return r + gamma * v.evaluate([s]).item()
+        def return_(s_r: Tuple[State[S], float]) -> float:
+            s1, r = s_r
+            return r + gamma * extended_vf(v, s1)
 
         return v.update(
             [(s, max(mdp.step(s, a).expectation(return_)
@@ -1123,7 +1137,6 @@ def value_iteration(
         )
 
     return iterate(update, approx_0)
-
 ```
 
 ### Finite-Horizon Approximate Policy Evaluation
@@ -1133,38 +1146,34 @@ Next, we move on to Approximate Policy Evaluation in a finite-horizon setting, m
 In the `backward_evaluate` code below, the input argument `mrp_f0_mu_triples` is a list of triples, with each triple corresponding to each non-terminal time step in the finite horizon. Each triple consists of:
 
 * An instance of `MarkovRewardProceess` - note that each time step has it's own instance of `MarkovRewardProcess` representation of transitions from non-terminal states $s$ in a time step $t$ to the (state $s'$, reward $r$) pairs in the next time step $t+1$ (variable `mrp` in the code below).
-* An instance of `FunctionApprox` to capture the approximate Value Function for the time step (variable `approx0` in the code below, representing the initial `FunctionApprox` instance).
+* An instance of `ValueFunctionApprox` to capture the approximate Value Function for the time step (variable `approx0` in the code below, representing the initial `ValueFunctionApprox` instance).
 * A sampling probability distribution of non-terminal states in the time step (variable `mu` in the code below).
 
-The backward induction code below should be pretty self-explanatory. Note that in backward induction, we don't invoke the `update` method of `FunctionApprox` like we did in the non-finite-horizon cases - here we invoke the `solve` method which internally performs a series of `update`s on the `FunctionApprox` for a given time step (until we converge to within a specified level of `error_tolerance`). In the non-finite-horizon cases, it was okay to simply do a single `update` in each iteration because we revisit the same set of states in further iterations. Here, once we converge to an acceptable `FunctionApprox` (using `solve`) for a specific time step, we won't be performing any more updates to the Value Function for that time step (since we move on to the next time step, in reverse). `backward_evaluate` returns an Iterator over `FunctionApprox` objects, from time step 0 to the horizon time step. We should point out that in the code below, we've taken special care to handle terminal states that occur before the end of the horizon.
+The backward induction code below should be pretty self-explanatory. Note that in backward induction, we don't invoke the `update` method of `FunctionApprox` like we did in the non-finite-horizon cases - here we invoke the `solve` method which internally performs a series of `update`s on the `FunctionApprox` for a given time step (until we converge to within a specified level of `error_tolerance`). In the non-finite-horizon cases, it was okay to simply do a single `update` in each iteration because we revisit the same set of states in further iterations. Here, once we converge to an acceptable `ValueFunctionApprox` (using `solve`) for a specific time step, we won't be performing any more updates to the Value Function for that time step (since we move on to the next time step, in reverse). `backward_evaluate` returns an Iterator over `ValueFunctionApprox` objects, from time step 0 to the horizon time step. We should point out that in the code below, we've taken special care to handle terminal states that occur before the end of the horizon.
 
 ```python
-MRP_FuncApprox_Distribution = \
-    Tuple[MarkovRewardProcess[S], FunctionApprox[S], Distribution[S]]
+MRP_FuncApprox_Distribution = Tuple[MarkovRewardProcess[S],
+                                    ValueFunctionApprox[S],
+                                    NTStateDistribution[S]]
 
 def backward_evaluate(
     mrp_f0_mu_triples: Sequence[MRP_FuncApprox_Distribution[S]],
     gamma: float,
     num_state_samples: int,
     error_tolerance: float
-) -> Iterator[FunctionApprox[S]]:
-    v: List[FunctionApprox[S]] = []
-
-    num_steps: int = len(mrp_f0_mu_triples)
+) -> Iterator[ValueFunctionApprox[S]]:
+    v: List[ValueFunctionApprox[S]] = []
 
     for i, (mrp, approx0, mu) in enumerate(reversed(mrp_f0_mu_triples)):
 
-        def return_(s_r: Tuple[S, float], i=i) -> float:
+        def return_(s_r: Tuple[State[S], float], i=i) -> float:
             s1, r = s_r
-            return r + gamma * (v[i-1].evaluate([s1]).item() if i > 0 and not
-                            mrp_f0_mu_triples[num_steps - i][0].is_terminal(s1)
-                            else 0.)
+            return r + gamma * (extended_vf(v[i-1], s1) if i > 0 else 0.)
 
         v.append(
             approx0.solve(
                 [(s, mrp.transition_reward(s).expectation(return_))
-                 for s in mu.sample_n(num_state_samples)
-                 if not mrp.is_terminal(s)],
+                 for s in mu.sample_n(num_state_samples)],
                 error_tolerance
             )
         )
@@ -1174,7 +1183,7 @@ def backward_evaluate(
 
 ### Finite-Horizon Approximate Value Iteration
 
-Now that we've understood and coded finite-horizon Approximate Policy Evaluation (to solve the finite-horizon Prediction problem), we can extend the same concepts to finite-horizon Approximate Value Iteration (to solve the finite-horizon Control problem). The code below in `back_opt_vf_and_policy` is almost the same as the code above in `backward_evaluate`, except that instead of a `MarkovRewardProcess`, here we have a `MarkovDecisionProcess`. For each non-terminal time step, we maximize the $Q$-value function (over all actions $a$) for each non-terminal state $s$. `back_opt_vf_and_policy` returns an Iterator over pairs of `FunctionApprox` and `Policy` objects (representing the Optimal Value Function and the Optimal Policy respectively), from time step 0 to the horizon time step.
+Now that we've understood and coded finite-horizon Approximate Policy Evaluation (to solve the finite-horizon Prediction problem), we can extend the same concepts to finite-horizon Approximate Value Iteration (to solve the finite-horizon Control problem). The code below in `back_opt_vf_and_policy` is almost the same as the code above in `backward_evaluate`, except that instead of a `MarkovRewardProcess`, here we have a `MarkovDecisionProcess`. For each non-terminal time step, we maximize the $Q$-Value function (over all actions $a$) for each non-terminal state $s$. `back_opt_vf_and_policy` returns an Iterator over pairs of `ValueFunctionApprox` and `DeterministicPolicy` objects (representing the Optimal Value Function and the Optimal Policy respectively), from time step 0 to the horizon time step.
 
 ```python
 from rl.distribution import Constant
@@ -1182,8 +1191,8 @@ from operator import itemgetter
 
 MDP_FuncApproxV_Distribution = Tuple[
     MarkovDecisionProcess[S, A],
-    FunctionApprox[S],
-    Distribution[S]
+    ValueFunctionApprox[S],
+    NTStateDistribution[S]
 ]
 
 def back_opt_vf_and_policy(
@@ -1191,36 +1200,30 @@ def back_opt_vf_and_policy(
     gamma: float,
     num_state_samples: int,
     error_tolerance: float
-) -> Iterator[Tuple[FunctionApprox[S], Policy[S, A]]]:
-    vp: List[Tuple[FunctionApprox[S], Policy[S, A]]] = []
-
-    num_steps: int = len(mdp_f0_mu_triples)
+) -> Iterator[Tuple[ValueFunctionApprox[S], DeterministicPolicy[S, A]]]:
+    vp: List[Tuple[ValueFunctionApprox[S], DeterministicPolicy[S, A]]] = []
 
     for i, (mdp, approx0, mu) in enumerate(reversed(mdp_f0_mu_triples)):
 
-        def return_(s_r: Tuple[S, float], i=i) -> float:
+        def return_(s_r: Tuple[State[S], float], i=i) -> float:
             s1, r = s_r
-            return r + gamma * (vp[i-1][0].evaluate([s1]).item() if i > 0 and not
-                            mdp_f0_mu_triples[num_steps - i][0].is_terminal(s1)
-                            else 0.)
+            return r + gamma * (extended_vf(vp[i-1][0], s1) if i > 0 else 0.)
 
         this_v = approx0.solve(
             [(s, max(mdp.step(s, a).expectation(return_)
                      for a in mdp.actions(s)))
-             for s in mu.sample_n(num_state_samples)
-             if not mdp.is_terminal(s)],
+             for s in mu.sample_n(num_state_samples)],
             error_tolerance
         )
 
-        class ThisPolicy(Policy[S, A]):
-            def act(self, state: S) -> Constant[A]:
-                return Constant(max(
-                    ((mdp.step(state, a).expectation(return_), a)
-                     for a in mdp.actions(state)),
-                    key=itemgetter(0)
-                )[1])
+        def deter_policy(state: S) -> A:
+            return max(
+                ((mdp.step(NonTerminal(state), a).expectation(return_), a)
+                 for a in mdp.actions(NonTerminal(state))),
+                key=itemgetter(0)
+            )[1]
 
-        vp.append((this_v, ThisPolicy()))
+        vp.append((this_v, DeterministicPolicy(deter_policy)))
 
     return reversed(vp)
 ```
@@ -1229,13 +1232,19 @@ def back_opt_vf_and_policy(
 
 The above code for Finite-Horizon Approximate Value Iteration extends the Finite-Horizon Backward Induction Value Iteration algorithm of Chapter [-@sec:dp-chapter] by treating the Value Function as a function approximation instead of an exact tabular representation. However, there is an alternative (and arguably simpler and more effective) way to solve the Finite-Horizon Control problem - we can perform backward induction on the optimal Action-Value (Q-value) function instead of the optimal (State-)Value Function. The key advantage of working with the optimal Action Value function is that it has all the information necessary to extract the optimal State-Value function and the optimal Policy (since we just need to perform a $\max/\argmax$ over all the actions for any non-terminal state). This contrasts with the case of working with the optimal State-Value function which requires us to also avail of the transition probabilities, rewards and discount factor in order to extract the optimal policy. Performing backward induction on the optimal Q-value function means that knowledge of the optimal Q-value function for a given time step $t$ immediately gives us the optimal State-Value function and the optimal policy for the same time step $t$. This contrasts with performing backward induction on the optimal State-Value function - knowledge of the optimal State-Value function for a given time step $t$ cannot give us the optimal policy for the same time step $t$ (for that, we need the optimal State-Value function for time step $t+1$ and furthermore, we also need the $t$ to $t+1$ state/reward transition probabilities).
 
-So now we develop an algorithm that works with a function approximation for the Q-Value function and steps back in time similar to the backward induction we had performed earlier for the (State-)Value function. The code below in `back_opt_qvf` is quite similar to the code above in `back_opt_vf_and_policy`. The key difference is that the `FunctionApprox` in the input to the function needs to be set up as a `FunctionApprox[Tuple[S, A]]` instead of `FunctionApprox[S]` to reflect the fact that we are approximating $Q_t^*: \mathcal{N}_t \times \mathcal{A}_t \rightarrow \mathbb{R}$ for all time steps $t$ in the finite horizon. For each non-terminal time step, we express the $Q$-value function (for a set of sample non-terminal states $s$ and for all actions $a$) in terms of the $Q$-value function approximation of the next time step. This is essentially the MDP Action-Value Function Bellman Optimality Equation for the finite-horizon case (adapted to function approximation). `back_opt_qvf` returns an Iterator over `FunctionApprox[Tuple[S, A]]` (representing the Optimal Q-Value Function), from time step 0 to the horizon time step. We can then obtain $V^*_t$ (Optimal State-Value Function) and $\pi^*_t$ for each $t$ by simply performing a $\max/\argmax$ over all actions $a \in \mathcal{A}_t$ of $Q^*_t(s, a)$ for any $s \in \mathcal{N}_t$.
+So now we develop an algorithm that works with a function approximation for the Q-Value function and steps back in time similar to the backward induction we had performed earlier for the (State-)Value function. Just like we defined an alias type `ValueFunctionApprox` for the State-Value function, we define an alias type `QValueFunctionApprox` for the Action-Value function, as follows:
+
+```python
+QValueFunctionApprox = FunctionApprox[Tuple[NonTerminal[S], A]]
+```
+
+The code below in `back_opt_qvf` is quite similar to the code above in `back_opt_vf_and_policy`. The key difference is that we have `QValueFunctionApprox` in the input to the function rather than `ValueFunctionApprox` to reflect the fact that we are approximating $Q_t^*: \mathcal{N}_t \times \mathcal{A}_t \rightarrow \mathbb{R}$ for all time steps $t$ in the finite horizon. For each non-terminal time step, we express the $Q$-value function (for a set of sample non-terminal states $s$ and for all actions $a$) in terms of the $Q$-value function approximation of the next time step. This is essentially the MDP Action-Value Function Bellman Optimality Equation for the finite-horizon case (adapted to function approximation). `back_opt_qvf` returns an Iterator over `QValueFunctionApprox` (representing the Optimal Q-Value Function), from time step 0 to the horizon time step. We can then obtain $V^*_t$ (Optimal State-Value Function) and $\pi^*_t$ for each $t$ by simply performing a $\max/\argmax$ over all actions $a \in \mathcal{A}_t$ of $Q^*_t(s, a)$ for any $s \in \mathcal{N}_t$.
 
 ```python
 MDP_FuncApproxQ_Distribution = Tuple[
     MarkovDecisionProcess[S, A],
-    FunctionApprox[Tuple[S, A]],
-    Distribution[S]
+    QValueFunctionApprox[S, A],
+    NTStateDistribution[S]
 ]
 
 def back_opt_qvf(
@@ -1243,28 +1252,23 @@ def back_opt_qvf(
     gamma: float,
     num_state_samples: int,
     error_tolerance: float
-) -> Iterator[FunctionApprox[Tuple[S, A]]]:
+) -> Iterator[QValueFunctionApprox[S, A]]:
     horizon: int = len(mdp_f0_mu_triples)
-    qvf: List[FunctionApprox[Tuple[S, A]]] = []
-
-    num_steps: int = len(mdp_f0_mu_triples)
+    qvf: List[QValueFunctionApprox[S, A]] = []
 
     for i, (mdp, approx0, mu) in enumerate(reversed(mdp_f0_mu_triples)):
 
-        def return_(s_r: Tuple[S, float], i=i) -> float:
+        def return_(s_r: Tuple[State[S], float], i=i) -> float:
             s1, r = s_r
-            return r + gamma * (
-                max(qvf[i-1].evaluate([(s1, a)]).item()
-                    for a in mdp_f0_mu_triples[horizon - i][0].actions(s1))
-                if i > 0 and
-                not mdp_f0_mu_triples[num_steps - i][0].is_terminal(s1)
-                else 0.
-            )
+            next_return: float = max(
+                qvf[i-1]((s1, a)) for a in
+                mdp_f0_mu_triples[horizon - i][0].actions(s1)
+            ) if i > 0 and isinstance(s1, NonTerminal) else 0.
+            return r + gamma * next_return
 
         this_qvf = approx0.solve(
             [((s, a), mdp.step(s, a).expectation(return_))
-             for s in mu.sample_n(num_state_samples)
-             if not mdp.is_terminal(s) for a in mdp.actions(s)],
+             for s in mu.sample_n(num_state_samples) for a in mdp.actions(s)],
             error_tolerance
         )
 
