@@ -71,9 +71,8 @@ if __name__ == '__main__':
     def policy_func(x: int) -> int:
         return 0 if x < 2 else (1 if x < 5 else (2 if x < 8 else 3))
 
-    stationary_policy: FinitePolicy[int, int] = FinitePolicy(
-        {s: Constant(policy_func(s)) for s in range(ii + 1)}
-    )
+    stationary_policy: FiniteDeterministicPolicy[int, int] = \
+        FiniteDeterministicPolicy({s: policy_func(s) for s in range(ii + 1)})
 
     single_step_mrp: FiniteMarkovRewardProcess[int] = \
         cp.single_step_mdp.apply_finite_policy(stationary_policy)
