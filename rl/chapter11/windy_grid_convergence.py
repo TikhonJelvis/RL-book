@@ -8,7 +8,7 @@ wg = WindyGrid(
     blocks={(0, 1), (0, 2), (0, 4), (2, 3), (3, 0), (4, 0)},
     terminals={(3, 4)},
     wind=[(0., 0.9), (0.0, 0.8), (0.7, 0.0), (0.8, 0.0), (0.9, 0.0)],
-    bump_cost=4.0
+    bump_cost=100000.0
 )
 valid = wg.validate_spec()
 if valid:
@@ -16,7 +16,7 @@ if valid:
     compare_mc_sarsa_ql(
         fmdp=fmdp,
         method_mask=[False, True, True],
-        learning_rates=[(0.05, 1000000, 0.5)],
+        learning_rates=[(0.03, 1e8, 1.0)],
         gamma=1.,
         epsilon_as_func_of_episodes=lambda k: 1. / k,
         q_learning_epsilon=0.2,
