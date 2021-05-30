@@ -1,5 +1,4 @@
 from typing import Tuple, Callable, Sequence
-from rl.chapter11.control_utils import glie_mc_finite_equal_wts_correctness
 from rl.chapter11.control_utils import glie_mc_finite_learning_rate_correctness
 from rl.chapter11.control_utils import \
     q_learning_finite_learning_rate_correctness
