@@ -50,11 +50,10 @@ def mc_prediction(
         f = last(f.iterate_updates(
             [(step.state, step.return_)] for step in episode
         ))
-        assert f is not None
         yield f
 
 
-def optimal_q_policy(
+def greedy_policy_from_qvf(
     q: QValueFunctionApprox[S, A],
     actions: Callable[[NonTerminal[S]], Iterable[A]]
 ) -> DeterministicPolicy[S, A]:
@@ -77,7 +76,7 @@ def epsilon_greedy_policy(
         return mdp.actions(NonTerminal(s))
     return RandomPolicy(Categorical(
         {UniformPolicy(explore): ε,
-         optimal_q_policy(q, mdp.actions): 1 - ε}
+         greedy_policy_from_qvf(q, mdp.actions): 1 - ε}
     ))
 
 

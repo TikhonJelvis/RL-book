@@ -150,26 +150,28 @@ where $\alpha$ is the learning rate in the gradient descent and $G_t$ is the tra
 Now let us write some code to implement the above description of GLIE Monte-Carlo Control, generalized to handle Function Approximation of the Q-Value Function. As you shall see in the code below, there are a couple of other generalizations from the algorithm outline described above. Let us start by understanding the various arguments to the below function `glie_mc_control`.
 
 * `mdp: MarkovDecisionProcess[S, A]` - This represents the interface to an abstract Markov Decision Process. Note that this interface doesn't provide any access to the transition probabilities or reward function. The core functionality available through this interface are the two `@abstractmethods` `step` and `actions`. The `step` method only allows us to access a sample of the next state and reward pair given the current state and action (since it returns an abstract `Distribution` object). The `actions` method gives us the allowable actions for a given state.
-* `states: Distribution[S]` - This represents an arbitrary distribution of the non-terminal states, which in turn allows us to sample the starting state (from this distribution) for each episode.
-* `approx_0: FunctionApprox[Tuple[S, A]]` - This represents the initial function approximation of the Q-Value function (that is meant to be updated, in an immutable manner, through the course of the algorithm).
+* `states: NTStateDistribution[S]` - This represents an arbitrary distribution of the non-terminal states, which in turn allows us to sample the starting state (from this distribution) for each episode.
+* `approx_0: QValueFunctionApprox[S, A]` - This represents the initial function approximation of the Q-Value function (that is meant to be updated, in an immutable manner, through the course of the algorithm).
 * `gamma: float` - This represents the discount factor to be used in estimating the Q-Value Function.
 * `epsilon_as_func_of_episodes: Callable[[int], float]` - This represents the extent of exploration ($\epsilon$) as a function of the number of episodes (allowing us to generalize from our default choice of $\epsilon(k) = \frac 1 k$).
 * `episode_length_tolerance: float` - This represents the $tolerance$ that determines the episode length $T$ (the minimum $T$ such that $\gamma^T < tolerance$).
 
-`glie_mc_control` produces a generator (`Iterator`) of Q-Value Function estimates at the end of each episode. The code is fairly self-explanatory. The method `simulate_actions` of `mdp: MarkovDecisionProcess` creates a single sampling trace (i.e., an episode). At the end of each episode, the `update` method of `FunctionApprox` updates the Q-Value Function (creates a new Q-Value Function without mutating the currrent Q-Value Function) using each of the trace returns (and associated state-actions pairs) from the episode. The $\epsilon$-greedy policy is derived from the Q-Value Function estimate by using the function `epsilon_greedy_policy` that is shown below and is quite self-explanatory (`epsilon_greedy_policy` is in the file [rl/markov_decision_process.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/markov_decision_process.py)).
+`glie_mc_control` produces a generator (`Iterator`) of Q-Value Function estimates at the end of each episode. The code is fairly self-explanatory. The method `simulate_actions` of `mdp: MarkovDecisionProcess` creates a single sampling trace (i.e., an episode). At the end of each episode, the `update` method of `FunctionApprox` updates the Q-Value Function (creates a new Q-Value Function without mutating the currrent Q-Value Function) using each of the trace returns (and associated state-actions pairs) from the episode. The $\epsilon$-greedy policy is derived from the Q-Value Function estimate by using the function `epsilon_greedy_policy` that is shown below and is quite self-explanatory.
 
 ```python
 from rl.markov_decision_process import epsilon_greedy_policy, TransitionStep
+from rl.approximate_dynamic_programming import QValueFunctionApprox
+from rl.approximate_dynamic_programming import NTStateDistribution
 
 def glie_mc_control(
     mdp: MarkovDecisionProcess[S, A],
-    states: Distribution[S],
-    approx_0: FunctionApprox[Tuple[S, A]],
+    states: NTStateDistribution[S],
+    approx_0: QValueFunctionApprox[S, A],
     gamma: float,
-    epislon_as_func_of_episodes: Callable[[int], float],
+    epsilon_as_func_of_episodes: Callable[[int], float],
     episode_length_tolerance: float = 1e-6
-) -> Iterator[FunctionApprox[Tuple[S, A]]]:
-    q: FunctionApprox[Tuple[S, A]] = approx_0
+) -> Iterator[QValueFunctionApprox[S, A]]:
+    q: QValueFunctionApprox[S, A] = approx_0
     p: Policy[S, A] = epsilon_greedy_policy(q, mdp, 1.0)
     yield q
 
@@ -178,41 +180,58 @@ def glie_mc_control(
         trace: Iterable[TransitionStep[S, A]] = \
             mdp.simulate_actions(states, p)
         num_episodes += 1
-        q = q.update(
-            ((step.state, step.action), step.return_)
-            for step in returns(trace, gamma, episode_length_tolerance)
+        for step in returns(trace, gamma, episode_length_tolerance):
+            q = q.update([((step.state, step.action), step.return_)])
+        p = epsilon_greedy_policy(
+            q,
+            mdp,
+            epsilon_as_func_of_episodes(num_episodes)
         )
-        p = epsilon_greedy_policy(q, mdp, epsilon_as_func_of_episodes(num_episodes))
         yield q
+```
+
+The implementation of `epsilon_greedy_policy` is as follows:   
+
+```python
+from rl.policy import DeterministicPolicy, Policy, RandomPolicy
+
+def greedy_policy_from_qvf(
+    q: QValueFunctionApprox[S, A],
+    actions: Callable[[NonTerminal[S]], Iterable[A]]
+) -> DeterministicPolicy[S, A]:
+    def optimal_action(s: S) -> A:
+        _, a = q.argmax((NonTerminal(s), a) for a in actions(NonTerminal(s)))
+        return a
+    return DeterministicPolicy(optimal_action)
+
+def epsilon_greedy_policy(
+    q: QValueFunctionApprox[S, A],
+    mdp: MarkovDecisionProcess[S, A],
+    epsilon: float = 0.0
+) -> Policy[S, A]:
+    def explore(s: S, mdp=mdp) -> Iterable[A]:
+        return mdp.actions(NonTerminal(s))
+    return RandomPolicy(Categorical(
+        {UniformPolicy(explore): epsilon,
+         optimal_q_policy(q, mdp.actions): 1 - epsilon}
+    ))
 ```
 
 The above code is in the file [rl/monte_carlo.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/monte_carlo.py).
 
+Note that `epsilon_greedy_policy` returns an instance of the class `RandomPolicy`. `RandomPolicy` creates a policy that randomly selects one of several specified policies (in this case, we need to select between the greedy policy of type `DeterministicPolicy`and the `UniformPolicy`). The implementation of `RandomPolicy` is shown below and you can find it's code in the file [rl/policy.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/policy.py).
+
 ```python
-from rl.distribution import Bernoulli, Choose, Constant
+@dataclass(frozen=True)
+class RandomPolicy(Policy[S, A]):
+    policy_choices: Distribution[Policy[S, A]]
 
-def epsilon_greedy_policy(
-        q: FunctionApprox[Tuple[S, A]],
-        mdp: MarkovDecisionProcess[S, A],
-        epsilon: float = 0.0
-) -> Policy[S, A]:
-    explore = Bernoulli(epsilon)
-
-    class QPolicy(Policy[S, A]):
-        def act(self, s: S) -> Optional[Distribution[A]]:
-            if mdp.is_terminal(s):
-                return None
-
-            if explore.sample():
-                return Choose(set(mdp.actions(s)))
-
-            _, action = q.argmax((s, a) for a in mdp.actions(s))
-            return Constant(action)
-
-    return QPolicy()
+    def act(self, state: NonTerminal[S]) -> Distribution[A]:
+        policy: Policy[S, A] = self.policy_choices.sample()
+        return policy.act(state)
 ```
 
-Let us test this on the simple inventory MDP we wrote in Chapter [-@sec:mdp-chapter].
+Now let us test `glie_mc_control` on the simple inventory MDP we wrote in Chapter [-@sec:mdp-chapter].
 
 ```python
 from rl.chapter3.simple_inventory_mdp_cap import SimpleInventoryMDPCap
@@ -233,7 +252,6 @@ si_mdp: SimpleInventoryMDPCap = SimpleInventoryMDPCap(
 
 First let's run Value Iteration so we can determine the true Optimal Value Function and Optimal Policy   
 
-
 ```python
 from rl.dynamic_programming import value_iteration_result
 true_opt_vf, true_opt_policy = value_iteration_result(fmdp, gamma=gamma)
@@ -247,25 +265,19 @@ This prints:
 
 ```
 True Optimal Value Function
-{InventoryState(on_hand=0, on_order=0): -34.89484576629397,
- InventoryState(on_hand=1, on_order=0): -28.660950216301437,
- InventoryState(on_hand=0, on_order=1): -27.66095021630144,
- InventoryState(on_hand=0, on_order=2): -27.991890076067463,
- InventoryState(on_hand=2, on_order=0): -29.991890076067463,
- InventoryState(on_hand=1, on_order=1): -28.991890076067467}
+{NonTerminal(state=InventoryState(on_hand=0, on_order=0)): -34.894855194671294,
+ NonTerminal(state=InventoryState(on_hand=0, on_order=1)): -27.66095964467877,
+ NonTerminal(state=InventoryState(on_hand=0, on_order=2)): -27.99189950444479,
+ NonTerminal(state=InventoryState(on_hand=1, on_order=0)): -28.66095964467877,
+ NonTerminal(state=InventoryState(on_hand=1, on_order=1)): -28.99189950444479,
+ NonTerminal(state=InventoryState(on_hand=2, on_order=0)): -29.991899504444792}
 True Optimal Policy
-For State InventoryState(on_hand=0, on_order=0):
-  Do Action 1 with Probability 1.000
-For State InventoryState(on_hand=0, on_order=1):
-  Do Action 1 with Probability 1.000
-For State InventoryState(on_hand=0, on_order=2):
-  Do Action 0 with Probability 1.000
-For State InventoryState(on_hand=1, on_order=0):
-  Do Action 1 with Probability 1.000
-For State InventoryState(on_hand=1, on_order=1):
-  Do Action 0 with Probability 1.000
-For State InventoryState(on_hand=2, on_order=0):
-  Do Action 0 with Probability 1.000
+For State InventoryState(on_hand=0, on_order=0): Do Action 1
+For State InventoryState(on_hand=0, on_order=1): Do Action 1
+For State InventoryState(on_hand=0, on_order=2): Do Action 0
+For State InventoryState(on_hand=1, on_order=0): Do Action 1
+For State InventoryState(on_hand=1, on_order=1): Do Action 0
+For State InventoryState(on_hand=2, on_order=0): Do Action 0  
 ```
 
 Now let's run GLIE MC Control with the following parameters:
@@ -273,6 +285,7 @@ Now let's run GLIE MC Control with the following parameters:
 ```python
 from rl.function_approx import Tabular
 from rl.distribution import Choose
+from rl.chapter3.simple_inventory_mdp_cap import InventoryState
 
 episode_length_tolerance: float = 1e-5
 epsilon_as_func_of_episodes: Callable[[int], float] = lambda k: k ** -0.5
@@ -280,7 +293,7 @@ initial_learning_rate: float = 0.1
 half_life: float = 10000.0
 exponent: float = 1.0
 
-initial_qvf_dict: Mapping[Tuple[S, A], float] = {
+initial_qvf_dict: Mapping[Tuple[NonTerminal[InventoryState], int], float] = {
     (s, a): 0. for s in si_mdp.non_terminal_states for a in si_mdp.actions(s)
 }
 learning_rate_func: Callable[[int], float] = learning_rate_schedule(
@@ -288,7 +301,7 @@ learning_rate_func: Callable[[int], float] = learning_rate_schedule(
     half_life=half_life,
     exponent=exponent
 )
-qvfs: Iterator[FunctionApprox[Tuple[S, A]]] = glie_mc_control(
+qvfs: Iterator[QValueFunctionApprox[InventoryState, int] = glie_mc_control(
     mdp=si_mdp,
     states=Choose(set(si_mdp.non_terminal_states)),
     approx_0=Tabular(
@@ -310,21 +323,22 @@ import itertools
 import rl.iterate as iterate
 
 num_episodes = 10000
-final_qvf: FunctionApprox[Tuple[S, A]] = \
+final_qvf: QValueFunctionApprox[InventoryState, int] = \
     iterate.last(itertools.islice(qvfs, num_episodes))
 
 def get_vf_and_policy_from_qvf(
     mdp: FiniteMarkovDecisionProcess[S, A],
-    qvf: FunctionApprox[Tuple[S, A]]
-) -> Tuple[V[S], FinitePolicy[S, A]]:
+    qvf: QValueFunctionApprox[S, A]
+) -> Tuple[V[S], FiniteDeterministicPolicy[S, A]]:
     opt_vf: V[S] = {
         s: max(qvf((s, a)) for a in mdp.actions(s))
         for s in mdp.non_terminal_states
     }
-    opt_policy: FinitePolicy[S, A] = FinitePolicy({
-        s: Constant(qvf.argmax((s, a) for a in mdp.actions(s))[1])
-        for s in mdp.non_terminal_states
-    })
+    opt_policy: FiniteDeterministicPolicy[S, A] = \
+        FiniteDeterministicPolicy({
+            s.state: qvf.argmax((s, a) for a in mdp.actions(s))[1]
+            for s in mdp.non_terminal_states
+        })
     return opt_vf, opt_policy
 
 opt_vf, opt_policy = get_vf_and_policy_from_qvf(
@@ -341,26 +355,22 @@ This prints:
 
 ```
 GLIE MC Optimal Value Function with 10000 episodes
-{InventoryState(on_hand=0, on_order=0): -35.264313848274746,
- InventoryState(on_hand=1, on_order=0): -28.976909203198172,
- InventoryState(on_hand=0, on_order=1): -27.919371014970242,
- InventoryState(on_hand=0, on_order=2): -28.3136884351702,
- InventoryState(on_hand=2, on_order=0): -30.228723325193638,
- InventoryState(on_hand=1, on_order=1): -29.465071124981524}
+{NonTerminal(state=InventoryState(on_hand=0, on_order=0)): -34.76212336633032,
+ NonTerminal(state=InventoryState(on_hand=0, on_order=1)): -27.90668364332291,
+ NonTerminal(state=InventoryState(on_hand=0, on_order=2)): -28.306190508518398,
+ NonTerminal(state=InventoryState(on_hand=1, on_order=0)): -28.548284937363526,
+ NonTerminal(state=InventoryState(on_hand=1, on_order=1)): -28.864409885059185,
+ NonTerminal(state=InventoryState(on_hand=2, on_order=0)): -30.23156422557605}
 GLIE MC Optimal Policy with 10000 episodes
-For State InventoryState(on_hand=0, on_order=0):
-  Do Action 1 with Probability 1.000
-For State InventoryState(on_hand=0, on_order=1):
-  Do Action 1 with Probability 1.000
-For State InventoryState(on_hand=0, on_order=2):
-  Do Action 0 with Probability 1.000
-For State InventoryState(on_hand=1, on_order=0):
-  Do Action 1 with Probability 1.000
-For State InventoryState(on_hand=1, on_order=1):
-  Do Action 0 with Probability 1.000
-For State InventoryState(on_hand=2, on_order=0):
-  Do Action 0 with Probability 1.000
+For State InventoryState(on_hand=0, on_order=0): Do Action 1
+For State InventoryState(on_hand=0, on_order=1): Do Action 1
+For State InventoryState(on_hand=0, on_order=2): Do Action 0
+For State InventoryState(on_hand=1, on_order=0): Do Action 1
+For State InventoryState(on_hand=1, on_order=1): Do Action 0
+For State InventoryState(on_hand=2, on_order=0): Do Action 0  
 ```
+
+We see that this reasonably converges to the true Value Function (and reaches the true Optimal Policy) as produced by Value Iteration.
 
 The code above is in the file [rl/chapter11/simple_inventory_mdp_cap.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/chapter11/simple_inventory.py). Also see the helper functions in [rl/chapter11/control_utils.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/chapter11/control_utils.py) which you can use to run your own experiments and tests for RL Control algorithms.
 
@@ -394,8 +404,8 @@ which prompted this TD Control algorithm to be named SARSA (for **S**tate-**A**c
 Now let us write some code to implement the above-described SARSA algorithm. Let us start by understanding the various arguments to the below function `glie_sarsa`.
 
 * `mdp: MarkovDecisionProcess[S, A]` - This represents the interface to an abstract Markov Decision Process. We want to remind that this interface doesn't provide any access to the transition probabilities or reward function. The core functionality available through this interface are the two `@abstractmethods` `step` and `actions`. The `step` method only allows us to access a sample of the next state and reward pair given the current state and action (since it returns an abstract `Distribution` object). The `actions` method gives us the allowable actions for a given state.
-* `states: Distribution[S]` - This represents an arbitrary distribution of the non-terminal states, which in turn allows us to sample the starting state (from this distribution) for each trace experience.
-* `approx_0: FunctionApprox[Tuple[S, A]]` - This represents the initial function approximation of the Q-Value function (that is meant to be updated, after each atomic experience, in an immutable manner, through the course of the algorithm).
+* `states: NTStateDistribution[S]` - This represents an arbitrary distribution of the non-terminal states, which in turn allows us to sample the starting state (from this distribution) for each trace experience.
+* `approx_0: QValueFunctionApprox[S, A]` - This represents the initial function approximation of the Q-Value function (that is meant to be updated, after each atomic experience, in an immutable manner, through the course of the algorithm).
 * `gamma: float` - This represents the discount factor to be used in estimating the Q-Value Function.
 * `epsilon_as_func_of_episodes: Callable[[int], float]` - This represents the extent of exploration ($\epsilon$) as a function of the number of episodes.
 * `max_episode_length: int` - This represents the number of time steps at which we would curtail a trace experience and start a new one. As we've explained, TD Control doesn't require complete trace experiences, and so we can do as little or as large a number of time steps in a trace experience (`max_episode_length` gives us that control).
@@ -404,7 +414,7 @@ Now let us write some code to implement the above-described SARSA algorithm. Let
 
 * Given the current `state` and `action`, we obtain a sample of the pair of `next_state` and `reward` (using the `sample` method of the `Distribution` obtained from `mdp.step(state, action)`.
 * Obtain the `next_action`  from `next_state` using the function `epsilon_greedy_action` which utilizes the $\epsilon$-greedy policy derived from the current Q-Value Function estimate (referenced by `q`).
-* Update the Q-Value Function based on Equation \eqref{eq:td-control-funcapprox-params-adj} (using the `update` method of `q: FunctionApprox[Tuple[S, A]]`). Note that this is an immutable update since we produce an `Iterable` (generator) of the Q-Value Function estimate after each time step.
+* Update the Q-Value Function based on Equation \eqref{eq:td-control-funcapprox-params-adj} (using the `update` method of `q: QValueFunctionApprox[S, A]`). Note that this is an immutable update since we produce an `Iterable` (generator) of the Q-Value Function estimate after each time step.
 
 Before the code for `glie_sarsa`, let's understand the code for `epsilon_greedy_action` which returns an action sampled from the $\epsilon$-greedy policy probability distribution that is derived from the Q-Value Function estimate, given as input a non-terminal state, a Q-Value Function estimate, and $\epsilon$.
 
@@ -413,8 +423,8 @@ from operator import itemgetter
 from Distribution import Categorical
 
 def epsilon_greedy_action(
-    q: FunctionApprox[Tuple[S, A]],
-    nt_state: S,
+    q: QValueFunctionApprox[S, A],
+    nt_state: NonTerminal[S],
     actions: Set[A],
     epsilon: float
 ) -> A:
@@ -429,19 +439,19 @@ def epsilon_greedy_action(
 
 def glie_sarsa(
     mdp: MarkovDecisionProcess[S, A],
-    states: Distribution[S],
-    approx_0: FunctionApprox[Tuple[S, A]],
+    states: NTStateDistribution[S],
+    approx_0: QValueFunctionApprox[S, A],
     gamma: float,
     epsilon_as_func_of_episodes: Callable[[int], float],
     max_episode_length: int
-) -> Iterator[FunctionApprox[Tuple[S, A]]]:
-    q: FunctionApprox[Tuple[S, A]] = approx_0
+) -> Iterator[QValueFunctionApprox[S, A]]:
+    q: QValueFunctionApprox[S, A] = approx_0
     yield q
     num_episodes: int = 0
     while True:
         num_episodes += 1
         epsilon: float = epsilon_as_func_of_episodes(num_episodes)
-        state: S = states.sample()
+        state: NonTerminal[S] = states.sample()
         action: A = epsilon_greedy_action(
             q=q,
             nt_state=state,
@@ -449,22 +459,22 @@ def glie_sarsa(
             epsilon=epsilon
         )
         steps: int = 0
-        while not mdp.is_terminal(state) and steps < max_episode_length:
+        while isinstance(state, NonTerminal) and steps < max_episode_length:
             next_state, reward = mdp.step(state, action).sample()
-            if mdp.is_terminal(next_state):
-                q = q.update([((state, action), reward)])
-            else:
+            if isinstance(next_state, NonTerminal):
                 next_action: A = epsilon_greedy_action(
                     q=q,
                     nt_state=next_state,
                     actions=set(mdp.actions(next_state)),
-                    epsilon=epsilon,
+                    epsilon=epsilon
                 )
                 q = q.update([(
                     (state, action),
                     reward + gamma * q((next_state, next_action))
                 )])
                 action = next_action
+            else:
+                q = q.update([((state, action), reward)])
             yield q
             steps += 1
             state = next_state
@@ -475,6 +485,8 @@ The above code is in the file [rl/td.py](https://github.com/TikhonJelvis/RL-book
 Let us test this on the simple inventory MDP we tested GLIE MC Control on (we use the same `si_mdp: SimpleInventoryMDPCap` object and the same parameter values that were set up earlier when testing GLIE MC Control).
 
 ```python
+from rl.chapter3.simple_inventory_mdp_cap import InventoryState
+
 max_episode_length: int = 100
 epsilon_as_func_of_episodes: Callable[[int], float] = lambda k: k ** -0.5
 initial_learning_rate: float = 0.1
@@ -482,7 +494,7 @@ half_life: float = 10000.0
 exponent: float = 1.0
 gamma: float = 0.9
 
-initial_qvf_dict: Mapping[Tuple[S, A], float] = {
+initial_qvf_dict: Mapping[Tuple[NonTerminal[InventoryState], int], float] = {
     (s, a): 0. for s in si_mdp.non_terminal_states for a in si_mdp.actions(s)
 }
 learning_rate_func: Callable[[int], float] = learning_rate_schedule(
@@ -490,7 +502,7 @@ learning_rate_func: Callable[[int], float] = learning_rate_schedule(
     half_life=half_life,
     exponent=exponent
 )
-qvfs: Iterator[FunctionApprox[Tuple[S, A]]] = glie_sarsa(
+qvfs: Iterator[QValueFunctionApprox[InventoryState, int]] = glie_sarsa(
     mdp=si_mdp,
     states=Choose(set(si_mdp.non_terminal_states)),
     approx_0=Tabular(
@@ -505,9 +517,12 @@ qvfs: Iterator[FunctionApprox[Tuple[S, A]]] = glie_sarsa(
 Now let's fetch the final estimate of the Optimal Q-Value Function after `num_episodes * max_episode_length` updates of the Q-Value Function, and extract from it the estimate of the Optimal State-Value Function and the Optimal Policy (using the function `get_vf_and_policy_from_qvf` that we had written earlier).
 
 ```python
+import itertools
+import rl.iterate as iterate
+
 num_updates = num_episodes * max_episode_length
 
-final_qvf: FunctionApprox[Tuple[S, A]] = \
+final_qvf: QValueFunctionApprox[InventoryState, int] = \
     iterate.last(itertools.islice(qvfs, num_updates))
 opt_vf, opt_policy = get_vf_and_policy_from_qvf(
     mdp=si_mdp,
@@ -524,25 +539,19 @@ This prints:
 
 ```
 GLIE SARSA Optimal Value Function with 1000000 updates
-{InventoryState(on_hand=0, on_order=0): -35.08738000125797,
- InventoryState(on_hand=1, on_order=0): -28.86993224244749,
- InventoryState(on_hand=0, on_order=1): -27.824025125495023,
- InventoryState(on_hand=0, on_order=2): -27.93572998295015,
- InventoryState(on_hand=2, on_order=0): -30.25590685806991,
- InventoryState(on_hand=1, on_order=1): -29.2470416465806}
+{NonTerminal(state=InventoryState(on_hand=0, on_order=0)): -35.05830797041331,
+ NonTerminal(state=InventoryState(on_hand=0, on_order=1)): -27.8507256742493,
+ NonTerminal(state=InventoryState(on_hand=0, on_order=2)): -27.735579652721434,
+ NonTerminal(state=InventoryState(on_hand=1, on_order=0)): -28.984534974043097,
+ NonTerminal(state=InventoryState(on_hand=1, on_order=1)): -29.325829885558885,
+ NonTerminal(state=InventoryState(on_hand=2, on_order=0)): -30.236704327526777}
 GLIE SARSA Optimal Policy with 1000000 updates
-For State InventoryState(on_hand=0, on_order=0):
-  Do Action 1 with Probability 1.000
-For State InventoryState(on_hand=0, on_order=1):
-  Do Action 1 with Probability 1.000
-For State InventoryState(on_hand=0, on_order=2):
-  Do Action 0 with Probability 1.000
-For State InventoryState(on_hand=1, on_order=0):
-  Do Action 1 with Probability 1.000
-For State InventoryState(on_hand=1, on_order=1):
-  Do Action 0 with Probability 1.000
-For State InventoryState(on_hand=2, on_order=0):
-  Do Action 0 with Probability 1.000`
+For State InventoryState(on_hand=0, on_order=0): Do Action 1
+For State InventoryState(on_hand=0, on_order=1): Do Action 1
+For State InventoryState(on_hand=0, on_order=2): Do Action 0
+For State InventoryState(on_hand=1, on_order=0): Do Action 1
+For State InventoryState(on_hand=1, on_order=1): Do Action 0
+For State InventoryState(on_hand=2, on_order=0): Do Action 0
 ```
 
 We see that this reasonably converges to the true Value Function (and reaches the true Optimal Policy) as produced by Value Iteration (whose results were displayed when we tested GLIE MC Control).
@@ -651,33 +660,32 @@ Now let us write some code for Q-Learning. The function `q_learning` below is qu
 
 ```python
 PolicyFromQType = Callable[
-    [FunctionApprox[Tuple[S, A]], MarkovDecisionProcess[S, A]],
+    [QValueFunctionApprox[S, A], MarkovDecisionProcess[S, A]],
     Policy[S, A]
 ]
 
 def q_learning(
     mdp: MarkovDecisionProcess[S, A],
     policy_from_q: PolicyFromQType,
-    states: Distribution[S],
-    approx_0: FunctionApprox[Tuple[S, A]],
+    states: NTStateDistribution[S],
+    approx_0: QValueFunctionApprox[S, A],
     gamma: float,
     max_episode_length: int
-) -> Iterator[FunctionApprox[Tuple[S, A]]]:
-    q: FunctionApprox[Tuple[S, A]] = approx_0
+) -> Iterator[QValueFunctionApprox[S, A]]:
+    q: QValueFunctionApprox[S, A] = approx_0
     yield q
     while True:
-        state: S = states.sample()
+        state: NonTerminal[S] = states.sample()
         steps: int = 0
-        while not mdp.is_terminal(state) and steps < max_episode_length:
+        while isinstance(state, NonTerminal) and steps < max_episode_length:
             policy: Policy[S, A] = policy_from_q(q, mdp)
             action: A = policy.act(state).sample()
             next_state, reward = mdp.step(state, action).sample()
-            q = q.update([(
-                (state, action),
-                reward + gamma * (max(q((next_state, a)) for a in
-                              mdp.actions(next_state))
-                              if not mdp.is_terminal(next_state) else 0)
-            )])
+            next_return: float = max(
+                q((next_state, a))
+                for a in mdp.actions(next_state)
+            ) if isinstance(next_state, NonTerminal) else 0.
+            q = q.update([((state, action), reward + gamma * next_return)])
             yield q
             steps += 1
             state = next_state
@@ -828,33 +836,32 @@ Next we write a method to create the `MarkovDecisionProcess` for the Windy Grid.
 
 ```python
 from rl.markov_decision_process import FiniteMarkovDecisionProcess
-from rl.markov_decision_process import StateActionMapping
 
     def get_finite_mdp(self) -> FiniteMarkovDecisionProcess[Cell, Move]:
         '''
         returns the FiniteMarkovDecision object for this windy grid problem
         '''
-        d1: StateActionMapping[Cell, Move] = \
+        return FiniteMarkovDecisionProcess(
             {s: self.get_transition_probabilities(s) for s in
              self.get_all_nt_states()}
-        d2: StateActionMapping[Cell, Move] = {s: None for s in self.terminals}
-        return FiniteMarkovDecisionProcess({**d1, **d2})
+        )
 ```
 
 Next we write methods for Value Iteration, SARSA and Q-Learning
 
 ```python
-from rl.markov_decision_process import FinitePolicy
+from rl.markov_decision_process import FiniteDeterministicPolicy
 from rl.dynamic_programming import value_iteration_result, V
 from rl.chapter11.control_utils import glie_sarsa_finite_learning_rate
 from rl.chapter11.control_utils import q_learning_finite_learning_rate
 from rl.chapter11.control_utils import get_vf_and_policy_from_qvf
 
-    def get_vi_vf_and_policy(self) -> Tuple[V[Cell], FinitePolicy[Cell, Move]]:
+    def get_vi_vf_and_policy(self) -> \
+            Tuple[V[Cell], FiniteDeterministicPolicy[Cell, Move]]:
         '''
         Performs the Value Iteration DP algorithm returning the
         Optimal Value Function (as a V[Cell]) and the Optimal Policy
-        (as a FinitePolicy[Cell, Move])
+        (as a FiniteDeterministicPolicy[Cell, Move])
         '''
         return value_iteration_result(self.get_finite_mdp(), gamma=1.)
 
@@ -863,8 +870,8 @@ from rl.chapter11.control_utils import get_vf_and_policy_from_qvf
         epsilon_as_func_of_episodes: Callable[[int], float],
         learning_rate: float,
         num_updates: int
-    ) -> Tuple[V[Cell], FinitePolicy[Cell, Move]]:
-        qvfs: Iterator[FunctionApprox[Tuple[Cell, Move]]] = \
+    ) -> Tuple[V[Cell], FiniteDeterministicPolicy[Cell, Move]]:
+        qvfs: Iterator[QValueFunctionApprox[Cell, Move]] = \
             glie_sarsa_finite_learning_rate(
                 fmdp=self.get_finite_mdp(),
                 initial_learning_rate=learning_rate,
@@ -874,7 +881,7 @@ from rl.chapter11.control_utils import get_vf_and_policy_from_qvf
                 epsilon_as_func_of_episodes=epsilon_as_func_of_episodes,
                 max_episode_length=int(1e8)
             )
-        final_qvf: FunctionApprox[Tuple[Cell, Move]] = \
+        final_qvf: QValueFunctionApprox[Cell, Move] = \
             iterate.last(itertools.islice(qvfs, num_updates))
         return get_vf_and_policy_from_qvf(
             mdp=self.get_finite_mdp(),
@@ -886,8 +893,8 @@ from rl.chapter11.control_utils import get_vf_and_policy_from_qvf
         epsilon: float,
         learning_rate: float,
         num_updates: int
-    ) -> Tuple[V[Cell], FinitePolicy[Cell, Move]]:
-        qvfs: Iterator[FunctionApprox[Tuple[Cell, Move]]] = \
+    ) -> Tuple[V[Cell], FiniteDeterministicPolicy[Cell, Move]]:
+        qvfs: Iterator[QValueFunctionApprox[Cell, Move]] = \
             q_learning_finite_learning_rate(
                 fmdp=self.get_finite_mdp(),
                 initial_learning_rate=learning_rate,
@@ -897,7 +904,7 @@ from rl.chapter11.control_utils import get_vf_and_policy_from_qvf
                 epsilon=epsilon,
                 max_episode_length=int(1e8)
             )
-        final_qvf: FunctionApprox[Tuple[Cell, Move]] = \
+        final_qvf: QValueFunctionApprox[Cell, Move] = \
             iterate.last(itertools.islice(qvfs, num_updates))
         return get_vf_and_policy_from_qvf(
             mdp=self.get_finite_mdp(),
@@ -927,7 +934,7 @@ wg.print_vf_and_policy(
 )
 epsilon_as_func_of_episodes: Callable[[int], float] = lambda k: 1. / k
 learning_rate: float = 0.03
-num_updates: int = 50000
+num_updates: int = 100000
 sarsa_vf_dict, sarsa_policy = wg.get_glie_sarsa_vf_and_policy(
     epsilon_as_func_of_episodes=epsilon_as_func_of_episodes,
     learning_rate=learning_rate,
@@ -975,15 +982,16 @@ Value Iteration
  3  X  R  R  R  T
  2  R  U  U  X  U
  1  R  U  L  L  U
+ 0  U  X  X  U  X
 
- SARSA
+SARSA
 
        0     1     2     3     4
- 4 XXXXX  4.88  2.01  1.11  1.00
- 3 XXXXX  8.15  5.29  1.00  0.00
- 2  8.95  6.73  8.58 XXXXX  1.00
- 1  8.29  9.00  8.10 12.04 11.20
- 0 10.05 XXXXX XXXXX 17.17 XXXXX
+ 4 XXXXX  5.47  2.02  1.08  1.00
+ 3 XXXXX  8.78  5.37  1.00  0.00
+ 2  9.14  7.03  8.29 XXXXX  1.00
+ 1  8.51  9.16  8.27 11.92 12.58
+ 0 10.05 XXXXX XXXXX 16.48 XXXXX
 
     0  1  2  3  4
  4  X  R  R  R  D
@@ -995,11 +1003,11 @@ Value Iteration
 Q-Learning
 
        0     1     2     3     4
- 4 XXXXX  5.05  2.02  1.13  1.00
- 3 XXXXX  8.26  4.88  1.00  0.00
- 2  8.95  6.92  8.28 XXXXX  1.00
- 1  8.37  9.05  8.39 12.45 11.71
- 0  9.99 XXXXX XXXXX 17.73 XXXXX
+ 4 XXXXX  5.45  2.02  1.09  1.00
+ 3 XXXXX  8.09  5.12  1.00  0.00
+ 2  8.78  6.76  7.92 XXXXX  1.00
+ 1  8.31  8.85  8.09 11.52 10.93
+ 0  9.85 XXXXX XXXXX 16.16 XXXXX
 
     0  1  2  3  4
  4  X  R  R  R  D
@@ -1009,7 +1017,7 @@ Q-Learning
  0  U  X  X  U  X
 ```
 
-Value Iteration should be considered as the benchmark since it calculates the Optimal Value Function within the default tolerance of 1e-5. We see that both SARSA and Q-Learning get fairly close to the Optimal Value Function after only 50,000 updates (i.e., 50,000 moves). We also see that both SARSA and Q-Learning obtain the true Optimal Policy, consistent with Value Iteration.
+Value Iteration should be considered as the benchmark since it calculates the Optimal Value Function within the default tolerance of 1e-5. We see that both SARSA and Q-Learning get fairly close to the Optimal Value Function after only 100,000 updates (i.e., 100,000 moves). We also see that both SARSA and Q-Learning obtain the true Optimal Policy, consistent with Value Iteration.
 
 Now let's explore SARSA and Q-Learning's speed of convergence to the Optimal Value Function.
 

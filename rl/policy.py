@@ -23,7 +23,6 @@ class Policy(ABC, Generic[S, A]):
         state.
 
         '''
-        pass
 
 
 @dataclass(frozen=True)
