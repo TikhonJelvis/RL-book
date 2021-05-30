@@ -125,8 +125,8 @@ class FiniteMarkovDecisionProcess(MarkovDecisionProcess[S, A]):
 
     '''
 
-    non_terminal_states: Sequence[NonTerminal[S]]
     mapping: StateActionMapping[S, A]
+    non_terminal_states: Sequence[NonTerminal[S]]
 
     def __init__(
         self,
@@ -153,7 +153,6 @@ class FiniteMarkovDecisionProcess(MarkovDecisionProcess[S, A]):
 
     def step(self, state: NonTerminal[S], action: A) -> StateReward[S]:
         action_map: ActionMapping[A, S] = self.mapping[state]
-
         return action_map[action]
 
     def apply_finite_policy(self, policy: FinitePolicy[S, A])\
