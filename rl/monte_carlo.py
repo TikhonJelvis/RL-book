@@ -14,6 +14,7 @@ from rl.markov_decision_process import MarkovDecisionProcess, Policy, \
 from rl.policy import DeterministicPolicy, RandomPolicy, UniformPolicy
 import rl.markov_process as mp
 from rl.returns import returns
+import itertools
 
 S = TypeVar('S')
 A = TypeVar('A')
@@ -51,6 +52,23 @@ def mc_prediction(
             [(step.state, step.return_)] for step in episode
         ))
         yield f
+
+
+def batch_mc_prediction(
+    traces: Iterable[Iterable[mp.TransitionStep[S]]],
+    approx: ValueFunctionApprox[S],
+    γ: float,
+    episode_length_tolerance: float = 1e-6,
+    convergence_tolerance: float = 1e-5
+) -> ValueFunctionApprox[S]:
+    return_steps: Iterable[mp.ReturnStep[S]] = \
+        itertools.chain.from_iterable(
+            returns(trace, γ, episode_length_tolerance) for trace in traces
+        )
+    return approx.solve(
+        [(step.state, step.return_) for step in return_steps],
+        convergence_tolerance
+    )
 
 
 def greedy_policy_from_qvf(
