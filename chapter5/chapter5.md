@@ -414,7 +414,7 @@ import rl.iterate import iterate
                 return a.within(b, tol)
 
             ret = iterate.converged(
-                self.iterate_updates(itertools.repeat(xy_vals_seq)),
+                self.iterate_updates(itertools.repeat(list(xy_vals_seq))),
                 done=done
             )
 
@@ -810,7 +810,7 @@ class DNNApprox(FunctionApprox[X]):
             return a.within(b, tol)
 
         return iterate.converged(
-            self.iterate_updates(itertools.repeat(xy_vals_seq)),
+            self.iterate_updates(itertools.repeat(list(xy_vals_seq))),
             done=done
         )
 ```
@@ -1037,10 +1037,8 @@ class Tabular(FunctionApprox[X]):
 
     def within(self, other: FunctionApprox[X], tolerance: float) -> bool:
         if isinstance(other, Tabular):
-            return\
-                all(abs(self.values_map[s] - other.values_map[s]) <= tolerance
-                    for s in self.values_map)
-
+            return all(abs(self.values_map[s] - other.values_map.get(s, 0.))
+                       <= tolerance for s in self.values_map)
         return False
 ```
 
