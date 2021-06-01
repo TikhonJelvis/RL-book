@@ -3,7 +3,7 @@ Markov Decision Processes.
 
 '''
 
-from typing import Callable, Iterable, Iterator, TypeVar, Set
+from typing import Callable, Iterable, Iterator, TypeVar, Set, Sequence
 import rl.markov_process as mp
 from rl.markov_decision_process import MarkovDecisionProcess, Policy
 from rl.markov_decision_process import TransitionStep, NonTerminal
@@ -14,6 +14,7 @@ from rl.approximate_dynamic_programming import ValueFunctionApprox
 from rl.approximate_dynamic_programming import QValueFunctionApprox
 from rl.approximate_dynamic_programming import NTStateDistribution
 from rl.approximate_dynamic_programming import extended_vf
+import numpy as np
 
 S = TypeVar('S')
 
@@ -46,6 +47,33 @@ def td_prediction(
         )])
 
     return iterate.accumulate(transitions, step, initial=approx_0)
+
+
+def batch_td_prediction(
+    transitions: Iterable[mp.TransitionStep[S]],
+    approx: ValueFunctionApprox[S],
+    γ: float,
+    convergence_tolerance: float = 1e-5
+) -> ValueFunctionApprox[S]:
+    tr_seq: Sequence[mp.TransitionStep[S]] = list(transitions)
+
+    def transitions_stream(
+        tr_seq=tr_seq
+    ) -> Iterator[mp.TransitionStep[S]]:
+        while True:
+            yield tr_seq[np.random.randint(len(tr_seq))]
+
+    def done(
+        a: ValueFunctionApprox[S],
+        b: ValueFunctionApprox[S],
+        convergence_tolerance=convergence_tolerance
+    ) -> bool:
+        return b.within(a, convergence_tolerance)
+
+    return iterate.converged(
+        td_prediction(transitions_stream(), approx, γ),
+        done=done
+    )
 
 
 A = TypeVar('A')
