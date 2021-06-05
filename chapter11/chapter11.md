@@ -303,7 +303,7 @@ learning_rate_func: Callable[[int], float] = learning_rate_schedule(
 )
 qvfs: Iterator[QValueFunctionApprox[InventoryState, int] = glie_mc_control(
     mdp=si_mdp,
-    states=Choose(set(si_mdp.non_terminal_states)),
+    states=Choose(si_mdp.non_terminal_states),
     approx_0=Tabular(
         values_map=initial_qvf_dict,
         count_to_weight_func=learning_rate_func
@@ -504,7 +504,7 @@ learning_rate_func: Callable[[int], float] = learning_rate_schedule(
 )
 qvfs: Iterator[QValueFunctionApprox[InventoryState, int]] = glie_sarsa(
     mdp=si_mdp,
-    states=Choose(set(si_mdp.non_terminal_states)),
+    states=Choose(si_mdp.non_terminal_states),
     approx_0=Tabular(
         values_map=initial_qvf_dict,
         count_to_weight_func=learning_rate_func

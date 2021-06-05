@@ -73,7 +73,7 @@ class TestEvaluate(unittest.TestCase):
                 self.implied_mrp,
                 self.gamma,
                 fa,
-                Choose(set(self.states)),
+                Choose(self.states),
                 num_state_samples=30
             ),
             done=lambda a, b: a.within(b, 1e-4)
@@ -109,7 +109,7 @@ class TestEvaluate(unittest.TestCase):
                 self.si_mdp,
                 self.gamma,
                 fa,
-                Choose(set(self.states)),
+                Choose(self.states),
                 num_state_samples=30
             ),
             done=lambda a, b: a.within(b, 1e-5)
