@@ -1,15 +1,18 @@
+from typing import Sequence, Mapping
 import unittest
+
+import numpy as np
+
 from rl.approximate_dynamic_programming import (
     evaluate_finite_mrp, evaluate_mrp, value_iteration_finite, value_iteration)
 from rl.dynamic_programming import value_iteration_result
-from typing import Sequence, Mapping
-import numpy as np
-import rl.iterate as iterate
 from rl.distribution import Choose
 from rl.function_approx import Dynamic
-from rl.markov_process import FiniteMarkovRewardProcess
-from rl.markov_decision_process import (FiniteMarkovDecisionProcess,
-                                        FiniteDeterministicPolicy)
+import rl.iterate as iterate
+from rl.markov_process import FiniteMarkovRewardProcess, NonTerminal
+from rl.markov_decision_process import FiniteMarkovDecisionProcess
+from rl.policy import FiniteDeterministicPolicy
+
 from rl.chapter3.simple_inventory_mdp_cap import (InventoryState,
                                                   SimpleInventoryMDPCap)
 
@@ -42,7 +45,7 @@ class TestEvaluate(unittest.TestCase):
         self.implied_mrp: FiniteMarkovRewardProcess[InventoryState] =\
             self.si_mdp.apply_finite_policy(self.fdp)
 
-        self.states: Sequence[InventoryState] = \
+        self.states: Sequence[NonTerminal[InventoryState]] = \
             self.implied_mrp.non_terminal_states
 
     def test_evaluate_mrp(self):
@@ -60,7 +63,7 @@ class TestEvaluate(unittest.TestCase):
             ),
             done=lambda a, b: a.within(b, 1e-4)
         )
-        # print(mrp_finite_fa.values_map)
+
         mrp_vf2: np.ndarray = mrp_finite_fa.evaluate(self.states)
 
         self.assertLess(max(abs(mrp_vf1 - mrp_vf2)), 0.001)
@@ -70,7 +73,7 @@ class TestEvaluate(unittest.TestCase):
                 self.implied_mrp,
                 self.gamma,
                 fa,
-                Choose(self.states),
+                Choose(set(self.states)),
                 num_state_samples=30
             ),
             done=lambda a, b: a.within(b, 1e-4)
@@ -80,7 +83,7 @@ class TestEvaluate(unittest.TestCase):
         self.assertLess(max(abs(mrp_vf1 - mrp_vf3)), 0.001)
 
     def test_value_iteration(self):
-        mdp_map: Mapping[InventoryState, float] = value_iteration_result(
+        mdp_map: Mapping[NonTerminal[InventoryState], float] = value_iteration_result(
             self.si_mdp,
             self.gamma
         )[0]
@@ -106,7 +109,7 @@ class TestEvaluate(unittest.TestCase):
                 self.si_mdp,
                 self.gamma,
                 fa,
-                Choose(self.states),
+                Choose(set(self.states)),
                 num_state_samples=30
             ),
             done=lambda a, b: a.within(b, 1e-5)

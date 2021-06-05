@@ -4,8 +4,8 @@ from rl.distribution import Choose
 from rl.markov_process import NonTerminal
 from rl.markov_decision_process import (
     MarkovDecisionProcess, FiniteMarkovDecisionProcess,
-    FiniteMarkovRewardProcess, FiniteDeterministicPolicy,
-    FinitePolicy, epsilon_greedy_policy)
+    FiniteMarkovRewardProcess)
+from rl.policy import FiniteDeterministicPolicy, FinitePolicy
 from rl.approximate_dynamic_programming import QValueFunctionApprox
 from rl.approximate_dynamic_programming import NTStateDistribution
 import itertools
@@ -147,7 +147,7 @@ def q_learning_learning_rate(
 ) -> Iterator[QValueFunctionApprox[S, A]]:
     return td.q_learning(
         mdp=mdp,
-        policy_from_q=lambda f, m: epsilon_greedy_policy(
+        policy_from_q=lambda f, m: mc.epsilon_greedy_policy(
             q=f,
             mdp=m,
             ϵ=epsilon
@@ -178,7 +178,7 @@ def q_learning_finite_learning_rate(
     )
     return td.q_learning(
         mdp=fmdp,
-        policy_from_q=lambda f, m: epsilon_greedy_policy(
+        policy_from_q=lambda f, m: mc.epsilon_greedy_policy(
             q=f,
             mdp=m,
             ϵ=epsilon

@@ -1,5 +1,4 @@
 from typing import Tuple, Callable, Sequence
-from rl.chapter11.control_utils import glie_mc_finite_equal_wts_correctness
 from rl.chapter11.control_utils import glie_mc_finite_learning_rate_correctness
 from rl.chapter11.control_utils import \
     q_learning_finite_learning_rate_correctness
@@ -32,14 +31,6 @@ td_episode_length: int = 100
 initial_learning_rate: float = 0.1
 half_life: float = 10000.0
 exponent: float = 1.0
-
-glie_mc_finite_equal_wts_correctness(
-    fmdp=si_mdp,
-    gamma=gamma,
-    epsilon_as_func_of_episodes=epsilon_as_func_of_episodes,
-    episode_length_tolerance=mc_episode_length_tol,
-    num_episodes=num_episodes
-)
 
 glie_mc_finite_learning_rate_correctness(
     fmdp=si_mdp,

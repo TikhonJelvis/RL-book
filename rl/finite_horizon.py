@@ -4,15 +4,15 @@ from itertools import groupby
 import dataclasses
 from dataclasses import dataclass
 from operator import itemgetter
-from typing import (Dict, List, Generic, Sequence, Tuple, TypeVar, Iterator)
+from typing import Dict, List, Generic, Sequence, Tuple, TypeVar, Iterator
 
 from rl.distribution import FiniteDistribution
 from rl.dynamic_programming import V, extended_vf
 from rl.markov_process import (FiniteMarkovRewardProcess, RewardTransition,
                                StateReward, NonTerminal, Terminal, State)
 from rl.markov_decision_process import (
-    ActionMapping, FiniteMarkovDecisionProcess, FiniteDeterministicPolicy,
-    StateActionMapping)
+    ActionMapping, FiniteMarkovDecisionProcess, StateActionMapping)
+from rl.policy import FiniteDeterministicPolicy
 
 S = TypeVar('S')
 

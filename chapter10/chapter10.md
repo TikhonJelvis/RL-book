@@ -45,8 +45,8 @@ The RL prediction algorithms we will soon develop consume a stream of atomic exp
 ```python
 @dataclass(frozen=True)
 class TransitionStep(Generic[S]):
-    state: S
-    next_state: S
+    state: NonTerminal[S]
+    next_state: State[S]
     reward: float
 ```
 
@@ -57,7 +57,7 @@ Let's add a method `reward_traces` to `MarkovRewardProcess` that produces an `It
 ```python
     def reward_traces(
             self,
-            start_state_distribution: Distribution[S]
+            start_state_distribution: Distribution[NonTerminal[S]]
     ) -> Iterable[Iterable[TransitionStep[S]]]:
         while True:
             yield self.simulate_reward(start_state_distribution)
@@ -68,21 +68,22 @@ The code above is in the file [rl/markov_process.py](https://github.com/TikhonJe
 
 ### Monte-Carlo (MC) Prediction
 
-Monte-Carlo (MC) Prediction is a very simple RL algorithm that performs supervised learning to predict the expected return from any state of an MRP (i.e., it estimates the Value Function of an MRP), given a stream of trace experiences. Note that we wrote the abstract class `FunctionApprox` in Chapter [-@sec:funcapprox-chapter] for supervised learning that takes data in the form of $(x,y)$ pairs where $x$ is the predictor variable and $y \in \mathbb{R}$ is the response variable. For the Monte-Carlo prediction problem, the $x$-values are the encountered states across the stream of input trace experiences and the $y$-values are the associated returns on the trace experience (starting from the corresponding encountered state). The following function (in the file [rl/monte_carlo.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/monte_carlo.py)) `mc_prediction` takes as input an `Iterable` of trace experiences, with each trace experience represented as an `Iterable` of `TransitionStep`s. `mc_prediction` performs the requisite supervised learning in an incremental manner, by calling the method `iterate_updates` of `approx_0: FunctionApprox[S]` on an `Iterator` of (state, return) pairs that are extracted from each trace experience. As a reminder, the method `iterate_updates` calls the method `update` of `FunctionApprox` iteratively (in this case, each call to `update` updates the `FunctionApprox` for a single (state, return) data point). `mc_prediction` produces as output an `Iterator` of `FunctionApprox[S]`, i.e., an updated function approximation of the Value Function at the end of each trace experience (note that function approximation updates can be done only at the end of trace experiences because the trace experience returns are available only at the end of trace experiences).
+Monte-Carlo (MC) Prediction is a very simple RL algorithm that performs supervised learning to predict the expected return from any state of an MRP (i.e., it estimates the Value Function of an MRP), given a stream of trace experiences. Note that we wrote the abstract class `FunctionApprox` in Chapter [-@sec:funcapprox-chapter] for supervised learning that takes data in the form of $(x,y)$ pairs where $x$ is the predictor variable and $y \in \mathbb{R}$ is the response variable. For the Monte-Carlo prediction problem, the $x$-values are the encountered states across the stream of input trace experiences and the $y$-values are the associated returns on the trace experience (starting from the corresponding encountered state). The following function (in the file [rl/monte_carlo.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/monte_carlo.py)) `mc_prediction` takes as input an `Iterable` of trace experiences, with each trace experience represented as an `Iterable` of `TransitionStep`s. `mc_prediction` performs the requisite supervised learning in an incremental manner, by calling the method `iterate_updates` of `approx_0: ValueFunctionApprox[S]` on an `Iterator` of (state, return) pairs that are extracted from each trace experience. As a reminder, the method `iterate_updates` calls the method `update` of `FunctionApprox` iteratively (in this case, each call to `update` updates the `ValueFunctionApprox` for a single (state, return) data point). `mc_prediction` produces as output an `Iterator` of `ValueFunctionApprox[S]`, i.e., an updated function approximation of the Value Function at the end of each trace experience (note that function approximation updates can be done only at the end of trace experiences because the trace experience returns are available only at the end of trace experiences).
 
 ```python
 import MarkovRewardProcess as mp
 
 def mc_prediction(
     traces: Iterable[Iterable[mp.TransitionStep[S]]],
-    approx_0: FunctionApprox[S],
+    approx_0: ValueFunctionApprox[S],
     gamma: float,
     episode_length_tolerance: float = 1e-6
-) -> Iterator[FunctionApprox[S]]:
+) -> Iterator[ValueFunctionApprox[S]]:
     episodes: Iterator[Iterator[mp.ReturnStep[S]]] = \
         (returns(trace, gamma, episode_length_tolerance) for trace in traces)
     f = approx_0
     yield f
+
     for episode in episodes:
         f = last(f.iterate_updates(
             [(step.state, step.return_)] for step in episode
@@ -98,8 +99,8 @@ The `returns` function calculates the returns $G_t$ (accumulated discounted rewa
 ```python
 @dataclass(frozen=True)
 class TransitionStep(Generic[S]):
-    state: S
-    next_state: S
+    state: NonTerminal[S]
+    next_state: State[S]
     reward: float
 
     def add_return(self, gamma: float, return_: float) -> ReturnStep[S]:
@@ -130,8 +131,8 @@ def returns(
 ) -> Iterator[mp.ReturnStep[S]]:
     trace = iter(trace)
 
-    max_steps = round(math.log(tolerance) / math.log(gamma)) \
-        if gamma < 1 else None
+    max_steps = round(math.log(tolerance) / math.log(gamma)) if gamma < 1 \
+        else None
     if max_steps is not None:
         trace = itertools.islice(trace, max_steps * 2)
 
@@ -258,19 +259,20 @@ si_mrp.display_value_function(gamma=user_gamma)
 This prints the following:   
 
 ```
-{InventoryState(on_hand=0, on_order=0): -35.511,
- InventoryState(on_hand=1, on_order=0): -28.932,
- InventoryState(on_hand=0, on_order=1): -27.932,
- InventoryState(on_hand=0, on_order=2): -28.345,
- InventoryState(on_hand=2, on_order=0): -30.345,
- InventoryState(on_hand=1, on_order=1): -29.345}
+{NonTerminal(state=InventoryState(on_hand=1, on_order=1)): -29.345,
+ NonTerminal(state=InventoryState(on_hand=2, on_order=0)): -30.345,
+ NonTerminal(state=InventoryState(on_hand=0, on_order=0)): -35.511,
+ NonTerminal(state=InventoryState(on_hand=0, on_order=1)): -27.932,
+ NonTerminal(state=InventoryState(on_hand=0, on_order=2)): -28.345,
+ NonTerminal(state=InventoryState(on_hand=1, on_order=0)): -28.932}
  ```
     
 Next, we run Monte-Carlo Prediction by first generating a stream of trace experiences (in the form of sampling traces) from the MRP, and then calling `mc_prediction` using `Tabular` with equal-weights-learning-rate (i.e., default `count_to_weight_func` of `lambda n: 1.0 / n`).
 
 ```python
 from rl.chapter2.simple_inventory_mrp import InventoryState
-from rl.function_approx import Tabular, FunctionApprox
+from rl.function_approx import Tabular
+from rl.approximate_dynamic_programming import ValueFunctionApprox
 from rl.distribution import Choose
 from rl.iterate import last
 from rl.monte_carlo import mc_prediction
@@ -279,16 +281,16 @@ from pprint import pprint
 
 traces: Iterable[Iterable[TransitionStep[S]]] = \
         mrp.reward_traces(Choose(set(si_mrp.non_terminal_states)))
-it: Iterator[FunctionApprox[InventoryState]] = mc_prediction(
+it: Iterator[ValueFunctionApprox[InventoryState]] = mc_prediction(
     traces=traces,
     approx_0=Tabular(),
     gamma=user_gamma,
     episode_length_tolerance=1e-6
 )
 
-num_traces = 100000
+num_traces = 60000
 
-last_func: FunctionApprox[InventoryState] = last(islice(it, num_traces))
+last_func: ValueFunctionApprox[InventoryState] = last(islice(it, num_traces))
 pprint({s: round(last_func.evaluate([s])[0], 3)
         for s in si_mrp.non_terminal_states})
 ```   
@@ -296,15 +298,15 @@ pprint({s: round(last_func.evaluate([s])[0], 3)
 This prints the following:
 
 ``` 
-{InventoryState(on_hand=0, on_order=0): -35.506,
- InventoryState(on_hand=1, on_order=0): -28.933,
- InventoryState(on_hand=0, on_order=1): -27.931,
- InventoryState(on_hand=0, on_order=2): -28.340,
- InventoryState(on_hand=2, on_order=0): -30.343,
- InventoryState(on_hand=1, on_order=1): -29.343}
+{NonTerminal(state=InventoryState(on_hand=1, on_order=1)): -29.341,
+ NonTerminal(state=InventoryState(on_hand=2, on_order=0)): -30.349,
+ NonTerminal(state=InventoryState(on_hand=0, on_order=0)): -35.52,
+ NonTerminal(state=InventoryState(on_hand=0, on_order=1)): -27.931,
+ NonTerminal(state=InventoryState(on_hand=0, on_order=2)): -28.355,
+ NonTerminal(state=InventoryState(on_hand=1, on_order=0)): -28.93}   
 ```   
      
-We see that the Value Function computed by Tabular Monte-Carlo Prediction with 100000 trace experiences is within 0.005 of the exact Value Function.
+We see that the Value Function computed by Tabular Monte-Carlo Prediction with 60000 trace experiences is within 0.01 of the exact Value Function, for each of the states.
 
 This completes the coverage of our first RL Prediction algorithm: Monte-Carlo Prediction. This has the advantage of being a very simple, easy-to-understand algorithm with an unbiased estimate of the Value Function. But Monte-Carlo can be slow to converge to the correct Value Function and another disadvantage of Monte-Carlo is that it requires entire trace experiences (or long-enough trace experiences when $\gamma < 1$). The next RL Prediction algorithm we cover (Temporal-Difference) overcomes these weaknesses.
      
@@ -347,28 +349,30 @@ This looks similar to the formula for parameters update in the case of MC (with 
 * *TD Error* $\delta_t = R_{t+1} + \gamma \cdot V(S_{t+1}; \bm{w}) - V(S_t; \bm{w})$
 * *Estimate Gradient* of the conditional expected return $V(S_t;\bm{w})$ with respect to the parameters $\bm{w}$
 
-Now let's write some code to implement TD Prediction (with Function Approximation). Unlike MC which takes as input a stream of trace experiences, TD works with a more granular stream: a stream of *atomic experiences*. Note that a stream of trace experiences can be broken up into a stream of atomic experiences, but we could also obtain a stream of atomic experiences in other ways (not necessarily from a stream of trace experiences). Thus, the TD prediction algorithm we write below (`td_prediction`) takes as input an `Iterable[TransitionStep[S]]`. `td_prediction` produces an `Iterator` of `FunctionApprox[S]`, i.e., an updated function approximation of the Value Function after each atomic experience in the input atomic experiences stream. Similar to our implementation of MC, our implementation of TD is based on supervised learning on a stream of $(x,y)$ pairs, but there are two key differences:
+Now let's write some code to implement TD Prediction (with Function Approximation). Unlike MC which takes as input a stream of trace experiences, TD works with a more granular stream: a stream of *atomic experiences*. Note that a stream of trace experiences can be broken up into a stream of atomic experiences, but we could also obtain a stream of atomic experiences in other ways (not necessarily from a stream of trace experiences). Thus, the TD prediction algorithm we write below (`td_prediction`) takes as input an `Iterable[TransitionStep[S]]`. `td_prediction` produces an `Iterator` of `ValueFunctionApprox[S]`, i.e., an updated function approximation of the Value Function after each atomic experience in the input atomic experiences stream. Similar to our implementation of MC, our implementation of TD is based on supervised learning on a stream of $(x,y)$ pairs, but there are two key differences:
 
-1. The $(x,y)$ pairs will be provided as one pair at a time (corresponding to a single atomic experience) for a single `update`, and not as a set of $(x,y)$ pairs corresponding to a single trace experience.
-2. The $y$-value depends on the Value Function, as seen from the update Equation \eqref{eq:td-funcapprox-params-adj} above. This means we cannot use the `iterate_updates` method of `FunctionApprox` that MC Prediction uses. Rather, we need to directly use the `rl.iterate.accumulate` function (a wrapped version of  [`itertools.accumulate`](https://docs.python.org/3/library/itertools.html#itertools.accumulate)). As seen in the code below, the accumulation is performed on the input `transitions: Iterable[TransitionStep[S]]` and the function governing the accumulation is the `step` function in the code below that calls the `update` method of `FunctionApprox` (note that the $y$-values passed to `update` involve a call to the estimated Value Function `v` for the `next_state` of each `transition`).
+1. The `update` of the `ValueFunctionApprox` is done after each atomic experience, versus MC where the `update`s are done at the end of each trace experience.
+2. The $y$-value depends on the Value Function estimate, as seen from the update Equation \eqref{eq:td-funcapprox-params-adj} above. This means we cannot use the `iterate_updates` method of `FunctionApprox` that MC Prediction uses. Rather, we need to directly use the `rl.iterate.accumulate` function (a wrapped version of  [`itertools.accumulate`](https://docs.python.org/3/library/itertools.html#itertools.accumulate)). As seen in the code below, the accumulation is performed on the input `transitions: Iterable[TransitionStep[S]]` and the function governing the accumulation is the `step` function in the code below that calls the `update` method of `ValueFunctionApprox`. Note that the $y$-values passed to `update` involve a call to the estimated Value Function `v` for the `next_state` of each `transition`. However, since the `next_state` could be `Terminal` or `NonTerminal`, and since `ValueFunctionApprox` is valid only for non-terminal states, we use the `extended_vf` function we had implemented in Chapter [-@sec:funcapprox-chapter] to handle the cases of the next state being `Terminal` or `NonTerminal` (with terminal states evaluating to the default value of 0).
 
 
 ```python
 import rl.iterate as iterate
 import rl.markov_process as mp
+from rl.approximate_dynamic_programming import ValueFunctionApprox
+from rl.approximate_dynamic_programming import extended_vf
 
 def td_prediction(
         transitions: Iterable[mp.TransitionStep[S]],
-        approx_0: FunctionApprox[S],
-        gamma: float,
-) -> Iterator[FunctionApprox[S]]:
+        approx_0: ValueFunctionApprox[S],
+        gamma: float
+) -> Iterator[ValueFunctionApprox[S]]:
     def step(
-            v: FunctionApprox[S],
+            v: ValueFunctionApprox[S],
             transition: mp.TransitionStep[S]
-    ) -> FunctionApprox[S]:
+    ) -> ValueFunctionApprox[S]:
         return v.update([(
             transition.state,
-            transition.reward + gamma * v(transition.next_state)
+            transition.reward + gamma * extended_vf(v, transition.next_state)
         )])
 
     return iterate.accumulate(transitions, step, initial=approx_0)
@@ -381,10 +385,11 @@ Now let's write some code to test our implementation of TD Prediction. We test o
 ```python
 import itertools
 from rl.distribution import Distribution, Choose
+from rl.approximate_dynamic_programming import NTStateDistribution
 
 def mrp_episodes_stream(
     mrp: MarkovRewardProcess[S],
-    start_state_distribution: Distribution[S]
+    start_state_distribution: NTStateDistribution[S]
 ) -> Iterable[Iterable[TransitionStep[S]]]:
     return mrp.reward_traces(start_state_distribution)
 
@@ -422,7 +427,7 @@ def learning_rate_schedule(
     return lr_func
 ```
 
-With these functions available, we can now write code to test our implementation of TD Prediction. We use the same instance `si_mrp: SimpleInventoryMRPFinite` that we had created above when testing MC Prediction. We use the same number of episodes (100000) we had used when testing MC Prediction. We set initial learning rate $\alpha = 0.03$, half life $H = 1000$ and exponent $\beta = 0.5$. We set the episode length (number of atomic experiences in a single trace experience) to be 100 (about the same as with the settings we had for testing MC Prediction). We use the same discount factor $\gamma = 0.9$.
+With these functions available, we can now write code to test our implementation of TD Prediction. We use the same instance `si_mrp: SimpleInventoryMRPFinite` that we had created above when testing MC Prediction. We use the same number of episodes (60000) we had used when testing MC Prediction. We set initial learning rate $\alpha = 0.03$, half life $H = 1000$ and exponent $\beta = 0.5$. We set the episode length (number of atomic experiences in a single trace experience) to be 100 (about the same as with the settings we had for testing MC Prediction). We use the same discount factor $\gamma = 0.9$.
 
 ```python
 import rl.iterate as iterate
@@ -451,15 +456,15 @@ learning_rate_func: Callable[[int], float] = learning_rate_schedule(
     half_life=half_life,
     exponent=exponent
 )
-td_vfs: Iterator[FunctionApprox[S]] = td.td_prediction(
+td_vfs: Iterator[ValueFunctionApprox[S]] = td.td_prediction(
     transitions=td_experiences,
     approx_0=Tabular(count_to_weight_func=learning_rate_func),
     gamma=gamma
 )
 
-num_episodes = 100000
+num_episodes = 60000
 
-final_td_vf: FunctionApprox[S] = \
+final_td_vf: ValueFunctionApprox[S] = \
     iterate.last(itertools.islice(td_vfs, episode_length * num_episodes))
 pprint({s: round(final_td_vf(s), 3) for s in si_mrp.non_terminal_states})
 ```
@@ -467,15 +472,15 @@ pprint({s: round(final_td_vf(s), 3) for s in si_mrp.non_terminal_states})
 This prints the following:
 
 ```
-{InventoryState(on_hand=0, on_order=0): -35.529,
- InventoryState(on_hand=1, on_order=0): -28.888,
- InventoryState(on_hand=0, on_order=1): -27.899,
- InventoryState(on_hand=0, on_order=2): -28.354,
- InventoryState(on_hand=2, on_order=0): -30.363,
- InventoryState(on_hand=1, on_order=1): -29.361}
+{NonTerminal(state=InventoryState(on_hand=0, on_order=0)): -35.529,
+ NonTerminal(state=InventoryState(on_hand=0, on_order=1)): -27.868,
+ NonTerminal(state=InventoryState(on_hand=0, on_order=2)): -28.344,
+ NonTerminal(state=InventoryState(on_hand=1, on_order=0)): -28.935,
+ NonTerminal(state=InventoryState(on_hand=1, on_order=1)): -29.386,
+ NonTerminal(state=InventoryState(on_hand=2, on_order=0)): -30.305}
 ```
 
-Thus, we see that our implementation of TD prediction with the above settings fetches us an estimated Value Function within 0.05 of the true Value Function. As ever, we encourage you to play with various settings for MC Prediction and TD prediction to develop an intuition for how the results change as you change the settings. You can play with the code in the file [rl/chapter10/simple_inventory_mrp.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/chapter10/simple_inventory_mrp.py).
+Thus, we see that our implementation of TD prediction with the above settings fetches us an estimated Value Function within 0.065 of the true Value Function after 60,000 episodes. As ever, we encourage you to play with various settings for MC Prediction and TD prediction to develop an intuition for how the results change as you change the settings. You can play with the code in the file [rl/chapter10/simple_inventory_mrp.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/chapter10/simple_inventory_mrp.py).
 
 ### TD versus MC
 
@@ -522,15 +527,13 @@ class RandomWalkMRP(FiniteMarkovRewardProcess[int]):
         super().__init__(self.get_transition_map())
 
     def get_transition_map(self) -> \
-            Mapping[int, Optional[Categorical[Tuple[int, float]]]]:
-        d: Dict[int, Optional[Categorical[Tuple[int, float]]]] = {
+            Mapping[int, Categorical[Tuple[int, float]]]:
+        d: Dict[int, Categorical[Tuple[int, float]]] = {
             i: Categorical({
                 (i + 1, 0. if i < self.barrier - 1 else 1.): self.p,
                 (i - 1, 0.): 1 - self.p
             }) for i in range(1, self.barrier)
         }
-        d[0] = None
-        d[self.barrier] = None
         return d
 ```
 
@@ -550,7 +553,7 @@ We have talked a lot about *how* TD learns versus *how* MC learns. In this subse
 
 So let us start by setting up this experience replay with some code. Firstly, we represent the given input data of the fixed finite set of trace experience as the type:
 
-`Sequence[Sequence[Tuple[str, float]]]`
+`Sequence[Sequence[Tuple[S, float]]]`
 
 The outer `Sequence` refers to the sequence of trace experiences, and the inner `Sequence` refers to the sequence of (state, reward) pairs in a trace experience (to represent the alternating sequence of states and rewards in a trace experience). The first function we write is to convert this data set into a:
 
@@ -564,9 +567,10 @@ def get_fixed_episodes_from_sr_pairs_seq(
     terminal_state: S
 ) -> Sequence[Sequence[TransitionStep[S]]]:
     return [[TransitionStep(
-        state=s,
+        state=NonTerminal(s),
         reward=r,
-        next_state=trace[i+1][0] if i < len(trace) - 1 else terminal_state
+        next_state=NonTerminal(trace[i+1][0])
+        if i < len(trace) - 1 else Terminal(terminal_state)
     ) for i, (s, r) in enumerate(trace)] for trace in sr_pairs_seq]
 ```
 
@@ -620,15 +624,15 @@ def get_return_steps_from_fixed_episodes(
 
 def get_mean_returns_from_return_steps(
     returns_seq: Sequence[ReturnStep[S]]
-) -> Mapping[S, float]:
+) -> Mapping[NonTerminal[S], float]:
     def by_state(ret: ReturnStep[S]) -> S:
-        return ret.state
+        return ret.state.state
 
     sorted_returns_seq: Sequence[ReturnStep[S]] = sorted(
         returns_seq,
         key=by_state
     )
-    return {s: np.mean([r.return_ for r in l])
+    return {NonTerminal(s): np.mean([r.return_ for r in l])
             for s, l in itertools.groupby(
                 sorted_returns_seq,
                 key=by_state
@@ -665,9 +669,8 @@ returns_seq: Sequence[ReturnStep[str]] = \
         gamma=gamma
     )
 
-mean_returns: Mapping[str, float] = get_mean_returns_from_return_steps(
-    returns_seq
-)
+mean_returns: Mapping[NonTerminal[str], float] = \
+    get_mean_returns_from_return_steps(returns_seq)
 
 pprint(mean_returns)
 ```
@@ -675,19 +678,21 @@ pprint(mean_returns)
 This prints:
 
 ```
-{'A': 8.261809999999999, 'B': 5.190378571428572}
+{NonTerminal(state='B'): 5.190378571428572,
+ NonTerminal(state='A'): 8.261809999999999}
 ```
 
 Now let's run MC Prediction with experience-replayed 100,000 trace experiences with equal weighting for each of the (state, return) pairs, i.e., with `count_to_weights_func` attribute of `Tabular` as the function `lambda n: 1.0 / n`:
 
 ```python
 import rl.monte_carlo as mc
+import rl.iterate as iterate
 
 def mc_prediction(
     episodes_stream: Iterator[Sequence[TransitionStep[S]]],
     gamma: float,
     num_episodes: int
-) -> Mapping[S, float]:
+) -> Mapping[NonTerminal[S], float]:
     return iterate.last(itertools.islice(
         mc.mc_prediction(
             traces=episodes_stream,
@@ -703,7 +708,7 @@ num_mc_episodes: int = 100000
 episodes: Iterator[Sequence[TransitionStep[str]]] = \
     get_episodes_stream(fixed_episodes)
 
-mc_pred: Mapping[str, float] = mc_prediction(
+mc_pred: Mapping[NonTerminal[str], float] = mc_prediction(
     episodes_stream=episodes,
     gamma=gamma,
     num_episodes=num_mc_episodes
@@ -715,7 +720,8 @@ pprint(mc_pred)
 This prints:
 
 ```
-{'A': 8.259354513588503, 'B': 5.18847638381789}
+{NonTerminal(state='A'): 8.262643843836214,
+ NonTerminal(state='B'): 5.191276907315868}  
 ```
 
 So, as expected, it ties out within the standard error for 100,000 trace experiences. Now let's move on to TD Prediction. Let's run TD Prediction on experience-replayed 1,000,000 atomic experiences with a learning rate schedule having an initial learning rate of 0.01, decaying with a half life of 10000, and with an exponent of 0.5.
@@ -728,7 +734,7 @@ def td_prediction(
     experiences_stream: Iterator[TransitionStep[S]],
     gamma: float,
     num_experiences: int
-) -> Mapping[S, float]:
+) -> Mapping[NonTerminal[S], float]:
     return iterate.last(itertools.islice(
         td.td_prediction(
             transitions=experiences_stream,
@@ -750,8 +756,7 @@ fixed_experiences: Sequence[TransitionStep[str]] = \
 experiences: Iterator[TransitionStep[str]] = \
     get_experiences_stream(fixed_experiences)
 
-
-td_pred: Mapping[str, float] = td_prediction(
+td_pred: Mapping[NonTerminal[str], float] = td_prediction(
     experiences_stream=experiences,
     gamma=gamma,
     num_experiences=num_td_experiences
@@ -763,7 +768,8 @@ pprint(td_pred)
 This prints:
 
 ```
-{'A': 9.733383341548377, 'B': 7.483985631705235}
+{NonTerminal(state='A'): 9.899838136517303,
+ NonTerminal(state='B'): 7.444114569419306}
 ```
 
 We note that this Value Function is vastly different from the Value Function produced by MC Prediction. Is there a bug in our code, or perhaps a more serious conceptual problem? It turns out there is no bug or a more serious problem. This is exactly what TD Prediction on Experience Replay on a fixed finite data set is meant to produce. So, what Value Function does this correspond to? It turns out that TD Prediction drives towards a Value Function of an MRP that is *implied* by the fixed finite set of given experiences. By the term *implied*, we mean the maximum likelihood estimate for the transition probabilities $\mathcal{P}_R$ estimated from the given fixed finite  data, i.e.,
@@ -785,21 +791,18 @@ def finite_mrp(
     fixed_experiences: Sequence[TransitionStep[S]]
 ) -> FiniteMarkovRewardProcess[S]:
     def by_state(tr: TransitionStep[S]) -> S:
-        return tr.state
-
-    terminal_state: S = fixed_experiences[-1].next_state
+        return tr.state.state
 
     d: Mapping[S, Sequence[Tuple[S, float]]] = \
-        {s: [(t.next_state, t.reward) for t in l] for s, l in
+        {s: [(t.next_state.state, t.reward) for t in l] for s, l in
          itertools.groupby(
              sorted(fixed_experiences, key=by_state),
              key=by_state
          )}
-    mrp: Dict[S, Optional[Categorical[Tuple[S, float]]]] = \
+    mrp: Dict[S, Categorical[Tuple[S, float]]] = \
         {s: Categorical({x: y / len(l) for x, y in
                          collections.Counter(l).items()})
          for s, l in d.items()}
-    mrp[terminal_state] = None
     return FiniteMarkovRewardProcess(mrp)
 ```
 
@@ -813,7 +816,7 @@ fmrp.display_value_function(gamma)
 This prints:
 
 ```
-{'A': 9.958, 'B': 7.545}
+{NonTerminal(state='A'): 9.958, NonTerminal(state='B'): 7.545}  
 ```
 
 So our TD Prediction algorithm doesn't exactly match the Value Function of the data-implied MRP, but gets close. It turns out that a variation of our TD Prediction algorithm exactly matches the Value Function of the data-implied MRP. We won't implement this variation in this chapter, but will describe it briefly here. The variation is as follows:
@@ -939,20 +942,21 @@ Note that for $\lambda > 0$, Equation \eqref{eq:lambda-return-funcapprox-params-
 ```python
 import rl.markov_process as mp
 import numpy as np
+from rl.approximate_dynamic_programming import ValueFunctionApprox
 
 def lambda_return_prediction(
         traces: Iterable[Iterable[mp.TransitionStep[S]]],
-        approx_0: FunctionApprox[S],
+        approx_0: ValueFunctionApprox[S],
         gamma: float,
         lambd: float
-) -> Iterator[FunctionApprox[S]]:
-    func_approx: FunctionApprox[S] = approx_0
+) -> Iterator[ValueFunctionApprox[S]]:
+    func_approx: ValueFunctionApprox[S] = approx_0
     yield func_approx
 
     for trace in traces:
         gp: List[float] = [1.]
         lp: List[float] = [1.]
-        predictors: List[S] = []
+        predictors: List[NonTerminal[S]] = []
         partials: List[List[float]] = []
         weights: List[List[float]] = []
         trace_seq: Sequence[mp.TransitionStep[S]] = list(trace)
@@ -961,7 +965,7 @@ def lambda_return_prediction(
                 partial.append(
                     partial[-1] +
                     gp[t - i] * (tr.reward - func_approx(tr.state)) +
-                    (gp[t - i] * gamma * func_approx(tr.next_state)
+                    (gp[t - i] * gamma * extended_vf(func_approx, tr.next_state)
                      if t < len(trace_seq) - 1 else 0.)
                 )
                 weights[i].append(
@@ -969,8 +973,9 @@ def lambda_return_prediction(
                     else lp[t - i]
                 )
             predictors.append(tr.state)
-            partials.append([tr.reward + (gamma * func_approx(tr.next_state)
-                             if t < len(trace_seq) - 1 else 0.)])
+            partials.append([tr.reward +
+                             (gamma * extended_vf(func_approx, tr.next_state)
+                              if t < len(trace_seq) - 1 else 0.)])
             weights.append([1. - (lambd if t < len(trace_seq) else 0.)])
             gp.append(gp[-1] * gamma)
             lp.append(lp[-1] * lambd)
@@ -1129,22 +1134,24 @@ Thankfully, the `__mul__` method of `Gradient` class enables us to conveniently 
 ```python
 import rl.markov_process as mp
 import numpy as np
-from rl.function_approx import FunctionApprox, Gradient
+from rl.function_approx import Gradient
+from rl.approximate_dynamic_programming import ValueFunctionApprox
 
 def td_lambda_prediction(
         traces: Iterable[Iterable[mp.TransitionStep[S]]],
-        approx_0: FunctionApprox[S],
+        approx_0: ValueFunctionApprox[S],
         gamma: float,
         lambd: float
-) -> Iterator[FunctionApprox[S]]:
-    func_approx: FunctionApprox[S] = approx_0
+) -> Iterator[ValueFunctionApprox[S]]:
+    func_approx: ValueFunctionApprox[S] = approx_0
     yield func_approx
 
     for trace in traces:
-        el_tr: Gradient[FunctionApprox[S]] = Gradient(func_approx).zero()
+        el_tr: Gradient[ValueFunctionApprox[S]] = Gradient(func_approx).zero()
         for step in trace:
-            x: S = step.state
-            y: float = step.reward + gamma * func_approx(step.next_state)
+            x: NonTerminal[S] = step.state
+            y: float = step.reward + gamma * \
+                extended_vf(func_approx, step.next_state)
             el_tr = el_tr * (gamma * lambd) + func_approx.objective_gradient(
                 xy_vals_seq=[(x, y)],
                 obj_deriv_out_fun=lambda x1, y1: np.ones(len(x1))
@@ -1155,7 +1162,7 @@ def td_lambda_prediction(
             yield func_approx
 ```
 
-Let's use the same instance `si_mrp: SimpleInventoryMRPFinite` that we had created above when testing MC and TD Prediction. We use the same number of episodes (100000) we had used when testing MC Prediction. Just like in the case of testing TD prediction, we set initial learning rate $\alpha = 0.03$, half life $H = 1000$ and exponent $\beta = 0.5$. We set the episode length (number of atomic experiences in a single trace experience) to be 100 (same as with the settings we had for testing TD Prediction and consistent with MC Prediction as well). We use the same discount factor $\gamma = 0.9$. Let's set $\lambda = 0.3$.
+Let's use the same instance `si_mrp: SimpleInventoryMRPFinite` that we had created above when testing MC and TD Prediction. We use the same number of episodes (60000) we had used when testing MC Prediction. Just like in the case of testing TD prediction, we set initial learning rate $\alpha = 0.03$, half life $H = 1000$ and exponent $\beta = 0.5$. We set the episode length (number of atomic experiences in a single trace experience) to be 100 (same as with the settings we had for testing TD Prediction and consistent with MC Prediction as well). We use the same discount factor $\gamma = 0.9$. Let's set $\lambda = 0.3$.
 
 ```python
 import rl.iterate as iterate
@@ -1181,16 +1188,16 @@ learning_rate_func: Callable[[int], float] = learning_rate_schedule(
     half_life=half_life,
     exponent=exponent
 )
-td_lambda_vfs: Iterator[FunctionApprox[S]] = td_lambda.td_lambda_prediction(
+td_lambda_vfs: Iterator[ValueFunctionApprox[S]] = td_lambda.td_lambda_prediction(
     traces=curtailed_episodes,
     approx_0=Tabular(count_to_weight_func=learning_rate_func),
     gamma=gamma,
     lambd=lambda_param
 )
 
-num_episodes = 100000
+num_episodes = 60000
 
-final_td_lambda_vf: FunctionApprox[S] = \
+final_td_lambda_vf: ValueFunctionApprox[S] = \
     iterate.last(itertools.islice(td_lambda_vfs, episode_length * num_episodes))
 pprint({s: round(final_td_lambda_vf(s), 3) for s in si_mrp.non_terminal_states})
 ```
@@ -1198,19 +1205,12 @@ pprint({s: round(final_td_lambda_vf(s), 3) for s in si_mrp.non_terminal_states})
 This prints the following:
 
 ```
-{InventoryState(on_hand=0, on_order=0): -35.67,
- InventoryState(on_hand=1, on_order=0): -29.023,
- InventoryState(on_hand=0, on_order=1): -28.039,
- InventoryState(on_hand=0, on_order=2): -28.566,
- InventoryState(on_hand=2, on_order=0): -30.564,
- InventoryState(on_hand=1, on_order=1): -29.514}
-True Value Function
-{InventoryState(on_hand=0, on_order=0): -35.511,
- InventoryState(on_hand=1, on_order=0): -28.932,
- InventoryState(on_hand=0, on_order=1): -27.932,
- InventoryState(on_hand=0, on_order=2): -28.345,
- InventoryState(on_hand=2, on_order=0): -30.345,
- InventoryState(on_hand=1, on_order=1): -29.345}   
+{NonTerminal(state=InventoryState(on_hand=0, on_order=0)): -35.545,
+ NonTerminal(state=InventoryState(on_hand=0, on_order=1)): -27.97,
+ NonTerminal(state=InventoryState(on_hand=0, on_order=2)): -28.396,
+ NonTerminal(state=InventoryState(on_hand=1, on_order=0)): -28.943,
+ NonTerminal(state=InventoryState(on_hand=1, on_order=1)): -29.506,
+ NonTerminal(state=InventoryState(on_hand=2, on_order=0)): -30.339}
 ```
 
 Thus, we see that our implementation of TD($\lambda$) prediction with the above settings fetches us an estimated Value Function fairly close to the true Value Function. As ever, we encourage you to play with various settings for TD($\lambda$) prediction to develop an intuition for how the results change as you change the settings, and particularly as you change the $\lambda$ parameter. You can play with the code in the file [rl/chapter10/simple_inventory_mrp.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/chapter10/simple_inventory_mrp.py).
