@@ -3,22 +3,22 @@ Markov Decision Processes.
 
 '''
 
-from typing import Callable, Iterable, Iterator, TypeVar, Set, Sequence, \
+from dataclasses import dataclass
+from operator import itemgetter
+from typing import Callable, Generic, Iterable, Iterator, TypeVar, Set, Sequence, \
     List, Tuple
+
+import numpy as np
+
+from rl.approximate_dynamic_programming import ValueFunctionApprox, QValueFunctionApprox, NTStateDistribution, extended_vf
+from rl.distribution import Categorical, Range
+from rl.function_approx import LinearFunctionApprox, Weights
+import rl.iterate as iterate
 import rl.markov_process as mp
 from rl.markov_decision_process import MarkovDecisionProcess, Policy
 from rl.markov_decision_process import TransitionStep, NonTerminal
-from rl.policy import DeterministicPolicy
-import rl.iterate as iterate
-from rl.distribution import Categorical
-from operator import itemgetter
-from rl.function_approx import LinearFunctionApprox, Weights
-from rl.approximate_dynamic_programming import ValueFunctionApprox
-from rl.approximate_dynamic_programming import QValueFunctionApprox
-from rl.approximate_dynamic_programming import NTStateDistribution
-from rl.approximate_dynamic_programming import extended_vf
 from rl.monte_carlo import greedy_policy_from_qvf
-import numpy as np
+from rl.policy import DeterministicPolicy
 
 S = TypeVar('S')
 
@@ -51,33 +51,6 @@ def td_prediction(
         )])
 
     return iterate.accumulate(transitions, step, initial=approx_0)
-
-
-def batch_td_prediction(
-    transitions: Iterable[mp.TransitionStep[S]],
-    approx: ValueFunctionApprox[S],
-    γ: float,
-    convergence_tolerance: float = 1e-5
-) -> ValueFunctionApprox[S]:
-    tr_seq: Sequence[mp.TransitionStep[S]] = list(transitions)
-
-    def transitions_stream(
-        tr_seq=tr_seq
-    ) -> Iterator[mp.TransitionStep[S]]:
-        while True:
-            yield tr_seq[np.random.randint(len(tr_seq))]
-
-    def done(
-        a: ValueFunctionApprox[S],
-        b: ValueFunctionApprox[S],
-        convergence_tolerance=convergence_tolerance
-    ) -> bool:
-        return b.within(a, convergence_tolerance)
-
-    return iterate.converged(
-        td_prediction(transitions_stream(), approx, γ),
-        done=done
-    )
 
 
 def least_squares_td(
