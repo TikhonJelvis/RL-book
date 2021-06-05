@@ -102,7 +102,7 @@ class TestEvaluate(unittest.TestCase):
                 uniform_policy
             )
 
-        qs = td.q_learning_experience_replay(
+        qs = td.q_learning_external_transitions(
             transitions,
             self.finite_mdp.actions,
             q_0,
