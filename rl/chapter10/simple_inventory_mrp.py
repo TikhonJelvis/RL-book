@@ -27,7 +27,7 @@ initial_vf_dict: Mapping[NonTerminal[InventoryState], float] = \
 
 gamma: float = 0.9
 mc_episode_length_tol: float = 1e-6
-num_episodes = 1000
+num_episodes = 10000
 
 td_episode_length: int = 100
 initial_learning_rate: float = 0.03

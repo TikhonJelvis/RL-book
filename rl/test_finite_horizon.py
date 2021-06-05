@@ -1,8 +1,9 @@
+from typing import Mapping, Sequence
 import unittest
 
 import dataclasses
 
-from rl.distribution import Categorical, Constant
+from rl.distribution import Categorical
 import rl.test_distribution as distribution
 from rl.markov_process import FiniteMarkovRewardProcess
 from rl.markov_decision_process import (ActionMapping,
@@ -66,7 +67,7 @@ class TestFiniteMRP(unittest.TestCase):
     def test_unwrap_finite_horizon_MRP(self):
         finite = finite_horizon_MRP(self.finite_flip_flop, 10)
 
-        def transition_for(time):
+        def transition_for(_):
             return {
                 True: Categorical({
                     (NonTerminal(True), 1.0): 0.3,
@@ -217,9 +218,9 @@ class TestFiniteMDP(unittest.TestCase):
     def test_optimal_policy(self):
         finite = finite_horizon_MDP(self.finite_flip_flop, limit=10)
         steps = unwrap_finite_horizon_MDP(finite)
-        *v_ps, (v, p) = optimal_vf_and_policy(steps, gamma=1)
+        *v_ps, (_, p) = optimal_vf_and_policy(steps, gamma=1)
 
-        for _, a in p.deterministic_policy_map.items():
+        for _, a in p.action_for.items():
             self.assertEqual(a, False)
 
         self.assertAlmostEqual(v_ps[0][0][NonTerminal(True)], 17)

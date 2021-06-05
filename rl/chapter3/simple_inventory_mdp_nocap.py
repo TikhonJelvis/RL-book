@@ -7,7 +7,7 @@ import random
 
 from rl.markov_decision_process import MarkovDecisionProcess
 from rl.markov_process import MarkovRewardProcess, NonTerminal, State
-from rl.markov_decision_process import Policy
+from rl.policy import Policy, DeterministicPolicy
 from rl.distribution import Constant, SampledDistribution
 
 
@@ -76,15 +76,16 @@ class SimpleInventoryMDPNoCap(MarkovDecisionProcess[InventoryState, int]):
         return float(count) / (time_steps * num_traces)
 
 
-class SimpleInventoryDeterministicPolicy(Policy[InventoryState, int]):
+class SimpleInventoryDeterministicPolicy(
+        DeterministicPolicy[InventoryState, int]
+):
     def __init__(self, reorder_point: int):
         self.reorder_point: int = reorder_point
 
-    def act(self, state: NonTerminal[InventoryState]) -> Constant[int]:
-        return Constant(max(
-            self.reorder_point - state.state.inventory_position(),
-            0
-        ))
+        def action_for(s: InventoryState) -> int:
+            return max(self.reorder_point - s.inventory_position(), 0)
+
+        super().__init__(action_for)
 
 
 class SimpleInventoryStochasticPolicy(Policy[InventoryState, int]):

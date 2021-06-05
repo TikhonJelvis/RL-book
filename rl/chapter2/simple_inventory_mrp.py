@@ -111,7 +111,10 @@ if __name__ == '__main__':
     from rl.markov_process import FiniteMarkovProcess
     print("Transition Map")
     print("--------------")
-    print(FiniteMarkovProcess(si_mrp.transition_map))
+    print(FiniteMarkovProcess(
+        {s.state: Categorical({s1.state: p for s1, p in v.table().items()})
+         for s, v in si_mrp.transition_map.items()}
+    ))
 
     print("Transition Reward Map")
     print("---------------------")

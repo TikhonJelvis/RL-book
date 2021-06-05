@@ -1,5 +1,3 @@
-from typing import Tuple, Mapping
-
 SPACE = 'SPACE'
 BLOCK = 'BLOCK'
 GOAL = 'GOAL'

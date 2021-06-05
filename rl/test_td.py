@@ -12,6 +12,7 @@ import rl.markov_process as mp
 from rl.markov_decision_process import FiniteMarkovDecisionProcess
 import rl.markov_decision_process as mdp
 import rl.td as td
+from rl.policy import FinitePolicy
 
 
 class FlipFlop(FiniteMarkovRewardProcess[bool]):
@@ -89,8 +90,8 @@ class TestEvaluate(unittest.TestCase):
             count_to_weight_func=lambda _: 0.1
         )
 
-        uniform_policy: mdp.FinitePolicy[bool, bool] =\
-            mdp.FinitePolicy({
+        uniform_policy: FinitePolicy[bool, bool] =\
+            FinitePolicy({
                 s.state: Choose(set(self.finite_mdp.actions(s)))
                 for s in self.finite_mdp.non_terminal_states
             })

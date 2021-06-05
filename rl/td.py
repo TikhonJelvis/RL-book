@@ -3,8 +3,7 @@ Markov Decision Processes.
 
 '''
 
-from typing import Callable, Iterable, Iterator, TypeVar, Tuple, Mapping, Set
-from rl.function_approx import FunctionApprox
+from typing import Callable, Iterable, Iterator, TypeVar, Set
 import rl.markov_process as mp
 from rl.markov_decision_process import MarkovDecisionProcess, Policy
 from rl.markov_decision_process import TransitionStep, NonTerminal
@@ -50,7 +49,6 @@ def td_prediction(
 
 
 A = TypeVar('A')
-QType = Mapping[S, Mapping[A, float]]
 
 
 def epsilon_greedy_action(
@@ -119,7 +117,7 @@ def glie_sarsa(
 
 
 PolicyFromQType = Callable[
-    [FunctionApprox[Tuple[S, A]], MarkovDecisionProcess[S, A]],
+    [QValueFunctionApprox[S, A], MarkovDecisionProcess[S, A]],
     Policy[S, A]
 ]
 
