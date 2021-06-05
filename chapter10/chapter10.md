@@ -280,7 +280,7 @@ from itertools import islice
 from pprint import pprint
 
 traces: Iterable[Iterable[TransitionStep[S]]] = \
-        mrp.reward_traces(Choose(set(si_mrp.non_terminal_states)))
+        mrp.reward_traces(Choose(si_mrp.non_terminal_states))
 it: Iterator[ValueFunctionApprox[InventoryState]] = mc_prediction(
     traces=traces,
     approx_0=Tabular(),
@@ -396,7 +396,7 @@ def mrp_episodes_stream(
 def fmrp_episodes_stream(
     fmrp: FiniteMarkovRewardProcess[S]
 ) -> Iterable[Iterable[TransitionStep[S]]]:
-    return mrp_episodes_stream(fmrp, Choose(set(fmrp.non_terminal_states)))
+    return mrp_episodes_stream(fmrp, Choose(fmrp.non_terminal_states))
 
 def unit_experiences_from_episodes(
     episodes: Iterable[Iterable[TransitionStep[S]]],
