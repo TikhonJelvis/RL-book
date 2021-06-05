@@ -21,7 +21,7 @@ def assert_almost_equal(test_case, dist_a, dist_b):
 
 class TestDistribution(unittest.TestCase):
     def setUp(self):
-        self.finite = Choose(set(range(0, 6)))
+        self.finite = Choose(range(0, 6))
         self.sampled = SampledDistribution(
             lambda: self.finite.sample(),
             100000

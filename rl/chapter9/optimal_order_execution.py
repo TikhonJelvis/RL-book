@@ -116,7 +116,7 @@ class OptimalOrderExecution:
             price: float = self.initial_price_distribution.sample()
             rem: int = self.shares
             for i in range(t):
-                sell: int = Choose(set(range(rem + 1))).sample()
+                sell: int = Choose(range(rem + 1)).sample()
                 price = self.price_dynamics[i](PriceAndShares(
                     price=price,
                     shares=rem

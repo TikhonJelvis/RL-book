@@ -68,7 +68,7 @@ td_func_approx: LinearFunctionApprox[NonTerminal[InventoryState]] = \
 it_mc: Iterable[ValueFunctionApprox[InventoryState]] = \
     mc_prediction_learning_rate(
         mrp=si_mrp,
-        start_state_distribution=Choose(set(nt_states)),
+        start_state_distribution=Choose(nt_states),
         gamma=gamma,
         episode_length_tolerance=mc_episode_length_tol,
         initial_func_approx=mc_func_approx
@@ -77,7 +77,7 @@ it_mc: Iterable[ValueFunctionApprox[InventoryState]] = \
 it_td: Iterable[ValueFunctionApprox[InventoryState]] = \
     td_prediction_learning_rate(
         mrp=si_mrp,
-        start_state_distribution=Choose(set(nt_states)),
+        start_state_distribution=Choose(nt_states),
         gamma=gamma,
         episode_length=td_episode_length,
         initial_func_approx=td_func_approx
