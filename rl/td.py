@@ -394,7 +394,6 @@ def least_squares_policy_iteration(
     target_policy: DeterministicPolicy[S, A] = initial_target_policy
     transitions_seq: Sequence[TransitionStep[S, A]] = list(transitions)
     while True:
-        print("Done")
         q: LinearFunctionApprox[Tuple[NonTerminal[S], A]] = \
             least_squares_tdq(
                 transitions=transitions_seq,
