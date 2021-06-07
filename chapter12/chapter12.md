@@ -260,12 +260,12 @@ td_vf: np.ndarray = td_func.evaluate(nt_states)
 Finally, we run the LSTD algorithm on 10,000 transitions. Note that the Value Function of `RandomWalkMRP`, for $p \neq 0.5$, is non-linear as a function of the integer states. So we use non-linear features that can approximate arbitrary non-linear shapes - a good choice is the set of (orthogonal) [Laguerre Polynomials](https://en.wikipedia.org/wiki/Laguerre_polynomials). In the code below, we use the first 5 Laguerre Polynomials (i.e. upto degree 4 polynomial) as the feature functions for the linear function approximation of the Value Function. Then we invoke the LSTD algorithm we wrote above to calculate the `LinearFunctionApprox` based on this batch of 10,000 transitions.
 
 ```python
-from rl.chapter12.laguerre import laguerre_features
+from rl.chapter12.laguerre import laguerre_state_features
 from rl.function_approx import LinearFunctionApprox
 
 num_polynomials: int = 5
 features: Sequence[Callable[[NonTerminal[int]], float]] = \
-    laguerre_features(num_polynomials)
+    laguerre_state_features(num_polynomials)
 lstd_transitions: Iterable[TransitionStep[int]] = \
     itertools.islice(transitions, num_transitions)
 epsilon: float = 1e-4
