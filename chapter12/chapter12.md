@@ -169,6 +169,7 @@ def least_squares_td(
     gamma: float,
     epsilon: float
 ) -> LinearFunctionApprox[NonTerminal[S]]:
+    ''' transitions is a finite iterable '''
     num_features: int = len(feature_functions)
     a_inv: np.ndarray = np.eye(num_features) / epsilon
     b_vec: np.ndarray = np.zeros(num_features)
@@ -403,7 +404,7 @@ The above code is in the file [rl/td.py](https://github.com/TikhonJelvis/RL-book
 
 #### Deep Q-Networks (DQN) Algorithm
 
-[DeepMind](https://deepmind.com/) developed an innovative and practically effective RL Control Control algorithm based on Q-Learning with Experience-Replay - an algorithm they named as Deep Q-Networks (abberviated as DQN). Apart from reaping the above-mentioned benefits of Experience-Replay for Q-Learning with a Deep Neural Network approximating the Q-Value function, they also benefited from employing a second Deep Neural Network (let us call the main DNN as the Q-Network, refering to it's parameters at $bm{w}$, and the second DNN as the target network, refering to it's parameters as $\bm{w}^-$). The parameters $\bm{w}^-$ of the target network are infrequently updated to be made equal to the parameters $\bm{w}$ of the Q-network. The purpose of the target network is to evaluate the Q-Value simply to calculate the Q-Learning target (note that the target is $r + \gamma \cdot \max_{a'} Q(s', a'; \bm{w}^-)$ for a given atomic experience $(s,a,r,s')$).
+[DeepMind](https://deepmind.com/) developed an innovative and practically effective RL Control Control algorithm based on Q-Learning with Experience-Replay - an algorithm they named as Deep Q-Networks (abberviated as DQN). Apart from reaping the above-mentioned benefits of Experience-Replay for Q-Learning with a Deep Neural Network approximating the Q-Value function, they also benefited from employing a second Deep Neural Network (let us call the main DNN as the Q-Network, refering to it's parameters at $\bm{w}$, and the second DNN as the target network, refering to it's parameters as $\bm{w}^-$). The parameters $\bm{w}^-$ of the target network are infrequently updated to be made equal to the parameters $\bm{w}$ of the Q-network. The purpose of the target network is to evaluate the Q-Value simply to calculate the Q-Learning target (note that the target is $r + \gamma \cdot \max_{a'} Q(s', a'; \bm{w}^-)$ for a given atomic experience $(s,a,r,s')$).
 
 Deep Learning is premised on the fact that the supervised learning targets (response values $y$ corresponding to predictor values $x$) are pre-generated fixed values. This is not the case in TD learning where the targets are dependent on the Q-Values. As Q-Values are updated at each step, the targets also get updated, and this correlation between the Q-Value estimate and the target vale typically leads to oscillations or divergence of the Q-Value estimate. By infrequently updating the parameters $\bm{w}^-$ of the target network (providing the target values) to be made equal to the parameters $\bm{w}$ of the Q-network (which are updated at each iteration, the targets in the Q-Learning update are essentially fixed. This goes a long way in resolving the core issue of correlation between the Q-Value estimate and the target values, helping considerably with convergence of the Q-Learning algorithm. Thus, DQN reaps the benefits of not just Experience-Replay in Q-Learning (which we articulated earlier), but also the benefits of having "fixed" targets. DNN utilizes a parameter $C$ such that the updating of $\bm{w}^-$ to be made equal to $\bm{w}$ is done once every $C$ updates to $\bm{w}$ (based on the usual Q-Learning update equation).
 
@@ -433,17 +434,19 @@ $$Q^{\pi}(s,a) \approxeq Q(s,a;\bm{w}) = \bm{\phi}(s)^T \cdot \bm{w}$$
 with a direct linear-algebraic solve for the linear function approximation weights $\bm{w}$ using batch experiences data generated using policy $\pi$.
 2. $\epsilon$-Greedy Policy Improvement.
 
-In this section, we focus on Off-Policy Control with Least-Squares TD. This algorithm is known as Least-Squares Policy Iteration, abbreviated as LSPI, developed by [Lagoudakis and Parr](https://www.jmlr.org/papers/volume4/lagoudakis03a/lagoudakis03a.pdf). LSPI has been an important go-to algorithm in the history of RL Control because of it's simplicity and effectiveness. The basic idea of LSPI is essentially *Q-Learning with Experience-Replay*, with the key being that instead of doing the usual Q-Learning update after each atomic experience, we do *batch Q-Learning* for the Policy Evaluation phase of GPI. We spend the rest of this section describing LSPI in detail and then implementing it in Python code.
+In this section, we focus on Off-Policy Control with Least-Squares TD. This algorithm is known as Least-Squares Policy Iteration, abbreviated as LSPI, developed by [Lagoudakis and Parr](https://www.jmlr.org/papers/volume4/lagoudakis03a/lagoudakis03a.pdf). LSPI has been an important go-to algorithm in the history of RL Control because of it's simplicity and effectiveness. The basic idea of LSPI is that it's Generalized Policy Iteration (GPI) is essentially *Q-Learning with Experience-Replay*, with the key being that instead of doing the usual Q-Learning update after each atomic experience, we do *batch Q-Learning* for the Policy Evaluation phase of GPI. We spend the rest of this section describing LSPI in detail and then implementing it in Python code.
+
+The input to LSPI is a fixed finite data set $\mathcal{D}$, consisting of set of $(s,a,r,s')$ atomic experiences, i.e., a set of `rl.markov_decision_process.TransitionStep` objects, and the task of LSPI is to determine the Optimal Q-Value Function (and hence, Optimal Policy) based on this experiences data set $\mathcal{D}$ using an experience-replayed, batch Q-Learning technique described below. Assume $\mathcal{D}$ consists of $n$ atomic experiences, indexed as $i = 1, 2, \ldots n$, with the atomic experience $i$ denoted as $(s_i, a_i, r_i, s'_i)$.
 
 In LSPI, each iteration of GPI involves access to:
 
-* Stored data $\mathcal{D}$ (that we shall call the *Experience-Replay Memory*), consisting of a set of $(s,a,r,s')$ 4-tuples, i.e., a set of `rl.markov_decision_process.TransitionStep` objects.
-* A *Deterministic Target Policy* (call it $\pi_D$), that is made available from the previous iteration of GPI
+* The experiences data set $\mathcal{D}$.
+* A *Deterministic Target Policy* (call it $\pi_D$), that is made available from the previous iteration of GPI.
 
-Given $\mathcal{D}$ and $\pi_D$, this iteration of GPI first samples a mini-batch of `TransitionStep`s from Experience-Replay Memory $\mathcal{D}$. Let's denote the $i$-th `TransitionStep` in the sampled mini-batch as $(s_i,a_i,r_i,s'_i)$. The goal of this iteration is to solve for weights $\bm{w}^*$ to minimize:
+Given $\mathcal{D}$ and $\pi_D$, the goal of each iteration of GPI is to solve for weights $\bm{w}^*$ that minimizes:
 \begin{align*}
-\mathcal{L}(\bm{w}) & = \sum_i (Q(s_i,a_i; \bm{w}) - (r_i + \gamma \cdot Q(s'_i,\pi_D(s'_i); \bm{w})))^2\\
-& = \sum_i (\bm{\phi}(s_i,a_i)^T \cdot \bm{w} - (r_i + \gamma \cdot \bm{\phi}(s'_i, \pi_D(s'_i))^T \cdot \bm{w}))^2
+\mathcal{L}(\bm{w}) & = \sum_{i=1}^n (Q(s_i,a_i; \bm{w}) - (r_i + \gamma \cdot Q(s'_i,\pi_D(s'_i); \bm{w})))^2\\
+& = \sum_{i=1}^n (\bm{\phi}(s_i,a_i)^T \cdot \bm{w} - (r_i + \gamma \cdot \bm{\phi}(s'_i, \pi_D(s'_i))^T \cdot \bm{w}))^2
 \end{align*}
 
 The solved $\bm{w}^*$ defines a $Q$-Value Function as follows:
@@ -453,7 +456,7 @@ $$\pi_D(s) = \argmax_a Q(s,a; \bm{w}^*)$$
 
 The solution for the weights $\bm{w}^*$ is attained by setting the semi-gradient of $\mathcal{L}(\bm{w})$ to 0, i.e.,
 \begin{equation}
-\sum_i \phi(s_i,a_i) \cdot (\bm{\phi}(s_i,a_i)^T \cdot \bm{w}^* - (r_i + \gamma \cdot \bm{\phi}(s'_i, \pi_D(s'_i))^T \cdot \bm{w}^*)) = 0
+\sum_{i=1}^n \phi(s_i,a_i) \cdot (\bm{\phi}(s_i,a_i)^T \cdot \bm{w}^* - (r_i + \gamma \cdot \bm{\phi}(s'_i, \pi_D(s'_i))^T \cdot \bm{w}^*)) = 0
 \label{eq:lspi-loss-semi-gradient}
 \end{equation}
 We can calculate the solution $\bm{w^}*$ as $\bm{A}^{-1} \cdot \bm{b}$, where the $m \times m$ Matrix $\bm{A}$ is accumulated for each `TransitionStep` $(s_i, a_i, r_i, s'_i)$ as:
@@ -462,5 +465,200 @@ and the $m$-Vector $\bm{b}$ is accumulated at each atomic experience $(s_i,a_i,r
 $$\bm{b} \leftarrow \bm{b} + \bm{\phi}(s_i, a_i) \cdot r_i$$
 With Sherman-Morrison incremental inverse, we can reduce the computational complexity from $O(m^3)$ to $O(m^2)$.
 
-This least-squares solution of $\bm{w}^*$ (Prediction) is known as Least-Squares Temporal Difference for Q-Value, abbreviated as *LSTDQ*. Thus, LSPI is GPI with LSTDQ and greedy policy improvements. 
+This least-squares solution of $\bm{w}^*$ (Prediction) is known as Least-Squares Temporal Difference for Q-Value, abbreviated as *LSTDQ*. Thus, LSPI is GPI with LSTDQ and greedy policy improvements. Note how LSTDQ in each iteration re-uses the same data $\mathcal{D}$, i.e., LSPI does experience-replay.
 
+We should point out here that the LSPI algorithm we described above should be considered as the *standard variant* of LSPI. However, we can design several other variants of LSPI, in terms of how the experiences data is sourced and used. Firstly, we should note that the experiences data $\mathcal{D}$ essentially provides the behavior policy for Q-Learning (along with the consequent reward and next state transition). In the *standard variant* we described above, since $\mathcal{D}$ is provided from an external source, the behavior policy that generates this data $\mathcal{D}$ must come from an external source. It doesn't have to be this way - we could generate the experiences data from a behavior policy derived from the Q-Value estimates produced by LSTDQi (eg: $\epsilon$-greedy policy). This would mean the experiences data used in the algorithm is not a fixed, finite data set, rather a variable, incrementally-produced data set. Even if the behavior policy was external, the data set $\mathcal{D}$ might not be a fixed finite data set - rather, it could be made available as an on-demand, variable data stream. Furthermore, in each iteration of GPI, we could use a subset of the experiences data made available until that point of time (rather than the approach of the standard version that uses all of the available experiences data). If we choose to sample a subset of the available experiences data, we might give more sampling-weightage to the more recently generated data. This would be especially the case if the experiences data was being generated from a policy derived the Q-Value estimates produced by LSTDQ. In this case, we would leverage the `ExperienceReplayMemory` class we'd written earlier.
+
+Next, we write code to implement the *standard variant* of LSPI we described above. First, we write a function to implement LSTDQ. As described above, the inputs to LSTQD are the experiences data $\mathcal{D}$ (`transitions` in the code below) and a deterministic target policy $\pi_D$ (`target_policy` in the code below). Since we are doing a linear function approximation, the input also includes a set of features, described as functions of state and action (`feature_functions` in the code below). Lastly, the inputs also include the discount factor $\gamma$ and the numerical control parameter $\epsilon$. The code below should be fairly self-explanatory, as it is a straightforward extenion of LSTD (implemented in function `least_squares_td` above). The key differences are that this is an estimate of the Action-Value (Q-Value) function, rather than the State-Value Function, and the target used in the least-squares calculation is the Q-Learning target (produced by the `target_policy`).
+
+```python
+def least_squares_tdq(
+    transitions: Iterable[TransitionStep[S, A]],
+    feature_functions: Sequence[Callable[[Tuple[NonTerminal[S], A]], float]],
+    target_policy: DeterministicPolicy[S, A],
+    gamma: float,
+    epsilon: float
+) -> LinearFunctionApprox[Tuple[NonTerminal[S], A]]:
+    '''transitions is a finite iterable'''
+    num_features: int = len(feature_functions)
+    a_inv: np.ndarray = np.eye(num_features) / epsilon
+    b_vec: np.ndarray = np.zeros(num_features)
+    for tr in transitions:
+        phi1: np.ndarray = np.array([f((tr.state, tr.action))
+                                     for f in feature_functions])
+        if isinstance(tr.next_state, NonTerminal):
+            phi2 = phi1 - gamma * np.array([
+                f((tr.next_state, target_policy.action_for(tr.next_state.state)))
+                for f in feature_functions])
+        else:
+            phi2 = phi1
+        temp: np.ndarray = a_inv.T.dot(phi2)
+        a_inv = a_inv - np.outer(a_inv.dot(phi1), temp) / (1 + phi1.dot(temp))
+        b_vec += phi1 * tr.reward
+
+    opt_wts: np.ndarray = a_inv.dot(b_vec)
+    return LinearFunctionApprox.create(
+        feature_functions=feature_functions,
+        weights=Weights.create(opt_wts)
+    )
+```
+
+Now we are ready to write the standard version of LSPI. The code below is a straightforward implementation of our description above, looping through the iterations of GPI, `yield`ing the Q-Value `LinearFunctionApprox` after each iteration of GPI.
+
+```python
+def least_squares_policy_iteration(
+    transitions: Iterable[TransitionStep[S, A]],
+    actions: Callable[[NonTerminal[S]], Iterable[A]],
+    feature_functions: Sequence[Callable[[Tuple[NonTerminal[S], A]], float]],
+    initial_target_policy: DeterministicPolicy[S, A],
+    gamma: float,
+    epsilon: float
+) -> Iterator[LinearFunctionApprox[Tuple[NonTerminal[S], A]]]:
+    '''transitions is a finite iterable'''
+    target_policy: DeterministicPolicy[S, A] = initial_target_policy
+    transitions_seq: Sequence[TransitionStep[S, A]] = list(transitions)
+    while True:
+        q: LinearFunctionApprox[Tuple[NonTerminal[S], A]] = \
+            least_squares_tdq(
+                transitions=transitions_seq,
+                feature_functions=feature_functions,
+                target_policy=target_policy,
+                gamma=gamma,
+                epsilon=epsilon,
+            )
+        target_policy = greedy_policy_from_qvf(q, actions)
+        yield q
+```
+
+The above code is in the file [rl/td.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/td.py).
+
+#### Saving your Village from a Vampire   
+
+Now we consider a Control problem we'd like to test the above LSPI algorithm on. We call it the Vampire problem that can be described as a good, old-fashioned bedtime story, as follows:
+
+> A village is visited by a vampire every morning who randomly eats 1 villager upon entering the village, then retreats to the hills, planning to come back the next morning. The villagers come up with a plan. They will poison a certain number of villagers (picked at random uniformly) each night until the vampire eats a poisoned villager the next morning, after which the vampire dies (due to the poison in the villager the vampire ate). Unfortunately, all villagers who get poisoned also die the day after they are given the poison. If the goal of the villagers is to maximize the expected number of villagers at termination (termination is when either the vampire dies or all villagers are dead), what should be the optimal poisoning policy? In other words, if there are $n$ villagers on any day, how many villagers should be poisoned (as a function of $n$)?
+
+It is straightforward to model this problem as an MDP. The *State* is the number of villagers at risk on any given night (if the vampire is still alive, the *State* is the number of villagers and if the vampire is dead, the *State* is 0, which is the only *Terminal State*). The *Action* is the number of villagers poisoned on any given night. The *Reward* is zero as long as the vampire is alive, and is equal to the number of villagers remaining if the vampire dies. Therefore. Let us refer to the initial number of villagers as $I$.
+
+$$\mathcal{S} = \{0, 1, \ldots, I\}, \mathcal{T} = \{0\}$$
+$$\mathcal{A}(s) = \{0, 1, \ldots, s - 1\} \text{ where } s \in \mathcal{N}$$
+For all $s \in \mathcal{N}$, for all $a \in \mathcal{A}(s)$,
+$$
+ \mathcal{P}_R(s, a, r, s') =
+ \begin{cases}
+ \frac {s-a} {s} & \text{ if } r = 0 \text{ and } s' = s - a - 1\\
+ \frac a s & \text{ if } r = s - a \text{ and } s' = 0\\
+ 0 & \text{ otherwise }
+ \end{cases}
+$$
+
+It is rather straightforward to solve this with Dynamic Programming (say, Value Iteration) since we know the transition probabilities and rewards function and since the state and action spaces are finite. However, in a situation where we don't know the exact probabilities with which the vampire operates, and we only had access to observations on specific days, we can attempt to solve this problem with Reinforcement Learning (assuming we had access to observations of many vampires operating on many villages). In any case, our goal here is to test LSPI using this vampire problem as an example. So we write some code to first model this MDP as described above, solve it with value iteration (to obtain the benchmark, i.e., true Optimal Value Function and true Optimal Policy to compare against), then generate atomic experiences data from the MDP, and then solve this problem with LSPI using this stream of generated atomic experiences.
+
+```python
+from rl.markov_decision_process import TransitionStep
+from rl.distribution import Categorical, Choose
+from rl.function_approx import LinearFunctionApprox
+from rl.policy import DeterministicPolicy, FiniteDeterministicPolicy
+from rl.dynamic_programming import value_iteration_result, V
+from rl.chapter11.control_utils import get_vf_and_policy_from_qvf
+from rl.td import least_squares_policy_iteration
+from numpy.polynomial.laguerre import lagval
+import itertools
+import rl.iterate as iterate
+import numpy as np
+
+class VampireMDP(FiniteMarkovDecisionProcess[int, int]):
+
+    initial_villagers: int
+
+    def __init__(self, initial_villagers: int):
+        self.initial_villagers = initial_villagers
+        super().__init__(self.mdp_map())
+
+    def mdp_map(self) -> \
+            Mapping[int, Mapping[int, Categorical[Tuple[int, float]]]]:
+        return {s: {a: Categorical(
+            {(s - a - 1, 0.): 1 - a / s, (0, float(s - a)): a / s}
+        ) for a in range(s)} for s in range(1, self.initial_villagers + 1)}
+
+    def vi_vf_and_policy(self) -> \
+            Tuple[V[int], FiniteDeterministicPolicy[int, int]]:
+        return value_iteration_result(self, 1.0)
+
+    def lspi_features(
+        self,
+        factor1_features: int,
+        factor2_features: int
+    ) -> Sequence[Callable[[Tuple[NonTerminal[int], int]], float]]:
+        ret: List[Callable[[Tuple[NonTerminal[int], int]], float]] = []
+        ident1: np.ndarray = np.eye(factor1_features)
+        ident2: np.ndarray = np.eye(factor2_features)
+        for i in range(factor1_features):
+            def factor1_ff(x: Tuple[NonTerminal[int], int], i=i) -> float:
+                return lagval(
+                    float((x[0].state - x[1]) ** 2 / x[0].state),
+                    ident1[i]
+                )
+            ret.append(factor1_ff)
+        for j in range(factor2_features):
+            def factor2_ff(x: Tuple[NonTerminal[int], int], j=j) -> float:
+                return lagval(
+                    float((x[0].state - x[1]) * x[1] / x[0].state),
+                    ident2[j]
+                )
+            ret.append(factor2_ff)
+        return ret
+
+    def lspi_transitions(self) -> Iterator[TransitionStep[int, int]]:
+        states_distribution: Choose[NonTerminal[int]] = \
+            Choose(self.non_terminal_states)
+        while True:
+            state: NonTerminal[int] = states_distribution.sample()
+            action: int = Choose(range(state.state)). sample()
+            next_state, reward = self.step(state, action).sample()
+            transition: TransitionStep[int, int] = TransitionStep(
+                state=state,
+                action=action,
+                next_state=next_state,
+                reward=reward
+            )
+            yield transition
+
+    def lspi_vf_and_policy(self) -> \
+            Tuple[V[int], FiniteDeterministicPolicy[int, int]]:
+        transitions: Iterable[TransitionStep[int, int]] = itertools.islice(
+            self.lspi_transitions(),
+            50000
+        )
+        qvf_iter: Iterator[LinearFunctionApprox[Tuple[
+            NonTerminal[int], int]]] = least_squares_policy_iteration(
+                transitions=transitions,
+                actions=self.actions,
+                feature_functions=self.lspi_features(4, 4),
+                initial_target_policy=DeterministicPolicy(
+                    lambda s: int(s / 2)
+                ),
+                gamma=1.0,
+                epsilon=1e-5
+            )
+        qvf: LinearFunctionApprox[Tuple[NonTerminal[int], int]] = \
+            iterate.last(
+                itertools.islice(
+                    qvf_iter,
+                    100
+                )
+            )
+        return get_vf_and_policy_from_qvf(self, qvf)
+```
+
+The above code should be self-explanatory. The main challenge with LSPI is that we need to construct features function of the state and action such that the Q-Value Function is linear in those features. In this case, since we simply want to test the correctness of our LSPI implementation, we define feature functions (in method `lspi_feature` above) based on our knowledge of the true optimal Q-Value Function from the Dynamic Programming solution. The atomic experiences comprising the experiences data $\mathcal{D}$ for LSPI to use is generated with a simple uniform distribution of non-terminal states and action (in method `lspi_transitions` above).
+
+Figure \ref{fig:lspi_opt_vf_comparison} shows the plot of the True Optimal Value Function (from Value Iteration) versus the LSPI-estimated Optimal Value Function. 
+
+![True versus LSPI Optimal Value Function \label{fig:lspi_opt_vf_comparison}](./chapter12/vampire_lspi_opt_vf.png "True versus LSPI Optimal Value Function")
+
+Figure \ref{fig:lspi_opt_policy_comparison} shows the plot of the True Optimal Policy (from Value Iteration) versus the LSPI-estimated Optimal Policy. 
+
+![True versus LSPI Optimal Policy \label{fig:lspi_opt_policy_comparison}](./chapter12/vampire_lspi_opt_policy.png "True versus LSPI Optimal Policy")
+
+The above code is in the file [rl/chapter12/vampire.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/chapter12/vampire.py). As ever, we encourage you to modify some of the parameters in this code (including choices of feature functions, nature and number of atomic transitions used, number of GPI iterations, choice of $\epsilon$, and perhaps even a different dynamic for the vampire behavior), and see how the results change.
