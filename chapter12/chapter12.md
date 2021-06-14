@@ -20,12 +20,13 @@ $$\Delta \bm{w} = \alpha \cdot (G_i - V(S_i; \bm{w})) \cdot \nabla_{\bm{w}} V(S_
 
 The Incremental MC Prediction algorithm performs $n$ updates in sequence for data pairs $(S_i, G_i), i = 1, 2, \ldots, n$ using the `update` method of `FunctionApprox`. We note that Incremental RL makes inefficient use of available training data $\mathcal{D}$ because we essentially "discard" each of these units of training data after it's used to perform an update. We want to make efficient use of the given data with Batch RL. Batch MC Prediction aims to estimate the MRP Value Function $V(s;\bm{w^*})$ such that
 \begin{align*}
-\bm{w^*} & = \argmin_{\bm{w}} \frac 1 n \cdot \sum_{i=1}^n \frac 1 2 \cdot (V(S_i;\bm{w}) - G_i)^2 \\
+\bm{w^*} & = \argmin_{\bm{w}} \frac 1 {2n} \cdot \sum_{i=1}^n (V(S_i;\bm{w}) - G_i)^2 \\
 & = \argmin_{\bm{w}} \mathbb{E}_{(S,G) \sim \mathcal{D}} [\frac 1 2 \cdot (V(S; \bm{w}) - G)^2]
 \end{align*}
 This in fact is the `solve` method of `FunctionApprox` on training data $\mathcal{D}$. This approach is called Batch RL because we first collect and store the entire set (batch) of data $\mathcal{D}$ available to us, and then we find the best possible parameters $\bm{w^*}$ fitting this data $\mathcal{D}$. Note that unlike Incremental RL, here we are not updating the MRP Value Function estimate while the data arrives - we simply store the data as it arrives and start the MRP Value Function estimation procedure once we are ready with the entire (batch) data $\mathcal{D}$ in storage. As we know from the implementation of the `solve` method of `FunctionApprox`, finding the best possible parameters $\bm{w^*}$ from the batch $\mathcal{D}$ involves calling the `update` method of `FunctionApprox` with repeated use of the available data pairs $(S,G)$ in the stored data set $\mathcal{D}$. Each of these updates to the parameters $\bm{w}$ is as follows:
 $$\Delta \bm{w} = \alpha \cdot \frac 1 n \cdot \sum_{i=1}^n (G_i - V(S_i; \bm{w})) \cdot \nabla_{\bm{w}} V(S_i; \bm{w})$$
-If we keep doing these updates repeatedly, we will ultimately converge to the desired MRP Value Function $V(s;\bm{w^*})$. The repeated use of the available data in $\mathcal{D}$ means that we are doing Batch MC Prediction using *Experience-Replay*. So we see that this makes more efficient use of the available training data $\mathcal{D}$ due to the re-use of the data pairs in $\mathcal{D}$.
+
+Note that unlike Incremental MC where each update to $\bm{w}$ uses data from a single trace experience, each update to $\bm{w}$ in Batch MC uses all of the trace experiences data (all of the batch data). If we keep doing these updates repeatedly, we will ultimately converge to the desired MRP Value Function $V(s;\bm{w^*})$. The repeated use of the available data in $\mathcal{D}$ means that we are doing Batch MC Prediction using *Experience-Replay*. So we see that this makes more efficient use of the available training data $\mathcal{D}$ due to the re-use of the data pairs in $\mathcal{D}$.
 
 The code for this Batch MC Prediction algorithm is shown below (function `batch_mc_prediction`). From the input trace experiences (`traces` in the code below), we first create the set of `ReturnStep` transitions that span across the set of all input trace experiences (`return_steps` in the code below). This involves calculating the return associated with each state encountered in `traces` (across all trace experiences). From `return_steps`, we create the (state, return) pairs that constitute the fixed, finite training data $\mathcal{D}$, which is then passed to the `solve` method of `approx: ValueFunctionApprox[S]`.
 
@@ -42,6 +43,7 @@ def batch_mc_prediction(
     episode_length_tolerance: float = 1e-6,
     convergence_tolerance: float = 1e-5
 ) -> ValueFunctionApprox[S]:
+    '''traces is a finite iterable'''
     return_steps: Iterable[mp.ReturnStep[S]] = \
         itertools.chain.from_iterable(
             returns(trace, gamma, episode_length_tolerance) for trace in traces
@@ -57,34 +59,36 @@ Now let's move on to Batch TD Prediction. Here we have fixed, finite experiences
 $$\mathcal{D} = [(S_i, R_i, S'_i) | 1 \leq i \leq n]$$
 where $(R_i, S'_i)$ is the pair of reward and next state from a state $S_i$. So, Experiences Data $\mathcal{D}$ is presented in the form of a fixed, finite number of atomic experiences. This is represented in code as an `Iterable[rl.markov_process.TransitionStep[S]]`.
 
-Just like Batch MC Prediction, here in Batch TD Prediction, we first collect and store the data as it arrives, and once we are ready with the batch of data $\mathcal{D}$ in storage, we start the MRP Value Function estimation procedure. The parameters $\bm{w}$ are updated with repeated use of the unit experiences in the stored data $\mathcal{D}$. Each update is done using a random data point $(S,R,S') \sim \mathcal{D}$, as follows:
-$$\Delta \bm{w} = \alpha \cdot (R + \gamma \cdot V(S'; \bm{w}) - V(S; \bm{w})) \cdot \nabla_{\bm{w}} V(S; \bm{w})$$
+Just like Batch MC Prediction, here in Batch TD Prediction, we first collect and store the data as it arrives, and once we are ready with the batch of data $\mathcal{D}$ in storage, we start the MRP Value Function estimation procedure. The parameters $\bm{w}$ are updated with repeated use of the atomic experiences in the stored data $\mathcal{D}$. Each of these updates to the parameters $\bm{w}$ is as follows:
+$$\Delta \bm{w} = \alpha \cdot \frac 1 n \cdot \sum_{i=1}^n (R_i + \gamma \cdot V(S'_i; \bm{w}) - V(S_i; \bm{w})) \cdot \nabla_{\bm{w}} V(S_i; \bm{w})$$
 
-We keep performing these updates by repeatedly randomly sampling $(S,G) \sim \mathcal{D}$ until convergence. Thus, Batch TD Prediction also does Experience-Replay, hence making efficient use of the available training data $\mathcal{D}$. Specifically, this algorithm does TD Prediction with Experience-Replay on a fixed finite set of atomic experiences presented in the form of $\mathcal{D} = [(S_i, R_i, S'_i) | 1 \leq i \leq n]$.
+Note that unlike Incremental TD where each update to $\bm{w}$ uses data from a single atomic experience, each update to $\bm{w}$ in Batch TD uses all of the atomic experiences data (all of the batch data). If we keep doing these updates repeatedly, we will ultimately converge to the desired MRP Value Function $V(s;\bm{w^*})$. The repeated use of the available data in $\mathcal{D}$ means that we are doing Batch MC Prediction using *Experience-Replay*. So we see that this makes more efficient use of the available training data $\mathcal{D}$ due to the re-use of the data pairs in $\mathcal{D}$.
+We keep performing these updates with repeated use of the atomic experiences in the stored data $\mathcal{D}$ until the parameters $\bm{w}$ converge. Thus, Batch TD Prediction also does Experience-Replay, hence making efficient use of the available training data $\mathcal{D}$. Specifically, this algorithm does TD Prediction with Experience-Replay on a fixed finite set of atomic experiences presented in the form of $\mathcal{D} = [(S_i, R_i, S'_i) | 1 \leq i \leq n]$.
 
-The code for this Batch TD Prediction algorithm is shown below (function `batch_td_prediction`). From the input atomic experiences $\mathcal{D}$ (`transitions` in the code below), we first store it as a list (`tr_seq` in the code below). Then we create an infinite stream (`Iterator`) of transitions using the function `transitions_stream` that repeatedly randomly chooses a `TransitionStep` from the stored `tr_seq`. Finally, we pass this infinite stream of transitions to `td_prediction` (that we had written in Chapter [-@sec:rl-prediction-chapter]), and let it run until convergence (up to `convergence_tolerance`).
+The code for this Batch TD Prediction algorithm is shown below (function `batch_td_prediction`). We create a `Sequence[TransitionStep]` from the fixed, finite-length input atomic experiences $\mathcal{D}$ (`transitions` in the code below), and call the `update` method of `FunctionApprox` repeatedly, passing the data $\mathcal{D}$ (now in the form of a `Sequence[TransitionStep]`) to each invocation of the `update` method (using the function `itertools.repeat`). This repeated invocation of the `update` method is done by using the function `iterate.accumulate`.  This is done until convergence (convergence based on the `done` function in the code below), at which point we return the converged `FunctionApprox`.
 
 ```python
 import rl.markov_process as mp
-from rl.approximate_dynamic_programming import ValueFunctionApprox
-from rl.td import td_prediction
+from rl.approximate_dynamic_programming import ValueFunctionApprox, extended_vf
 import rl.iterate as iterate
 import itertools
 import numpy as np
 
 def batch_td_prediction(
     transitions: Iterable[mp.TransitionStep[S]],
-    approx: ValueFunctionApprox[S],
+    approx_0: ValueFunctionApprox[S],
     gamma: float,
     convergence_tolerance: float = 1e-5
 ) -> ValueFunctionApprox[S]:
-    tr_seq: Sequence[mp.TransitionStep[S]] = list(transitions)
+    '''transitions is a finite iterable'''
 
-    def transitions_stream(
-        tr_seq=tr_seq
-    ) -> Iterator[mp.TransitionStep[S]]:
-        while True:
-            yield tr_seq[np.random.randint(len(tr_seq))]
+    def step(
+        v: ValueFunctionApprox[S],
+        tr_seq: Sequence[mp.TransitionStep[S]]
+    ) -> ValueFunctionApprox[S]:
+        return v.update([(
+            tr.state, tr.reward + gamma * extended_vf(v, tr.next_state)
+        ) for tr in tr_seq])
 
     def done(
         a: ValueFunctionApprox[S],
@@ -94,30 +98,93 @@ def batch_td_prediction(
         return b.within(a, convergence_tolerance)
 
     return iterate.converged(
-        td_prediction(transitions_stream(), approx, gamma),
+        iterate.accumulate(
+            itertools.repeat(list(transitions)),
+            step,
+            initial=approx_0
+        ),
         done=done
-    )
 ```
 
 The code above is in the file [rl/td.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/td.py).
 
 Likewise, we can do Batch TD($\lambda$) Prediction. Here we are given a fixed, finite number of trace experiences
 $$\mathcal{D} = [(S_{i,0}, R_{i,1}, S_{i,1}, R_{i,2}, S_{i,2}, \ldots, R_{i,T_i}, S_{i,T_i}) | 1 \leq i \leq n]$$
-In each iteration, we randomly pick a trace experience (say indexed $i$) from the stored data $\mathcal{D}$. For trace experience $i$, the parameters $\bm{w}$ are updated at each time step $t$ in the trace experience as follows:
-$$\bm{E}_t = \gamma \lambda \cdot \bm{E}_{t-1} + \nabla_{\bm{w}} V(S_{i,t};\bm{w})$$
+For trace experience $i$, for each time step $t$ in the trace experience, we calculate the eligibility trace as follows:
+$$\bm{E}_{i,t} = \gamma \lambda \cdot \bm{E}_{i, t-1} + \nabla_{\bm{w}} V(S_{i,t};\bm{w}) \text{ for all } t = 1, 1, \ldots T_i - 1$$
+with the eligiblity trace initialized at time 0 for trace experience $i$ as $\bm{E}_{i,0} = \nabla_{\bm{w}} V(S_{i,0}; \bm{w})$.
+
+Then, each update to the parameters $\bm{w}$ is as follows:
 \begin{equation}
-\Delta \bm{w} = \alpha \cdot (R_{i,t+1} + \gamma \cdot V(S_{i,t+1}; \bm{w}) - V(S_{i,t}; \bm{w})) \cdot \bm{E}_t
+\Delta \bm{w} = \alpha \cdot \frac 1 n \cdot \sum_{i=1}^n \frac 1 {T_i} \cdot \sum_{t=0}^{T_i - 1} (R_{i,t+1} + \gamma \cdot V(S_{i,t+1}; \bm{w}) - V(S_{i,t}; \bm{w})) \cdot \bm{E}_{i,t}
 \label{eq:batch-td-lambda-update}
 \end{equation}
-where $\bm{E}_t$ denotes the eligibility trace at time step $t$, and $\bm{E}_0$ is initialized to 0 at the start of each trace experience.
+
+### A generic implementation of Experience-Replay
+
+Before we proceed to more algorithms involving Experience-Replay and/or Batch RL, it is vital to recognize that the concept of Experience-Replay stands on it's own, independent of it's use in Batch RL. In fact, Experience-Replay is a much broader concept, beyond it's use in RL. The idea of Experience-Replay is that we have a stream of data coming in and instead of consuming it in an algorithm as soon as it arrives, we store each unit of incoming data in memory (which we shall call *Experience-Replay-Memory*, abbreviated as ER-Memory), and use samples of data from ER-Memory (with replacement) for our algorithm's needs. Thus, we are routing the incoming stream of data to ER-Memory and sourcing data needed for our algorithm from ER-Memory (by sampling with replacement). This enables re-use of the incoming data stream. It also gives us flexibility to sample an arbitrary number of data units at a time, so our algorithm doesn't need to be limited to using a single unit of data at a time. Lastly, we organize the data in ER-Memory in such a manner that we can assign different sampling weights to different units of data, depending on the arrival time of the data. This is quite useful for many algorithms that wish to give more importance to recently arrived data and de-emphasize/forget older data.
+
+Let us now write some code to implement all of these ideas described above. The code below uses an arbitrary data type `T`, which means that the unit of data being handled with Experience-Replay could be any data structure (specifically, not limited to the `TransitionStep` data type that we care about for RL with Experience-Replay).
+
+The attribute `saved_transitions: List[T]` is the data structure storing the incoming units of data, with the most recently arrived unit of data at the end of the list (since we `append` to the list). The attribute `time_weights_func` lets the user specify a function from the reverse-time-stamp of a unit of data to the sampling weight to assign to that unit of data ("reverse-time-stamp" means the most recently-arrived unit of data has a time-index of 0, although physically it is stored at the end of the list, rather than at the start). The attributes `weights` simply stores the sampling weights of all units of data in `saved_transitions`, and the attributes `weights_sum` stores the sum of the `weights` (the attributes `weights` and `weights_sum` are there purely for computational efficiency to avoid too many calls to `time_weights_func` and avoidance of summing a long list of weights, which is required to normalize the weights to sum up to 1).
+
+The method `add_data` appends an incoming unit of data (`transition: T`) to `self.saved_transitions` and updates `self.weights` and `self.weights_sum`. The method `sample_mini_batches` returns a sample of specified size `mini_batch_size`, using the sampling weights in `self.weights`. We also have a method `replay` that takes as input an `Iterable` of `transitions` and a `mini_batch_size`, and returns an `Iterator` of `mini_batch_size`d data units. As long as the input `transitions: Iterable[T]` is not exhausted, `replay` appends each unit of data in `transitions` to `self.saved_transitions` and then `yield`s a `mini_batch_size`d sample of data. Once `transitions: Iterable[T]` is exhausted, it simply `yields` the samples of data. The `Iterator` generated by `replay` can be piped to any algorithm that expects an `Iterable` of the units of data as input, essentially enabling us to replace the pipe carrying an input data stream with a pipe carrying the data stream sourced from ER-Memory.
+
+```python
+T = TypeVar('T')
+
+class ExperienceReplayMemory(Generic[T]):
+    saved_transitions: List[T]
+    time_weights_func: Callable[[int], float]
+    weights: List[float]
+    weights_sum: float
+
+    def __init__(
+        self,
+        time_weights_func: Callable[[int], float] = lambda _: 1.0,
+    ):
+        self.saved_transitions = []
+        self.time_weights_func = time_weights_func
+        self.weights = []
+        self.weights_sum = 0.0
+
+    def add_data(self, transition: T) -> None:
+        self.saved_transitions.append(transition)
+        weight: float = self.time_weights_func(len(self.saved_transitions) - 1)
+        self.weights.append(weight)
+        self.weights_sum += weight
+
+    def sample_mini_batch(self, mini_batch_size: int) -> Sequence[T]:
+        num_transitions: int = len(self.saved_transitions)
+        return Categorical(
+            {tr: self.weights[num_transitions - 1 - i] / self.weights_sum
+             for i, tr in enumerate(self.saved_transitions)}
+        ).sample_n(min(mini_batch_size, num_transitions))
+
+    def replay(
+        self,
+        transitions: Iterable[T],
+        mini_batch_size: int
+    ) -> Iterator[Sequence[T]]:
+
+        for transition in transitions:
+            self.add_data(transition)
+            yield self.sample_mini_batch(mini_batch_size)
+
+        while True:
+            yield self.sample_mini_batch(mini_batch_size)
+```
+
+The code above is in the file [rl/experience_replay.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/experience_replay.py). We encourage you to implement Batch MC Prediction and Batch TD Prediction using this `ExperienceReplayMemory` class.
+
 
 ### Least-Squares RL Prediction
 
-In the previous section, we saw how Batch RL Prediction is an iterative process until convergence -  the MRP Value Function is updated with repeated use of the fixed, finite (batch) data that is made available. However, if we assume that the MRP Value Function approximation $V(s; \bm{w})$ is a linear function approximation (linear in a set of feature functions of the state space), then we can solve for the MRP Value Function with direct and simple linear algebra operations (ie., without the need for iterations until convergence). Let us see how.
+We've seen how Batch RL Prediction is an iterative process until convergence -  the MRP Value Function is updated with repeated use of the fixed, finite (batch) data that is made available. However, if we assume that the MRP Value Function approximation $V(s; \bm{w})$ is a linear function approximation (linear in a set of feature functions of the state space), then we can solve for the MRP Value Function with direct and simple linear algebra operations (ie., without the need for iterations until convergence). Let us see how.
 
 We define a sequence of feature functions $\phi_j: \mathcal{S} \rightarrow \mathbb{R}, j = 1, 2, \ldots, m$ and we assume the parameters $\bm{w}$ is a weights vector $\bm{w} = (w_1, w_2, \ldots, w_m) \in \mathbb{R}^m$. Therefore, the MRP Value Function is approximated as:
 $$V(s;\bm{w}) = \sum_{j=1}^m \phi_j(s) \cdot w_j = \bm{\phi}(s)^T \cdot \bm{w}$$
-where $\bm{\phi}(s) \in \mathbb{R}^m$ is the feature vector for state $s$
+where $\bm{\phi}(s) \in \mathbb{R}^m$ is the feature vector for state $s$.
 
 The direct solution of the MRP Value Function using simple linear algebra operations is known as Least-Squares (abbreviated as LS) solution. We start with Batch MC Prediction for the case of linear function approximation, which is known as Least-Squares Monte-Carlo (abbreviated as LSMC).
 
@@ -132,7 +199,7 @@ $$ \bm{A} \leftarrow \bm{A} + \bm{\phi}(S_i) \cdot \bm{\phi}(S_i)^T \text{ (i.e.
 and the $m$-Vector $\bm{b}$ is accumulated at each data pair $(S_i, G_i)$ as:
 $$\bm{b} \leftarrow \bm{b} + \bm{\phi}(S_i) \cdot G_i$$
 
-To implement this algorithm, we can simply call `batch_mc_prediction` that we had written earlier by setting the argument `approx` as `LinearFunctionApprox` and by setting the attribute `direct_solve` in `approx: LinearFunctionApprox[S]` as `True`. If you read the code under `direct_solve=True` branch in the `solve` method, you will see that it will indeed perform the above-described linear algebra calculations. The inversion of the matrix $\bm{A}$ is $O(m^3)$ complexity. However, we can speed up the algorithm to be $O(n^2)$ with a different implementation - we can maintain the inverse of $\bm{A}$ after each $(S_i, G_i)$ update to $\bm{A}$ by applying the [Sherman-Morrison formula for incremental inverse](https://en.wikipedia.org/wiki/Sherman%E2%80%93Morrison_formula). The Sherman-Morrison incremental inverse for $\bm{A}$ is as follows:
+To implement this algorithm, we can simply call `batch_mc_prediction` that we had written earlier by setting the argument `approx` as `LinearFunctionApprox` and by setting the attribute `direct_solve` in `approx: LinearFunctionApprox[S]` as `True`. If you read the code under `direct_solve=True` branch in the `solve` method, you will see that it will indeed perform the above-described linear algebra calculations. The inversion of the matrix $\bm{A}$ is $O(m^3)$ complexity. However, we can speed up the algorithm to be $O(m^2)$ with a different implementation - we can maintain the inverse of $\bm{A}$ after each $(S_i, G_i)$ update to $\bm{A}$ by applying the [Sherman-Morrison formula for incremental inverse](https://en.wikipedia.org/wiki/Sherman%E2%80%93Morrison_formula). The Sherman-Morrison incremental inverse for $\bm{A}$ is as follows:
 
 $$(\bm{A} + \bm{\phi}(S_i) \cdot \bm{\phi}(S_i)^T)^{-1} = \bm{A}^{-1} - \frac {\bm{A}^{-1} \cdot \bm{\phi}(S_i) \cdot \bm{\phi}(S_i)^T \cdot \bm{A}^{-1}} {1 + \bm{\phi}(S_i)^T \cdot \bm{A}^{-1} \cdot \bm{\phi}(S_i)}$$
 
@@ -281,21 +348,23 @@ lstd_func: LinearFunctionApprox[NonTerminal[int]] = \
 lstd_vf: np.ndarray = lstd_func.evaluate(nt_states)
 ```   
 
-Figure \ref{fig:lstd_vf_comparison} depicts how the LSTD Value Function estimate (for 10,000 transitions) `lstd_vf` compares against Incremental Tabular TD Value Function estimate (for 10,000 transitions) `td_vf` and against the true value function `true_vf` (obtained using the linear-algebraic formula for MRP Value Function calculation). We encourage you to modify the parameters used in the code above to see how it alters the results - specifically play around with `this_barrier`, `this_p`, `gamma`, `num_transitions`, the learning rate trajectory for Incremental Tabular TD, the number of Laguerre polynomials, and `epsilon`. The above code is in the file [rl/chapter12/random_walk_lstd.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/random_walk_lstd.py).
+Figure \ref{fig:lstd_vf_comparison} depicts how the LSTD Value Function estimate (for 10,000 transitions) `lstd_vf` compares against Incremental Tabular TD Value Function estimate (for 10,000 transitions) `td_vf` and against the true value function `true_vf` (obtained using the linear-algebraic formula for exact MRP Value Function calculation). We encourage you to modify the parameters used in the code above to see how it alters the results - specifically play around with `this_barrier`, `this_p`, `gamma`, `num_transitions`, the learning rate trajectory for Incremental Tabular TD, the number of Laguerre polynomials, and `epsilon`. The above code is in the file [rl/chapter12/random_walk_lstd.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/random_walk_lstd.py).
 
 ![LSTD and Tabular TD Value Functions \label{fig:lstd_vf_comparison}](./chapter12/lstd_vf_comparison.png "LSTD and Tabular TD Value Functions")
 
 #### LSTD($\lambda$)
 
-Likewise, we can do LSTD($\lambda$) using Eligibility Traces. Denote the Eligibility Trace of atomic experience $i$ as $\bm{E}_i$. Note that $\bm{E}_i$ accumulates $\nabla_{\bm{w}} V(s;\bm{w}) = \bm{\phi}(s)$ in each trace experience. When accumulating, the previous step's eligibility trace is discounted by $\lambda \gamma$. By summing up the right-hand-side of Equation \eqref{eq:batch-td-lambda-update} over all atomic experiences and setting it to 0 (i.e., setting the update to $\bm{w}$ over all atomic experiences data to 0), we get:
-$$\sum_{i=1}^n \bm{E_i} \cdot (\bm{\phi}(S_i)^T \cdot \bm{w^*} - (R_i + \gamma \cdot \bm{\phi}(S'_i)^T \cdot \bm{w}^*)) = 0$$
-We can calculate the solution $\bm{w^}*$ as $\bm{A}^{-1} \cdot \bm{b}$, where the $m \times m$ Matrix $\bm{A}$ is accumulated at each each atomic experience $(S_i, R_i, S'_i)$ as:
-$$ \bm{A} \leftarrow \bm{A} + \bm{E_i} \cdot (\bm{\phi}(S_i) - \gamma \cdot \bm{\phi}(S'_i))^T \text{ (note the Outer-Product)}$$
-and the $m$-Vector $\bm{b}$ is accumulated at each atomic experience $(S_i, R_i, S'_i)$ as:
-$$\bm{b} \leftarrow \bm{b} + \bm{E_i} \cdot R_i$$
+Likewise, we can do LSTD($\lambda$) using Eligibility Traces. Here we are given a fixed, finite number of trace experiences
+$$\mathcal{D} = [(S_{i,0}, R_{i,1}, S_{i,1}, R_{i,2}, S_{i,2}, \ldots, R_{i,T_i}, S_{i,T_i}) | 1 \leq i \leq n]$$
+Denote the Eligibility Trace of trace experience $i$ at time $t$ as $\bm{E}_{i,t}$. Note that the eligibility trace accumulates $\nabla_{\bm{w}} V(s;\bm{w}) = \bm{\phi}(s)$ in each trace experience. When accumulating, the previous time step's eligibility trace is discounted by $\lambda \gamma$. By setting the right-hand-side of Equation \eqref{eq:batch-td-lambda-update} to 0 (i.e., setting the update to $\bm{w}$ over all atomic experiences data to 0), we get:
+$$\sum_{i=1}^n \frac 1 {T_i} \cdot \sum_{t=0}^{T_i - 1} \bm{E}_{i,t} \cdot (\bm{\phi}(S_{i,t})^T \cdot \bm{w^*} - (R_{i,t+1} + \gamma \cdot \bm{\phi}(S_{i,t+1})^T \cdot \bm{w}^*)) = 0$$
+We can calculate the solution $\bm{w^}*$ as $\bm{A}^{-1} \cdot \bm{b}$, where the $m \times m$ Matrix $\bm{A}$ is accumulated at each each atomic experience $(S_{i,t}, R_{i,t+1}, S_{i,t+1})$ as:
+$$ \bm{A} \leftarrow \bm{A} + \frac 1 {T_i} \cdot \bm{E}_{i,t} \cdot (\bm{\phi}(S_{i,t}) - \gamma \cdot \bm{\phi}(S_{i,t+1}))^T \text{ (note the Outer-Product)}$$
+and the $m$-Vector $\bm{b}$ is accumulated at each atomic experience $(S_{i,t}, R_{i,t+1}, S_{i,t+1})$ as:
+$$\bm{b} \leftarrow \bm{b} + \frac 1 {T_i} \cdot \bm{E}_{i,t} \cdot R_{i,t+1}$$
 With Sherman-Morrison incremental inverse, we can reduce the computational complexity from $O(m^3)$ to $O(m^2)$.
 
-#### Least-Squares Prediction Convergence
+#### LSPI Convergence
 
 Before we move on to Least-Squares for the Control problem, we want to point out that the convergence behavior of Least-Squares Prediction algorithms are identical to their counterpart Incremental RL Prediction algorithms, with the exception that Off-Policy LSMC does not have convergence guarantees. Figure \ref{fig:rl_prediction_with_ls_convergence} shows the updated summary table for convergence of RL Prediction algorithms (that we had displayed at the end of Chapter [-@sec:rl-control-chapter]) to now also include Least-Squares Prediction algorithms. 
 
@@ -305,13 +374,15 @@ Before we move on to Least-Squares for the Control problem, we want to point out
 \hline
 On/Off Policy & Algorithm & Tabular & Linear & Non-Linear \\ \hline
 & MC & \cmark & \cmark & \cmark \\
-On-Policy & \bfseries LSMC & \cmark & \cmark & - \\
-& TD & \cmark & \cmark & \xmark \\
-& \bfseries LSTD & \cmark & \cmark & - \\ \hline
+& \bfseries LSMC & \cmark & \cmark & - \\
+On-Policy & TD & \cmark & \cmark & \xmark \\
+& \bfseries LSTD & \cmark & \cmark & - \\
+& \bfseries Gradient TD & \cmark & \cmark & \cmark \\ \hline
 & MC & \cmark & \cmark & \cmark \\
-Off-Policy & \bfseries LSMC & \cmark & \xmark & - \\
-& TD & \cmark & \xmark & \xmark \\ 
-& \bfseries LSTD & \cmark & \xmark & - \\ \hline
+& \bfseries LSMC & \cmark & \xmark & - \\
+Off-Policy & TD & \cmark & \xmark & \xmark \\ 
+& \bfseries LSTD & \cmark & \xmark & - \\ 
+& Gradient TD & \cmark & \cmark & \cmark \\ \hline
 \end{tabular}
 \end{center}    
 \caption{Convergence of RL Prediction Algorithms}
@@ -322,7 +393,7 @@ This ends our coverage of Least-Squares Prediction. Before we move on to Least-S
 
 ### Q-Learning with Experience-Replay
 
-In this subsection, we cover Off-Policy Incremental TD Control with Experience-Replay. Specifically, we revisit the Q-Learning algorithm we covered in Chapter [-@sec:rl-control-chapter], but we tweak that algorithm such that the transitions used to make the Q-Learning updates are sourced from an experience replay memory, rather than from a behavior policy derived from the current Q-Value estimate. While investigating the challenges with Off-Policy TD methods with deep learning function approximation, researchers identified two challenges:
+In this section, we cover Off-Policy Incremental TD Control with Experience-Replay. Specifically, we revisit the Q-Learning algorithm we covered in Chapter [-@sec:rl-control-chapter], but we tweak that algorithm such that the transitions used to make the Q-Learning updates are sourced from an experience replay memory, rather than from a behavior policy derived from the current Q-Value estimate. While investigating the challenges with Off-Policy TD methods with deep learning function approximation, researchers identified two challenges:
 
 1) The sequences of states made available to deep learning through trace experiences are highly correlated, whereas deep learning algorithms are premised on data samples being independent.
 2) The data distribution changes as the RL algorithm learns new behaviors, whereas deep learning algorithms are premised on a fixed underlying distribution (i.e., stationary).
@@ -335,6 +406,7 @@ To make this idea of Q-Learning with Experience-Replay clear, we make a few chan
 from rl.markov_decision_process import TransitionStep
 from rl.approximate_dynamic_programming import QValueFunctionApprox
 from rl.approximate_dynamic_programming import NTStateDistribution
+from rl.experience_replay import ExperienceReplayMemory
 
 PolicyFromQType = Callable[
     [QValueFunctionApprox[S, A], MarkovDecisionProcess[S, A]],
@@ -348,13 +420,13 @@ def q_learning_experience_replay(
     approx_0: QValueFunctionApprox[S, A],
     gamma: float,
     max_episode_length: int,
-    batch_size: int,
+    mini_batch_size: int,
     weights_decay_half_life: float
 ) -> Iterator[QValueFunctionApprox[S, A]]:
-    replay_memory: List[TransitionStep[S, A]] = []
-    decay_weights: List[float] = []
-    factor: float = np.exp(-1.0 / weights_decay_half_life)
-    random_gen = np.random.default_rng()
+    exp_replay: ExperienceReplayMemory[TransitionStep[S, A]] = \
+        ExperienceReplayMemory(
+            time_weights_func=lambda t: 0.5 ** (t / weights_decay_half_life),
+        )
     q: QValueFunctionApprox[S, A] = approx_0
     yield q
     while True:
@@ -364,24 +436,14 @@ def q_learning_experience_replay(
             policy: Policy[S, A] = policy_from_q(q, mdp)
             action: A = policy.act(state).sample()
             next_state, reward = mdp.step(state, action).sample()
-            replay_memory.append(TransitionStep(
+            exp_replay.add_data(TransitionStep(
                 state=state,
                 action=action,
                 next_state=next_state,
                 reward=reward
             ))
-            replay_len: int = len(replay_memory)
-            decay_weights.append(factor ** (replay_len - 1))
-            norm_factor: float = (1 - factor ** replay_len) / (1 - factor)
-            norm_decay_weights: Sequence[float] = [w * norm_factor for w in
-                                                   reversed(decay_weights)]
             trs: Sequence[TransitionStep[S, A]] = \
-                [replay_memory[i] for i in random_gen.choice(
-                    replay_len,
-                    min(batch_size, replay_len),
-                    replace=False,
-                    p=norm_decay_weights
-                )]
+                exp_replay.sample_mini_batch(mini_batch_size)
             q = q.update(
                 [(
                     (tr.state, tr.action),
@@ -396,17 +458,17 @@ def q_learning_experience_replay(
             state = next_state
 ```
 
-The key difference between the `q_learning` algorithm we wrote in Chapter [-@sec:rl-control-chapter] and this `q_learning_experience_replay` algorithm is that here we have an experience-replay memory (`replay_memory` in the code above). In the `q_learning` algorithm, the (`state`, `action`, `next_state`, `reward`) 4-tuple comprising `TransitionStep` (that is used to perform the Q-Learning update) was the result of `action` being sampled from the behavior policy (derived from the current estimate of the Q-Value Function, eg: $\epsilon$-greedy), and then the `next_state` and `reward` being generated from the (`state`, `action`) pair using the `step` method of `mdp`. Here in `q_learning_experience_replay`, we don't use this 4-tuple `TransitionStep` to perform the update - rather we append this 4-tuple to the list of `TransitionStep`s comprising the experience-replay memory (`replay_memory` in the code), then we randomly draw a set of `TransitionStep`s from `replay_memory` (giving more drawing weightage to the more recently added `TransitionSteps`), and use those 4-tuple `TransitionStep`s to perform the Q-Learning update. Note that these randomly picked `TransitionStep`s might be from old behavior policies (derived from old estimates of the Q-Value estimate). The key is that this algorithm re-uses atomic experiences that were previously generated, which also means that it re-uses behavior policies that were previously constructed in the course of the algorithm execution.
+The key difference between the `q_learning` algorithm we wrote in Chapter [-@sec:rl-control-chapter] and this `q_learning_experience_replay` algorithm is that here we have an experience-replay memory (using the `ExperienceReplayMemory` class we had implemented earlier). In the `q_learning` algorithm, the (`state`, `action`, `next_state`, `reward`) 4-tuple comprising `TransitionStep` (that is used to perform the Q-Learning update) was the result of `action` being sampled from the behavior policy (derived from the current estimate of the Q-Value Function, eg: $\epsilon$-greedy), and then the `next_state` and `reward` being generated from the (`state`, `action`) pair using the `step` method of `mdp`. Here in `q_learning_experience_replay`, we don't use this 4-tuple `TransitionStep` to perform the update - rather, we append this 4-tuple to the `ExperienceReplayMemory` (using the `add_data` method), then we sample `mini_batch_size`d `TransitionStep`s from the `ExperienceReplayMemory`, giving more sampling weightage to the more recently added `TransitionStep`s), and use those 4-tuple `TransitionStep`s to perform the Q-Learning update. Note that these sampled `TransitionStep`s might be from old behavior policies (derived from old estimates of the Q-Value estimate). The key is that this algorithm re-uses atomic experiences that were previously prepared by the algorithm, which also means that it re-uses behavior policies that were previously constructed by the algorithm.
 
-The argument `batch_size` refers to the number of `TransitionStep`s to be drawn from the experience-replay memory at each step (the language used for this set of drawn `TransitionStep`s used to perform the update is *mini-batch*). The argument `weights_decay_half_life` refers to the half life of an exponential decay function for the weights used in the random draw of the `TransitionStep`s (the most recently added `TransitionStep` has the highest weight). With this understanding, the code should be self-explanatory.
+The argument `mini_batch_size` refers to the number of `TransitionStep`s to be drawn from the `ExperienceReplayMemory` at each step. The argument `weights_decay_half_life` refers to the half life of an exponential decay function for the weights used in the sampling of the `TransitionStep`s (the most recently added `TransitionStep` has the highest weight). With this understanding, the code should be self-explanatory.
 
 The above code is in the file [rl/td.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/td.py).
 
 #### Deep Q-Networks (DQN) Algorithm
 
-[DeepMind](https://deepmind.com/) developed an innovative and practically effective RL Control Control algorithm based on Q-Learning with Experience-Replay - an algorithm they named as Deep Q-Networks (abberviated as DQN). Apart from reaping the above-mentioned benefits of Experience-Replay for Q-Learning with a Deep Neural Network approximating the Q-Value function, they also benefited from employing a second Deep Neural Network (let us call the main DNN as the Q-Network, refering to it's parameters at $\bm{w}$, and the second DNN as the target network, refering to it's parameters as $\bm{w}^-$). The parameters $\bm{w}^-$ of the target network are infrequently updated to be made equal to the parameters $\bm{w}$ of the Q-network. The purpose of the target network is to evaluate the Q-Value simply to calculate the Q-Learning target (note that the target is $r + \gamma \cdot \max_{a'} Q(s', a'; \bm{w}^-)$ for a given atomic experience $(s,a,r,s')$).
+[DeepMind](https://deepmind.com/) developed an innovative and practically effective RL Control Control algorithm based on Q-Learning with Experience-Replay - an algorithm they named as Deep Q-Networks (abberviated as DQN). Apart from reaping the above-mentioned benefits of Experience-Replay for Q-Learning with a Deep Neural Network approximating the Q-Value function, they also benefited from employing a second Deep Neural Network (let us call the main DNN as the Q-Network, refering to it's parameters at $\bm{w}$, and the second DNN as the target network, refering to it's parameters as $\bm{w}^-$). The parameters $\bm{w}^-$ of the target network are infrequently updated to be made equal to the parameters $\bm{w}$ of the Q-network. The purpose of the Q-Network is to evaluate the Q-Value of the current state $s$ and the purpose of the target network is to evaluate the Q-Value of the next state $s'$, which in turn is used to obtain the Q-Learning target (note that the Q-Value of the current state is $Q(s,a;\bm{w})$ and the Q-Learning target is $r + \gamma \cdot \max_{a'} Q(s', a'; \bm{w}^-)$ for a given atomic experience $(s,a,r,s')$).
 
-Deep Learning is premised on the fact that the supervised learning targets (response values $y$ corresponding to predictor values $x$) are pre-generated fixed values. This is not the case in TD learning where the targets are dependent on the Q-Values. As Q-Values are updated at each step, the targets also get updated, and this correlation between the Q-Value estimate and the target vale typically leads to oscillations or divergence of the Q-Value estimate. By infrequently updating the parameters $\bm{w}^-$ of the target network (providing the target values) to be made equal to the parameters $\bm{w}$ of the Q-network (which are updated at each iteration, the targets in the Q-Learning update are essentially fixed. This goes a long way in resolving the core issue of correlation between the Q-Value estimate and the target values, helping considerably with convergence of the Q-Learning algorithm. Thus, DQN reaps the benefits of not just Experience-Replay in Q-Learning (which we articulated earlier), but also the benefits of having "fixed" targets. DNN utilizes a parameter $C$ such that the updating of $\bm{w}^-$ to be made equal to $\bm{w}$ is done once every $C$ updates to $\bm{w}$ (based on the usual Q-Learning update equation).
+Deep Learning is premised on the fact that the supervised learning targets (response values $y$ corresponding to predictor values $x$) are pre-generated fixed values. This is not the case in TD learning where the targets are dependent on the Q-Values. As Q-Values are updated at each step, the targets also get updated, and this correlation between the current state's Q-Value estimate and the target value estimate typically leads to oscillations or divergence of the Q-Value estimate. By infrequently updating the parameters $\bm{w}^-$ of the target network (providing the target values) to be made equal to the parameters $\bm{w}$ of the Q-network (which are updated at each iteration), the targets in the Q-Learning update are essentially kept fixed. This goes a long way in resolving the core issue of correlation between the current state's Q-Value estimate and the target values, helping considerably with convergence of the Q-Learning algorithm. Thus, DQN reaps the benefits of not just Experience-Replay in Q-Learning (which we articulated earlier), but also the benefits of having "fixed" targets. DNN utilizes a parameter $C$ such that the updating of $\bm{w}^-$ to be made equal to $\bm{w}$ is done once every $C$ updates to $\bm{w}$ (updates to $\bm{w}$ are based on the usual Q-Learning update equation).
 
 We won't implement the DQN algorithm in Python code - however, we sketch the outline of the algorithm, as follows:
 
@@ -430,13 +492,13 @@ Now we are ready to cover Batch RL Control (specifically Least-Squares TD Contro
 Having seen Least-Squares Prediction, the natural question is whether we can extend the Least-Squares (batch with linear function approximation) methodology to solve the Control problem. For On-Policy MC and On-Policy TD Control, we take the usual route of Generalized Policy Iteration (GPI) with:
 
 1. Policy Evaluation as Least-Squares $Q$-Value Prediction. Specifically, the $Q$-Value for a policy $\pi$ is approximated as:
-$$Q^{\pi}(s,a) \approxeq Q(s,a;\bm{w}) = \bm{\phi}(s)^T \cdot \bm{w}$$
+$$Q^{\pi}(s,a) \approx Q(s,a;\bm{w}) = \bm{\phi}(s)^T \cdot \bm{w}$$
 with a direct linear-algebraic solve for the linear function approximation weights $\bm{w}$ using batch experiences data generated using policy $\pi$.
 2. $\epsilon$-Greedy Policy Improvement.
 
-In this section, we focus on Off-Policy Control with Least-Squares TD. This algorithm is known as Least-Squares Policy Iteration, abbreviated as LSPI, developed by [Lagoudakis and Parr](https://www.jmlr.org/papers/volume4/lagoudakis03a/lagoudakis03a.pdf). LSPI has been an important go-to algorithm in the history of RL Control because of it's simplicity and effectiveness. The basic idea of LSPI is that it's Generalized Policy Iteration (GPI) is essentially *Q-Learning with Experience-Replay*, with the key being that instead of doing the usual Q-Learning update after each atomic experience, we do *batch Q-Learning* for the Policy Evaluation phase of GPI. We spend the rest of this section describing LSPI in detail and then implementing it in Python code.
+In this section, we focus on Off-Policy Control with Least-Squares TD. This algorithm is known as Least-Squares Policy Iteration, abbreviated as LSPI, developed by [Lagoudakis and Parr](https://www.jmlr.org/papers/volume4/lagoudakis03a/lagoudakis03a.pdf). LSPI has been an important go-to algorithm in the history of RL Control because of it's simplicity and effectiveness. The basic idea of LSPI is that it does Generalized Policy Iteration (GPI) in the form of *Q-Learning with Experience-Replay*, with the key being that instead of doing the usual Q-Learning update after each atomic experience, we do *batch Q-Learning* for the Policy Evaluation phase of GPI. We spend the rest of this section describing LSPI in detail and then implementing it in Python code.
 
-The input to LSPI is a fixed finite data set $\mathcal{D}$, consisting of set of $(s,a,r,s')$ atomic experiences, i.e., a set of `rl.markov_decision_process.TransitionStep` objects, and the task of LSPI is to determine the Optimal Q-Value Function (and hence, Optimal Policy) based on this experiences data set $\mathcal{D}$ using an experience-replayed, batch Q-Learning technique described below. Assume $\mathcal{D}$ consists of $n$ atomic experiences, indexed as $i = 1, 2, \ldots n$, with the atomic experience $i$ denoted as $(s_i, a_i, r_i, s'_i)$.
+The input to LSPI is a fixed finite data set $\mathcal{D}$, consisting of a set of $(s,a,r,s')$ atomic experiences, i.e., a set of `rl.markov_decision_process.TransitionStep` objects, and the task of LSPI is to determine the Optimal Q-Value Function (and hence, Optimal Policy) based on this experiences data set $\mathcal{D}$ using an experience-replayed, batch Q-Learning technique described below. Assume $\mathcal{D}$ consists of $n$ atomic experiences, indexed as $i = 1, 2, \ldots n$, with atomic experience $i$ denoted as $(s_i, a_i, r_i, s'_i)$.
 
 In LSPI, each iteration of GPI involves access to:
 
@@ -449,11 +511,6 @@ Given $\mathcal{D}$ and $\pi_D$, the goal of each iteration of GPI is to solve f
 & = \sum_{i=1}^n (\bm{\phi}(s_i,a_i)^T \cdot \bm{w} - (r_i + \gamma \cdot \bm{\phi}(s'_i, \pi_D(s'_i))^T \cdot \bm{w}))^2
 \end{align*}
 
-The solved $\bm{w}^*$ defines a $Q$-Value Function as follows:
-$$Q(s,a; \bm{w}^*) = \bm{\phi}(s,a)^T \cdot \bm{w}^* = \sum_{j=1}^m \phi_j(s,a) \cdot w_j^*$$
-This defines a deterministic policy $\pi_D$ (serving as the *Target Policy* for the next iteration of GPI):
-$$\pi_D(s) = \argmax_a Q(s,a; \bm{w}^*)$$
-
 The solution for the weights $\bm{w}^*$ is attained by setting the semi-gradient of $\mathcal{L}(\bm{w})$ to 0, i.e.,
 \begin{equation}
 \sum_{i=1}^n \phi(s_i,a_i) \cdot (\bm{\phi}(s_i,a_i)^T \cdot \bm{w}^* - (r_i + \gamma \cdot \bm{\phi}(s'_i, \pi_D(s'_i))^T \cdot \bm{w}^*)) = 0
@@ -465,11 +522,16 @@ and the $m$-Vector $\bm{b}$ is accumulated at each atomic experience $(s_i,a_i,r
 $$\bm{b} \leftarrow \bm{b} + \bm{\phi}(s_i, a_i) \cdot r_i$$
 With Sherman-Morrison incremental inverse, we can reduce the computational complexity from $O(m^3)$ to $O(m^2)$.
 
+This solved $\bm{w}^*$ defines an updated $Q$-Value Function as follows:
+$$Q(s,a; \bm{w}^*) = \bm{\phi}(s,a)^T \cdot \bm{w}^* = \sum_{j=1}^m \phi_j(s,a) \cdot w_j^*$$
+This defines an updated, improved deterministic policy $\pi'_D$ (serving as the *Target Policy* for the next iteration of GPI):
+$$\pi'_D(s) = \argmax_a Q(s,a; \bm{w}^*)$$
+
 This least-squares solution of $\bm{w}^*$ (Prediction) is known as Least-Squares Temporal Difference for Q-Value, abbreviated as *LSTDQ*. Thus, LSPI is GPI with LSTDQ and greedy policy improvements. Note how LSTDQ in each iteration re-uses the same data $\mathcal{D}$, i.e., LSPI does experience-replay.
 
-We should point out here that the LSPI algorithm we described above should be considered as the *standard variant* of LSPI. However, we can design several other variants of LSPI, in terms of how the experiences data is sourced and used. Firstly, we should note that the experiences data $\mathcal{D}$ essentially provides the behavior policy for Q-Learning (along with the consequent reward and next state transition). In the *standard variant* we described above, since $\mathcal{D}$ is provided from an external source, the behavior policy that generates this data $\mathcal{D}$ must come from an external source. It doesn't have to be this way - we could generate the experiences data from a behavior policy derived from the Q-Value estimates produced by LSTDQi (eg: $\epsilon$-greedy policy). This would mean the experiences data used in the algorithm is not a fixed, finite data set, rather a variable, incrementally-produced data set. Even if the behavior policy was external, the data set $\mathcal{D}$ might not be a fixed finite data set - rather, it could be made available as an on-demand, variable data stream. Furthermore, in each iteration of GPI, we could use a subset of the experiences data made available until that point of time (rather than the approach of the standard version that uses all of the available experiences data). If we choose to sample a subset of the available experiences data, we might give more sampling-weightage to the more recently generated data. This would be especially the case if the experiences data was being generated from a policy derived the Q-Value estimates produced by LSTDQ. In this case, we would leverage the `ExperienceReplayMemory` class we'd written earlier.
+We should point out here that the LSPI algorithm we described above should be considered as the *standard variant* of LSPI. However, we can design several other variants of LSPI, in terms of how the experiences data is sourced and used. Firstly, we should note that the experiences data $\mathcal{D}$ essentially provides the behavior policy for Q-Learning (along with the consequent reward and next state transition). In the *standard variant* we described above, since $\mathcal{D}$ is provided from an external source, the behavior policy that generates this data $\mathcal{D}$ must come from an external source. It doesn't have to be this way - we could generate the experiences data from a behavior policy derived from the Q-Value estimates produced by LSTDQ (eg: $\epsilon$-greedy policy). This would mean the experiences data used in the algorithm is not a fixed, finite data set, rather a variable, incrementally-produced data set. Even if the behavior policy was external, the data set $\mathcal{D}$ might not be a fixed finite data set - rather, it could be made available as an on-demand, variable data stream. Furthermore, in each iteration of GPI, we could use a subset of the experiences data made available until that point of time (rather than the approach of the standard variant of LSPI that uses all of the available experiences data). If we choose to sample a subset of the available experiences data, we might give more sampling-weightage to the more recently generated data. This would especially be the case if the experiences data was being generated from a policy derived from the Q-Value estimates produced by LSTDQ. In this case, we would leverage the `ExperienceReplayMemory` class we'd written earlier.
 
-Next, we write code to implement the *standard variant* of LSPI we described above. First, we write a function to implement LSTDQ. As described above, the inputs to LSTQD are the experiences data $\mathcal{D}$ (`transitions` in the code below) and a deterministic target policy $\pi_D$ (`target_policy` in the code below). Since we are doing a linear function approximation, the input also includes a set of features, described as functions of state and action (`feature_functions` in the code below). Lastly, the inputs also include the discount factor $\gamma$ and the numerical control parameter $\epsilon$. The code below should be fairly self-explanatory, as it is a straightforward extenion of LSTD (implemented in function `least_squares_td` above). The key differences are that this is an estimate of the Action-Value (Q-Value) function, rather than the State-Value Function, and the target used in the least-squares calculation is the Q-Learning target (produced by the `target_policy`).
+Next, we write code to implement the *standard variant* of LSPI we described above. First, we write a function to implement LSTDQ. As described above, the inputs to LSTQD are the experiences data $\mathcal{D}$ (`transitions` in the code below) and a deterministic target policy $\pi_D$ (`target_policy` in the code below). Since we are doing a linear function approximation, the input also includes a set of features, described as functions of state and action (`feature_functions` in the code below). Lastly, the inputs also include the discount factor $\gamma$ and the numerical control parameter $\epsilon$. The code below should be fairly self-explanatory, as it is a straightforward extension of LSTD (implemented in function `least_squares_td` earlier). The key differences are that this is an estimate of the Action-Value (Q-Value) function, rather than the State-Value Function, and the target used in the least-squares calculation is the Q-Learning target (produced by the `target_policy`).
 
 ```python
 def least_squares_tdq(
@@ -503,7 +565,7 @@ def least_squares_tdq(
     )
 ```
 
-Now we are ready to write the standard version of LSPI. The code below is a straightforward implementation of our description above, looping through the iterations of GPI, `yield`ing the Q-Value `LinearFunctionApprox` after each iteration of GPI.
+Now we are ready to write the standard variant of LSPI. The code below is a straightforward implementation of our description above, looping through the iterations of GPI, `yield`ing the Q-Value `LinearFunctionApprox` after each iteration of GPI.
 
 ```python
 def least_squares_policy_iteration(
@@ -536,9 +598,9 @@ The above code is in the file [rl/td.py](https://github.com/TikhonJelvis/RL-book
 
 Now we consider a Control problem we'd like to test the above LSPI algorithm on. We call it the Vampire problem that can be described as a good, old-fashioned bedtime story, as follows:
 
-> A village is visited by a vampire every morning who randomly eats 1 villager upon entering the village, then retreats to the hills, planning to come back the next morning. The villagers come up with a plan. They will poison a certain number of villagers (picked at random uniformly) each night until the vampire eats a poisoned villager the next morning, after which the vampire dies (due to the poison in the villager the vampire ate). Unfortunately, all villagers who get poisoned also die the day after they are given the poison. If the goal of the villagers is to maximize the expected number of villagers at termination (termination is when either the vampire dies or all villagers are dead), what should be the optimal poisoning policy? In other words, if there are $n$ villagers on any day, how many villagers should be poisoned (as a function of $n$)?
+> *A village is visited by a vampire every morning who uniform-randomly eats 1 villager upon entering the village, then retreats to the hills, planning to come back the next morning. The villagers come up with a plan. They will poison a certain number of villagers each night until the vampire eats a poisoned villager the next morning, after which the vampire dies immediately (due to the poison in the villager the vampire ate). Unfortunately, all villagers who get poisoned also die the day after they are given the poison. If the goal of the villagers is to maximize the expected number of villagers at termination (termination is when either the vampire dies or all villagers die), what should be the optimal poisoning strategy? In other words, if there are $n$ villagers on any day, how many villagers should be poisoned (as a function of $n$)?*
 
-It is straightforward to model this problem as an MDP. The *State* is the number of villagers at risk on any given night (if the vampire is still alive, the *State* is the number of villagers and if the vampire is dead, the *State* is 0, which is the only *Terminal State*). The *Action* is the number of villagers poisoned on any given night. The *Reward* is zero as long as the vampire is alive, and is equal to the number of villagers remaining if the vampire dies. Therefore. Let us refer to the initial number of villagers as $I$.
+It is straightforward to model this problem as an MDP. The *State* is the number of villagers at risk on any given night (if the vampire is still alive, the *State* is the number of villagers and if the vampire is dead, the *State* is 0, which is the only *Terminal State*). The *Action* is the number of villagers poisoned on any given night. The *Reward* is zero as long as the vampire is alive, and is equal to the number of villagers remaining if the vampire dies. Let us refer to the initial number of villagers as $I$. Thus,
 
 $$\mathcal{S} = \{0, 1, \ldots, I\}, \mathcal{T} = \{0\}$$
 $$\mathcal{A}(s) = \{0, 1, \ldots, s - 1\} \text{ where } s \in \mathcal{N}$$
@@ -651,7 +713,7 @@ class VampireMDP(FiniteMarkovDecisionProcess[int, int]):
         return get_vf_and_policy_from_qvf(self, qvf)
 ```
 
-The above code should be self-explanatory. The main challenge with LSPI is that we need to construct features function of the state and action such that the Q-Value Function is linear in those features. In this case, since we simply want to test the correctness of our LSPI implementation, we define feature functions (in method `lspi_feature` above) based on our knowledge of the true optimal Q-Value Function from the Dynamic Programming solution. The atomic experiences comprising the experiences data $\mathcal{D}$ for LSPI to use is generated with a simple uniform distribution of non-terminal states and action (in method `lspi_transitions` above).
+The above code should be self-explanatory. The main challenge with LSPI is that we need to construct features function of the state and action such that the Q-Value Function is linear in those features. In this case, since we simply want to test the correctness of our LSPI implementation, we define feature functions (in method `lspi_feature` above) based on our knowledge of the true optimal Q-Value Function from the Dynamic Programming solution. The atomic experiences comprising the experiences data $\mathcal{D}$ for LSPI to use is generated with a uniform distribution of non-terminal states and a uniform distribution of actions for a given state (in method `lspi_transitions` above).
 
 Figure \ref{fig:lspi_opt_vf_comparison} shows the plot of the True Optimal Value Function (from Value Iteration) versus the LSPI-estimated Optimal Value Function. 
 
@@ -662,3 +724,132 @@ Figure \ref{fig:lspi_opt_policy_comparison} shows the plot of the True Optimal P
 ![True versus LSPI Optimal Policy \label{fig:lspi_opt_policy_comparison}](./chapter12/vampire_lspi_opt_policy.png "True versus LSPI Optimal Policy")
 
 The above code is in the file [rl/chapter12/vampire.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/chapter12/vampire.py). As ever, we encourage you to modify some of the parameters in this code (including choices of feature functions, nature and number of atomic transitions used, number of GPI iterations, choice of $\epsilon$, and perhaps even a different dynamic for the vampire behavior), and see how the results change.
+
+#### Least-Squares Control Convergence
+
+We wrap up this section by including the convergence behavior of LSPI in the summary table for convergence of RL Control algorithms (that we had displayed at the end of Chapter [-@sec:rl-control-chapter]). Figure \ref{fig:rl_control_with_lspi_convergence} shows the updated summary table for convergence of RL Control algorithms to now also include LSPI. Note that \(\cmark) means it doesn't quite hit the Optimal Value Function, but bounces around near the Optimal Value Function. But this is better than Q-Learning in the case of linear function approximation.
+
+\begin{figure}
+\begin{center}
+\begin{tabular}{cccc}
+\hline
+Algorithm & Tabular & Linear & Non-Linear \\ \hline
+MC Control & \cmark & ( \cmark ) & \xmark \\
+SARSA & \cmark & ( \cmark ) & \xmark \\
+Q-Learning & \cmark & \xmark & \xmark \\
+\bfseries LSPI & \cmark & ( \cmark ) & - \\ 
+Gradient Q-Learning & \cmark & \cmark & \xmark \\ \hline
+\end{tabular}
+\end{center}
+\caption{Convergence of RL Control Algorithms}
+\label{fig:rl_control_convergence_with_lspi_convergence}
+\end{figure}
+
+
+### RL for Optimal Exercise of American Options
+
+We learnt in Chapter [-@sec:derivatives-pricing-chapter] that the American Options Pricing problem is an Optimal Stopping problem and can be modeled as an MDP so that solving the Control problem of the MDP gives us the fair price of an American Option. We can solve it with Dynamic Programming or Reinforcement Learning, as appropriate. 
+
+In the financial trading industry, it has traditionally not been a common practice to explicitly view the American Options Pricing problem as an MDP. Specialized algorithms have been developed to price American Options. We now provide a quick overview of the common practice in pricing American Options in the financial trading industry. Firstly, we should note that the price of some American Options is equal to the price of the corresponding European Option, for which we have a closed-form solution under the assumption of a lognormal process for the underlying - this is the case for a plain-vanilla American call option whose price (as we proved in Chapter [-@sec:derivatives-pricing-chapter]) is equal to the price of a plain-vanilla European call option. However, this is not the case for a plain-vanilla American put option. Secondly, we should note that if the payoff of an American option is dependent on only the current price of the underlying (and not on the past prices of the underlying) - in which case, we say that the option payoff is not "history-dependent" - and if the dimension of the state space is not large, then we can do a simple backward induction on a binomial tree (as we showed in Chapter [-@sec:derivatives-pricing-problem]). In practice, a more detailed data structure such as a [https://en.wikipedia.org/wiki/Trinomial_tree](trinomial tree) or a lattice is often used for more accurate backward-induction calculations. However, if the payoff is history-dependent (i.e., payoff depends on past prices of the underlying) or if the payoff depends on the prices of several underlying assets, then the state space is too large for backward induction to handle. In such cases, the standard approach in the finance industry is to use the [Longstaff-Schwartz pricing algorithm](https://people.math.ethz.ch/~hjfurrer/teaching/LongstaffSchwartzAmericanOptionsLeastSquareMonteCarlo.pdf). We won't cover the Longstaff-Schwartz pricing algorithm in detail in this book - it suffices to share here that the Longstaff-Schwartz pricing algorithm combines 3 ideas:
+
+* The Pricing is based on a set of sampling traces of the underlying prices.
+* Function approximation of the continuation value for in-the-money states
+* Backward-recursive determination of early exercise states
+
+The goal of this section is to explain how to price American Options with Reinforcement Learning, as an alternative to the Longstaff-Schwartz algorithm.
+
+#### LSPI for American Options Pricing
+
+[A paper by Li, Szepesvari, Schuurmans](http://proceedings.mlr.press/v5/li09d/li09d.pdf) showed that LSPI can be an attractive alternative to the Longstaff-Schwartz algorithm in pricing American Options. Before we dive into the details of pricing American Options with LSPI, let's review the MDP model for American Options Pricing.
+
+* *State* is [Current Time, History of Underlying Security Prices].
+* *Action* is Boolean: Exercise (i.e., Stop) or Continue.
+* *Reward* is always 0, except upon Exercise (when the *Reward* is equal to the Payoff).
+* *State*-transitions are based on the Underlying Securities' Risk-Neutral Process.
+
+The key is to create a linear function approximation of the state-conditioned *continuation value* of the American Option (*continuation value* is the price of the American Option at the current state, conditional on not exercising the option at the current state, i.e., continuing to hold the option). Knowing the continuation value in any state enables us to compare the continuation value against the exercise value (i.e., payoff), thus providing us with the Optimal Stopping criteria (as a function of the state), which in turn enables us to determine the Price of the American Option. Furthermore, we can customize the LSPI algorithm to the nuances of the American Option Pricing problem, yielding a specialized version of LSPI. The key customization comes from the fact that there are only two actions. The action to exercise produces a (state-conditioned) reward (i.e., option payoff) and transition to a terminal state. The action to continue produces no reward and transitions to a new state at the next time step. Let us refer to these 2 actions as: $a=c$ (continue the option) and $a=e$ (exercise the option).
+
+Since we know the exercise value in any state, we only need to create a linear function approximation for the continuation value, i.e., for the Q-Value $Q(s, c)$ for all non-terminal states $s$. If we denote the payoff in non-terminal state $s$ as $g(s)$, then $Q(s,e) = g(s)$. So we write
+$$
+\hat{Q}(s,a; \bm{w}) =
+\begin{cases}
+\bm{\phi}(s)^T \cdot \bm{w} & \text{ if } a = c \\
+g(s) & \text{ if } a = e
+\end{cases}
+$$
+for feature functions $\bm{\phi}(\cdot) = [\phi_i(\cdot)|i = 1, \ldots, m]$, which are feature functions of only state (and not action).
+
+Each iteration of GPI in the LSPI algorithm starts with values for the parameters $\bm{w}$ defining $\hat{Q}(s,a; \bm{w})$ (and it's derived greedy policy $\pi_D(\cdot)$), and ends by solving for $\bm{w}^*$ (from LSPI's Q-Learning training data), which defines the next iteration's $\bm{w}$. Since we learn the Q-Value function for only $a=c$, the behavior policy $\mu$ generating experiences data for training is a constant function $\mu(s) = c$. Note also that for American Options, the reward for $a=c$ is 0. So each atomic experience for training is of the form $(s,c,0,s')$. This means we can represent each atomic experience for training as a 2-tuple $(s,s')$. This reduces the LSPI Semi-Gradient Equation \eqref{eq:lspi-loss-semi-gradient} to:
+\begin{equation}
+\sum_i \bm{\phi}(s_i) \cdot (\bm{\phi}(s_i)^T \cdot \bm{w}^* - \gamma \cdot \hat{Q}(s'_i, \pi_D(s'_i); \bm{w}^*)) = 0
+\label{eq:customized-lspi-loss-semi-gradient}
+\end{equation}
+We need to consider two cases for the term $\hat{Q}(s'_i, \pi_D(s'_i); \bm{w}^*)$:
+
+* $C1$: If $s'_i$ is non-terminal and $\pi_D(s'_i) = c$ (i.e., $\bm{\phi}(s'_i)^T \cdot \bm{w} \geq g(s'_i)$):
+Substitute $\bm{\phi}(s'_i)^T \cdot \bm{w}^*$ for $\hat{Q}(s'_i,\pi_D(s'_i); \bm{w}^*)$ in Equation \eqref{eq:customized-lspi-loss-semi-gradient}
+* $C2$: If $s'_i$ is a terminal state or $\pi_D(s'_i) = e$ (i.e., $g(s'_i) > \bm{\phi}(s'_i)^T \cdot \bm{w}$):
+Substitute $g(s'_i)$ for $\hat{Q}(s'_i,\pi_D(s'_i); \bm{w}^*)$ in Equation \eqref{eq:customized-lspi-loss-semi-gradient}
+
+So we can rewrite Equation \eqref{eq:customized-lspi-loss-semi-gradient} using indicator notation $\mathbb{I}$ for cases $C1, C2$ as:
+$$\sum_i \bm{\phi}(s_i) \cdot (\bm{\phi}(s_i)^T \cdot \bm{w}^* - \mathbb{I}_{C1} \cdot \gamma \cdot \bm{\phi}(s'_i)^T \cdot \bm{w}^*  -  \mathbb{I}_{C2} \cdot \gamma \cdot g(s'_i)) = 0$$
+
+Factoring out $\bm{w}^*$, we get:
+
+$$(\sum_i \bm{\phi}(s_i) \cdot (\bm{\phi}(s_i) - \mathbb{I}_{C1} \cdot \gamma \cdot \bm{\phi}(s'_i))^T) \cdot \bm{w}^*= \gamma \cdot \sum_i  \mathbb{I}_{C2} \cdot \bm{\phi}(s_i) \cdot g(s'_i)$$
+
+This can be written in the familiar vector-matrix notation as: $\bm{A} \cdot \bm{w}^* = \bm{b}$
+
+$$\bm{A} = \sum_i \bm{\phi}(s_i) \cdot (\bm{\phi}(s_i) - \mathbb{I}_{C1} \cdot \gamma \cdot \bm{\phi}(s'_i))^T$$
+$$\bm{b} = \gamma \cdot \sum_i \mathbb{I}_{C2} \cdot \bm{\phi}(s_i) \cdot  g(s'_i)$$
+
+The $m \times m$ Matrix $\bm{A}$ is accumulated at each atomic experience $(s_i,s'_i)$ as:
+
+$$\bm{A} \leftarrow \bm{A} + \bm{\phi}(s_i) \cdot (\bm{\phi}(s_i) -  \mathbb{I}_{C1} \cdot \gamma \cdot \bm{\phi}(s'_i))^T$$
+
+The $m$-Vector $\bm{b}$ is accumulated at each atomic experience $(s_i, s'_i)$ as:
+
+$$\bm{b} \leftarrow \bm{b} + \gamma  \cdot \mathbb{I}_{C2} \cdot \bm{\phi}(s_i) \cdot g(s'_i)$$
+
+With Sherman-Morrison incremental inverse of $\bm{A}$, we can reduce the time-complexity from $O(m^3)$ to $O(m^2)$
+
+[Li, Szepesvari, Schuurmans](http://proceedings.mlr.press/v5/li09d/li09d.pdf) recommend in their paper to use 7 feature functions, the first 4 Laguerre polynomials that are functions of the underlying price and 3 functions of time. Precisely, the feature functions they recommend are:
+
+* $\phi_0(S_t) = 1$
+* $\phi_1(S_t) = e^{-\frac {S'} 2}$
+* $\phi_2(S_t) = e^{-\frac{S'} 2} \cdot (1-S')$
+* $\phi_3(S_t) = e^{-\frac{S'} 2} \cdot (1-2S'+S'^2/2)$
+* $\phi_0^{(t)}(t) = sin(\frac {\pi(T-t)} {2T})$
+* $\phi_1^{(t)}(t) = \log(T-t)$
+* $\phi_2^{(t)}(t) = (\frac t T)^2$
+
+where $S' = S_t/K$ ($S_t$ is the current underlying price and $K$ is the American Option strike), $t$ is the current time, and $T$ is the expiration time (i.e., $0 \leq t \leq T$).
+
+#### Deep Q-Learning for American Options Pricing
+
+LSPI is data-efficient and compute-efficient, but linearity is a limitation in the function approximation. The alternative is (incremental) Q-Learning with neural network function approximation, which we cover in this subsection. We employ the same set up as LSPI (including Experience Replay) - specifically, the function approximation is required only for continuation value. Precisely,
+
+$$
+\hat{Q}(s,a; \bm{w}) =
+\begin{cases}
+f(s;\bm{w}) & \text{ if } a = c \\
+g(s) & \text{ if } a = e
+\end{cases}
+$$
+where $f(s; \bm{w})$ is the deep neural network function approximation.
+
+The Q-Learning update for each atomic experience $(s_i,s'_i)$ is:
+$$\Delta \bm{w} = \alpha \cdot (\gamma \cdot \hat{Q}(s'_i, \pi(s'_i); \bm{w}) - f(s_i;\bm{w})) \cdot \nabla_{\bm{w}} f(s_i;\bm{w})$$
+
+When $s'_i$ is a non-terminal state, the update is:
+$$\Delta \bm{w} =  \alpha \cdot (\gamma \cdot \max(g(s'_i), f(s'_i;\bm{w})) - f(s_i;\bm{w})) \cdot \nabla_{\bm{w}} f(s_i;\bm{w})$$
+When $s'_i$ is a terminal state, the update is:
+$$\Delta \bm{w} = \alpha \cdot (\gamma \cdot g(s'_i) - f(s_i;\bm{w})) \cdot \nabla_{\bm{w}} f(s_i;\bm{w})$$
+
+### Key Takeaways from this Chapter
+
+* Batch RL makes efficient use of data
+* DQN uses experience replay and fixed Q-learning targets, avoiding the pitfalls of time-correlation and semi-gradient
+* LSTD is a direct (gradient-free) solution of Batch TD Prediction
+* LSPI is an off-policy, experience-replay Control Algorithm using LSTDQ for Policy Evaluation
+* Optimal Exercise of American Options can be tackled with LSPI and Deep Q-Learning algorithms
