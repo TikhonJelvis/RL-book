@@ -61,6 +61,7 @@ def batch_mc_prediction(
     episode_length_tolerance: float = 1e-6,
     convergence_tolerance: float = 1e-5
 ) -> ValueFunctionApprox[S]:
+    '''traces is a finite iterable'''
     return_steps: Iterable[mp.ReturnStep[S]] = \
         itertools.chain.from_iterable(
             returns(trace, γ, episode_length_tolerance) for trace in traces
