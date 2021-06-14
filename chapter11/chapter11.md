@@ -610,13 +610,13 @@ $$G_t^{(\lambda)} = (1-\lambda) \cdot \sum_{n=1}^{T-t-1} \lambda^{n-1} \cdot G_{
 Then, the Offline $\lambda$-Return SARSA Algorithm makes the following updates (performed at the end of each trace experience) for each $(S_t,A_t)$ encountered in the episode:
 $$\Delta \bm{w} = \alpha \cdot (G_t^{(\lambda)} - Q(S_t, A_t;\bm{w})) \cdot \nabla_{\bm{w}} Q(S_t, A_t;\bm{w})$$
 
-Finally, we create the SARSA($\lambda)$ Algorithm, which is the online "version" of the above $\lambda$-Return SARSA Algorithm. The calculations/updates at each time step $t$ are as follows:
+Finally, we create the SARSA($\lambda)$ Algorithm, which is the online "version" of the above $\lambda$-Return SARSA Algorithm. The calculations/updates at each time step $t$ for each trace experience are as follows:
 
 $$\delta_t = R_{t+1} + \gamma \cdot Q(S_{t+1},A_{t+1};\bm{w}) - Q(S_t,A_t;\bm{w})$$
 $$\bm{E}_t = \gamma \lambda \cdot \bm{E}_{t-1} + \nabla_{\bm{w}} Q(S_t,A_t;\bm{w})$$
 $$\Delta \bm{w} = \alpha \cdot \delta_t \cdot \bm{E}_t$$
 
-The eligibility trace is reset to 0 at the start of each trace experience, i.e., $\bm{E}_0 = 0$.
+with the eligiblity trace initialized at time 0 for each trace experience as $\bm{E}_0 = \nabla_{\bm{w}} V(S_0; \bm{w})$.
 Note that just like in SARSA, the $\epsilon$-greedy policy improvement is automatic from updated Q-Value Function estimate after each time step.
 
 We leave the implementation of SARSA($\lambda$) in Python code as an exercise for you to do.
@@ -1143,10 +1143,10 @@ Function Approximation is typically unavoidable in real-world problems because o
       On/Off Policy & Algorithm & Tabular & Linear & Non-Linear \\ \hline
       & MC & \cmark & \cmark & \cmark \\
       On-Policy & TD & \cmark & \cmark & \xmark \\
-      & \bfseries Gradient TD & \bfseries \cmark & \bfseries \cmark & \bfseries \cmark \\ \hline
+      & \bfseries Gradient TD & \cmark & \cmark & \cmark \\ \hline
       & MC & \cmark & \cmark & \cmark \\
       Off-Policy & TD & \cmark & \xmark & \xmark \\
-      & \bfseries Gradient TD & \bfseries \cmark & \bfseries \cmark & \bfseries \cmark \\ \hline
+      & \bfseries Gradient TD & \cmark & \cmark & \cmark \\ \hline
       \end{tabular} 
 \end{center}  
 \caption{Convergence of RL Prediction Algorithms, including Gradient TD}
