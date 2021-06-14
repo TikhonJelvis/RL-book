@@ -15,10 +15,10 @@ from rl.distribution import Categorical
 from rl.function_approx import LinearFunctionApprox, Weights
 import rl.iterate as iterate
 import rl.markov_process as mp
-from rl.markov_decision_process import MarkovDecisionProcess, Policy
+from rl.markov_decision_process import MarkovDecisionProcess
 from rl.markov_decision_process import TransitionStep, NonTerminal
 from rl.monte_carlo import greedy_policy_from_qvf
-from rl.policy import DeterministicPolicy
+from rl.policy import Policy, DeterministicPolicy
 from rl.experience_replay import ExperienceReplayMemory
 
 S = TypeVar('S')
