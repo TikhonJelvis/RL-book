@@ -26,7 +26,7 @@ class ExperienceReplayMemory(Generic[T]):
         self.weights.append(weight)
         self.weights_sum += weight
 
-    def sample_mini_batch(self, mini_batch_size) -> Sequence[T]:
+    def sample_mini_batch(self, mini_batch_size: int) -> Sequence[T]:
         num_transitions: int = len(self.saved_transitions)
         return Categorical(
             {tr: self.weights[num_transitions - 1 - i] / self.weights_sum
