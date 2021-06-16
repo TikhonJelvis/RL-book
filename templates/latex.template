@@ -279,6 +279,17 @@ $endif$
 \newcommand{\bbpi}{\bm{B}^{\pi}}
 \newcommand{\bbs}{\bm{B}^*}
 \newcommand{\bv}{\bm{V}}
+\newcommand{\bvw}{\bm{V_w}}
+\newcommand{\bphi}{\bm{\Phi}}
+\newcommand{\bb}{\bm{B}^{\pi}}
+\newcommand{\bpi}{\bm{\Pi_{\Phi}}}
+\newcommand{\bmu}{\bm{\mu_{\pi}}}
+\newcommand{\bd}{\bm{D}}
+\newcommand{\bw}{\bm{w}}
+\newcommand{\btheta}{\bm{\theta}}
+\newcommand{\bdel}{\bm{\delta_w}}
+\newcommand{\brew}{\bm{\mathcal{R}}^{\pi}}
+\newcommand{\bprob}{\bm{\mathcal{P}}^{\pi}}
 
 \newcommand{\cmark}{\ding{51}}
 \newcommand{\xmark}{\ding{55}}
