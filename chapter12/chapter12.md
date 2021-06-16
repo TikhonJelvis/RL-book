@@ -846,10 +846,169 @@ $$\Delta \bm{w} =  \alpha \cdot (\gamma \cdot \max(g(s'_i), f(s'_i;\bm{w})) - f(
 When $s'_i$ is a terminal state, the update is:
 $$\Delta \bm{w} = \alpha \cdot (\gamma \cdot g(s'_i) - f(s_i;\bm{w})) \cdot \nabla_{\bm{w}} f(s_i;\bm{w})$$
 
+### Value Function Geometry
+
+Now we look deeper into the issue of the *Deadly Triad* (that we had alluded to in Chapter [-@sec:rl-control-chapter]) by viewing Value Functions as Vectors (we had done this in Chapter [-@sec:dp-chapter]), understand Value Function Vector transformations with a balance of geometric intuition and mathematical rigor, providing insights into convergence issues for a variety of traditional loss functions used to develop RL algorithms. As ever, the best way to understand Vector transformations is to visualize it and so, we loosely refer to this topic as Value Function Geometry. The geometric intuition is particularly useful for linear function approximations. To promote intuition, we shall present this content for linear function approximations of the Value Function and stick to Prediction (rather than Control) although many of the concepts covered in this section are well-extensible to non-linear function approximations and to the Control problem.
+
+This treatment was originally presented in [the LSPI paper by Lagoudakis and Parr](https://www.jmlr.org/papers/volume4/lagoudakis03a/lagoudakis03a.pdf) and has been covered in [the RL book by Sutton and Barto](http://incompleteideas.net/book/bookdraft2017nov5.pdf). This treatment of Value Functions as Vectors leads us in the direction of overcoming the Deadly Triad by defining an appropriate loss function, calculating whose gradient provides a more robust set of RL algorithms known as Gradient Temporal-Difference (abbreviated, as Gradient TD), which we shall cover in the next section. 
+
+Along with visual intuition, it is important to write precise notation for Value Function transformations and approximations. So we start with a set of formal definitions, keeping the setting fairly simple and basic for ease of understanding.
+
+#### Notation and Definitions
+
+Assume our state space is finite without any terminal states, i.e. $\mathcal{S} = \mathcal{N} = \{s_1, s_2, \ldots, s_n\}$. Assume our action space $\mathcal{A}$ consists of a finite number of actions. This coverage can be extended to infinite/continuous spaces, but we shall stick to this simple setting in this section. Also, as mentioned above, we restrict this coverage to the case of a fixed (potentially stochastic) policy denoted as $\pi: \mathcal{S} \times \mathcal{A} \rightarrow [0, 1]$. This means we are restricting to the case of the Prediction problem (although it's possible to extend some of this coverage to the case of Control).
+
+We denote the Value Function for a policy $\pi$ as $\bvpi: \mathcal{S} \rightarrow \mathbb{R}$. Consider the $n$-dimensional vector space $\mathbb{R}^n$, with each dimension corresponding to a state in $\mathcal{S}$.  Think of a Value Function (typically denoted $\bv$): $\mathcal{S} \rightarrow \mathbb{R}$ as a vector in the $\mathbb{R}^n$ vector space. Each dimension's coordinate is the evaluation of the Value Function for that dimension's state. The coordinates of vector $\bvpi$ for policy $\pi$ are: $(\bvpi(s_1), \bvpi(s_2), \ldots, \bvpi(s_n))$. Note that this treatment is the same as the treatment in our coverage of Dynamic Programming in Chapter [-@sec:dp-chapter].
+
+Our interest is in identifying an appropriate function approximation of the Value Function $\bvpi$. For the function approximation, assume there are $m$ feature functions $\phi_1, \phi_2, \ldots, \phi_m : \mathcal{S} \rightarrow \mathbb{R}$. For linear function approximation of the Value Function with weights $\bw = (w_1, w_2, \ldots, w_m)$,  we use the notation $\bvw: \mathcal{S} \rightarrow \mathbb{R}$, defined as:
+$$\bvw(s) = \bm{\phi}(s)^T \cdot \bw =  \sum_{j=1}^m \phi_j(s) \cdot w_j \mbox{ for any } s \in \mathcal{S}$$. 
+
+Assuming independence of the feature functions, the $m$ feature functions give us $m$ independent vectors in the vector space $\mathbb{R}^n$. Feature function $\phi_j$ gives us the vector $(\phi_j(s_1), \ldots, \phi_j(s_n)) \in \mathbb{R}^n$. These $m$ vectors are the $m$ columns of the $n \times m$ matrix $\bphi = [\phi_j(s_i)], 1 \leq i \leq n, 1 \leq j \leq m$. The span of these $m$ independent vectors is an $m$-dimensional vector subspace within this $n$-dimensional vector space, spanned by the set of all $\bw = (w_1, w_2, \ldots, w_m) \in \mathbb{R}^m$. The vector $\bvw = \bphi \cdot \bw$ in this vector subspace has coordinates $(\bvw(s_1), \ldots , \bvw(s_n))$. The vector $\bvw$ is fully specified by $\bw$ (so we often say $\bw$ to mean $\bvw$). Our interest is in identifying an appropriate $\bw \in \mathbb{R}^m$ that represents an appropriate linear function approximation $\bvw = \bphi \cdot \bw$ of the Value Function $\bvpi$.
+
+We denote the states' probability distribution under policy $\pi$ as $\bmu : \mathcal{S} \rightarrow [0, 1]$.
+In accordance with the notation we used in Chapter [-@sec:mdp-chapter], $\mathcal{R}(s,a)$ refers to the Expected Reward upon taking action $a$ in state $s$, and $\mathcal{P}(s,a,s')$ refers to the probability of transition from state $s$ to state $s'$ upon taking action $a$. Define
+$$\brew(s) = \sum_{a \in \mathcal{A}} \pi(s, a) \cdot \mathcal{R}(s,a)$$
+$$\bprob(s,s') = \sum_{a \in \mathcal{A}} \pi(s, a) \cdot \mathcal{P}(s,a,s')$$
+$\brew$ refers to vector $[\brew(s_1), \brew(s_2), \ldots, \brew(s_n)]$ and $\bprob$ refers to matrix $[\bprob(s_i, s_{i'})], 1 \leq i, i' \leq n$. Denote $\gamma < 1$ as the MDP discount factor.
+
+#### Bellman Policy Operator and Projection Operator
+
+In Chapter [-@sec:mdp-chapter], we introduced the Bellman Policy Operator $\bb$ for policy $\pi$ operating on any Value Function vector $\bv$. As a reminder,
+$$\bb (\bv) = \bm{\mathcal{R}}^{\pi} + \gamma \bm{\mathcal{P}}^{\pi} \cdot \bv$$
+Note that $\bb$ is a linear operator in vector space $\mathbb{R}^n$. So we henceforth denote and treat $\bb$ as an $n \times n$ matrix, representing the linear operator. We've learnt in Chapter [-@sec:mdp-chapter] that $\bvpi$ is the fixed point of $\bb$. Therefore, we can write:
+$$\bb \cdot \bvpi = \bvpi$$
+This means, if we start with an arbitrary Value Function vector $\bv$ and repeatedly apply $\bb$, by Fixed-Point Theorem, we will reach the fixed point $\bvpi$. We've learnt in Chapter [-@sec:mdp-chapter] that this is in fact the Dynamic Programming Policy Evaluation algorithm. Note that Tabular Monte Carlo also converges to $\bvpi$ (albeit slowly).
+
+Next, we introduce the Projection Operator $\bpi$ for the subspace spanned by the column vectors (feature functions) of $\bphi$. We define $\bpi (\bv)$ as the vector in the subspace spanned by the column vectors of $\bphi$ that represents the orthogonal projection of Value Function vector $\bv$. To make this precise, we first define "distance" $d(\bm{V_1}, \bm{V_2})$ between Value Function vectors $\bm{V_1}, \bm{V_2}$, weighted by $\bmu$ across the $n$ dimensions of $\bm{V_1}, \bm{V_2}$. Specifically,
+$$d(\bm{V_1}, \bm{V_2}) = \sum_{i=1}^n \bmu(s_i) \cdot  (\bm{V_1}(s_i) - \bm{V_2}(s_i))^2 =  (\bm{V_1} - \bm{V_2})^T \cdot \bd \cdot (\bm{V_1} - \bm{V_2})$$
+where $\bd$ is the square diagonal matrix consisting of $\bmu(s_i), 1 \leq i \leq n$.
+
+With this "distance" metric, we define $\bpi (\bv)$ as the Value Function vector in the subspace spanned by the column vectors of $\bphi$ given by $\argmin_{\bw} d(\bv, \bvw)$. This is a weighted least squares regression with solution:
+$$\bw^* = (\bphi^T \cdot \bd \cdot \bphi)^{-1} \cdot \bphi^T \cdot \bd \cdot \bv$$
+Since $\bpi (\bv) = \bphi \cdot \bw^*$, we henceforth denote and treat Projection Operator $\bpi$ as the following $n \times n$ matrix:
+$$\bpi = \bphi \cdot (\bphi^T \cdot \bd \cdot \bphi)^{-1} \cdot \bphi^T \cdot \bd$$
+
+#### Vectors of interest in the $\bphi$ subspace
+
+In this section, we cover 4 Value Function vectors of interest in the $\bphi$ subspace, as candidate linear function approximations of the Value Function $\bvpi$. To lighten notation, we will refer to the $\bphi$-subspace Value Function vectors by their corresponding weights $\bw$. All 4 of these Value Function vectors are depicted in Figure \ref{fig:vf_geometry}. We spend the rest of the section, going over these 4 Value Function vectors in detail.
+
+![Value Function Geometry \label{fig:vf_geometry}](./chapter12/vf_geometry.jpg "Value Function Geometry")
+
+The first Value Function vector of interest in the $\bphi$ subspace is the Projection $\bpi \cdot \bvpi$, denoted as $\bm{w}_{\pi} = \argmin_{\bw} d(\bvpi, \bvw)$. This is the linear function approximation of the Value Function $\bvpi$ we seek because it is the Value Function vector in the $\bphi$ subspace that is "closest" to $\bvpi$. Monte-Carlo with linear function approximation will (slowly) converge to $\bw_{\pi}$. Figure \ref{vf_geometry} provides the visualization. We've learnt that Monte-Carlo can be slow to converge, so we seek function approximations in the $\bphi$ subspace that are based on Temporal-Difference (TD), i.e., bootstrapped methods. The remaining three Value Function vectors in the $\bphi$ subspace are based on TD methods.
+
+We denote the second Value Function vector of interest in the $\bphi$ subspace as $bm{w}_{BE}$ and define it as follows:
+\begin{align*}
+\bm{w}_{BE} & = \argmin_{\bw} d(\bvw, \brew + \gamma \bprob \cdot \bvw) \\
+& = \argmin_{\bw} d(\bphi \cdot \bw, \brew + \gamma \bprob \cdot \bphi \cdot \bw)\\
+& = \argmin_{\bw} d(\bphi \cdot \bw - \gamma \bprob \cdot \bphi \cdot \bw, \brew)\\
+& = \argmin_{\bw} d((\bphi - \gamma \bprob \cdot \bphi) \cdot \bw, \brew )\\
+\end{align*}
+This is a weighted least-squares linear regression of $\brew$ against $\bphi - \gamma \bprob \cdot \bphi$
+with weights $\bmu$, whose solution is:
+$$\bm{w}_{BE} = ((\bphi - \gamma \bprob \cdot \bphi)^T \cdot \bd \cdot (\bphi - \gamma \bprob \cdot \bphi))^{-1} \cdot (\bphi - \gamma \bprob \cdot \bphi)^T \cdot \bd \cdot \brew$$
+
+The above formulation applies if we know the model probabilities $\bprob$ and reward function $\brew$. But often, in practice, we don't know $\bprob$ and $\brew$, in which case we seek model-free learning of $\bm{w}_{BE}$, specifically with a TD (bootstrapped) algorithm.
+
+Let us refer to
+$$(\bphi - \gamma \bprob \cdot \bphi)^T \cdot \bd \cdot (\bphi - \gamma \bprob \cdot \bphi)$$
+as matrix $\bm{A}$ and let us refer to
+$$(\bphi - \gamma \bprob \cdot \bphi)^T \cdot \bd \cdot \brew$$ as matrix $\bm{b}$ so that $\bm{w}_{BE} = \bm{A}^{-1} \cdot \bm{b}$.
+
+Following policy $\pi$, each time we perform a model-free transition from $s$ to $s'$ getting reward $r$, we get a sample estimate of $\bm{A}$ and $\bm{b}$. The sample estimate of $\bm{A}$ is the outer-product of vector $\bm{\phi}(s) - \gamma \cdot \bm{\phi}(s')$ with itself. The sample estimate of $\bm{b}$ is scalar $r$ times vector $\bm{\phi}(s) - \gamma \cdot \bm{\phi}(s')$. We average these sample estimates across many such model-free transitions. However, this requires $m$ (the number of features) to not be too large.
+
+If $m$ is large, then we seek a gradient-based TD algorithm. We defined $\bm{w}_{BE}$ as the vector in the $\bphi$ subspace that minimizes the Bellman Error. But Bellman Error for a state is the expected TD error $\delta$ in that state when following policy $\pi$. So we want to do Stochastic Gradient Descent with the gradient of the square of expected TD error, as follows:
+\begin{align*}
+\Delta \bw & = - \frac{1}{2} \alpha \cdot \nabla_{\bw} (\mathbb{E}_{\pi}[\delta])^2\\
+& = - \alpha \cdot \mathbb{E}_{\pi}[r + \gamma \cdot \bm{\phi}(s')^T \cdot \bw - \bm{\phi}(s)^T \cdot \bw] \cdot \nabla_{\bw} \mathbb{E}_{\pi}[\delta]\\
+& = \alpha \cdot (\mathbb{E}_{\pi}[r + \gamma \cdot \bm{\phi}(s')^T \cdot \bw] - \bm{\phi}(s)^T \cdot \bw) \cdot (\bm{\phi}(s) - \gamma \cdot \mathbb{E}_{\pi}[\bm{\phi}(s')])\\
+\end{align*}
+This is called the *Residual Gradient* algorithm. It requires two independent samples of $s'$ transitioning from $s$. If we do have that, it converges to $\bm{w}_{BE}$ robustly (even for non-linear function approximations). But this algorithm is slow, and doesn't converge to a desirable place. Another issue is that $\bm{w}_{BE}$ is not learnable if we can only access the features, and not underlying states. These issues led researchers to consider alternative TD algorithms. 
+
+We denote the third Value Function vector of interest in the $\bphi$ subspace as $\bm{w}_{TDE}$ and define it as s the vector in the $\bphi$ subspace that minimizes the expected square of the TD error $\delta$ when following policy $\pi$. Formally,
+$$\bm{w}_{TDE} = \argmin_{\bw} \sum_{s \in \mathcal{S}} \bmu(s) \sum_{r,s'} \mathbb{P}_{\pi}(r, s'|s) \cdot (r + \gamma \cdot \bm{\phi}(s')^T \cdot \bw - \bm{\phi}(s)^T \cdot \bw)^2$$
+To perform Stochastic Gradient Descent, we have to estimate the gradient of the expected square of TD error by sampling. The weight update for each sample in the Stochastic Gradient Descent is:
+\begin{align*}
+\Delta \bw & = - \frac{1}{2} \alpha \cdot \nabla_{\bw} (r + \gamma \cdot \bm{\phi}(s')^T \cdot \bw - \bm{\phi}(s)^T \cdot \bw)^2\\
+& = \alpha \cdot (r + \gamma \cdot \bm{\phi}(s')^T \cdot \bw - \bm{\phi}(s)^T \cdot \bw) \cdot (\bm{\phi}(s) - \gamma \cdot \bm{\phi}(s'))\\
+\end{align*}
+This algorithm (named *Naive Residual Gradient*) converges robustly, but again, not to a desirable place. So researchers had to look even further.
+
+This brings us to the fourth (and final) Value Function of interest in the $\bphi$ subspace.
+$\bphi \cdot \bm{w}_{PBE}$ is the fixed point of operator $\bpi \cdot \bb$. We know:
+$$\bpi = \bphi \cdot (\bphi^T \cdot \bd \cdot \bphi)^{-1} \cdot \bphi^T \cdot \bd$$
+$$\bb (\bv) = \brew + \gamma \bprob \cdot \bv$$
+Therefore,
+$$\bphi \cdot (\bphi^T \cdot \bd \cdot \bphi)^{-1} \cdot \bphi^T \cdot \bd \cdot (\brew + \gamma \bprob \cdot \bphi \cdot \bm{w}_{PBE}) = \bphi \cdot \bm{w}_{PBE}$$
+Since columns of $\bphi$ are assumed to be independent (full rank),
+\begin{align*}
+(\bphi^T \cdot \bd \cdot \bphi)^{-1} \cdot \bphi^T \cdot \bd \cdot (\brew + \gamma \bprob \cdot \bphi \cdot \bm{w}_{PBE}) & = \bm{w}_{PBE}\\
+\bphi^T \cdot \bd \cdot (\brew + \gamma \bprob \cdot \bphi \cdot \bm{w}_{PBE}) &= \bphi^T \cdot \bd \cdot \bphi \cdot \bm{w}_{PBE}\\
+\bphi^T \cdot \bd \cdot (\bphi - \gamma \bprob \cdot \bphi) \cdot \bm{w}_{PBE} &= \bphi^T \cdot \bd \cdot \brew\\ 
+\end{align*}
+This is a square linear system of the form $\bm{A} \cdot \bm{w}_{PBE} = \bm{b}$ whose solution is:
+$$\bm{w}_{PBE} = \bm{A}^{-1} \cdot \bm{b} = (\bphi^T \cdot \bd \cdot (\bphi - \gamma \bprob \cdot \bphi))^{-1} \cdot \bphi^T \cdot \bd \cdot \brew$$
+
+The above formulation applies if we know the model probabilities $\bprob$ and reward function $\brew$. But often, in practice, we don't know $\bprob$ and $\brew$, in which case we seek model-free learning of $\bm{w}_{PBE}$, specifically with a TD (bootstrapped) algorithm.
+
+The question is how do we construct matrix
+
+$$\bm{A} = \bphi^T \cdot \bd \cdot (\bphi - \gamma \bprob \cdot \bphi)$$
+and vector
+$$\bm{b} = \bphi^T \cdot \bd \cdot \brew$$
+without a model?
+
+Following policy $\pi$, each time we perform a model-free transition from $s$ to $s'$ getting reward $r$, we get a sample estimate of $\bm{A}$ and $\bm{b}$. The sample estimate of $\bm{A}$ is the outer-product of vectors $\bm{\phi}(s)$ and $\bm{\phi}(s) - \gamma \cdot \bm{\phi}(s')$. The sample estimate of $\bm{b}$ is scalar $r$ times vector $\bm{\phi}(s)$. We average these sample estimates across many such model-free transitions. Note that this algorithm is the Least Squares Temporal Difference (LSTD) algorithm we've learnt earlier in this chapter. If the number of features $m$ is large, then we seek a gradient-based algorithm. Our usual Semi-Gradient TD algorithm converges to $\bm{w}_{PBE}$. Note that the Semi-Gradient TD update is as follows:
+$$\Delta \bw = \alpha \cdot (r + \gamma \cdot \bm{\phi}(s')^T \cdot \bw - \bm{\phi}(s)^T \cdot \bw) \cdot \bm{\phi}(s)$$
+This converges to $\bm{w}_{PBE}$ because $\mathbb{E}_{\pi}[\Delta \bw] = 0$ yields
+$$ \bphi^T \cdot \bd \cdot (\brew + \gamma \bprob \cdot \bphi \cdot \bw - \bphi \cdot \bw) = 0$$
+$$ \Rightarrow \bphi^T \cdot \bd \cdot (\bphi - \gamma \bprob \cdot \bphi) \cdot \bw = \bphi^T \cdot \bd \cdot \brew$$ 
+
+### Gradient Temporal-Difference (Gradient TD)
+
+For on-policy linear function approximation, the semi-gradient TD algorithm gives us $w_{PBE}$. But to obtain $w_{PBE}$ in the case of non-linear function approximation or in the case of Off-Policy, we need a different approach. The different approach is Gradient Temporal-Difference (abbreviated, Gradient TD), the subject of this section.
+
+The original Gradient TD algorithm is typically abbreviated as GTD. Researchers then came up with a second-generation Gradient TD algorithm, which is typically abbreviated as GTD-2. Resarchers subsequently came up with a TD algorithm with Gradient correction (typically abbreviated as TDC), which we shall now cover.
+
+Our first task is to set up the appropriate loss function whose gradient will drive the Stochastic Gradient Descent. 
+$$\bm{w}_{PBE} = \argmin_{\bw} d(\bpi \cdot \bb \cdot \bvw, \bvw) = \argmin_{\bw} d(\bpi \cdot \bb \cdot \bvw, \bpi \cdot \bvw)$$
+So we define the loss function (denoting $\bb \cdot \bvw - \bvw$ as $\bdel$) as:
+$$\mathcal{L}({\bw})  = (\bpi \cdot \bdel)^T \cdot \bd \cdot (\bpi \cdot \bdel) = \bdel^T \cdot \bpi^T \cdot \bd \cdot \bpi \cdot \bdel$$
+$$=  \bdel^T \cdot (\bphi \cdot (\bphi^T \cdot \bd \cdot \bphi)^{-1} \cdot \bphi^T \cdot \bd)^T \cdot \bd \cdot  (\bphi \cdot (\bphi^T \cdot \bd \cdot \bphi)^{-1} \cdot \bphi^T \cdot \bd) \cdot \bdel$$
+$$= \bdel^T \cdot (\bd \cdot \bphi \cdot (\bphi^T \cdot \bd \cdot \bphi)^{-1} \cdot \bphi^T) \cdot \bd \cdot  (\bphi \cdot (\bphi^T \cdot \bd \cdot \bphi)^{-1} \cdot \bphi^T \cdot \bd) \cdot \bdel$$
+$$= (\bdel^T \cdot \bd \cdot \bphi) \cdot (\bphi^T \cdot \bd \cdot \bphi)^{-1} \cdot (\bphi^T \cdot \bd \cdot  \bphi) \cdot (\bphi^T \cdot \bd \cdot \bphi)^{-1} \cdot (\bphi^T \cdot \bd \cdot \bdel)$$
+$$= (\bphi^T \cdot \bd \cdot \bdel)^T \cdot (\bphi^T \cdot \bd \cdot \bphi)^{-1} \cdot (\bphi^T \cdot \bd \cdot \bdel)$$
+
+We derive the TDC Algorithm based on $\nabla_{\bw} \mathcal{L}({\bw})$.
+$$\nabla_{\bw} \mathcal{L}({\bw}) = 2 \cdot (\nabla_{\bw} (\bphi^T \cdot \bd \cdot \bdel)^T) \cdot (\bphi^T \cdot \bd \cdot \bphi)^{-1} \cdot (\bphi^T \cdot \bd \cdot \bdel)$$
+Now we express each of these 3 terms as expectations of model-free transitions $s \stackrel{\pi}\longrightarrow (r,s')$, denoting $r + \gamma \cdot \bm{\phi}(s')^T \cdot \bw - \bm{\phi}(s)^T \cdot \bw$ as $\delta$.
+
+$$\bphi^T \cdot \bd \cdot \bdel = \mathbb{E}[\delta \cdot \bm{\phi}(s)]$$
+$$\nabla_{\bw} (\bphi^T \cdot \bd \cdot \bdel)^T = \mathbb{E}[(\nabla_{\bw} \delta) \cdot \bm{\phi}(s)^T] = \mathbb{E}[(\gamma \cdot \bm{\phi}(s') - \bm{\phi}(s)) \cdot \bm{\phi}(s)^T]$$
+$$\bphi^T \cdot \bd \cdot \bphi = \mathbb{E}[\bm{\phi}(s) \cdot \bm{\phi}(s)^T]$$
+
+Substituting, we get:
+$$\nabla_{\bw} \mathcal{L}({\bw}) = 2 \cdot  \mathbb{E}[(\gamma \cdot \bm{\phi}(s') - \bm{\phi}(s)) \cdot \bm{\phi}(s)^T] \cdot \mathbb{E}[\bm{\phi}(s) \cdot \bm{\phi}(s)^T]^{-1} \cdot \mathbb{E}[\delta \cdot \bm{\phi}(s)]$$
+$$\Delta \bw  = - \frac {1} {2} \alpha \cdot \nabla_{\bw} \mathcal{L}({\bw})$$
+$$ = \alpha \cdot \mathbb{E}[(\bm{\phi}(s) - \gamma \cdot \bm{\phi}(s')) \cdot \bm{\phi}(s)^T] \cdot \mathbb{E}[\bm{\phi}(s) \cdot \bm{\phi}(s)^T]^{-1} \cdot \mathbb{E}[\delta \cdot \bm{\phi}(s)]$$
+$$ = \alpha \cdot (\mathbb{E}[\bm{\phi}(s) \cdot \bm{\phi}(s)^T] - \gamma \cdot \mathbb{E}[\bm{\phi}(s') \cdot \bm{\phi}(s)^T]) \cdot \mathbb{E}[\bm{\phi}(s) \cdot \bm{\phi}(s)^T]^{-1} \cdot \mathbb{E}[\delta \cdot \bm{\phi}(s)]$$
+$$ = \alpha \cdot (\mathbb{E}[\delta \cdot \bm{\phi}(s)] - \gamma \cdot \mathbb{E}[\bm{\phi}(s') \cdot \bm{\phi}(s)^T] \cdot \mathbb{E}[\bm{\phi}(s) \cdot \bm{\phi}(s)^T]^{-1} \cdot \mathbb{E}[\delta \cdot \bm{\phi}(s)])$$
+$$ = \alpha \cdot (\mathbb{E}[\delta \cdot \bm{\phi}(s)] - \gamma \cdot \mathbb{E}[\bm{\phi}(s') \cdot \bm{\phi}(s)^T] \cdot \btheta)$$
+
+$\btheta = \mathbb{E}[\bm{\phi}(s) \cdot \bm{\phi}(s)^T]^{-1} \cdot \mathbb{E}[\delta \cdot \bm{\phi}(s)]$ is the solution to the weighted least-squares linear regression of $\bb \cdot \bv - \bv$ against $\bphi$, with weights as $\mu_{\pi}$.
+
+This can be done with a technique known as *Cascade Learning*, which involves simultaneously updating both $\bw$ and $\btheta$, with  $\btheta$ converging faster. The updates are as follows:
+
+$$\Delta \bw = \alpha \cdot \delta \cdot \bm{\phi}(s)  - \alpha \cdot \gamma \cdot \bm{\phi}(s') \cdot (\btheta^T \cdot \bm{\phi}(s))$$
+$$\Delta \btheta = \beta \cdot (\delta - \btheta^T \cdot \bm{\phi}(s)) \cdot \bm{\phi}(s)$$
+
+Note that $\btheta^T \cdot \bm{\phi}(s)$ operates as an estimate of the TD error $\delta$ for current state $s$.
+
 ### Key Takeaways from this Chapter
 
-* Batch RL makes efficient use of data
-* DQN uses experience replay and fixed Q-learning targets, avoiding the pitfalls of time-correlation and semi-gradient
-* LSTD is a direct (gradient-free) solution of Batch TD Prediction
-* LSPI is an off-policy, experience-replay Control Algorithm using LSTDQ for Policy Evaluation
-* Optimal Exercise of American Options can be tackled with LSPI and Deep Q-Learning algorithms
+* Batch RL makes efficient use of data.
+* DQN uses experience replay and fixed Q-learning targets, avoiding the pitfalls of time-correlation and varying TD Target.
+* LSTD is a direct (gradient-free) solution of Batch TD Prediction.
+* LSPI is an off-policy, experience-replay Control Algorithm using LSTDQ for Policy Evaluation.
+* Optimal Exercise of American Options can be tackled with LSPI and Deep Q-Learning algorithms.
+* The 4 Value Function vectors of interest in the $\bphi$ subspace are $\bw_{\pi}, w_{BE}, w_{TDE}, w_{PBE}$ with $w_{PBE}$ as the key sought-after function approximation for Value Function $\bvpi$.
+* Gradient TD solves for $w_{PBE}$ efficiently and robustly in the case of non-linear function approximation and in the case of Off-Policy.
