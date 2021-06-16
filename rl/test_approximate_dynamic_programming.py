@@ -56,7 +56,7 @@ class TestEvaluate(unittest.TestCase):
                 γ=0.99,
                 approx_0=start,
                 non_terminal_states_distribution=Choose(
-                    set(self.finite_flip_flop.non_terminal_states)
+                    self.finite_flip_flop.non_terminal_states
                 ),
                 num_state_samples=5
             ),

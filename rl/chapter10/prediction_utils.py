@@ -30,7 +30,7 @@ def mrp_episodes_stream(
 def fmrp_episodes_stream(
     fmrp: FiniteMarkovRewardProcess[S]
 ) -> Iterable[Iterable[TransitionStep[S]]]:
-    return mrp_episodes_stream(fmrp, Choose(set(fmrp.non_terminal_states)))
+    return mrp_episodes_stream(fmrp, Choose(fmrp.non_terminal_states))
 
 
 def mc_finite_prediction_equal_wts(
@@ -370,7 +370,7 @@ def compare_td_and_mc(
     sample_episodes: int = 1000
     td_episode_length: int = int(round(sum(
         len(list(returns(
-            trace=fmrp.simulate_reward(Choose(set(states))),
+            trace=fmrp.simulate_reward(Choose(states)),
             γ=gamma,
             tolerance=mc_episode_length_tol
         ))) for _ in range(sample_episodes)

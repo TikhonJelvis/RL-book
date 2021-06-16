@@ -56,7 +56,7 @@ class TestEvaluate(unittest.TestCase):
         states = self.single_step_mrp.non_terminal_states
         fa_dynamic = Dynamic({s: 0.0 for s in states})
         fa_tabular = Tabular()
-        distribution = Choose(set(states))
+        distribution = Choose(states)
         approx_vf_finite = backward_evaluate_finite(
             [(self.mrp_seq[i], fa_dynamic) for i in range(self.steps)],
             1.
@@ -86,7 +86,7 @@ class TestEvaluate(unittest.TestCase):
         states = self.single_step_mdp.non_terminal_states
         fa_dynamic = Dynamic({s: 0.0 for s in states})
         fa_tabular = Tabular()
-        distribution = Choose(set(states))
+        distribution = Choose(states)
         approx_vpstar_finite = back_opt_vf_and_policy_finite(
             [(self.mdp_seq[i], fa_dynamic) for i in range(self.steps)],
             1.

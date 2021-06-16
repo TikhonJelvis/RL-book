@@ -280,7 +280,7 @@ from itertools import islice
 from pprint import pprint
 
 traces: Iterable[Iterable[TransitionStep[S]]] = \
-        mrp.reward_traces(Choose(set(si_mrp.non_terminal_states)))
+        mrp.reward_traces(Choose(si_mrp.non_terminal_states))
 it: Iterator[ValueFunctionApprox[InventoryState]] = mc_prediction(
     traces=traces,
     approx_0=Tabular(),
@@ -396,7 +396,7 @@ def mrp_episodes_stream(
 def fmrp_episodes_stream(
     fmrp: FiniteMarkovRewardProcess[S]
 ) -> Iterable[Iterable[TransitionStep[S]]]:
-    return mrp_episodes_stream(fmrp, Choose(set(fmrp.non_terminal_states)))
+    return mrp_episodes_stream(fmrp, Choose(fmrp.non_terminal_states))
 
 def unit_experiences_from_episodes(
     episodes: Iterable[Iterable[TransitionStep[S]]],
@@ -508,7 +508,7 @@ The flip side of MC's bias advantage over TD is that the TD Target $R_{t+1} + \g
   
 As for speed of convergence and efficiency in use of limited set of experiences data, we still don't have formal proofs on whether MC is better or TD. More importantly, because MC and TD have significant differences in their usage of data, nature of updates, and frequency of updates, it is not even clear how to create a level-playing field when comparing MC and TD for speed of convergence or for efficiency in usage of limited experiences data. The typical comparisons between MC and TD are done with constant learning rates, and it's been determined that practically TD learns faster than MC with constant learning rates.
 
-A popular simple problem in the literature (when comparing RL prediction algorithms) is a random walk MRP with states $\{0, 1, 2, \ldots, B\}$ with $0$ and $B$ as the terminal states (think of these as terminating barriers of a random walk) and the remaining states as the non-terminal states. From any non-terminal state $i$, we transition to state $i+1$ with probability $p$ and to state $i-1$ with probability $1-p$. The reward is 0 upon each transition, except if we transition from state $B-1$ to terminal state $B$ which results in a reward of 1. It's quite obvious that the Value Function is given by: $V(i) = \frac i B$ for all $0 < i < B$. We'd like to analyze how MC and TD converge, if at all, to this Value Function, starting from a neutral initial Value Function of $V(i) = 0.5$ for all $0 < i < B$. The following code sets up this random walk MRP.
+A popular simple problem in the literature (when comparing RL prediction algorithms) is a random walk MRP with states $\{0, 1, 2, \ldots, B\}$ with $0$ and $B$ as the terminal states (think of these as terminating barriers of a random walk) and the remaining states as the non-terminal states. From any non-terminal state $i$, we transition to state $i+1$ with probability $p$ and to state $i-1$ with probability $1-p$. The reward is 0 upon each transition, except if we transition from state $B-1$ to terminal state $B$ which results in a reward of 1. It's quite obvious that for $p=0.5$ (symmetric random walk), the Value Function is given by: $V(i) = \frac i B$ for all $0 < i < B$. We'd like to analyze how MC and TD converge, if at all, to this Value Function, starting from a neutral initial Value Function of $V(i) = 0.5$ for all $0 < i < B$. The following code sets up this random walk MRP.
 
 ```python
 from rl.distribution import Categorical
@@ -547,9 +547,9 @@ Lastly, it's important to recognize that MC is not very sensitive to the initial
 
 More generally, we encourage you to play with the `compare_mc_and_td` function on other choices of MRP (ones we have created earlier in this book such as the inventory examples, or make up your own MRPs) so you can develop good intuition for how MC and TD Prediction algorithms converge for a variety of choices of learning rate schedules, initial Value Function choices, choices of discount factor etc.
 
-#### Fixed-Data Experience Replay on TD versus MC
+#### Fixed-Data Experience Replay on TD versus MC {#sec:experience-replay-section}
 
-We have talked a lot about *how* TD learns versus *how* MC learns. In this subsection, we turn our focus to *what* TD learns and *what* MC learns, which is a profound conceptual difference between TD and MC. We illuminate this difference with a special setting - we are given a fixed finite set of trace experiences (versus usual settings considered in this chapter so far where we had an "endless" stream of trace experiences). The agent is allowed to tap into this fixed finite set of traces experiences endlessly, i.e., the MC or TD prediction RL agent can indeed consume an endless stream of data, but all of that stream of data must ultimately be sourced from the given fixed finite set of trace experiences. This means we'd end up tapping into trace experiences (or it's component atomic experiences) repeatedly. We call this technique of repeatedly tapping into the same data as *Experience Replay*. We will uncover the key conceptual difference of *what* MC and TD learn by running the algorithms on an *Experience Replay* of a fixed finite set of trace experiences.
+We have talked a lot about *how* TD learns versus *how* MC learns. In this subsection, we turn our focus to *what* TD learns and *what* MC learns, which is a profound conceptual difference between TD and MC. We illuminate this difference with a special setting - we are given a fixed finite set of trace experiences (versus usual settings considered in this chapter so far where we had an "endless" stream of trace experiences). The agent is allowed to tap into this fixed finite set of traces experiences endlessly, i.e., the MC or TD prediction RL agent can indeed consume an endless stream of experiences, but all of that stream of experiences must ultimately be sourced from the given fixed finite set of trace experiences. This means we'd end up tapping into trace experiences (or it's component atomic experiences) repeatedly. We call this technique of re-using experiences data encountered previously as *Experience Replay*. We will cover this Experience Replay technique in more detail in Chapter [-@sec:batch-tl-chapter], but for now, we shall uncover the key conceptual difference between *what* MC and TD learn by running the algorithms on an *Experience Replay* of a fixed finite set of trace experiences.
 
 So let us start by setting up this experience replay with some code. Firstly, we represent the given input data of the fixed finite set of trace experience as the type:
 
@@ -988,6 +988,8 @@ def lambda_return_prediction(
 
 The above code is in the file [rl/td_lambda.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/td_lambda.py).
 
+Note that this $\lambda$-Return Prediction algorithm is not just Offline, it is also a highly inefficient algorithm because of the two loops within each trace experience. However, it serves as a pedagogical benefit before moving on to the efficient, Online TD($\lambda$) Prediction algorithm.
+
 #### Eligibility Traces
 
 Now we are ready to start developing the TD($\lambda$) Prediction algorithm. The TD($\lambda$) Prediction algorithm is founded on the concept of *Eligibility Traces*. So we start by introducing the concept of Eligibility traces (first for the Tabular case, then generalize to Function Approximations), then go over the TD($\lambda$) Prediction algorithm (based on Eligibility traces), and finally explain why the TD($\lambda$) Prediction algorithm is essentially the *Online* version of the *Offline* $\lambda$-Return Prediction algorithm we've implemented above.
@@ -1003,6 +1005,8 @@ M(t_n) \cdot \theta^{t - t_n} & \text{ otherwise (i.e., } t > t_n)
 \end{cases}
 \label{eq:memory-function}
 \end{equation}
+
+where $\mathbb{I}$ denotes the indicator function.
 
 This means the memory function has an uptick of 1 each time the event occurs (at time $t_i$, for each $i = 1, 2, \ldots n$), but then decays by a factor of $\theta^{\Delta t}$ over any interval $\Delta t$ where the event doesn't occur. Thus, the memory function captures the notion of frequency of the events as well as the recency of the events.
 
@@ -1046,8 +1050,10 @@ This memory function is actually quite useful as a model for a variety of modeli
 
 Now we ready to define Eligibility Traces for the Tabular case. We assume a finite state space with the set of non-terminal states $\mathcal{N} = \{s_1, s_2, \ldots, s_m\}$. Eligibility Trace for each state $s\in \mathcal{N}$ is defined as the Memory function $M(\cdot)$ with $\theta = \gamma \cdot \lambda$ (i.e., the product of the discount factor and the TD-$\lambda$ parameter) and the event timings are the time steps at which the state $s$ occurs in a trace experience. Thus, we define eligibility trace for a given trace experience at any time step $t$ (of the trace experience) as a function $E_t: \mathcal{N} \rightarrow \mathbb{R}_{\geq 0}$ as follows:
 
-$$E_0(s) = 0, \text{ for all } s \in \mathcal{N}$$
+$$E_0(s) = \mathbb{I}_{S_0=s}, \text{ for all } s \in \mathcal{N}$$
 $$E_t(s) = \gamma \cdot \lambda \cdot E_{t-1}(s) + \mathbb{I}_{S_t=s}, \text{ for all } s \in \mathcal{N}, \text{ for all } t = 1, 2, \ldots$$
+
+where $\mathbb{I}$ denotes the indicator function.
 
 Then, the Tabular TD($\lambda$) Prediction algorithm performs the following update to the Value Function at each time step $t$ in each trace experience:
 
@@ -1067,6 +1073,7 @@ This is it - this is the TD($\lambda$) Prediction algorithm! Now the question is
 \begin{theorem}
 $$\sum_{t=0}^{T-1} \alpha \cdot \delta_t \cdot E_t(s) = \sum_{t=0}^{T-1} \alpha \cdot (G_t^{(\lambda)} - V(S_t)) \cdot \mathbb{I}_{S_t=s}, \text{ for all } s \in \mathcal{N}$$
 \label{th:td-lambda-validity}
+where $\mathbb{I}$ denotes the indicator function.
 \end{theorem}
 
 \begin{proof}
@@ -1112,7 +1119,7 @@ To clarify, TD($\lambda$) Prediction is an online algorithm and hence, not exact
 
 However, as explained earlier, online update are desirable because the changes to the Value Function at each time step can be immediately usable for the next time steps' updates and so, it promotes rapid learning without having to wait for a trace experience to end. Moreover, online algorithms can be used in situations where we don't have a complete episode.
 
-With an understanding of Tabular TD($\lambda$) Prediction in place, we can generalize TD($\lambda$) Prediction to the case of function approximation in a straightforward manner. In the case of function approximation, the type of eligibility traces will be the same type as that of the parameters $\bm{w}$ in the function approximation (so here we denote eligibility traces at time $t$ of a trace experience as simply $\bm{E}_t$ rather than as a function of states as we had done for the Tabular case above). We initialize $\bm{E}_0$ at the start of each trace experience to 0 for each component in it's data type. Then, for each time step $t > 0$, $\bm{E}_t$ is calculated recursively in terms of the previous ($t-1$) time step's value $\bm{E}_{t-1}$, which is then used to update the parameters of the Value Function approximation, as follows:
+With an understanding of Tabular TD($\lambda$) Prediction in place, we can generalize TD($\lambda$) Prediction to the case of function approximation in a straightforward manner. In the case of function approximation, the type of eligibility traces will be the same type as that of the parameters $\bm{w}$ in the function approximation (so here we denote eligibility traces at time $t$ of a trace experience as simply $\bm{E}_t$ rather than as a function of states as we had done for the Tabular case above). We initialize $\bm{E}_0$ at the start of each trace experience to $\nabla_{\bm{w}} V(S_0;\bm{w})$. Then, for each time step $t > 0$, $\bm{E}_t$ is calculated recursively in terms of the previous ($t-1$) time step's value $\bm{E}_{t-1}$, which is then used to update the parameters of the Value Function approximation, as follows:
 
 $$\bm{E}_t = \gamma \lambda \cdot \bm{E}_{t-1} + \nabla_{\bm{w}} V(S_t;\bm{w})$$
 $$\Delta \bm{w} = \alpha \cdot (R_{t+1} + \gamma \cdot V(S_{t+1}; \bm{w}) - V(S_t; \bm{w})) \cdot \bm{E}_t$$
@@ -1127,7 +1134,7 @@ where $\delta_t$ now denotes the TD Error based on the function approximation fo
 
 You'd have observed that the TD($\lambda$) update is a bit unusual, compared to the more-straightforward MC and TD updates, where we were able to use the `FunctionApprox` interface in a straightforward manner. For TD($\lambda$), it might appear that we can't quite use the `FunctionApprox` interface and would need to write custom-code for it's implementation. However, by noting that the `FunctionApprox` method `objective_gradient` is quite generic and that `FunctionApprox` and `Gradient` support methods `__add__` and `__mul__` (vector space operations), we can actually implement the TD($\lambda$) in terms of the `FunctionApprox` interface.
 
-The function `td_lambda_prediction` below takes as input an `Iterable` of trace experiences (`traces`), an initial `FunctionApprox` (`approx_0`), and the $\gamma$ and $\lambda$ parameters. At the start of each trace experience, we need to initialize the eligibility trace to 0, i.e., $E_0 = 0$. The type of the eligibility trace is the `Gradient` type and so we invoke the `zero` method for `Gradient(func_approx)` to set $E_0 = 0$. Then, at every time step in every trace experience, we first set the predictor variable $x_t$ to be the state and the response variable $y_t$ to be the TD target. Then we need to update the eligibility trace `el_tr` and update the function approximation `func_approx` using the updated `el_tr`.
+The function `td_lambda_prediction` below takes as input an `Iterable` of trace experiences (`traces`), an initial `FunctionApprox` (`approx_0`), and the $\gamma$ and $\lambda$ parameters. At the start of each trace experience, we need to initialize the eligibility trace to 0. The type of the eligibility trace is the `Gradient` type and so we invoke the `zero` method for `Gradient(func_approx)` in order to initialize the eligibility trace to $0$. Then, at every time step in every trace experience, we first set the predictor variable $x_t$ to be the state and the response variable $y_t$ to be the TD target. Then we need to update the eligibility trace `el_tr` and update the function approximation `func_approx` using the updated `el_tr`.
 
 Thankfully, the `__mul__` method of `Gradient` class enables us to conveniently multiply `el_tr` with $\gamma \cdot \lambda$ and then, it also enables us to multiply the updated `el_tr` with the prediction error $\mathbb{E}_M[y|x_t] - y_t = V(S_t; \bm{w}) - (R_{t+1} + \gamma \cdot V(S_{t+1}; \bm{w}))$ (in the code as `func_approx(x) - y`), which is then used (as a `Gradient` type) to update the internal parameters of the `func_approx`. The `__add__` method of `Gradient` enables us to add $\nabla_{\bm{w}} V(S_t;\bm{w})$ (as a `Gradient` type) to `el_tr * gamma * lambd`. The only seemingly difficult part is calculating $\nabla_{\bm{w}} V(S_t; \bm{w})$. The `FunctionApprox` interface gives us a method to calculate the gradient of an "objective" (call it $Obj(x,y)$). But here we have to calculate the gradient of the prediction of the function approximation. Thankfully, the interface of `objective_gradient` is fairly generic and we actually have a choice of constructing $Obj(x,y)$ to be whatever function we want (not necessarily a minimizing Objective Function). We specify $Obj(x,y)$ in terms of the `obj_deriv_out_func` argument, which as a reminder represents $\frac {\partial Obj(x,y)} {\partial Out(x)}$. Note that we have assumed a gaussian distribution for the returns conditioned on the state, So we can set $Out(x)$ to be the function approximation's prediction $V(S_t; \bm{w})$ and we can set $Obj(x,y) = Out(x)$, meaning `obj_deriv_out_func` ($\frac {\partial Obj(x,y)} {\partial Out(x)}$) is a function returning the constant value of 1 (as seen in the code below).
 

@@ -154,7 +154,7 @@ class UniformPolicy(Policy[S, A]):
     valid_actions: Callable[[S], Iterable[A]]
 
     def act(self, state: NonTerminal[S]) -> Choose[A]:
-        return Choose(set(self.valid_actions(state.state)))
+        return Choose(self.valid_actions(state.state))
 ```
 
 The above code is in the file [rl/policy.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/policy.py).

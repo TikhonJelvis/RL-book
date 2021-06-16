@@ -111,7 +111,7 @@ def policy_iteration(
 
     v_0: V[S] = {s: 0.0 for s in mdp.non_terminal_states}
     pi_0: FinitePolicy[S, A] = FinitePolicy(
-        {s.state: Choose(set(mdp.actions(s))) for s in mdp.non_terminal_states}
+        {s.state: Choose(mdp.actions(s)) for s in mdp.non_terminal_states}
     )
     return iterate(update, (v_0, pi_0))
 

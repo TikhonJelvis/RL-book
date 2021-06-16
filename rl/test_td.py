@@ -92,17 +92,17 @@ class TestEvaluate(unittest.TestCase):
 
         uniform_policy: FinitePolicy[bool, bool] =\
             FinitePolicy({
-                s.state: Choose(set(self.finite_mdp.actions(s)))
+                s.state: Choose(self.finite_mdp.actions(s))
                 for s in self.finite_mdp.non_terminal_states
             })
 
         transitions: Iterable[mdp.TransitionStep[bool, bool]] =\
             self.finite_mdp.simulate_actions(
-                Choose(set(self.finite_mdp.non_terminal_states)),
+                Choose(self.finite_mdp.non_terminal_states),
                 uniform_policy
             )
 
-        qs = td.q_learning_experience_replay(
+        qs = td.q_learning_external_transitions(
             transitions,
             self.finite_mdp.actions,
             q_0,

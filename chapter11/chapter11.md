@@ -42,11 +42,11 @@ Q(S_t,A_t) & \leftarrow Q(S_t,A_t) + \frac 1 {Count(S_t,A_t)} \cdot (G_t - Q(S_t
 \label{eq:tabular-mc-control-updates}
 \end{equation}
 
-It's important to note that $Count(S_t, A_t)$ is accumulated over the set of all episodes seen thus far. This means the estimate $Q(S_t,A_t)$ is not an estimate of the Q-Value Function for a single policy - rather it keeps updating as we encounter new greedy policies across the set of episodes.
+It's important to note that $Count(S_t, A_t)$ is accumulated over the set of all episodes seen thus far. Note that the estimate $Q(S_t,A_t)$ is not an estimate of the Q-Value Function for a single policy - rather it keeps updating as we encounter new greedy policies across the set of episodes.
 
 So is this now our first Tabular RL Control algorithm? Not quite - there is a second problem that we need to understand (and resolve). This problem is more subtle and we illustrate the problem with a simple example. Let's consider a specific state (call it $s$) and assume that there are only two allowable actions $a_1$ and $a_2$ for state $s$. Let's say the true Q-Value Function for state $s$ is: $Q_{true}(s,a_1) = 2, Q_{true}(s,a_2) = 5$. Let's say we initialize the Q-Value Function estimate as: $Q(s,a_1) = Q(s,a_2) = 0$. When we encounter state $s$ for the first time, the action to be taken is arbitrary between $a_1$ and $a_2$ since they both have the same Q-Value estimate (meaning both $a_1$ and $a_2$ yield the same max value for $Q(s,a)$ among the two choices for $a$). Let's say we arbitrarily pick $a_1$ as the action choice and let's say for this first encounter of action $s$ (with the arbitrarily picked action $a_1$), the return obtained is 3. So $Q(s,a_1)$ updates to the value 3. So when the state $s$ is encountered for the second time, we see that $Q(s,a_1) = 3$ and $Q(s,a_2) = 0$ and so, action $a_1$ will be taken according to the greedy policy implied by the estimate of the Q-Value Function. Let's say we now obtain a return of -1, updating $Q(s,a_1)$ to $\frac {3 - 1} 2 = 1$. When $s$ is encountered for the third time, yet again action $a_1$ will be taken according to the greedy policy implied by the estimate of the Q-Value Function. Let's say we now obtain a return of 2, updating $Q(s,a_1)$ to $\frac {3 - 1 + 2} 3 = \frac 4 3$. We see that as long as the returns associated with $a_1$ are not negative enough to make the estimate $Q(s,a_1)$ negative, $a_2$ is "locked out" by $a_1$ because the first few occurrences of $a_1$ happen to yield an average return greater than the initialization of $Q(s,a_2)$. Even if $a_2$ was chosen, it is possible that the first few occurrences of $a_2$ yield an average return smaller than the average return obtained on the first few occurrences of $a_1$, in which case $a_2$ could still get locked-out prematurely. 
 
-We did not encounter this problem with greedy policy improvement in DP Control algorithms because the updates were not based on individual transitions - rather the updates were based on expected values (using transition probabilities). However, when it comes to RL Control, updates can get biased by initial random occurrences of returns, which in turn could prevent certain actions from being sufficiently chosen (thus, disallowing accurate estimates of the Q-Values for those actions). While we do want to *exploit* actions that are fetching higher episode returns, we also want to adequately *explore* all possible actions so we can obtain an accurate-enough estimate of their Q-Values. This is in fact the Explore-Exploit dilemma of the famous [Multi-Armed Bandit Problem](https://en.wikipedia.org/wiki/Multi-armed_bandit). In Chapter [-@sec:multi-armed-bandits-chapter], we will cover the Multi-Armed Bandit problem in detail, along with a variety of techniques to solve the Multi-Armed Bandit problem (which are essentially creative ways of resolving the Explore-Exploit dilemma). We will see in Chapter [-@sec:multi-armed-bandits-chapter] that a simple way of resolving the Explore-Exploit dilemma is with a method known as $\epsilon$-greedy, which essentially means we must be greedy ("exploit") a certain fraction of the time and for the remaining fraction of the time, we explore all possible actions. The term "certain fraction of the time" refers to probabilities of choosing actions, which means an $\epsilon$-greedy policy (generated from a Q-Value Function estimate) will be a stochastic policy. For the sake of simplicity, in this book, we will employ the $\epsilon$-greedy method to resolve the Explore-Exploit dilemma in all RL Control algorithms involving the Explore-Exploit dilemma (although you must understand that we can replace the $\epsilon$-greedy method by the other methods we shall cover in Chapter [-@sec:multi-armed-bandits-chapter] in any of the RL Control algorithms where we run into the Explore-Exploit dilemma). So we need to tweak the Tabular MC Control algorithm described above to perform Policy Improvement with the $\epsilon$-greedy method. The formal definition of the $\epsilon$-greedy stochastic policy $\pi'$ (obtained from the current estimate of the Q-Value Function) is as follows:
+We did not encounter this problem with greedy policy improvement in DP Control algorithms because the updates were not based on individual action choice and individual state transition (as is the case in RL) - rather the updates were based on expected values (using transition probabilities), while considering all actions choices for each state. However, when it comes to RL Control, updates can get biased by initial random occurrences of returns, which in turn could prevent certain actions from being sufficiently chosen (thus, disallowing accurate estimates of the Q-Values for those actions). While we do want to *exploit* actions that are fetching higher episode returns, we also want to adequately *explore* all possible actions so we can obtain an accurate-enough estimate of their Q-Values. This is in fact the Explore-Exploit dilemma of the famous [Multi-Armed Bandit Problem](https://en.wikipedia.org/wiki/Multi-armed_bandit). In Chapter [-@sec:multi-armed-bandits-chapter], we will cover the Multi-Armed Bandit problem in detail, along with a variety of techniques to solve the Multi-Armed Bandit problem (which are essentially creative ways of resolving the Explore-Exploit dilemma). We will see in Chapter [-@sec:multi-armed-bandits-chapter] that a simple way of resolving the Explore-Exploit dilemma is with a method known as $\epsilon$-greedy, which essentially means we must be greedy ("exploit") a certain fraction of the time and for the remaining fraction of the time, we explore all possible actions. The term "certain fraction of the time" refers to probabilities of choosing actions, which means an $\epsilon$-greedy policy (generated from a Q-Value Function estimate) will be a stochastic policy. For the sake of simplicity, in this book, we will employ the $\epsilon$-greedy method to resolve the Explore-Exploit dilemma in all RL Control algorithms involving the Explore-Exploit dilemma (although you must understand that we can replace the $\epsilon$-greedy method by the other methods we shall cover in Chapter [-@sec:multi-armed-bandits-chapter] in any of the RL Control algorithms where we run into the Explore-Exploit dilemma). So we need to tweak the Tabular MC Control algorithm described above to perform Policy Improvement with the $\epsilon$-greedy method. The formal definition of the $\epsilon$-greedy stochastic policy $\pi'$ (obtained from the current estimate of the Q-Value Function) is as follows:
 
 $$\text{Improved Stochastic Policy } \pi'(s,a) =
 \begin{cases}
@@ -303,7 +303,7 @@ learning_rate_func: Callable[[int], float] = learning_rate_schedule(
 )
 qvfs: Iterator[QValueFunctionApprox[InventoryState, int] = glie_mc_control(
     mdp=si_mdp,
-    states=Choose(set(si_mdp.non_terminal_states)),
+    states=Choose(si_mdp.non_terminal_states),
     approx_0=Tabular(
         values_map=initial_qvf_dict,
         count_to_weight_func=learning_rate_func
@@ -504,7 +504,7 @@ learning_rate_func: Callable[[int], float] = learning_rate_schedule(
 )
 qvfs: Iterator[QValueFunctionApprox[InventoryState, int]] = glie_sarsa(
     mdp=si_mdp,
-    states=Choose(set(si_mdp.non_terminal_states)),
+    states=Choose(si_mdp.non_terminal_states),
     approx_0=Tabular(
         values_map=initial_qvf_dict,
         count_to_weight_func=learning_rate_func
@@ -610,13 +610,13 @@ $$G_t^{(\lambda)} = (1-\lambda) \cdot \sum_{n=1}^{T-t-1} \lambda^{n-1} \cdot G_{
 Then, the Offline $\lambda$-Return SARSA Algorithm makes the following updates (performed at the end of each trace experience) for each $(S_t,A_t)$ encountered in the episode:
 $$\Delta \bm{w} = \alpha \cdot (G_t^{(\lambda)} - Q(S_t, A_t;\bm{w})) \cdot \nabla_{\bm{w}} Q(S_t, A_t;\bm{w})$$
 
-Finally, we create the SARSA($\lambda)$ Algorithm, which is the online "version" of the above $\lambda$-Return SARSA Algorithm. The calculations/updates at each time step $t$ are as follows:
+Finally, we create the SARSA($\lambda)$ Algorithm, which is the online "version" of the above $\lambda$-Return SARSA Algorithm. The calculations/updates at each time step $t$ for each trace experience are as follows:
 
 $$\delta_t = R_{t+1} + \gamma \cdot Q(S_{t+1},A_{t+1};\bm{w}) - Q(S_t,A_t;\bm{w})$$
 $$\bm{E}_t = \gamma \lambda \cdot \bm{E}_{t-1} + \nabla_{\bm{w}} Q(S_t,A_t;\bm{w})$$
 $$\Delta \bm{w} = \alpha \cdot \delta_t \cdot \bm{E}_t$$
 
-The eligibility trace is reset to 0 at the start of each trace experience, i.e., $\bm{E}_0 = 0$.
+with the eligiblity trace initialized at time 0 for each trace experience as $\bm{E}_0 = \nabla_{\bm{w}} V(S_0; \bm{w})$.
 Note that just like in SARSA, the $\epsilon$-greedy policy improvement is automatic from updated Q-Value Function estimate after each time step.
 
 We leave the implementation of SARSA($\lambda$) in Python code as an exercise for you to do.
@@ -1143,17 +1143,17 @@ Function Approximation is typically unavoidable in real-world problems because o
       On/Off Policy & Algorithm & Tabular & Linear & Non-Linear \\ \hline
       & MC & \cmark & \cmark & \cmark \\
       On-Policy & TD & \cmark & \cmark & \xmark \\
-      & \bfseries Gradient TD & \bfseries \cmark & \bfseries \cmark & \bfseries \cmark \\ \hline
+      & \bfseries Gradient TD & \cmark & \cmark & \cmark \\ \hline
       & MC & \cmark & \cmark & \cmark \\
       Off-Policy & TD & \cmark & \xmark & \xmark \\
-      & \bfseries Gradient TD & \bfseries \cmark & \bfseries \cmark & \bfseries \cmark \\ \hline
+      & \bfseries Gradient TD & \cmark & \cmark & \cmark \\ \hline
       \end{tabular} 
 \end{center}  
 \caption{Convergence of RL Prediction Algorithms, including Gradient TD}
 \label{fig:rl_prediction_convergence_gradient_td}
 \end{figure}
 
-Now let's move on to convergence of Control Algorithms. Figure \ref{fig:rl_control_convergence} provides the picture. (\cmark) means it doesn't quite hit the Optimal Value Function, but bounces around near the Optimal Value Function. Gradient Q-Learning is the adaptation of Q-Learning with Gradient TD. So this method is Off-Policy, is bootstrapped, but avoids semi-gradient. This enables it to converge for linear function approximations. However, it diverges when used with non-linear function approximations. So, for Control, the deadly triad still exists for a combination of [Gradient Bootstrapping, Off-Policy, Non-Linear Function Approximation].
+Now let's move on to convergence of Control Algorithms. Figure \ref{fig:rl_control_convergence} provides the picture. (\cmark) means it doesn't quite hit the Optimal Value Function, but bounces around near the Optimal Value Function. Gradient Q-Learning is the adaptation of Q-Learning with Gradient TD. So this method is Off-Policy, is bootstrapped, but avoids semi-gradient. This enables it to converge for linear function approximations. However, it diverges when used with non-linear function approximations. So, for Control, the deadly triad still exists for a combination of [Bootstrapping, Off-Policy, Non-Linear Function Approximation]. In Chapter [-@sec:batch-rl-chapter], we shall cover the DQN algorithm which is an innovative and practically effective method for getting around the deadly triad for RL Control.
 
 \begin{figure}
 \begin{center}

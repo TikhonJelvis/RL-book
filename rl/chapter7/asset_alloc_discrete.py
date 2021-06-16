@@ -25,7 +25,7 @@ class AssetAllocDiscrete:
         return len(self.risky_return_distributions)
 
     def uniform_actions(self) -> Choose[float]:
-        return Choose(set(self.risky_alloc_choices))
+        return Choose(self.risky_alloc_choices)
 
     def get_mdp(self, t: int) -> MarkovDecisionProcess[float, float]:
         """

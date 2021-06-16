@@ -33,7 +33,7 @@ def glie_mc_finite_control_equal_wts(
     }
     return mc.glie_mc_control(
         mdp=fmdp,
-        states=Choose(set(fmdp.non_terminal_states)),
+        states=Choose(fmdp.non_terminal_states),
         approx_0=Tabular(values_map=initial_qvf_dict),
         γ=gamma,
         ϵ_as_func_of_episodes=epsilon_as_func_of_episodes,
@@ -78,7 +78,7 @@ def glie_mc_finite_control_learning_rate(
     )
     return mc.glie_mc_control(
         mdp=fmdp,
-        states=Choose(set(fmdp.non_terminal_states)),
+        states=Choose(fmdp.non_terminal_states),
         approx_0=Tabular(
             values_map=initial_qvf_dict,
             count_to_weight_func=learning_rate_func
@@ -126,7 +126,7 @@ def glie_sarsa_finite_learning_rate(
     )
     return td.glie_sarsa(
         mdp=fmdp,
-        states=Choose(set(fmdp.non_terminal_states)),
+        states=Choose(fmdp.non_terminal_states),
         approx_0=Tabular(
             values_map=initial_qvf_dict,
             count_to_weight_func=learning_rate_func
@@ -183,7 +183,7 @@ def q_learning_finite_learning_rate(
             mdp=m,
             ϵ=epsilon
         ),
-        states=Choose(set(fmdp.non_terminal_states)),
+        states=Choose(fmdp.non_terminal_states),
         approx_0=Tabular(
             values_map=initial_qvf_dict,
             count_to_weight_func=learning_rate_func
@@ -423,13 +423,13 @@ def compare_mc_sarsa_ql(
     sample_episodes: int = 1000
     uniform_policy: FinitePolicy[S, A] = \
         FinitePolicy(
-            {s.state: Choose(set(fmdp.actions(s))) for s in states}
+            {s.state: Choose(fmdp.actions(s)) for s in states}
     )
     fmrp: FiniteMarkovRewardProcess[S] = \
         fmdp.apply_finite_policy(uniform_policy)
     td_episode_length: int = int(round(sum(
         len(list(returns(
-            trace=fmrp.simulate_reward(Choose(set(states))),
+            trace=fmrp.simulate_reward(Choose(states)),
             γ=gamma,
             tolerance=mc_episode_length_tol
         ))) for _ in range(sample_episodes)

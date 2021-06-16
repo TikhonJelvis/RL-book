@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from collections import defaultdict
+from collections import Counter, defaultdict
+from dataclasses import dataclass
 import numpy as np
 import random
-from typing import (Callable, Dict, Generic, Iterator,
-                    Mapping, Set, Sequence, Tuple, TypeVar)
+from typing import (Callable, Dict, Generic, Iterator, Iterable,
+                    Mapping, Optional, Sequence, Tuple, TypeVar)
 
 A = TypeVar('A')
 
@@ -231,27 +232,58 @@ class Bernoulli(FiniteDistribution[bool]):
         return self.p if outcome else 1 - self.p
 
 
+@dataclass
+class Range(FiniteDistribution[int]):
+    '''Select a random integer in the range [low, high), with low
+    inclusive and high exclusive. (This works exactly the same as the
+    normal range function, but differently from random.randit.)
+
+    '''
+    low: int
+    high: int
+
+    def __init__(self, a: int, b: Optional[int] = None):
+        if b is None:
+            b = a
+            a = 0
+
+        assert b > a
+
+        self.low = a
+        self.high = b
+
+    def sample(self) -> int:
+        return random.randint(self.low, self.high - 1)
+
+    def table(self) -> Mapping[int, float]:
+        length = self.high - self.low
+        return {x: 1/length for x in range(self.low, self.high)}
+
+
 class Choose(FiniteDistribution[A]):
     '''Select an element of the given list uniformly at random.
 
     '''
 
-    options: Set[A]
+    options: Sequence[A]
+    _table: Optional[Mapping[A, float]] = None
 
-    def __init__(self, options: Set[A]):
-        self.options = options
+    def __init__(self, options: Iterable[A]):
+        self.options = list(options)
 
     def sample(self) -> A:
-        return random.choice(list(self.options))
+        return random.choice(self.options)
 
     def table(self) -> Mapping[A, float]:
-        length = len(self.options)
-        return {x: 1.0 / length for x in self.options}
+        if self._table is None:
+            counter = Counter(self.options)
+            length = len(self.options)
+            self._table = {x: counter[x] / length for x in counter}
+
+        return self._table
 
     def probability(self, outcome: A) -> float:
-        p = 1.0 / len(self.options)
-        return p if outcome in self.options else 0.0
-
+        return self.table().get(outcome, 0.0)
 
 class Categorical(FiniteDistribution[A]):
     '''Select from a finite set of outcomes with the specified
