@@ -187,7 +187,7 @@ if __name__ == '__main__':
     r: float = 0.07
     a: float = 1.0
     init_wealth: float = 1.0
-    init_wealth_var: float = 0.1
+    init_wealth_stdev: float = 0.1
 
     excess: float = μ - r
     var: float = σ * σ
@@ -216,7 +216,7 @@ if __name__ == '__main__':
         output_activation=lambda x: - np.sign(a) * np.exp(-x),
         output_activation_deriv=lambda y: -y
     )
-    init_wealth_distr: Gaussian = Gaussian(μ=init_wealth, σ=init_wealth_var)
+    init_wealth_distr: Gaussian = Gaussian(μ=init_wealth, σ=init_wealth_stdev)
 
     aad: AssetAllocDiscrete = AssetAllocDiscrete(
         risky_return_distributions=risky_ret,
