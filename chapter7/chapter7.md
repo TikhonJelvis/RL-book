@@ -593,7 +593,7 @@ $$\phi_2((W_t, x_t)) = W_t$$
 $$\phi_3((W_t, x_t)) = x_t$$
 $$\phi_4((W_t, x_t)) = x_t^2$$
 
-We set `initial_wealth_distribution` to be a normal distribution with a mean of `init_wealth` (set equal to 1.0 below) and a standard distribution of `init_wealth_var` (set equal to a small value of 0.1 below).
+We set `initial_wealth_distribution` to be a normal distribution with a mean of `init_wealth` (set equal to 1.0 below) and a standard distribution of `init_wealth_stdev` (set equal to a small value of 0.1 below).
 
 ```python
 from rl.distribution import Gaussian
@@ -604,7 +604,7 @@ sigma: float = 0.2
 r: float = 0.07
 a: float = 1.0
 init_wealth: float = 1.0
-init_wealth_var: float = 0.1
+init_wealth_stdev: float = 0.1
 
 excess: float = mu - r
 var: float = sigma * sigma
@@ -636,7 +636,7 @@ dnn: DNNSpec = DNNSpec(
 )
 init_wealth_distr: Gaussian = Gaussian(
     mu=init_wealth,
-    sigma=init_wealth_var
+    sigma=init_wealth_stdev
 )
 
 aad: AssetAllocDiscrete = AssetAllocDiscrete(
