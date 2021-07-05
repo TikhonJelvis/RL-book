@@ -419,7 +419,7 @@ Q^*_t(W_t, x_t) = \frac {- e^{- \frac {(\mu - r)^2 (T-t-1)} {2 \sigma^2}}} a \cd
 \end{equation}
 for all $t = 0, 1, \ldots, T-1$.
 
-### Porting to Real-World
+### Porting to Real-World {#sec:asset-alloc-discrete-code}
 
 We have covered a continuous-time setting  and a discrete-time setting with simplifying assumptions that provide analytical tractability. The specific simplifying assumptions that enabled analytical tractability were:
 
