@@ -3,8 +3,8 @@ from typing import Sequence, Callable, Tuple, Iterator, List
 from rl.distribution import Distribution, SampledDistribution, Gaussian
 from rl.markov_decision_process import MarkovDecisionProcess, \
     NonTerminal, State, Terminal
-from rl.function_approx import AdamGradient, LinearFunctionApprox, \
-    FunctionApprox, DNNSpec, DNNApprox
+from rl.function_approx import AdamGradient, FunctionApprox, DNNSpec, \
+    DNNApprox
 from rl.approximate_dynamic_programming import QValueFunctionApprox
 from rl.approximate_dynamic_programming import ValueFunctionApprox
 from rl.policy_gradient import reinforce_gaussian, actor_critic_gaussian, \
@@ -13,15 +13,16 @@ from rl.gen_utils.plot_funcs import plot_list_of_curves
 import itertools
 import numpy as np
 
-AssetAllocState = Tuple[float, int]
+AssetAllocState = Tuple[int, float]
 
 
 @dataclass(frozen=True)
-class AssetAllocDiscrete:
+class AssetAllocPG:
     risky_return_distributions: Sequence[Distribution[float]]
     riskless_returns: Sequence[float]
     utility_func: Callable[[float], float]
     policy_feature_funcs: Sequence[Callable[[AssetAllocState], float]]
+    policy_mean_dnn_spec: DNNSpec
     policy_stdev: float
     initial_wealth_distribution: Distribution[float]
 
@@ -51,12 +52,12 @@ class AssetAllocDiscrete:
                     state=state,
                     action=action
                 ) -> Tuple[State[AssetAllocState], float]:
-                    wealth, time = state.state
+                    time, wealth = state.state
                     next_wealth: float = action * (1 + distrs[time].sample()) \
                         + (wealth - action) * (1 + rates[time])
                     reward: float = utility_f(next_wealth) \
                         if time == steps - 1 else 0.
-                    next_pair: AssetAllocState = (next_wealth, time + 1)
+                    next_pair: AssetAllocState = (time + 1, next_wealth)
                     next_state: State[AssetAllocState] = \
                         Terminal(next_pair) if time == steps - 1 \
                         else NonTerminal(next_pair)
@@ -75,12 +76,12 @@ class AssetAllocDiscrete:
 
         def start_states_distribution_func() -> NonTerminal[AssetAllocState]:
             wealth: float = self.initial_wealth_distribution.sample()
-            return NonTerminal((wealth, 0))
+            return NonTerminal((0, wealth))
 
         return SampledDistribution(sampler=start_states_distribution_func)
 
     def policy_mean_approx(self) -> \
-            LinearFunctionApprox[NonTerminal[AssetAllocState]]:
+            FunctionApprox[NonTerminal[AssetAllocState]]:
         adam_gradient: AdamGradient = AdamGradient(
             learning_rate=0.003,
             decay1=0.9,
@@ -91,8 +92,9 @@ class AssetAllocDiscrete:
             def this_f(st: NonTerminal[AssetAllocState], f=f) -> float:
                 return f(st.state)
             ffs.append(this_f)
-        return LinearFunctionApprox.create(
+        return DNNApprox.create(
             feature_functions=ffs,
+            dnn_spec=self.policy_mean_dnn_spec,
             adam_gradient=adam_gradient
         )
 
@@ -162,10 +164,10 @@ class AssetAllocDiscrete:
         self,
         feature_functions: Sequence[Callable[
             [Tuple[AssetAllocState, float]], float]],
-        dnn_spec: DNNSpec
+        q_value_dnn_spec: DNNSpec
     ) -> Iterator[FunctionApprox[NonTerminal[AssetAllocState]]]:
         q_value_func_approx0: QValueFunctionApprox[AssetAllocState, float] = \
-            self.q_value_func_approx(feature_functions, dnn_spec)
+            self.q_value_func_approx(feature_functions, q_value_dnn_spec)
 
         return actor_critic_gaussian(
             mdp=self.get_mdp(),
@@ -203,10 +205,10 @@ class AssetAllocDiscrete:
     def actor_critic_td_error(
         self,
         feature_functions: Sequence[Callable[[AssetAllocState], float]],
-        dnn_spec: DNNSpec
+        q_value_dnn_spec: DNNSpec
     ) -> Iterator[FunctionApprox[NonTerminal[AssetAllocState]]]:
         value_func_approx0: ValueFunctionApprox[AssetAllocState] = \
-            self.value_funcion_approx(feature_functions, dnn_spec)
+            self.value_funcion_approx(feature_functions, q_value_dnn_spec)
         return actor_critic_td_error_gaussian(
             mdp=self.get_mdp(),
             policy_mean_approx0=self.policy_mean_approx(),
@@ -227,7 +229,7 @@ if __name__ == '__main__':
     a: float = 1.0
     init_wealth: float = 1.0
     init_wealth_stdev: float = 0.1
-    policy_stdev: float = 1.5
+    policy_stdev: float = 0.5
 
     excess: float = μ - r
     var: float = σ * σ
@@ -252,12 +254,21 @@ if __name__ == '__main__':
             lambda w_t: (1 + r) ** w_t[1]
         ]
     init_wealth_distr: Gaussian = Gaussian(μ=init_wealth, σ=init_wealth_stdev)
+    policy_mean_dnn_spec: DNNSpec = DNNSpec(
+        neurons=[],
+        bias=False,
+        hidden_activation=lambda x: x,
+        hidden_activation_deriv=lambda y: np.ones_like(y),
+        output_activation=lambda x: x,
+        output_activation_deriv=lambda y: np.ones_like(y)
+    )
 
-    aad: AssetAllocDiscrete = AssetAllocDiscrete(
+    aad: AssetAllocPG = AssetAllocPG(
         risky_return_distributions=risky_ret,
         riskless_returns=riskless_ret,
         utility_func=utility_function,
         policy_feature_funcs=policy_feature_funcs,
+        policy_mean_dnn_spec=policy_mean_dnn_spec,
         policy_stdev=policy_stdev,
         initial_wealth_distribution=init_wealth_distr
     )
@@ -284,7 +295,7 @@ if __name__ == '__main__':
     actor_critic_policies: Iterator[FunctionApprox[
         NonTerminal[AssetAllocState]]] = aad.actor_critic(
             feature_functions=q_ffs,
-            dnn_spec=dnn_qvf_spec
+            q_value_dnn_spec=dnn_qvf_spec
         )
 
     v_ffs: Sequence[Callable[[AssetAllocState], float]] = \
@@ -311,10 +322,10 @@ if __name__ == '__main__':
     actor_critic_error_policies: Iterator[FunctionApprox[
         NonTerminal[AssetAllocState]]] = aad.actor_critic_td_error(
             feature_functions=v_ffs,
-            dnn_spec=dnn_vf_spec
+            q_value_dnn_spec=dnn_vf_spec
         )
 
-    num_episodes: int = 15000
+    num_episodes: int = 20000
 
     x: Sequence[int] = range(num_episodes)
     y0: Sequence[float] = [base_alloc * (1 + r) ** (1 - steps)] * num_episodes
@@ -342,12 +353,22 @@ if __name__ == '__main__':
                                steps
                             )]
 
+#     plot_list_of_curves(
+#         [x, x, x, x, x],
+#         [y0, y1, y2, y3, y4],
+#         ["r", "b", "g", "k", "y"],
+#         ["True", "REINFORCE", "Actor-Critic", "Actor-Critic with Advantage",
+#          "Actor-Critic with TD Error"],
+#         "Iteration",
+#         "Action",
+#         "Action for Initial Wealth at Time 0"
+#     )
+
     plot_list_of_curves(
-        [x, x, x, x, x],
-        [y0, y1, y2, y3, y4],
+        [x, x, x, x],
+        [y0, y1, y2, y4],
         ["r", "b", "g", "k", "y"],
-        ["True", "REINFORCE", "Actor-Critic", "Actor-Critic with Advantage",
-         "Actor-Critic with TD Error"],
+        ["True", "REINFORCE", "Actor-Critic", "Actor-Critic with TD Error"],
         "Iteration",
         "Action",
         "Action for Initial Wealth at Time 0"
