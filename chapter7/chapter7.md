@@ -43,7 +43,7 @@ You start with wealth $W_0$ at time $t=0$. As mentioned earlier, the goal is to 
 
 For ease of exposition, we will formalize the problem setting and derive Merton's beautiful analytical solution for the case of $n=1$ (i.e., only 1 risky asset). The solution generalizes in a straightforward manner to the case of $n > 1$ risky assets, so the heavier notation for $n$ risky assets is not worth much.
 
-Since we are operating in continuous-time, the risky asset follows a stochastic process (denoted $S$)- specifically an Ito process (introductory background on Ito processes and Ito's Lemma covered in [-@sec:stochasticcalculus-appendix]), as follows:
+Since we are operating in continuous-time, the risky asset follows a stochastic process (denoted $S$)- specifically an Ito process (introductory background on Ito processes and Ito's Lemma covered in Appendix [-@sec:stochasticcalculus-appendix]), as follows:
 
 $$dS_t = \mu \cdot S_t \cdot dt + \sigma \cdot S_t \cdot dz_t$$
 
