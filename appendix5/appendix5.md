@@ -5,7 +5,7 @@ In this Appendix, we sketch the derivation of the much-celebrated Black-Scholes 
 ### Assumptions
 The Black-Scholes Model is about pricing and hedging of a derivative on a single underlying asset (henceforth, simply known as "underlying"). The model makes several simplifying assumptions for analytical convenience. Here are the assumptions:
 
-* The underlying (whose price we denote as $S_t$ as time $t$) follows a special case of the lognormal process we covered in [-@sec:lognormal-process-section] of Appendix [-@sec:stochasticcalculus-appendix], where the drift $\mu(t)$ is a constant (call it $\mu \in \mathbb{R}$) and the dispersion $\sigma(t)$ is also a constant (call it $\sigma \in \mathbb{R}^+$):
+* The underlying (whose price we denote as $S_t$ as time $t$) follows a special case of the lognormal process we covered in Section [-@sec:lognormal-process-section] of Appendix [-@sec:stochasticcalculus-appendix], where the drift $\mu(t)$ is a constant (call it $\mu \in \mathbb{R}$) and the dispersion $\sigma(t)$ is also a constant (call it $\sigma \in \mathbb{R}^+$):
 \begin{equation}
 dS_t = \mu \cdot S_t \cdot dt + \sigma \cdot S_t \cdot dz_t
 \label{eq:black-scholes-underlying-process}

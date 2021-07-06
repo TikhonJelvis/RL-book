@@ -2,11 +2,10 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import (Callable, Generic, Iterable, Mapping, TypeVar)
+from typing import Callable, Generic, Iterable, Mapping, TypeVar
 
-from rl.distribution import (Choose, Constant, Distribution,
-                             FiniteDistribution)
-from rl.markov_process import (NonTerminal)
+from rl.distribution import Choose, Constant, Distribution, FiniteDistribution
+from rl.markov_process import NonTerminal
 
 A = TypeVar('A')
 S = TypeVar('S')

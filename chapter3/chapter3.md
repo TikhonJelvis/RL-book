@@ -292,7 +292,6 @@ class MarkovDecisionProcess(ABC, Generic[S, A]):
             policy: Policy[S, A]
     ) -> Iterable[TransitionStep[S, A]]:
         state: State[S] = start_states.sample()
-        reward: float = 0
 
         while isinstance(state, NonTerminal):
             action_distribution = policy.act(state)

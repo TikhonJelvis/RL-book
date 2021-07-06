@@ -865,7 +865,7 @@ $$\bvw(s) = \bm{\phi}(s)^T \cdot \bw = \sum_{j=1}^m \phi_j(s) \cdot w_j \mbox{ f
 
 Assuming independence of the feature functions, the $m$ feature functions give us $m$ independent vectors in the vector space $\mathbb{R}^n$. Feature function $\phi_j$ gives us the vector $[\phi_j(s_1), \phi_j(s_2), \ldots, \phi_j(s_n)] \in \mathbb{R}^n$. These $m$ vectors are the $m$ columns of the $n \times m$ matrix $\bphi = [\phi_j(s_i)], 1 \leq i \leq n, 1 \leq j \leq m$. The span of these $m$ independent vectors is an $m$-dimensional vector subspace within this $n$-dimensional vector space, spanned by the set of all $\bw = (w_1, w_2, \ldots, w_m) \in \mathbb{R}^m$. The vector $\bvw = \bphi \cdot \bw$ in this vector subspace has coordinates $[\bvw(s_1), \bvw(s_2), \ldots , \bvw(s_n)]$. The vector $\bvw$ is fully specified by $\bw$ (so we often say $\bw$ to mean $\bvw$). Our interest is in identifying an appropriate $\bw \in \mathbb{R}^m$ that represents an adequate linear function approximation $\bvw = \bphi \cdot \bw$ of the Value Function $\bvpi$.
 
-We denote the states' probability distribution under policy $\pi$ as $\bmu : \mathcal{S} \rightarrow [0, 1]$.
+We denote the probability distribution of occurrence of states under policy $\pi$ as $\bmu : \mathcal{S} \rightarrow [0, 1]$.
 In accordance with the notation we used in Chapter [-@sec:mdp-chapter], $\mathcal{R}(s,a)$ refers to the Expected Reward upon taking action $a$ in state $s$, and $\mathcal{P}(s,a,s')$ refers to the probability of transition from state $s$ to state $s'$ upon taking action $a$. Define
 $$\brew(s) = \sum_{a \in \mathcal{A}} \pi(s, a) \cdot \mathcal{R}(s,a)$$
 $$\bprob(s,s') = \sum_{a \in \mathcal{A}} \pi(s, a) \cdot \mathcal{P}(s,a,s')$$
