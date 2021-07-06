@@ -781,7 +781,7 @@ Note the dependency of $\eta_i(s,a)$ on $\bm{\theta}$.
 
 If we assume the canonical function approximation for $\pi(s,a;\theta)$ for single-dimensional continuous action spaces that we had described in Section [-@sec:canonical-policy-functions], then:
 
-$$\eta_i(s,a) = \frac {(a - \bm{\phi}(s)^T \cdot \bm{\theta}) \cdot \bm{\phi}(s)} {\sigma^2} \text{ for all } s \in \mathcal{N} \text{ for all } a in \mathcal{A}$$
+$$\eta_i(s,a) = \frac {(a - \bm{\phi}(s)^T \cdot \bm{\theta}) \cdot \bm{\phi}(s)} {\sigma^2} \text{ for all } s \in \mathcal{N} \text{ for all } a \in \mathcal{A}$$
 
 Note the dependency of $\eta_i(s,a)$ on $\bm{\theta}$.
 
@@ -818,7 +818,7 @@ This completes our coverage of the basic Policy Gradient Methods. Next, we cover
 Natural Policy Gradient (abbreviated NPG) is due to [a paper by Kakade](https://proceedings.neurips.cc/paper/2001/file/4b86abe48d358ecf194c56c69108433e-Paper.pdf) that utilizes the idea of [Natural Gradient first introduced by Amari](https://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.452.7280&rep=rep1&type=pdf). We won't cover the theory of Natural Gradient in detail here, and refer you to the above two papers instead. Here we give a high-level overview of the concepts, and describe the algorithm. 
 
 The core motivation for Natural Gradient is that when the parameters space has a certain underlying structure (as is the case with the parameter space of $\bm{\theta}$ in the context of maximizing $J(\bm{\theta})$), the usual gradient does not represent it's steepest descent direction, but the Natural Gradient does. The steepest descent direction of an arbitrary function $f(\bm{\theta})$ to be minimized is defined as the vector $\Delta \bm{\theta}$ that minimizes $f(\bm{\theta} + \Delta \bm{\theta})$ under the constraint that the length $|\Delta \bm{\theta}|$ is a constant. In general, the length $|\Delta \bm{\theta}|$ is defined with respect to some positive-definite matrix $\bm{G}(\bm{\theta})$ governed by the underlying structure of the $\bm{\theta}$ parameters space, i.e.,
-$$|\Delta \bm{\theta}|^2 = \sum_{i,j} G_{i,j}(\bm{\theta}) \cdot \Delta \theta_i \cdot \theta_j = (\Delta \bm{\theta})^T \cdot \bm{G}(\bm{\theta}) \cdot \Delta \bm{\theta}$$
+$$|\Delta \bm{\theta}|^2 = (\Delta \bm{\theta})^T \cdot \bm{G}(\bm{\theta}) \cdot \Delta \bm{\theta}$$
 We can show that under the length metric defined by the matrix $\bm{G}$, the steepest descent direction is:
 
 $$\nabla_{\bm{\theta}}^{nat} f(\bm{\theta}) = \bm{G}^{-1}(\bm{\theta}) \cdot \nabla_{\bm{\theta}} f({\bm{\theta}})$$
@@ -854,7 +854,7 @@ $$\Delta \bm{\theta} = \alpha_{\bm{\theta}} \cdot \bm{w}$$
 
 Deterministic Policy Gradient (abbreviated DPG) is a creative adaptation of Policy Gradient wherein instead of a parameterized function approximation for a stochastic policy, we have a parameterized function approximation for a deterministic policy for the case of continuous action spaces. DPG is due to [a paper by Silver, Lever, Heess, Degris, Wiestra, Riedmiller](http://proceedings.mlr.press/v32/silver14.pdf). DPG is expressed in terms of the Expected Gradient of the Q-Value Function and can be estimated much more efficiently that the usual (stochastic) PG. (Stochastic) PG integrates over both the state and action spaces, whereas DPG integrates over only the state space. As a result, computing (stochastic) PG would require more samples if the action space has many dimensions. 
 
-Since the policy approximated is Deterministic, we need to address the issue of exploration - this is typically done with Off-Policy Control wherein we employ an exploratory (stochastic) behavior policy, while the policy being approximated (and learnt with DPG) is the target (deterministic) policy. In Actor-Critic DPG, the Actor is the function approximation for the deterministic policy and the Critic is the function approximation for the Q-Value Function. The paper by Sutton et al. provides a Compatible Function Approximation Theorem for DPG to overcome Critic approximation bias. The paper also shows that DPG is the limiting case of (Stochastic) PG, as policy variance tends to 0. This means the usual machinery of PG (such as Compatible Function Approximation, Natural Policy Gradient, Actor-Critic etc.) is also applicable to DPG.
+Since the policy approximated is Deterministic, we need to address the issue of exploration - this is typically done with Off-Policy Control wherein we employ an exploratory (stochastic) behavior policy, while the policy being approximated (and learnt with DPG) is the target (deterministic) policy. In Actor-Critic DPG, the Actor is the function approximation for the deterministic policy and the Critic is the function approximation for the Q-Value Function. The paper by Sutton et al. provides a Compatible Function Approximation Theorem for DPG to overcome Critic approximation bias. The paper also shows that DPG is the limiting case of (Stochastic) PG, as policy variance tends to 0. This means the usual machinery of PG (such as Actor-Critic, Compatible Function Approximation, Natural Policy Gradient etc.) is also applicable to DPG.
 
 To avoid confusion with the notation $\pi(s,a;\bm{\theta})$ that we used for the stochastic policy function approximation in PG, here we use the notation $a = \mu(s; \bm{\theta})$ that represents (a potentially multi-dimensional) continuous-valued action $a$ equal to the value of policy function approximation $\mu$ (parameterized by $\bm{\theta}$), when evaluated for a state $s$. So we use the notation $\mu$ for the deterministic target policy approximation and we use the notation $\beta$ for the exploratory behavior policy.
 
@@ -906,45 +906,46 @@ Critic Bias can be resolved with a Compatible Function Approximation Theorem for
 
 ### Evolutionary Strategies
 
-We conclude this chapter with a section on Evolutionary Strategies - a class of algorithms to solve MDP Control problems. We want to highlight right upfront that Evolutionary Strategies are technically not considered RL algorithms (for reasons we shall illuminate once we explain the technique of Evolutionary Strategies). However, they can sometimes be quite effective in solving MDP Control problems and so, we give them appropriate coverage as part of a wide range of approaches to solve MDP Control. We cover them in this chapter because of their superficial resemblance to Policy Gradient Algorithms (again, they are not RL algorithms and hence, not Policy Gradient algorithms).
+We conclude this chapter with a section on Evolutionary Strategies - a class of algorithms to solve MDP Control problems. We want to highlight right upfront that Evolutionary Strategies are technically not RL algorithms (for reasons we shall illuminate once we explain the technique of Evolutionary Strategies). However, Evolutionary Strategies can sometimes be quite effective in solving MDP Control problems and so, we give them appropriate coverage as part of a wide range of approaches to solve MDP Control. We cover them in this chapter because of their superficial resemblance to Policy Gradient Algorithms (again, they are not RL algorithms and hence, not Policy Gradient algorithms).
 
-Evolutionary Strategies (abbreviated as ES) actually refers to a technique/approach that is best understood as a type of Black-Box Optimization. It was popularized in the 1970s as *Heuristic Search Methods*. It is loosely inspired by natural evolution of living beings. We focus on a subclass of ES known as Natural Evolution Strategies (abbreviated as NES).
+Evolutionary Strategies (abbreviated as ES) actually refers to a technique/approach that is best understood as a type of Black-Box Optimization. It was popularized in the 1970s as *Heuristic Search Methods*. It is loosely inspired by natural evolution of living beings. We focus on a subclass of ES known as Natural Evolutionary Strategies (abbreviated as NES).
 
-The original setting for this approach was quite generic and not at all specific to solving MDPs. Let us understand this generic setting first.  Given an objective function $F(\psi)$, where $\psi$ refers to parameters, we consider a probability distribution $p_{\theta}(\psi)$ over $\psi$, where $\theta$ refers to the parameters of the probability distribution. The goal in this generic setting is to maximize the average objective $mathbb{E}_{\psi \sim p_{\theta}}[F(\psi)]$.
+The original setting for this approach was quite generic and not at all specific to solving MDPs. Let us understand this generic setting first.  Given an objective function $F(\bm{\psi})$, where $\bm{\psi}$ refers to parameters, we consider a probability distribution $p_{\bm{\theta}}(\bm{\psi})$ over $\bm{\psi}$, where $\bm{\theta}$ refers to the parameters of the probability distribution. The goal in this generic setting is to maximize the average objective $\mathbb{E}_{\bm{\psi} \sim p_{\bm{\theta}}}[F(\bm{\psi})]$.
 
 We search for optimal $\theta$ with stochastic gradient ascent as follows:
 
-\begin{align*}
-\nabla_{\theta} (\mathbb{E}_{\psi \sim p_{\theta}}[F(\psi)]) & = \nabla_{\theta} (\int_{\psi} p_{\theta}(\psi) \cdot F(\psi) \cdot d\psi) \\
-& = \int_{\psi} \nabla_{\theta}(p_{\theta}(\psi)) \cdot F(\psi) \cdot d\psi \\
-& = \int_{\psi} p_{\theta}(\psi) \cdot \nabla_{\theta}(\log{p_{\theta}(\psi)}) \cdot F(\psi) \cdot d\psi \\
-& = \mathbb{E}_{\psi \sim p_{\theta}}[\nabla_{\theta}(\log{p_{\theta}(\psi)}) \cdot F(\psi)]
-\end{align*}
+\begin{align}
+\nabla_{\bm{\theta}} (\mathbb{E}_{\bm{\psi} \sim p_{\bm{\theta}}}[F(\bm{\psi})]) & = \nabla_{\bm{\theta}} (\int_{\bm{\psi}} p_{\bm{\theta}}(\bm{\psi}) \cdot F(\bm{\psi}) \cdot d\bm{\psi}) \nonumber \\
+& = \int_{\bm{\psi}} \nabla_{\bm{\theta}}(p_{\bm{\theta}}(\bm{\psi})) \cdot F(\bm{\psi}) \cdot d\bm{\psi} \nonumber \\
+& = \int_{\bm{\psi}} p_{\bm{\theta}}(\bm{\psi}) \cdot \nabla_{\bm{\theta}}(\log{p_{\bm{\theta}}(\bm{\psi})}) \cdot F(\bm{\psi}) \cdot d\bm{\psi} \nonumber \\
+& = \mathbb{E}_{\bm{\psi} \sim p_{\bm{\theta}}}[\nabla_{\bm{\theta}}(\log{p_{\bm{\theta}}(\bm{\psi})}) \cdot F(\bm{\psi})] \label{eq:nes-gradient}
+\end{align}
 
-Now let's see how NES can be applied to solving MDP Control. We set $F(\cdot)$ to be the (stochastic) *Return* of an MDP. $\psi$ corresponds to the parameters of a policy $\pi_{\psi} : \mathcal{S} \rightarrow \mathcal{A}$. $\psi$ is drawn from an isotropic multivariate Gaussian distribution, i.e., Gaussian with mean vector $\theta$ and fixed diagonal covariance matrix $\sigma^2 I$. The average objective (*Expected Return*) can then be written as:
-$$\mathbb{E}_{\psi \sim p_{\theta}}[F(\psi)] = \mathbb{E}_{\epsilon \sim \mathcal{N}(0,I)}[F(\theta + \sigma \cdot \epsilon)]$$
-The gradient ($\nabla_{\theta}$) of *Expected Return* can be written as:
-$$\mathbb{E}_{\psi \sim p_{\theta}}[\nabla_{\theta}(\log{p_{\theta}(\psi)}) \cdot F(\psi)]$$
-$$= \mathbb{E}_{\psi \sim \mathcal{N}(\theta,\sigma^2 I)}[\nabla_{\theta} ( \frac {-(\psi - \theta)^T \cdot (\psi - \theta)} {2\sigma^2}) \cdot F(\psi)] $$
-$$ =\frac 1 {\sigma} \cdot \mathbb{E}_{\epsilon \sim \mathcal{N}(0,I)}[\epsilon \cdot F(\theta + \sigma \cdot \epsilon)]$$
+Now let's see how NES can be applied to solving MDP Control. We set $F(\cdot)$ to be the (stochastic) *Return* of an MDP. $\bm{\psi}$ corresponds to the parameters of a deterministic policy $\pi_{\bm{\psi}} : \mathcal{N} \rightarrow \mathcal{A}$. $\bm{\psi} \in \mathbb{R}^m$ is drawn from an isotropic $m$-variate Gaussian distribution, i.e., Gaussian with mean vector $\bm{\theta} \in \mathbb{R}^m$ and fixed diagonal covariance matrix $\sigma^2 \bm{I_m}$ where $\sigma \in \mathbb{R}$ is kept fixed and $\bm{I_m}$ is the $m \times m$ identity matrix. The average objective (*Expected Return*) can then be written as:
+$$\mathbb{E}_{\bm{\psi} \sim p_{\bm{\theta}}}[F(\bm{\psi})] = \mathbb{E}_{\bm{\epsilon} \sim \mathcal{N}(0,\bm{I_m})}[F(\bm{\theta} + \sigma \cdot \bm{\epsilon})]$$
+where $\bm{\epsilon} \in \mathbb{R}^m$ is the standard normal random variable generating $\bm{\psi}$.
+Hence, from Equation \eqref{eq:nes-gradient}, the gradient ($\nabla_{\bm{\theta}}$) of *Expected Return* can be written as:
+$$\mathbb{E}_{\bm{\psi} \sim p_{\bm{\theta}}}[\nabla_{\bm{\theta}}(\log{p_{\bm{\theta}}(\bm{\psi})}) \cdot F(\bm{\psi})]$$
+$$= \mathbb{E}_{\bm{\psi} \sim \mathcal{N}(\bm{\theta}, \sigma^2 \bm{I_m})}[\nabla_{\bm{\theta}} ( \frac {-(\bm{\psi} - \bm{\theta})^T \cdot (\bm{\psi} - \bm{\theta})} {2\sigma^2}) \cdot F(\bm{\psi})] $$
+$$ =\frac 1 {\sigma} \cdot \mathbb{E}_{\bm{\epsilon} \sim \mathcal{N}(0,\bm{I_m})}[\bm{\epsilon} \cdot F(\bm{\theta} + \sigma \cdot \bm{\epsilon})]$$
 
-Now we come up with a sampling-based algorithm to solve the MDP. The above formula helps estimate the gradient of *Expected Return* by sampling several $\epsilon$ (each $\epsilon$ represents a *Policy* $\pi_{\theta + \sigma \cdot \epsilon}$), and averaging $\epsilon \cdot F(\theta + \sigma \cdot \epsilon)$ across a large set ($n$) of $\epsilon$ samples.
+Now we come up with a sampling-based algorithm to solve the MDP. The above formula helps estimate the gradient of *Expected Return* by sampling several $\bm{\epsilon}$ (each $\bm{\epsilon}$ represents a *Policy* $\pi_{\bm{\theta} + \sigma \cdot \bm{\epsilon}}$), and averaging $\bm{\epsilon} \cdot F(\bm{\theta} + \sigma \cdot \bm{\epsilon})$ across a large set ($n$) of $\bm{\epsilon}$ samples.
 
-Note that evaluating $F(\theta + \sigma \cdot \epsilon)$ involves playing an episode for a given sampled $\epsilon$, and obtaining that episode's *Return* $F(\theta + \sigma \cdot \epsilon)$. Hence, we have $n$ values of $\epsilon$, $n$ *Policies* $\pi_{\theta + \sigma \cdot \epsilon}$, and $n$ *Returns* $F(\theta + \sigma \cdot \epsilon)$.
+Note that evaluating $F(\bm{\theta} + \sigma \cdot \bm{\epsilon})$ involves playing an episode for a given sampled $\bm{\epsilon}$, and obtaining that episode's *Return* $F(\bm{\theta} + \sigma \cdot \bm{\epsilon})$. Hence, we have $n$ values of $\bm{\epsilon}$, $n$ *Policies* $\pi_{\bm{\theta} + \sigma \cdot \bm{\epsilon}}$, and $n$ *Returns* $F(\bm{\theta} + \sigma \cdot \bm{\epsilon})$.
 
-Given the gradient estimate, we update $\theta$ in this gradient direction, which in turn leads to new samples of $\epsilon$ (new set of *Policies* $\pi_{\theta + \sigma \cdot \epsilon}$), and the process repeats until $\mathbb{E}_{\epsilon \sim \mathcal{N}(0,I)}[F(\theta + \sigma \cdot \epsilon)]$ is maximized.
+Given the gradient estimate, we update $\bm{\theta}$ in this gradient direction, which in turn leads to new samples of $\bm{\epsilon}$ (new set of *Policies* $\pi_{\bm{\theta} + \sigma \cdot \bm{\epsilon}}$), and the process repeats until $\mathbb{E}_{\bm{\epsilon} \sim \mathcal{N}(0,\bm{I_m})}[F(\bm{\theta} + \sigma \cdot \bm{\epsilon})]$ is maximized.
 
 The key inputs to the algorithm will be:
 
 * Learning rate (SGD Step Size) $\alpha$
 * Standard Deviation $\sigma$
-* Initial value of parameter vector $\theta_0$
+* Initial value of parameter vector $\bm{\theta_0}$
 
 With these inputs, for each iteration $t = 0, 1, 2, \ldots$, the algorithm performs the following steps:
 
-* Sample $\epsilon_1, \epsilon_2, \ldots \epsilon_n \sim \mathcal{N}(0, I)$.
-* Compute Returns $F_i \leftarrow F(\theta_t + \sigma \cdot \epsilon_i)$ for $i = 1,2, \ldots, n$.
-* $\theta_{t+1} \leftarrow \theta_t + \frac {\alpha} {n \sigma} \sum_{i=1}^n \epsilon_i \cdot F_i$
+* Sample $\bm{\epsilon_1}, \bm{\epsilon_2}, \ldots \bm{\epsilon_n} \sim \mathcal{N}(0, \bm{I_m})$.
+* Compute Returns $F_i \leftarrow F(\bm{\theta_t} + \sigma \cdot \bm{\epsilon_i})$ for $i = 1,2, \ldots, n$.
+* $\bm{\theta_{t+1}} \leftarrow \bm{\theta_t} + \frac {\alpha} {n \sigma} \sum_{i=1}^n \bm{\epsilon_i} \cdot F_i$
 
 On the surface, this NES algorithm looks like PG because it's not Value Function-based (it's Policy-based, like PG). Also, similar to PG, it uses a gradient to move the policy towards optimality. But, ES does not interact with the environment (like PG/RL does). ES operates at a high-level, ignoring the (state, action, reward) interplay. Specifically, it does not aim to assign credit to actions in specific states. Hence, ES doesn't have the core essence of RL: *Estimating the Q-Value Function of a Policy and using it to Improve the Policy*. Therefore, we don't classify ES as Reinforcement Learning. Rather, we consider ES to be an alternative approach to RL Algorithms.
 
