@@ -272,7 +272,7 @@ U(W_1) =
 \end{cases}
 $$
 
-Applying Ito's Lemma on $\log W_t$ gives us:
+Applying Ito's Lemma (see Appendix [-@sec:stochasticcalculus-appendix]) on $\log W_t$ gives us:
 $$d(\log W_t) = \frac 1 W_t \cdot dW_t - \frac 1 {2 W_t^2} \cdot (dW_t)^2$$
 $$\Rightarrow d(\log W_t) = (r + \pi (\mu - r)) \cdot dt + \pi \cdot \sigma \cdot dz_t - \frac {\pi^2 \sigma^2} 2 \cdot dt$$
 $$\Rightarrow \log W_t = \int_0^t (r + \pi (\mu - r) - \frac {\pi^2 \sigma^2} 2) \cdot du + \int_0^t \pi \cdot \sigma \cdot dz_u$$
