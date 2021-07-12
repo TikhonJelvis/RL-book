@@ -1,1 +1,1 @@
-## Learning versus Planning {#sec:learning-vs-planning-chapter}
+## Multi-Armed Bandits: Exploration versus Exploitation {#sec:multi-armed-bandits-chapter}
