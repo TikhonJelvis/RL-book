@@ -30,7 +30,7 @@ import           RL.Vector                                ( Affine(..)
 import           RL.Within                                ( Within(..) )
 
 
-import           RL.Approx                                ( Approx(..) )
+import           RL.Approx                                ( Approx(..), Batch(..) )
 import           RL.Approx.Weights                        ( Weights
                                                           , values
                                                           )
@@ -87,12 +87,12 @@ instance Affine (Linear a) where
 instance Approx Linear a where
   eval Linear { ϕ, w } a = ϕ a <.> w
 
-  fit Linear { ϕ, λ } x y = Linear { ϕ, λ, w = inv left #> right }
+  direction Linear { ϕ, λ } Batch { xs, ys } = inv left #> right
    where
     left  = (tr' ϕₓ <> ϕₓ) + scalar (n * λ)
-    right = tr' ϕₓ #> y
+    right = tr' ϕₓ #> ys
 
-    ϕₓ    = ϕ <$$> x
+    ϕₓ    = ϕ <$$> xs
     n     = fromIntegral (snd $ size ϕₓ)
 
 

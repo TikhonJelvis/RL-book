@@ -19,7 +19,7 @@ import           Streaming                                ( Of
                                                           )
 import qualified Streaming.Prelude                       as Streaming
 
-import           RL.Approx                                ( Approx )
+import           RL.Approx                                ( Approx, Batch(..) )
 import qualified RL.Approx                               as Approx
 import qualified RL.Probability                          as Probability
 import           RL.Vector                                ( Diff
@@ -44,7 +44,7 @@ evaluateFiniteMRP :: (Approx v s, Fractional n, Scalar (Diff (v s)) ~ n)
 evaluateFiniteMRP FiniteMarkovRewardProcess { process, expectedRewards } γ v₀ =
   iterate update v₀
  where
-  update v = Approx.update 0.1 v (states process) updated
+  update v = Approx.update 0.1 v Batch { xs = states process, ys = updated }
    where
     updated = expectedRewards + scale γ (transition process #> vs)
     vs      = Approx.eval' v (states process)
@@ -71,6 +71,6 @@ evaluateMRP process startStates γ n v₀ = Streaming.iterateM update (pure v₀
     states <- replicateM n startStates
     let return (s, r) = r + γ * Approx.eval v s
     rewards <- mapM (expected return) states
-    pure $ Approx.update 1 v (V.fromList states) (Matrix.fromList rewards)
+    pure $ Approx.update 1 v Batch { xs = V.fromList states, ys = Matrix.fromList rewards }
 
   expected f = Probability.expected n f . step' process

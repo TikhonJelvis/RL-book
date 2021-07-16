@@ -1,3 +1,3 @@
-module RL.Approx (Approx(..)) where
+module RL.Approx (Approx(..), Batch (..)) where
 
-import           RL.Approx.Approx                         ( Approx(..) )
+import           RL.Approx.Approx                         ( Approx(..), Batch (..) )

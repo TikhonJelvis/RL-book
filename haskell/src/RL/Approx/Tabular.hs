@@ -28,7 +28,7 @@ import           Numeric.LinearAlgebra                    ( R
                                                           )
 import qualified Numeric.LinearAlgebra                   as Matrix
 
-import           RL.Approx                                ( Approx(..) )
+import           RL.Approx                                ( Approx(..), Batch(..) )
 import qualified RL.Matrix                               as Matrix
 import           RL.Vector                                ( Affine(..) )
 import           RL.Within                                ( Within(..) )
@@ -65,7 +65,7 @@ instance (Eq a, Hashable a) => Affine (Tabular a) where
 instance (Eq a, Hashable a) => Approx Tabular a where
   eval Tabular { mapping } x = mapping ! x
 
-  fit Tabular { domain } xs ys = Tabular { mapping = xy <> zeros, domain }
+  direction Tabular { domain } Batch { xs, ys } = toVector $ Tabular { mapping = xy <> zeros, domain }
    where
     zeros = mapping $ create domain
     xy = HashMap.fromList [ (x, y) | x <- V.toList xs | y <- Matrix.toList ys ]
