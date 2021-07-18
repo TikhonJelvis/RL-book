@@ -1,9 +1,39 @@
-## Code Design and Abstraction in Python {#sec:python .unnumbered}
+## Programming and Design {#sec:python .unnumbered}
 
-This book introduces the theory and algorithms behind Reinforcement Learning. What kind of programming and code design do you need to handle these topics?
+> The programmer, like the poet, works only slightly removed from pure thought-stuff. He builds his castles in the air, from air, creating by exertion of the imagination. Few media of creation are so flexible, so easy to polish and rework, so readily capable of realizing grand conceptual structures.
 
-Traditional presentations of theory- and algorithm-heavy topics deemphasize code, expressing algorithms as self-contained procedures written in pseudocode. Newer materials on AI and machine learning take the opposite tack, implementing algorithms in real-world machine learning frameworks.
+- Fred Brooks, *The Mythical Man-Month*
 
-This book intentionally takes a different approach: we build up a high-level Reinforcement Learning framework *from scratch* in Python. The code works—this is not pseudocode—but it is also not meant to be "production quality". Rather, the goal is to develop clean abstractions that reflect the concepts covered in the text, without adding extra complexity to improve performance or integrate with existing systems. With this approach, example implementations of algorithms not only make the *algorithm itself* more concrete but also reinforce the key ideas shared *between different algorithms*.
+Programming is, at heart, creative with few constraints: imagine something and you can probably build it, and build it in *many* different ways. This lack of constraints is liberating and gratifying, but it's also challenging. Just like starting a novel from a blank page or a painting from a blank canvas, a blank programming project is so open that it's a bit intimidating. Where do you start? What will the whole system look like? How do you break your problem into manageable pieces? How do you prevent your code from evolving into an impossible-to-understand mess? What if you start strong but program yourself into a corner?
 
-Defining simple, composable abstractions directly corresponding to domain-specific concepts is a powerful approach that works well in any area, not just Reinforcement Learning. Learning to program in this style isn't always easy and it can take more up-front thinking and effort than other approach—but, done well, it pays massive dividends over the life of a project. This book weaves abstraction-oriented design into its presentation of Reinforcement Learning;
+There's no easy answer. Programming is inherently iterative—we can always try something, then edit our code and refactor if our original idea didn't work. But iteration itself is not enough; just like a painter needs technique and composition, a programmer needs patterns and design.
+
+Existing teaching resources tend to deemphasize programming techniques and design. Theory- and algorithm-heavy books show algorithms as self-contained procedures written in pseudocode, without the broader context—and corresponding design questions—of a real codebase. Newer AI and ML materials sometimes take a different tack and provide real code examples using industry-strength frameworks, but the books rarely touch on the design of the frameworks themselves or larger codebases in general.
+
+In this book, we take a third approach. Starting *from scratch*, we build a Python framework that reflects the key ideas and algorithms in the text. The abstractions we define map to the key concepts we introduce; how we structure the code maps to the relationships between those concepts.
+
+Unlike the pseudocode approach, we do not implement algorithms in a vacuum; rather, each algorithm builds on abstractions introduced earlier in the book. By starting from scratch—rather than using an existing ML framework—we keep the code reasonably simple, without needing to worry about specific examples going out of date. We can focus on the concepts important to the text while teaching programming and design *in situ*, demonstrating an intentional approach to code design.
+
+### A Philosophy of Abstraction
+
+How can take a complex domain like reinforcement learning and turn it into code that is easy to understand, debug and extend? How can we split this problem into manageable pieces? How do those pieces interact?
+
+There is no single easy answer to these questions. As in any creative endeavor, no two programming challenges are identical and people can reasonably find different solutions. A solid design is not going to be completely clear up-front; as we worked on the code for this book, we constantly revisited previous design decisions as we either came up with better solutions or found new requirements to address.
+
+We might have no easy answers, but we do have general patterns and principles that—in our experience—consistently produce quality code. Taken together, these ideas form a philosophy of code design oriented around defining and combining **abstractions** that reflect the terms and concepts we use to think about our domain. This is not only a powerful technique for designing code, but it is also a way to better-understand the domain itself; designing the right code abstractions can also lead to novel algorithms and functionality.
+
+Just what *is* an abstraction? An appropriately abstract question! An abstraction is a "compound idea": a single concept that combines multiple separate ideas into one. Humans have an inherently limited working memory; we can only keep a small number of distinct things in mind at any given time. If we think of working memory as having some small number of "slots", an abstraction lets us take several distinct ideas that would normally take up several slots of working memory and consider them as a single unit, taking up just *one* slot. Abstractions let us generalize beyond individual concrete objects—we can consider the abstract idea of horses in general rather than needing to consider every single horse as a separate, unique animal. The only way we can understand and interact with anything meaningfully complex is by developing mental abstractions to manage the complexity.
+
+How does this translate to programming? Just as we need to organize complex ideas to think about them, we need to organize complex code to write and understand it. The computer itself does not need structure or organization to run code—it is happy mindlessly following the exact instructions we give it. Modern CPUs happily run *billions* of instructions a second, dealing with billions and billions of bits of information. Humans can't keep up!
+
+The same way our limited working memory pushes us to use mental abstractions, it pushes us to organize code around abstractions as well. How do you understand code? Do you run the code in your head? This is how most people start, but it's difficult at smaller scales and simply doesn't work as programs get larger. Past some level of complexity, we can't get by without abstractions that help us understand our code at a higher level without needing to directly track all the logic and state the program involves.
+
+<!-- TODO: Explain how languages provide different means for defining and using abstractions. -->
+
+Some level of abstraction in programming is inevitable, but not all abstractions are equal. What makes some abstractions a pleasure to work with, and others a pain?
+
+<!-- TODO: What properties do we want our abstractions to have? -->
+
+Simple, composable abstractions corresponding to domain-specific concepts work well in any area, not just reinforcement learning. Designing and using abstractions like that isn't always easy and can take more up-front thinking than other approaches—but, done well, it pays massive dividends over the life of a project.
+
+### Probability
