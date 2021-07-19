@@ -26,14 +26,12 @@ Just what *is* an abstraction? An appropriately abstract question! An abstractio
 
 How does this translate to programming? Just as we need to organize complex ideas to think about them, we need to organize complex code to write and understand it. The computer itself does not need structure or organization to run code—it is happy mindlessly following the exact instructions we give it. Modern CPUs happily run *billions* of instructions a second, dealing with billions and billions of bits of information. Humans can't keep up!
 
-The same way our limited working memory pushes us to use mental abstractions, it pushes us to organize code around abstractions as well. How do you understand code? Do you run the code in your head? This is how most people start, but it's difficult at smaller scales and simply doesn't work as programs get larger. Past some level of complexity, we can't get by without abstractions that help us understand our code at a higher level without needing to directly track all the logic and state the program involves.
-
-<!-- TODO: Explain how languages provide different means for defining and using abstractions. -->
+The same way our limited working memory pushes us to use mental abstractions, it pushes us to organize code around abstractions as well. How do you understand code? Do you run the code in your head? This is how most people start, but it's difficult at smaller scales and quickly becomes infeasible as the amount of logic and information grows too large to mentally track. Code abstractions let us overcome this limit by logically grouping information and logic so that we can think about it holistically rather than tracking every pieces separately.
 
 Some level of abstraction in programming is inevitable, but not all abstractions are equal. What makes some abstractions a pleasure to work with, and others a pain?
 
 <!-- TODO: What properties do we want our abstractions to have? -->
 
-Simple, composable abstractions corresponding to domain-specific concepts work well in any area, not just reinforcement learning. Designing and using abstractions like that isn't always easy and can take more up-front thinking than other approaches—but, done well, it pays massive dividends over the life of a project.
+Simple, composable abstractions corresponding to domain-specific concepts work well in any area, with any programming languages—although the details may differ. Designing and using abstractions like that isn't always easy and can take more up-front thinking than other approaches—but, done well, it pays massive dividends over the life of a project.
 
 ### Probability
