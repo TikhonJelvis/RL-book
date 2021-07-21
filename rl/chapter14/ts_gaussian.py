@@ -1,5 +1,5 @@
 from typing import Sequence, Tuple, List
-from rl.chapter14.mab_env import MABEnv
+from rl.distribution import Gaussian
 from rl.chapter14.mab_base import MABBase
 from operator import itemgetter
 from numpy import ndarray, empty, sqrt
@@ -10,7 +10,7 @@ class ThompsonSamplingGaussian(MABBase):
 
     def __init__(
         self,
-        mab: MABEnv,
+        arm_distributions: Sequence[Gaussian],
         time_steps: int,
         num_episodes: int,
         init_mean: float,
@@ -19,7 +19,7 @@ class ThompsonSamplingGaussian(MABBase):
         if init_stdev <= 0:
             raise ValueError
         super().__init__(
-            mab=mab,
+            arm_distributions=arm_distributions,
             time_steps=time_steps,
             num_episodes=num_episodes
         )
@@ -45,7 +45,7 @@ class ThompsonSamplingGaussian(MABBase):
                 1
             )[0] for mu, n, alpha, beta in bayes]
             action: int = max(enumerate(mean_draws), key=itemgetter(1))[0]
-            reward: float = self.mab_funcs[action]()
+            reward: float = self.arm_distributions[action].sample()
             mu, n, alpha, beta = bayes[action]
             bayes[action] = (
                 (reward + n * mu) / (n + 1),
@@ -59,17 +59,17 @@ class ThompsonSamplingGaussian(MABBase):
 
 
 if __name__ == '__main__':
-    mean_vars_data = [(9., 5.), (10., 2.), (0., 4.),
-                      (6., 10.), (2., 20.), (4., 1.)]
-    mu_star = max(mean_vars_data, key=itemgetter(0))[0]
+    means_vars_data = [(9., 5.), (10., 2.), (0., 4.),
+                       (6., 10.), (2., 20.), (4., 1.)]
+    mu_star = max(means_vars_data, key=itemgetter(0))[0]
     steps = 200
     episodes = 1000
     guess_mean = 0.
     guess_stdev = 10.
 
-    me = MABEnv.get_gaussian_mab_env(mean_vars_data)
+    arm_distrs = [Gaussian(μ=m, σ=s) for m, s in means_vars_data]
     ucb1 = ThompsonSamplingGaussian(
-        mab=me,
+        arm_distributions=arm_distrs,
         time_steps=steps,
         num_episodes=episodes,
         init_mean=guess_mean,

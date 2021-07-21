@@ -1,5 +1,6 @@
 from typing import Sequence, Tuple, List
-from rl.chapter14.mab_env import MABEnv
+from rl.distribution import Distribution, Categorical
+from math import comb
 from rl.chapter14.mab_base import MABBase
 from operator import itemgetter
 from numpy import ndarray, empty, sqrt, log
@@ -9,7 +10,7 @@ class UCB1(MABBase):
 
     def __init__(
         self,
-        mab: MABEnv,
+        arm_distributions: Sequence[Distribution[float]],
         time_steps: int,
         num_episodes: int,
         bounds_range: float,
@@ -18,7 +19,7 @@ class UCB1(MABBase):
         if bounds_range < 0 or alpha <= 0:
             raise ValueError
         super().__init__(
-            mab=mab,
+            arm_distributions=arm_distributions,
             time_steps=time_steps,
             num_episodes=num_episodes
         )
@@ -29,7 +30,7 @@ class UCB1(MABBase):
         ep_rewards: ndarray = empty(self.time_steps)
         ep_actions: ndarray = empty(self.time_steps, dtype=int)
         for i in range(self.num_arms):
-            ep_rewards[i] = self.mab_funcs[i]()
+            ep_rewards[i] = self.arm_distributions[i].sample()
             ep_actions[i] = i
         counts: List[int] = [1] * self.num_arms
         means: List[float] = [ep_rewards[j] for j in range(self.num_arms)]
@@ -39,7 +40,7 @@ class UCB1(MABBase):
                                           counts[j])
                                      for j in range(self.num_arms)]
             action: int = max(enumerate(ucbs), key=itemgetter(1))[0]
-            reward: float = self.mab_funcs[action]()
+            reward: float = self.arm_distributions[action].sample()
             counts[action] += 1
             means[action] += (reward - means[action]) / counts[action]
             ep_rewards[i] = reward
@@ -57,9 +58,11 @@ if __name__ == '__main__':
     this_range = binomial_count
     this_alpha = 4.0
 
-    me = MABEnv.get_binomial_mab_env(binomial_params)
+    arm_distrs = [Categorical(
+        {float(i): p ** i * (1-p) ** (n-i) * comb(n, i) for i in range(n + 1)}
+    ) for n, p in binomial_params]
     ucb1 = UCB1(
-        mab=me,
+        arm_distributions=arm_distrs,
         time_steps=steps,
         num_episodes=episodes,
         bounds_range=this_range,

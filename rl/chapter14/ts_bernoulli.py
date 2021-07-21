@@ -1,5 +1,5 @@
 from typing import Sequence, Tuple, List
-from rl.chapter14.mab_env import MABEnv
+from rl.distribution import Bernoulli
 from rl.chapter14.mab_base import MABBase
 from operator import itemgetter
 from numpy import ndarray, empty
@@ -10,12 +10,12 @@ class ThompsonSamplingBernoulli(MABBase):
 
     def __init__(
         self,
-        mab: MABEnv,
+        arm_distributions: Sequence[Bernoulli],
         time_steps: int,
         num_episodes: int
     ) -> None:
         super().__init__(
-            mab=mab,
+            arm_distributions=arm_distributions,
             time_steps=time_steps,
             num_episodes=num_episodes
         )
@@ -28,7 +28,7 @@ class ThompsonSamplingBernoulli(MABBase):
         for i in range(self.time_steps):
             mean_draws: Sequence[float] = [beta(a, b, 1)[0] for a, b in bayes]
             action: int = max(enumerate(mean_draws), key=itemgetter(1))[0]
-            reward: float = self.mab_funcs[action]()
+            reward: float = float(self.arm_distributions[action].sample())
             a, b = bayes[action]
             bayes[action] = (a + int(reward), b + int(1 - reward))
             ep_rewards[i] = reward
@@ -42,9 +42,9 @@ if __name__ == '__main__':
     steps = 200
     episodes = 1000
 
-    me = MABEnv.get_bernoulli_mab_env(probs_data)
+    arm_distrs = [Bernoulli(p) for p in probs_data]
     ucb1 = ThompsonSamplingBernoulli(
-        mab=me,
+        arm_distributions=arm_distrs,
         time_steps=steps,
         num_episodes=episodes
     )

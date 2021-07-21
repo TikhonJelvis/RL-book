@@ -1,5 +1,5 @@
 from typing import Sequence, Tuple, List
-from rl.chapter14.mab_env import MABEnv
+from rl.distribution import Distribution, Gaussian
 from rl.chapter14.mab_base import MABBase
 from operator import itemgetter
 from numpy import ndarray, empty, exp
@@ -10,7 +10,7 @@ class GradientBandits(MABBase):
 
     def __init__(
         self,
-        mab: MABEnv,
+        arm_distributions: Sequence[Distribution[float]],
         time_steps: int,
         num_episodes: int,
         learning_rate: float,
@@ -19,7 +19,7 @@ class GradientBandits(MABBase):
         if learning_rate <= 0 or learning_rate_decay <= 0:
             raise ValueError
         super().__init__(
-            mab=mab,
+            arm_distributions=arm_distributions,
             time_steps=time_steps,
             num_episodes=num_episodes
         )
@@ -38,7 +38,7 @@ class GradientBandits(MABBase):
             sum_exp_scores = sum(exp_scores)
             probs: Sequence[float] = [s / sum_exp_scores for s in exp_scores]
             action: int = choice(self.num_arms, p=probs)
-            reward: float = self.mab_funcs[action]()
+            reward: float = self.arm_distributions[action].sample()
             avg_reward += (reward - avg_reward) / (i + 1)
             step_size: float = self.learning_rate *\
                 (i / self.learning_rate_decay + 1) ** -0.5
@@ -52,17 +52,17 @@ class GradientBandits(MABBase):
 
 
 if __name__ == '__main__':
-    mean_vars_data = [(9., 5.), (10., 2.), (0., 4.),
-                      (6., 10.), (2., 20.), (4., 1.)]
-    mu_star = max(mean_vars_data, key=itemgetter(0))[0]
+    means_vars_data = [(9., 5.), (10., 2.), (0., 4.),
+                       (6., 10.), (2., 20.), (4., 1.)]
+    mu_star = max(means_vars_data, key=itemgetter(0))[0]
     steps = 200
     episodes = 1000
     lr = 0.1
     lr_decay = 20.0
 
-    me = MABEnv.get_gaussian_mab_env(mean_vars_data)
+    arm_distrs = [Gaussian(μ=m, σ=s) for m, s in means_vars_data]
     ucb1 = GradientBandits(
-        mab=me,
+        arm_distributions=arm_distrs,
         time_steps=steps,
         num_episodes=episodes,
         learning_rate=lr,

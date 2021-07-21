@@ -1,6 +1,6 @@
 from typing import Sequence, Callable, Tuple
 from abc import ABC, abstractmethod
-from rl.chapter14.mab_env import MABEnv
+from rl.distribution import Distribution
 from numpy import ndarray, mean, vstack, cumsum, full, bincount
 
 
@@ -8,12 +8,13 @@ class MABBase(ABC):
 
     def __init__(
         self,
-        mab: MABEnv,
+        arm_distributions: Sequence[Distribution[float]],
         time_steps: int,
         num_episodes: int
     ) -> None:
-        self.mab_funcs: Sequence[Callable[[], float]] = mab.arms_sampling_funcs
-        self.num_arms: int = len(self.mab_funcs)
+        self.arm_distributions: Sequence[Distribution[float]] = \
+            arm_distributions
+        self.num_arms: int = len(arm_distributions)
         self.time_steps: int = time_steps
         self.num_episodes: int = num_episodes
 

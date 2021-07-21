@@ -1,6 +1,6 @@
-from typing import List, Callable, Tuple
+from typing import List, Callable, Tuple, Sequence
+from rl.distribution import Distribution, Gaussian
 from rl.chapter14.mab_base import MABBase
-from rl.chapter14.mab_env import MABEnv
 from operator import itemgetter
 from numpy.random import binomial, randint
 from numpy import ndarray, empty
@@ -10,7 +10,7 @@ class EpsilonGreedy(MABBase):
 
     def __init__(
         self,
-        mab: MABEnv,
+        arm_distributions: Sequence[Distribution[float]],
         time_steps: int,
         num_episodes: int,
         epsilon: float,
@@ -23,7 +23,7 @@ class EpsilonGreedy(MABBase):
             raise ValueError
 
         super().__init__(
-            mab=mab,
+            arm_distributions=arm_distributions,
             time_steps=time_steps,
             num_episodes=num_episodes
         )
@@ -57,7 +57,7 @@ class EpsilonGreedy(MABBase):
             epsl: float = self.epsilon_func(i)
             action: int = max_action if binomial(1, epsl, size=1)[0] == 0 else\
                 randint(self.num_arms, size=1)[0]
-            reward: float = self.mab_funcs[action]()
+            reward: float = self.arm_distributions[action].sample()
             counts[action] += 1
             means[action] += (reward - means[action]) / counts[action]
             ep_rewards[i] = reward
@@ -66,9 +66,9 @@ class EpsilonGreedy(MABBase):
 
 
 if __name__ == '__main__':
-    mean_vars_data = [(9., 5.), (10., 2.), (0., 4.),
-                      (6., 10.), (2., 20.), (4., 1.)]
-    mu_star = max(mean_vars_data, key=itemgetter(0))[0]
+    means_vars_data = [(9., 5.), (10., 2.), (0., 4.),
+                       (6., 10.), (2., 20.), (4., 1.)]
+    mu_star = max(means_vars_data, key=itemgetter(0))[0]
     steps = 200
     episodes = 1000
     eps = 0.2
@@ -76,9 +76,9 @@ if __name__ == '__main__':
     ci = 5
     mi = mu_star * 3.
 
-    me = MABEnv.get_gaussian_mab_env(mean_vars_data)
+    arm_distrs = [Gaussian(μ=m, σ=s) for m, s in means_vars_data]
     eg = EpsilonGreedy(
-        mab=me,
+        arm_distributions=arm_distrs,
         time_steps=steps,
         num_episodes=episodes,
         epsilon=eps,
