@@ -149,7 +149,7 @@ where $\mathbb{I}$ refers to the indicator function.
 First consider an algorithm that *never* explores (i.e., *always* exploits). This is known as the *Greedy Algorithm* which selects the action with highest estimated value, i.e.,
 $$A_t = \argmax_{a\in \mathcal{A}} \hat{Q}_{t-1}(a)$$
 
-We've noted in Chapter [-@sec:rl-control-chapter] that such an algorithm can lock into a suboptimal action forever (suboptimal $a$ is an action for which $\Delta_a > 0$). This results in $Count_T(a)$ being a linear function of $T$ for some suboptimal $a$, which means the Total Regret is a linear function of $T$ (we refer to this as *Linear Total Regret*). 
+As ever, $\argmax$ ties are broken with an arbitrary rule in prioritizing actions. We've noted in Chapter [-@sec:rl-control-chapter] that such an algorithm can lock into a suboptimal action forever (suboptimal $a$ is an action for which $\Delta_a > 0$). This results in $Count_T(a)$ being a linear function of $T$ for some suboptimal $a$, which means the Total Regret is a linear function of $T$ (we refer to this as *Linear Total Regret*). 
 
 Now let's consider the $\epsilon$-greedy algorithm, which explores forever. At each time-step $t$:
 
