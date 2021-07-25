@@ -1,9 +1,8 @@
 from typing import Sequence, Tuple, List
-from rl.distribution import Gaussian
+from rl.distribution import Gaussian, Gamma
 from rl.chapter14.mab_base import MABBase
 from operator import itemgetter
 from numpy import ndarray, empty, sqrt
-from numpy.random import gamma, normal
 
 
 class ThompsonSamplingGaussian(MABBase):
@@ -23,7 +22,7 @@ class ThompsonSamplingGaussian(MABBase):
             time_steps=time_steps,
             num_episodes=num_episodes
         )
-        self.mu0: float = init_mean
+        self.theta0: float = init_mean
         self.n0: int = 1
         self.alpha0: float = 1
         self.beta0: float = init_stdev * init_stdev
@@ -36,22 +35,21 @@ class ThompsonSamplingGaussian(MABBase):
         ep_rewards: ndarray = empty(self.time_steps)
         ep_actions: ndarray = empty(self.time_steps, dtype=int)
         bayes: List[Tuple[float, int, float, float]] =\
-            [(self.mu0, self.n0, self.alpha0, self.beta0)] * self.num_arms
+            [(self.theta0, self.n0, self.alpha0, self.beta0)] * self.num_arms
 
         for i in range(self.time_steps):
-            mean_draws: Sequence[float] = [normal(
-                mu,
-                1 / sqrt(n * gamma(alpha, 1 / beta, 1)[0]),
-                1
-            )[0] for mu, n, alpha, beta in bayes]
+            mean_draws: Sequence[float] = [Gaussian(
+                μ=theta,
+                σ=1 / sqrt(n * Gamma(α=alpha, β=beta).sample())
+            ).sample() for theta, n, alpha, beta in bayes]
             action: int = max(enumerate(mean_draws), key=itemgetter(1))[0]
             reward: float = self.arm_distributions[action].sample()
-            mu, n, alpha, beta = bayes[action]
+            theta, n, alpha, beta = bayes[action]
             bayes[action] = (
-                (reward + n * mu) / (n + 1),
+                (reward + n * theta) / (n + 1),
                 n + 1,
                 alpha + 0.5,
-                beta + 0.5 * n / (n + 1) * (reward - mu) * (reward - mu)
+                beta + 0.5 * n / (n + 1) * (reward - theta) * (reward - theta)
             )
             ep_rewards[i] = reward
             ep_actions[i] = action
