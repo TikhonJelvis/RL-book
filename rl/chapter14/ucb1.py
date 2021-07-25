@@ -53,8 +53,8 @@ if __name__ == '__main__':
     binomial_probs = [0.4, 0.8, 0.1, 0.5, 0.9, 0.2]
     binomial_params = [(binomial_count, p) for p in binomial_probs]
     mu_star = max(n * p for n, p in binomial_params)
-    steps = 200
-    episodes = 1000
+    steps = 1000
+    episodes = 500
     this_range = binomial_count
     this_alpha = 4.0
 
@@ -68,10 +68,9 @@ if __name__ == '__main__':
         bounds_range=this_range,
         alpha=this_alpha
     )
-    exp_cum_regret = ucb1.get_expected_cum_regret(mu_star)
-    print(exp_cum_regret)
-
-    exp_act_count = ucb1.get_expected_action_counts()
-    print(exp_act_count)
+    # exp_cum_regret = ucb1.get_expected_cum_regret(mu_star)
+    # print(exp_cum_regret)
+    # exp_act_count = ucb1.get_expected_action_counts()
+    # print(exp_act_count)
 
     ucb1.plot_exp_cum_regret_curve(mu_star)
