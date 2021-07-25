@@ -144,7 +144,7 @@ class Gamma(SampledDistribution[float]):
         self.α = α
         self.β = β
         super().__init__(
-            sampler=lambda: np.random.gamma(loc=self.α, scale=1/self.β),
+            sampler=lambda: np.random.gamma(shape=self.α, scale=1/self.β),
             expectation_samples=expectation_samples
         )
 
@@ -159,7 +159,7 @@ class Beta(SampledDistribution[float]):
         self.α = α
         self.β = β
         super().__init__(
-            sampler=lambda: np.random.beta(loc=self.α, scale=self.β),
+            sampler=lambda: np.random.beta(a=self.α, b=self.β),
             expectation_samples=expectation_samples
         )
 
