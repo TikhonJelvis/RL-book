@@ -41,15 +41,15 @@ class Distribution(ABC, Generic[A]):
         pass
 
     def map(
-            self,
-            f: Callable[[A], B]
+        self,
+        f: Callable[[A], B]
     ) -> Distribution[B]:
         '''Apply a function to the outcomes of this distribution.'''
         return SampledDistribution(lambda: f(self.sample()))
 
     def apply(
-            self,
-            f: Callable[[A], Distribution[B]]
+        self,
+        f: Callable[[A], Distribution[B]]
     ) -> Distribution[B]:
         '''Apply a function that returns a distribution to the outcomes of
         this distribution. This lets us express *dependent random
@@ -134,6 +134,36 @@ class Gaussian(SampledDistribution[float]):
         )
 
 
+class Gamma(SampledDistribution[float]):
+    '''A Gamma distribution with the given α and β.'''
+
+    α: float
+    β: float
+
+    def __init__(self, α: float, β: float, expectation_samples: int = 10000):
+        self.α = α
+        self.β = β
+        super().__init__(
+            sampler=lambda: np.random.gamma(shape=self.α, scale=1/self.β),
+            expectation_samples=expectation_samples
+        )
+
+
+class Beta(SampledDistribution[float]):
+    '''A Beta distribution with the given α and β.'''
+
+    α: float
+    β: float
+
+    def __init__(self, α: float, β: float, expectation_samples: int = 10000):
+        self.α = α
+        self.β = β
+        super().__init__(
+            sampler=lambda: np.random.beta(a=self.α, b=self.β),
+            expectation_samples=expectation_samples
+        )
+
+
 class FiniteDistribution(Distribution[A], ABC):
     '''A probability distribution with a finite number of outcomes, which
     means we can render it as a PDF or CDF table.
@@ -193,15 +223,12 @@ class FiniteDistribution(Distribution[A], ABC):
         return repr(self.table())
 
 
-# TODO: Rename?
+@dataclass(frozen=True)
 class Constant(FiniteDistribution[A]):
     '''A distribution that has a single outcome with probability 1.
 
     '''
     value: A
-
-    def __init__(self, value: A):
-        self.value = value
 
     def sample(self) -> A:
         return self.value
@@ -213,14 +240,13 @@ class Constant(FiniteDistribution[A]):
         return 1. if outcome == self.value else 0.
 
 
+@dataclass(frozen=True)
 class Bernoulli(FiniteDistribution[bool]):
     '''A distribution with two outcomes. Returns True with probability p
     and False with probability 1 - p.
 
     '''
-
-    def __init__(self, p: float):
-        self.p = p
+    p: float
 
     def sample(self) -> bool:
         return random.uniform(0, 1) <= self.p
@@ -284,6 +310,7 @@ class Choose(FiniteDistribution[A]):
 
     def probability(self, outcome: A) -> float:
         return self.table().get(outcome, 0.0)
+
 
 class Categorical(FiniteDistribution[A]):
     '''Select from a finite set of outcomes with the specified

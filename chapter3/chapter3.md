@@ -39,7 +39,7 @@ Similar to the definitions of Markov Processes and Markov Reward Processes, for 
 
 \begin{definition}
 
- A {\em Markov Decision Process} comprises of:
+A {\em Markov Decision Process} comprises of:
 
 \begin{itemize}
 
