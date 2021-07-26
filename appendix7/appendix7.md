@@ -8,7 +8,7 @@ Here we assume that each data point is Gaussian-distributed in $\mathbb{R}$. So 
 
 $$x_n \sim \mathcal{N}(\mu, \sigma^2)$$
 
-and we assume both $\mu$ and $\sigma^2$ are unknown random variables with [Normal-Inverse-Gamma-Distribution](https://en.wikipedia.org/wiki/Normal-inverse-gamma_distribution) Conjugate Prior for $\mu$ and $\sigma^2$, i.e.,
+and we assume both $\mu$ and $\sigma^2$ are unknown random variables with [Gaussian-Inverse-Gamma Probability Distribution](https://en.wikipedia.org/wiki/Normal-inverse-gamma_distribution) Conjugate Prior for $\mu$ and $\sigma^2$, i.e.,
 
 $$\mu | x_1, \ldots, x_n \sim \mathcal{N}(\theta_n, \frac {\sigma^2} n)$$
 $$\sigma^2 | x_1, \ldots, x_n \sim IG(\alpha_n, \beta_n)$$
