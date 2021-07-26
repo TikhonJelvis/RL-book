@@ -380,9 +380,9 @@ $$A_{t+1} = \argmax_{a\in\mathcal{A}} \mathbb{E}_{\mathbb{P}[\mu_a,\sigma_a^2|H_
 
 ### Probability Matching
 
-As mentioned in the previous section, calculating the posterior distribution $\mathbb{P}[\mathcal{R}|H_t]$ after each time step $t$ also enables a different approach known as *Probability Matching*.  The idea behind Probabilistic Matching is to select an action $a$ probabilistically in proportion to the probability that $a$ is the optimal action. Before describing Probability Matching formally, we illustrate the idea with a simple example to develop intuition.
+As mentioned in the previous section, calculating the posterior distribution $\mathbb{P}[\mathcal{R}|H_t]$ after each time step $t$ also enables a different approach known as *Probability Matching*.  The idea behind Probability Matching is to select an action $a$ probabilistically in proportion to the probability that $a$ might the optimal action (based on the data seen so far). Before describing Probability Matching formally, we illustrate the idea with a simple example to develop intuition.
 
-Let us say we have only two actions $a_1$ and $a_2$. For simplicity, let us assume that the posterior distribution $\mathbb{P}[\mathcal{R}^{a_1}|H_t]$ has only two distribution outcomes (call them $\mathcal{R}^{a_1}_1$ and $\mathcal{R}^{a_1}_2$) and that the posterior distribution $\mathbb{P}[\mathcal{R}^{a_2}|H_t]$ has only two distribution outcomes (call them $\mathcal{R}^{a_2}_1$ and $\mathcal{R}^{a_2}_2$). Typically, there will be an infinite (continuum) of distribution outcomes for $\mathbb{P}[\mathcal{R}|H_t]$ - here we assume only two distribution outcomes for each of the actions' estimated conditional probability of rewards purely for simplicity so as convey the intuition beyond Probability Matching. Assume that the probability distributions $\mathcal{R}^{a_1}_1$ and $\mathcal{R}^{a_1}_2$ have estimated probabilities of 0.7 and 0.3 respectively, and that $\mathcal{R}^{a_1}_1$ has mean 5.0 and $\mathcal{R}^{a_1}_2$ has mean 10.0. Assume that the probability distributions $\mathcal{R}^{a_2}_1$ and $\mathcal{R}^{a_2}_2$ have estimated probabilities of 0.2 and 0.8 respectively, and that $\mathcal{R}^{a_2}_1$ has mean 2.0 and $\mathcal{R}^{a_2}_2$ has mean 7.0.
+Let us say we have only two actions $a_1$ and $a_2$. For simplicity, let us assume that the posterior distribution $\mathbb{P}[\mathcal{R}^{a_1}|H_t]$ has only two distribution outcomes (call them $\mathcal{R}^{a_1}_1$ and $\mathcal{R}^{a_1}_2$) and that the posterior distribution $\mathbb{P}[\mathcal{R}^{a_2}|H_t]$ also has only two distribution outcomes (call them $\mathcal{R}^{a_2}_1$ and $\mathcal{R}^{a_2}_2$). Typically, there will be an infinite (continuum) of distribution outcomes for $\mathbb{P}[\mathcal{R}|H_t]$ - here we assume only two distribution outcomes for each of the actions' estimated conditional probability of rewards purely for simplicity so as convey the intuition behind Probability Matching. Assume that $\mathbb{P}[\mathcal{R}^{a_1} = \mathcal{R}^{a_1}_1|H_t] = 0.7$ and $\mathbb{P}[\mathcal{R}^{a_1} = \mathcal{R}^{a_1}_2|H_t] = 0.3$, and that $\mathcal{R}^{a_1}_1$ has mean 5.0 and $\mathcal{R}^{a_1}_2$ has mean 10.0. Assume that $\mathbb{P}[\mathcal{R}^{a_2} = \mathcal{R}^{a_2}_1|H_t] = 0.2$ and $\mathbb{P}[\mathcal{R}^{a_2} = \mathcal{R}^{a_2}_2|H_t] = 0.8$, and that $\mathcal{R}^{a_2}_1$ has mean 2.0 and $\mathcal{R}^{a_2}_2$ has mean 7.0.
 
 Probability Matching calculates at each time step $t$ how often does each action $a$ have the maximum $\mathbb{E}[r|a]$ among all actions, across all the probabilistic outcomes for the posterior distribution $\mathbb{P}[\mathcal{R}|H_t]$, and then selects that action $a$ probabilistically in proportion to this calculation. Let's do this probability calculation for our simple case of two actions and two probabilistic outcomes each for the posterior distribution for each action. So here, we have 4 probabilistic outcomes when considering the two actions jointly, as follows:
 
@@ -393,30 +393,28 @@ Probability Matching calculates at each time step $t$ how often does each action
 
 Thus, $a_1$ has the maximum $\mathbb{E}[r|a]$ among the two actions in Outcomes 1, 3 and 4, amounting to a total outcomes probability of 0.14 + 0.06 + 0.24 = 0.44, and $a_2$ has the maximum $\mathbb{E}[r|a]$ among the two actions only in Outcome 2, which has an outcome probability of 0.56. Therefore, in the next time step ($t+1$), the Probability Matching method will select action $a_1$ with probability 0.44 and $a_2$ with probability 0.56.
 
-Generalizing this Probability Matching method to arbitrary number of actions and to an arbitrary number of probabilistic outcomes for the conditional reward distributions for each action, we can write the probabilistic selection of actions at time step $t+1$ as:
+Generalizing this Probability Matching method to an arbitrary number of actions and to an arbitrary number of probabilistic outcomes for the conditional reward distributions for each action, we can write the probabilistic selection of actions at time step $t+1$ as:
 
 \begin{equation}
 \mathbb{P}[A_{t+1}|H_t] = \mathbb{P}_{\mathcal{D}_t \sim \mathbb{P}[\mathcal{R}|H_t]}[\mathbb{E}_{\mathcal{D}_t}[r|A_{t+1}] > \mathbb{E}_{\mathcal{D}_t}[r|a] \text{ for all } a \neq A_{t+1}]
 \label{eq:probability-matching}
 \end{equation}
 
-where $\mathcal{D}_t$ refers to a random draw of conditional distribution of rewards for each action from the posterior distribution $\mathbb{R}[\mathcal{R}|H_t]$. As ever, ties between actions are broken with n arbitrary rule prioritizing actions.
+where $\mathcal{D}_t$ refers to a particular random outcome of a distribution of rewards for each action, drawn from the posterior distribution $\mathbb{P}[\mathcal{R}|H_t]$. As ever, ties between actions are broken with an arbitrary rule prioritizing actions.
 
 Note that the Probability Matching method is also based on the principle of *Optimism in the Face of Uncertainty* because an action with more uncertainty in it's mean reward is more likely to be have the highest mean reward among all actions (all else being equal), and hence deserves to be selected more frequently.
 
-We see that the Probability Matching approach is mathematically disciplined in driving towards cumulative reward maximization while balancing exploration and exploitation, the right-hand-side of Equation \ref{eq:probability-matching} can be difficult to compute analytically from the posterior distributions. We resolve this difficulty with a sampling approach to Probability Matching known as *Thompson Sampling*.
+We see that the Probability Matching approach is mathematically disciplined in driving towards cumulative reward maximization while balancing exploration and exploitation. However, the right-hand-side of Equation \ref{eq:probability-matching} can be difficult to compute analytically from the posterior distributions. We resolve this difficulty with a sampling approach to Probability Matching known as *Thompson Sampling*.
 
 #### Thompson Sampling
 
 We can reformulate the right-hand-side of Equation \ref{eq:probability-matching} as follows:
 \begin{align*}
-\pi(A_{t+1}|H_t) & = \mathbb{P}_{\mathcal{D}_t \sim \mathbb{P}[\mathcal{R}|H_t]}[\mathbb{E}_{\mathcal{D}_t}[r|A_{t+1}] > \mathbb{E}_{\mathcal{D}_t}[r|a] \text{for all } a \neq A_{t+1}] \\
+\mathbb{P}[A_{t+1}|H_t] & = \mathbb{P}_{\mathcal{D}_t \sim \mathbb{P}[\mathcal{R}|H_t]}[\mathbb{E}_{\mathcal{D}_t}[r|A_{t+1}] > \mathbb{E}_{\mathcal{D}_t}[r|a] \text{for all } a \neq A_{t+1}] \\
 & =\mathbb{E}_{\mathcal{D}_t \sim \mathbb{P}[\mathcal{R}|H_t]}[\mathbb{I}_{A_{t+1}=\argmax_{a\in\mathcal{A}} \mathbb{E}_{\mathcal{D}_t}[r|a]}]
 \end{align*}
 
-where $\mathbb{I}$ refers to the indicator function. This reformulation of the Probability Matching equation yields a sampling method (implementing Probability Matching) known as *Thompson Sampling*.
-
-Thompson Sampling performs the following calculations in sequence at the end of each time step $t$:
+where $\mathbb{I}$ refers to the indicator function. This reformulation in terms of an *Expectation* is convenient because we can estimate the Expectation by sampling various $\mathcal{D}_t$ probability distributions and for each sample of $\mathcal{D}_t$, we simply check if an action has the best mean reward (compared to other actions) under the distribution $\mathcal{D}_t$. This sampling-based approach to Probability Matching is known as *Thompson Sampling*. Specifically, Thompson Sampling performs the following calculations in sequence at the end of each time step $t$:
 
 * Compute the posterior distribution $\mathbb{P}[\mathcal{R}|H_t]$ by performing Bayesian updates of the hyperparameters that govern the estimated probability distributions of the parameters of the reward distributions for each action.
 * *Sample* a joint (across actions) rewards distribution $\mathcal{D}_t$ from the posterior distribution $\mathbb{P}[\mathcal{R}|H_t]$.
@@ -530,27 +528,29 @@ We encourage you to modify the code in `__main__` to try other mean settings for
 
 ### Gradient Bandits
 
-Now we cover a MAB algorithm that is similar to Policy Gradient for MDPs. This MAB algorithm's action selection is randomized and the action selection probabilities are constructed through Gradient Ascent (much like Stochastic Policy Gradient for MDPs). This MAB Algorithm and it's variants are cheekily refered to as *Gradient Bandits* (we shall refer to the algorithm we cover below as simply *Gradient Algorithm*).
+Now we cover a MAB algorithm that is similar to Policy Gradient for MDPs. This MAB algorithm's action selection is randomized and the action selection probabilities are constructed through Gradient Ascent (much like Stochastic Policy Gradient for MDPs). This MAB Algorithm and it's variants are cheekily refered to as *Gradient Bandits*.
 
-The basic idea is that we have $m$ *Score* parameters, one for each action, denoted as $\{s_a|a \in \mathcal{A}\}$, and construct an *Expected Reward* Objective function to be maximized, as follows:
+The basic idea is that we have $m$ *Score* parameters, one for each action, denoted as $\{s_a|a \in \mathcal{A}\}$ that define the action-selection probabilities, which in turn defines an *Expected Reward* Objective function to be maximized, as follows:
 
 $$J(s_{a_1}, \ldots, s_{a_m}) = \sum_{a\in\mathcal{A}} \pi(a) \cdot \mathbb{E}[r|a]$$
 
-The action selection probabilities are based on a function $\pi: \mathcal{A} \rightarrow [0, 1]$, defined as:
+where $\pi: \mathcal{A} \rightarrow [0, 1]$ refers to the function for action-selection probabilities, that is defined as follows:
 
 $$\pi(a) = \frac {e^{s_a}} {\sum_{b\in \mathcal{A}} e^{s_b}} \text{ for all } a \in \mathcal{A}$$
 
-The *Score* parameters are meant to represent the relative value of actions based on the rewards seen until a certain time step, and are adjusted appropriately after each time step. Note that $\pi(\cdot)$ is a [Softmax function](https://en.wikipedia.org/wiki/Softmax_function) of the *Score* parameters.
+The *Score* parameters are meant to represent the relative value of actions based on the rewards seen until a certain time step, and are adjusted appropriately after each time step (using Gradient Ascent). Note that $\pi(\cdot)$ is a [Softmax function](https://en.wikipedia.org/wiki/Softmax_function) of the *Score* parameters.
 
 Gradient Ascent moves the *Score* parameters $s_a$ (and hence, action probabilities $\pi(a)$) in the direction of the gradient of the objective function $J(s_{a_1}, \ldots, s_{a_m})$ with respect to $(s_{a_1}, \ldots, s_{a_m})$. To construct this gradient of $J(\cdot)$, we calculate $\pdv{J}{s_a}$ for each $a\in \mathcal{A}$, as follows:
-$$\pdv{J}{s_a} = \pdv{}{s_a}(\sum_{a'\in\mathcal{A}} \pi(a') \cdot \mathbb{E}[r|a'])
- = \sum_{a'\in\mathcal{A}} \mathbb{E}[r|a'] \cdot \pdv{\pi(a')} {s_a}$$
-$$ = \sum_{a'\in\mathcal{A}} \pi(a') \cdot \mathbb{E}[r|a'] \cdot \pdv{\log \pi(a')} {s_a}
-= \mathbb{E}_{a'\sim \pi, r\sim \mathcal{R}^{a'}}[r \cdot \pdv{\log \pi(a')} {s_a}]$$
+\begin{align*}
+\pdv{J}{s_a} & = \pdv{(\sum_{a'\in\mathcal{A}} \pi(a') \cdot \mathbb{E}[r|a'])}{s_a} \\
+ & = \sum_{a'\in\mathcal{A}} \mathbb{E}[r|a'] \cdot \pdv{\pi(a')} {s_a} \\
+ & = \sum_{a'\in\mathcal{A}} \pi(a') \cdot \mathbb{E}[r|a'] \cdot \pdv{\log \pi(a')} {s_a} \\
+ & = \mathbb{E}_{a'\sim \pi, r\sim \mathcal{R}^{a'}}[r \cdot \pdv{\log \pi(a')} {s_a}]
+\end{align*}
 We know from standard softmax-function calculus that:
-$$\pdv{\log \pi(a')} {s_a} = \pdv{}{s_a}(\log\frac {e^{s_{a'}}} {\sum_{b\in \mathcal{A}} e^{s_b}}) = \mathbb{I}_{a=a'} - \pi(a)$$
+$$\pdv{\log \pi(a')} {s_a} = \pdv{(\log\frac {e^{s_{a'}}} {\sum_{b\in \mathcal{A}} e^{s_b}})}{s_a} = \mathbb{I}_{a=a'} - \pi(a)$$
 Therefore $\pdv{J}{s_a}$ can we re-written as:
-$$=\mathbb{E}_{a'\sim \pi, r\sim \mathcal{R}^{a'}}[r \cdot  (\mathbb{I}_{a=a'} - \pi(a))]$$
+$$\pdv{J}{s_a} =\mathbb{E}_{a'\sim \pi, r\sim \mathcal{R}^{a'}}[r \cdot  (\mathbb{I}_{a=a'} - \pi(a))]$$
 At each time step $t$, we approximate the gradient with the $(A_t, R_t)$ sample as:
 $$R_t \cdot (\mathbb{I}_{a=A_t} - \pi_t(a)) \text{ for all } a \in \mathcal{A}$$
 $\pi_t(a)$ is the probability of selecting action $a$ at time step $t$, derived from the *Score* $s_t(a)$ at time step $t$.
@@ -558,8 +558,15 @@ $\pi_t(a)$ is the probability of selecting action $a$ at time step $t$, derived 
 We can reduce the variance of this estimate with a baseline $B$ that is independent of $a$, as follows:
 $$(R_t -B) \cdot (\mathbb{I}_{a=A_t} - \pi_t(a)) \mbox{ for all } a \in \mathcal{A}$$
 This doesn't introduce any bias in the estimate of the gradient of $J(\cdot)$ because:
-$$\mathbb{E}_{a'\sim \pi}[B \cdot (\mathbb{I}_{a=a'} - \pi(a))] = \mathbb{E}_{a'\sim \pi}[B \cdot \pdv{\log \pi(a')} {s_a}]$$
-$$= B \cdot \sum_{a'\in\mathcal{A}} \pi(a') \cdot \pdv{\log \pi(a')} {s_a} = B \cdot \sum_{a'\in\mathcal{A}} \pdv{\pi(a')} {s_a} = B \cdot \pdv{}{s_a}(\sum_{a'\in\mathcal{A}} \pi(a')) = 0$$
+\begin{align*}
+\mathbb{E}_{a'\sim \pi}[B \cdot (\mathbb{I}_{a=a'} - \pi(a))] & = \mathbb{E}_{a'\sim \pi}[B \cdot \pdv{\log \pi(a')} {s_a}] \\
+& = B \cdot \sum_{a'\in\mathcal{A}} \pi(a') \cdot \pdv{\log \pi(a')} {s_a} \\
+& = B \cdot \sum_{a'\in\mathcal{A}} \pdv{\pi(a')} {s_a} \\
+& = B \cdot \pdv{(\sum_{a'\in\mathcal{A}} \pi(a'))}{s_a} \\
+& = B \cdot \pdv{1}{s_a} \\
+& = 0
+\end{align*}
+
 We can use $B = \bar{R}_t = \frac 1 t \sum_{s=1}^t R_s$ (average rewards until time step $t$). So, the update to scores $s_t(a)$ for all $a\in\mathcal{A}$ is:
 $$s_{t+1}(a) = s_t(a) + \alpha \cdot (R_t - \bar{R}_t) \cdot (\mathbb{I}_{a=A_t} - \pi_t(a))$$
 
