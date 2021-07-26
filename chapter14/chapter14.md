@@ -530,6 +530,97 @@ We encourage you to modify the code in `__main__` to try other mean settings for
 
 ### Gradient Bandits
 
+Now we cover a MAB algorithm that is similar to Policy Gradient for MDPs. This MAB algorithm's action selection is randomized and the action selection probabilities are constructed through Gradient Ascent (much like Stochastic Policy Gradient for MDPs). This MAB Algorithm and it's variants are cheekily refered to as *Gradient Bandits* (we shall refer to the algorithm we cover below as simply *Gradient Algorithm*).
+
+The basic idea is that we have $m$ *Score* parameters, one for each action, denoted as $\{s_a|a \in \mathcal{A}\}$, and construct an *Expected Reward* Objective function to be maximized, as follows:
+
+$$J(s_{a_1}, \ldots, s_{a_m}) = \sum_{a\in\mathcal{A}} \pi(a) \cdot \mathbb{E}[r|a]$$
+
+The action selection probabilities are based on a function $\pi: \mathcal{A} \rightarrow [0, 1]$, defined as:
+
+$$\pi(a) = \frac {e^{s_a}} {\sum_{b\in \mathcal{A}} e^{s_b}} \text{ for all } a \in \mathcal{A}$$
+
+The *Score* parameters are meant to represent the relative value of actions based on the rewards seen until a certain time step, and are adjusted appropriately after each time step. Note that $\pi(\cdot)$ is a [Softmax function](https://en.wikipedia.org/wiki/Softmax_function) of the *Score* parameters.
+
+Gradient Ascent moves the *Score* parameters $s_a$ (and hence, action probabilities $\pi(a)$) in the direction of the gradient of the objective function $J(s_{a_1}, \ldots, s_{a_m})$ with respect to $(s_{a_1}, \ldots, s_{a_m})$. To construct this gradient of $J(\cdot)$, we calculate $\pdv{J}{s_a}$ for each $a\in \mathcal{A}$, as follows:
+$$\pdv{J}{s_a} = \pdv{}{s_a}(\sum_{a'\in\mathcal{A}} \pi(a') \cdot \mathbb{E}[r|a'])
+ = \sum_{a'\in\mathcal{A}} \mathbb{E}[r|a'] \cdot \pdv{\pi(a')} {s_a}$$
+$$ = \sum_{a'\in\mathcal{A}} \pi(a') \cdot \mathbb{E}[r|a'] \cdot \pdv{\log \pi(a')} {s_a}
+= \mathbb{E}_{a'\sim \pi, r\sim \mathcal{R}^{a'}}[r \cdot \pdv{\log \pi(a')} {s_a}]$$
+We know from standard softmax-function calculus that:
+$$\pdv{\log \pi(a')} {s_a} = \pdv{}{s_a}(\log\frac {e^{s_{a'}}} {\sum_{b\in \mathcal{A}} e^{s_b}}) = \mathbb{I}_{a=a'} - \pi(a)$$
+Therefore $\pdv{J}{s_a}$ can we re-written as:
+$$=\mathbb{E}_{a'\sim \pi, r\sim \mathcal{R}^{a'}}[r \cdot  (\mathbb{I}_{a=a'} - \pi(a))]$$
+At each time step $t$, we approximate the gradient with the $(A_t, R_t)$ sample as:
+$$R_t \cdot (\mathbb{I}_{a=A_t} - \pi_t(a)) \text{ for all } a \in \mathcal{A}$$
+$\pi_t(a)$ is the probability of selecting action $a$ at time step $t$, derived from the *Score* $s_t(a)$ at time step $t$.
+
+We can reduce the variance of this estimate with a baseline $B$ that is independent of $a$, as follows:
+$$(R_t -B) \cdot (\mathbb{I}_{a=A_t} - \pi_t(a)) \mbox{ for all } a \in \mathcal{A}$$
+This doesn't introduce any bias in the estimate of the gradient of $J(\cdot)$ because:
+$$\mathbb{E}_{a'\sim \pi}[B \cdot (\mathbb{I}_{a=a'} - \pi(a))] = \mathbb{E}_{a'\sim \pi}[B \cdot \pdv{\log \pi(a')} {s_a}]$$
+$$= B \cdot \sum_{a'\in\mathcal{A}} \pi(a') \cdot \pdv{\log \pi(a')} {s_a} = B \cdot \sum_{a'\in\mathcal{A}} \pdv{\pi(a')} {s_a} = B \cdot \pdv{}{s_a}(\sum_{a'\in\mathcal{A}} \pi(a')) = 0$$
+We can use $B = \bar{R}_t = \frac 1 t \sum_{s=1}^t R_s$ (average rewards until time step $t$). So, the update to scores $s_t(a)$ for all $a\in\mathcal{A}$ is:
+$$s_{t+1}(a) = s_t(a) + \alpha \cdot (R_t - \bar{R}_t) \cdot (\mathbb{I}_{a=A_t} - \pi_t(a))$$
+
+Now let's write some code to implement this Gradient Algorithm.
+
+```python
+from rl.distribution import Distribution, Categorical
+from operator import itemgetter
+from numpy import ndarray, empty, exp
+
+class GradientBandits(MABBase):
+
+    def __init__(
+        self,
+        arm_distributions: Sequence[Distribution[float]],
+        time_steps: int,
+        num_episodes: int,
+        learning_rate: float,
+        learning_rate_decay: float
+    ) -> None:
+        super().__init__(
+            arm_distributions=arm_distributions,
+            time_steps=time_steps,
+            num_episodes=num_episodes
+        )
+        self.learning_rate: float = learning_rate
+        self.learning_rate_decay: float = learning_rate_decay
+
+    def get_episode_rewards_actions(self) -> Tuple[ndarray, ndarray]:
+        ep_rewards: ndarray = empty(self.time_steps)
+        ep_actions: ndarray = empty(self.time_steps, dtype=int)
+        scores: List[float] = [0.] * self.num_arms
+        avg_reward: float = 0.
+
+        for i in range(self.time_steps):
+            max_score: float = max(scores)
+            exp_scores: Sequence[float] = [exp(s - max_score) for s in scores]
+            sum_exp_scores = sum(exp_scores)
+            probs: Sequence[float] = [s / sum_exp_scores for s in exp_scores]
+            action: int = Categorical(
+                {i: p for i, p in enumerate(probs)}
+            ).sample()
+            reward: float = self.arm_distributions[action].sample()
+            avg_reward += (reward - avg_reward) / (i + 1)
+            step_size: float = self.learning_rate *\
+                (i / self.learning_rate_decay + 1) ** -0.5
+            for j in range(self.num_arms):
+                scores[j] += step_size * (reward - avg_reward) *\
+                             ((1 if j == action else 0) - probs[j])
+
+            ep_rewards[i] = reward
+            ep_actions[i] = action
+        return ep_rewards, ep_actions
+```
+
+The above code is in the file [rl/chapter14/gradient_bandits.py](https://github.com/TikhonJelvis/RL-book/tree/master/rl/chapter14/gradient_bandits.py). The code in `__main__` sets up a `GradientBandits` instance with 6 arms, each having a Gaussian distribution. When run with 1000 time steps and 500 episodes, we get the Total Regret Curve as shown in Figure \ref{fig:gradient_bandits_total_regret_curve}.
+
+![Gradient Algorithm Total Regret Curve \label{fig:gradient_bandits_total_regret_curve}](./chapter14/gradient_bandits_total_regret_curve.png "Gradient Algorithm Total Regret Curve")
+
+We encourage you to modify the code in `__main__` to try other mean and standard deviation settings for the Gaussian distributions of the arms, examine the results obtained, and develop more intuition for this Gradient Algorithm.
+
 ### Information State Space MDP
 
 ### Contextual Bandits
