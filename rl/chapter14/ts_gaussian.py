@@ -15,8 +15,6 @@ class ThompsonSamplingGaussian(MABBase):
         init_mean: float,
         init_stdev: float
     ) -> None:
-        if init_stdev <= 0:
-            raise ValueError
         super().__init__(
             arm_distributions=arm_distributions,
             time_steps=time_steps,
@@ -60,23 +58,22 @@ if __name__ == '__main__':
     means_vars_data = [(9., 5.), (10., 2.), (0., 4.),
                        (6., 10.), (2., 20.), (4., 1.)]
     mu_star = max(means_vars_data, key=itemgetter(0))[0]
-    steps = 200
-    episodes = 1000
+    steps = 1000
+    episodes = 500
     guess_mean = 0.
     guess_stdev = 10.
 
     arm_distrs = [Gaussian(μ=m, σ=s) for m, s in means_vars_data]
-    ucb1 = ThompsonSamplingGaussian(
+    ts_gaussian = ThompsonSamplingGaussian(
         arm_distributions=arm_distrs,
         time_steps=steps,
         num_episodes=episodes,
         init_mean=guess_mean,
         init_stdev=guess_stdev
     )
-    exp_cum_regret = ucb1.get_expected_cum_regret(mu_star)
-    print(exp_cum_regret)
+    # exp_cum_regret = ts_gaussian.get_expected_cum_regret(mu_star)
+    # print(exp_cum_regret)
+    # exp_act_count = ts_gaussian.get_expected_action_counts()
+    # print(exp_act_count)
 
-    exp_act_count = ucb1.get_expected_action_counts()
-    print(exp_act_count)
-
-    ucb1.plot_exp_cum_regret_curve(mu_star)
+    ts_gaussian.plot_exp_cum_regret_curve(mu_star)
