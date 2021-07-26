@@ -357,6 +357,7 @@ class UCB1(MABBase):
             ep_actions[i] = action
         return ep_rewards, ep_actions
 ```
+
 The above code is in the file [rl/chapter14/ucb1.py](https://github.com/TikhonJelvis/RL-book/tree/master/rl/chapter14/ucb1.py). The code in `__main__` sets up a `UCB1` instance with 6 arms, each having a binomial distribution with $n=10$ and $p = \{0.4, 0.8, 0.1, 0.5, 0.9, 0.2\}$ for the 6 arms. When run with 1000 time steps, 500 episodes and $\alpha = 4$, we get the Total Regret Curve as shown in Figure \ref{fig:ucb1_total_regret_curve}.
 
 ![UCB1 Total Regret Curve \label{fig:ucb1_total_regret_curve}](./chapter14/ucb1_total_regret_curve.png "UCB1 Total Regret Curve")
@@ -381,9 +382,151 @@ $$A_{t+1} = \argmax_{a\in\mathcal{A}} \mathbb{E}_{\mathbb{P}[\mu_a,\sigma_a^2|H_
 
 As mentioned in the previous section, calculating the posterior distribution $\mathbb{P}[\mathcal{R}|H_t]$ after each time step $t$ also enables a different approach known as *Probability Matching*.  The idea behind Probabilistic Matching is to select an action $a$ probabilistically in proportion to the probability that $a$ is the optimal action. Before describing Probability Matching formally, we illustrate the idea with a simple example to develop intuition.
 
-Let us say we have only two actions $a_1$ and $a_2$. For simplicity, let us assume that the posterior distribution $\mathbb{P}[\mathcal{R}^{a_1}|H_t]$ has only two distribution outcomes - call them $\mathcal{R}^{a_1}_1$ and $\mathcal{R}^{a_1}_2$. with means 2.0 and 10.0 and with probabilities 0.7 and 0.3 respectively and let us assume that the posterior distribution $\mathbb{P}[\mathcal{R}^{a_2}|H_t]$ also has only two outcomes with means 5.0 and 7.0 and with probabilities 
+Let us say we have only two actions $a_1$ and $a_2$. For simplicity, let us assume that the posterior distribution $\mathbb{P}[\mathcal{R}^{a_1}|H_t]$ has only two distribution outcomes (call them $\mathcal{R}^{a_1}_1$ and $\mathcal{R}^{a_1}_2$) and that the posterior distribution $\mathbb{P}[\mathcal{R}^{a_2}|H_t]$ has only two distribution outcomes (call them $\mathcal{R}^{a_2}_1$ and $\mathcal{R}^{a_2}_2$). Typically, there will be an infinite (continuum) of distribution outcomes for $\mathbb{P}[\mathcal{R}|H_t]$ - here we assume only two distribution outcomes for each of the actions' estimated conditional probability of rewards purely for simplicity so as convey the intuition beyond Probability Matching. Assume that the probability distributions $\mathcal{R}^{a_1}_1$ and $\mathcal{R}^{a_1}_2$ have estimated probabilities of 0.7 and 0.3 respectively, and that $\mathcal{R}^{a_1}_1$ has mean 5.0 and $\mathcal{R}^{a_1}_2$ has mean 10.0. Assume that the probability distributions $\mathcal{R}^{a_2}_1$ and $\mathcal{R}^{a_2}_2$ have estimated probabilities of 0.2 and 0.8 respectively, and that $\mathcal{R}^{a_2}_1$ has mean 2.0 and $\mathcal{R}^{a_2}_2$ has mean 7.0.
 
+Probability Matching calculates at each time step $t$ how often does each action $a$ have the maximum $\mathbb{E}[r|a]$ among all actions, across all the probabilistic outcomes for the posterior distribution $\mathbb{P}[\mathcal{R}|H_t]$, and then selects that action $a$ probabilistically in proportion to this calculation. Let's do this probability calculation for our simple case of two actions and two probabilistic outcomes each for the posterior distribution for each action. So here, we have 4 probabilistic outcomes when considering the two actions jointly, as follows:
 
+* Outcome 1: $\mathcal{R}^{a_1}_1$ (with probability 0.7) and $\mathcal{R}^{a_2}_1$ (with probability 0.2). Thus, Outcome 1 has probability 0.7 * 0.2 = 0.14. In Outcome 1, $a_1$ has the maximum $\mathbb{E}[r|a]$ among all actions since $\mathcal{R}^{a_1}_1$ has mean 5.0 and $\mathcal{R}^{a_2}_1$ has mean 2.0.
+* Outcome 2: $\mathcal{R}^{a_1}_1$ (with probability 0.7) and $\mathcal{R}^{a_2}_2$ (with probability 0.8). Thus, Outcome 2 has probability 0.7 * 0.8 = 0.56. In Outcome 2, $a_2$ has the maximum $\mathbb{E}[r|a]$ among all actions since $\mathcal{R}^{a_1}_1$ has mean 5.0 and $\mathcal{R}^{a_2}_2$ has mean 7.0.
+* Outcome 3: $\mathcal{R}^{a_1}_2$ (with probability 0.3) and $\mathcal{R}^{a_2}_1$ (with probability 0.2). Thus, Outcome 3 has probability 0.3 * 0.2 = 0.06. In Outcome 3, $a_1$ has the maximum $\mathbb{E}[r|a]$ among all actions since $\mathcal{R}^{a_1}_2$ has mean 10.0 and $\mathcal{R}^{a_2}_1$ has mean 2.0.
+* Outcome 4: $\mathcal{R}^{a_1}_2$ (with probability 0.3) and $\mathcal{R}^{a_2}_2$ (with probability 0.8). Thus, Outcome 4 has probability 0.3 * 0.8 = 0.24. In Outcome 4, $a_1$ has the maximum $\mathbb{E}[r|a]$ among all actions since $\mathcal{R}^{a_1}_2$ has mean 10.0 and $\mathcal{R}^{a_2}_2$ has mean 7.0.
+
+Thus, $a_1$ has the maximum $\mathbb{E}[r|a]$ among the two actions in Outcomes 1, 3 and 4, amounting to a total outcomes probability of 0.14 + 0.06 + 0.24 = 0.44, and $a_2$ has the maximum $\mathbb{E}[r|a]$ among the two actions only in Outcome 2, which has an outcome probability of 0.56. Therefore, in the next time step ($t+1$), the Probability Matching method will select action $a_1$ with probability 0.44 and $a_2$ with probability 0.56.
+
+Generalizing this Probability Matching method to arbitrary number of actions and to an arbitrary number of probabilistic outcomes for the conditional reward distributions for each action, we can write the probabilistic selection of actions at time step $t+1$ as:
+
+\begin{equation}
+\mathbb{P}[A_{t+1}|H_t] = \mathbb{P}_{\mathcal{D}_t \sim \mathbb{P}[\mathcal{R}|H_t]}[\mathbb{E}_{\mathcal{D}_t}[r|A_{t+1}] > \mathbb{E}_{\mathcal{D}_t}[r|a] \text{ for all } a \neq A_{t+1}]
+\label{eq:probability-matching}
+\end{equation}
+
+where $\mathcal{D}_t$ refers to a random draw of conditional distribution of rewards for each action from the posterior distribution $\mathbb{R}[\mathcal{R}|H_t]$. As ever, ties between actions are broken with n arbitrary rule prioritizing actions.
+
+Note that the Probability Matching method is also based on the principle of *Optimism in the Face of Uncertainty* because an action with more uncertainty in it's mean reward is more likely to be have the highest mean reward among all actions (all else being equal), and hence deserves to be selected more frequently.
+
+We see that the Probability Matching approach is mathematically disciplined in driving towards cumulative reward maximization while balancing exploration and exploitation, the right-hand-side of Equation \ref{eq:probability-matching} can be difficult to compute analytically from the posterior distributions. We resolve this difficulty with a sampling approach to Probability Matching known as *Thompson Sampling*.
+
+#### Thompson Sampling
+
+We can reformulate the right-hand-side of Equation \ref{eq:probability-matching} as follows:
+\begin{align*}
+\pi(A_{t+1}|H_t) & = \mathbb{P}_{\mathcal{D}_t \sim \mathbb{P}[\mathcal{R}|H_t]}[\mathbb{E}_{\mathcal{D}_t}[r|A_{t+1}] > \mathbb{E}_{\mathcal{D}_t}[r|a] \text{for all } a \neq A_{t+1}] \\
+& =\mathbb{E}_{\mathcal{D}_t \sim \mathbb{P}[\mathcal{R}|H_t]}[\mathbb{I}_{A_{t+1}=\argmax_{a\in\mathcal{A}} \mathbb{E}_{\mathcal{D}_t}[r|a]}]
+\end{align*}
+
+where $\mathbb{I}$ refers to the indicator function. This reformulation of the Probability Matching equation yields a sampling method (implementing Probability Matching) known as *Thompson Sampling*.
+
+Thompson Sampling performs the following calculations in sequence at the end of each time step $t$:
+
+* Compute the posterior distribution $\mathbb{P}[\mathcal{R}|H_t]$ by performing Bayesian updates of the hyperparameters that govern the estimated probability distributions of the parameters of the reward distributions for each action.
+* *Sample* a joint (across actions) rewards distribution $\mathcal{D}_t$ from the posterior distribution $\mathbb{P}[\mathcal{R}|H_t]$.
+* Calculate a sample Action-Value function with sample $\mathcal{D}_t$ as:
+$$\hat{Q}_t(a) = \mathbb{E}_{\mathcal{D}_t}[r|a]$$
+* Select the action (for time step $t+1$) that maximizes this sample Action-Value function:
+$$A_{t+1} = \argmax_{a\in\mathcal{A}} \hat{Q}_t(a)$$
+
+It turns out that Thompson Sampling achieves the Lai-Robbins lower bound for Logarithmic Total Regret. To learn more about Thompson Sampling, we refer you to [this excellent tutorial](https://arxiv.org/abs/1707.02038).
+
+Now we implement Thompson Sampling by assuming a Gaussian distribution of rewards for each action. The posterior distributions for each action are produced by performing Bayesian updates of the hyperparameters that govern the estimated [Gaussian-Inverse-Gamma Probability Distributions](https://en.wikipedia.org/wiki/Normal-inverse-gamma_distribution) of the parameters of the Gaussian reward distributions for each action. Section [-@sec:conjugate-prior-gaussian] of Appendix [-@sec:conjugate-priors-appendix] describes the Bayesian updates of the hyperparameters $\theta, \alpha, \beta$, and the code below implements this update in the variable `bayes` in method `get_episode_rewards_actions` (this method implements the `@abstractmethod` interface of abstract base class `MABBase`). The sample mean rewards are obtained by invoking the `sample` method of `Gaussian` and `Gamma` classes, and assigned to the variable `mean_draws`. The variable `theta` refers to the hyperparameter $\theta$, the variable `alpha` refers to the hyperparameter $\alpha$, and the variable `beta` refers to the hyperparameter $\beta$. The rest of the code in the method `get_episode_rewards_actions` should be self-explanatory.
+```python
+from rl.distribution import Gaussian, Gamma
+from operator import itemgetter
+from numpy import ndarray, empty, sqrt
+
+class ThompsonSamplingGaussian(MABBase):
+
+    def __init__(
+        self,
+        arm_distributions: Sequence[Gaussian],
+        time_steps: int,
+        num_episodes: int,
+        init_mean: float,
+        init_stdev: float
+    ) -> None:
+        super().__init__(
+            arm_distributions=arm_distributions,
+            time_steps=time_steps,
+            num_episodes=num_episodes
+        )
+        self.theta0: float = init_mean
+        self.n0: int = 1
+        self.alpha0: float = 1
+        self.beta0: float = init_stdev * init_stdev
+
+    def get_episode_rewards_actions(self) -> Tuple[ndarray, ndarray]:
+        ep_rewards: ndarray = empty(self.time_steps)
+        ep_actions: ndarray = empty(self.time_steps, dtype=int)
+        bayes: List[Tuple[float, int, float, float]] =\
+            [(self.theta0, self.n0, self.alpha0, self.beta0)] * self.num_arms
+
+        for i in range(self.time_steps):
+            mean_draws: Sequence[float] = [Gaussian(
+                mu=theta,
+                sigma=1 / sqrt(n * Gamma(alpha=alpha, beta=beta).sample())
+            ).sample() for theta, n, alpha, beta in bayes]
+            action: int = max(enumerate(mean_draws), key=itemgetter(1))[0]
+            reward: float = self.arm_distributions[action].sample()
+            theta, n, alpha, beta = bayes[action]
+            bayes[action] = (
+                (reward + n * theta) / (n + 1),
+                n + 1,
+                alpha + 0.5,
+                beta + 0.5 * n / (n + 1) * (reward - theta) * (reward - theta)
+            )
+            ep_rewards[i] = reward
+            ep_actions[i] = action
+        return ep_rewards, ep_actions
+```
+
+The above code is in the file [rl/chapter14/ts_gaussian.py](https://github.com/TikhonJelvis/RL-book/tree/master/rl/chapter14/ts_gaussian.py). The code in `__main__` sets up a `ThompsonSamplingGaussian` instance with 6 arms, each having a Gaussian distribution. When run with 1000 time steps and 500 episodes, we get the Total Regret Curve as shown in Figure \ref{fig:ts_gaussian_total_regret_curve}.
+
+![Thompson Sampling (Gaussian) Total Regret Curve \label{fig:ts_gaussian_total_regret_curve}](./chapter14/ts_gaussian_total_regret_curve.png "Thompson Sampling (Gaussian) Total Regret Curve")
+
+We encourage you to modify the code in `__main__` to try other mean and variance settings for the Gaussian distributions of the arms, examine the results obtained, and develop more intuition for Thompson Sampling for Gaussians.
+
+Now we implement Thompson Sampling by assuming a Bernoulli distribution of rewards for each action. The posterior distributions for each action are produced by performing Bayesian updates of the hyperparameters that govern the estimated [Beta Probability Distributions](https://en.wikipedia.org/wiki/Beta_distribution) of the parameters of the Bernoulli reward distributions for each action. Section [-@sec:conjugate-prior-bernoulli] of Appendix [-@sec:conjugate-priors-appendix] describes the Bayesian updates of the hyperparameters $\alpha$ and $\beta$, and the code below implements this update in the variable `bayes` in method `get_episode_rewards_actions` (this method implements the `@abstractmethod` interface of abstract base class `MABBase`). The sample mean rewards are obtained by invoking the `sample` method of the `Beta` class, and assigned to the variable `mean_draws`. The variable `alpha` refers to the hyperparameter $\alpha$ and the variable `beta` refers to the hyperparameter $\beta$. The rest of the code in the method `get_episode_rewards_actions` should be self-explanatory.
+
+```python
+from rl.distribution import Bernoulli, Beta
+from operator import itemgetter
+from numpy import ndarray, empty
+
+class ThompsonSamplingBernoulli(MABBase):
+
+    def __init__(
+        self,
+        arm_distributions: Sequence[Bernoulli],
+        time_steps: int,
+        num_episodes: int
+    ) -> None:
+        super().__init__(
+            arm_distributions=arm_distributions,
+            time_steps=time_steps,
+            num_episodes=num_episodes
+        )
+
+    def get_episode_rewards_actions(self) -> Tuple[ndarray, ndarray]:
+        ep_rewards: ndarray = empty(self.time_steps)
+        ep_actions: ndarray = empty(self.time_steps, dtype=int)
+        bayes: List[Tuple[int, int]] = [(1, 1)] * self.num_arms
+
+        for i in range(self.time_steps):
+            mean_draws: Sequence[float] = \
+                [Beta(alpha=alpha, beta=beta).sample() for alpha, beta in bayes]
+            action: int = max(enumerate(mean_draws), key=itemgetter(1))[0]
+            reward: float = float(self.arm_distributions[action].sample())
+            alpha, beta = bayes[action]
+            bayes[action] = (alpha + int(reward), beta + int(1 - reward))
+            ep_rewards[i] = reward
+            ep_actions[i] = action
+        return ep_rewards, ep_actions
+```
+
+The above code is in the file [rl/chapter14/ts_bernoulli.py](https://github.com/TikhonJelvis/RL-book/tree/master/rl/chapter14/ts_bernoulli.py). The code in `__main__` sets up a `ThompsonSamplingBernoulli` instance with 6 arms, each having a Bernoulli distribution. When run with 1000 time steps and 500 episodes, we get the Total Regret Curve as shown in Figure \ref{fig:ts_bernoulli_total_regret_curve}.
+
+![Thompson Sampling (Bernoulli) Total Regret Curve \label{fig:ts_bernoulli_total_regret_curve}](./chapter14/ts_bernoulli_total_regret_curve.png "Thompson Sampling (Bernoulli) Total Regret Curve")
+
+We encourage you to modify the code in `__main__` to try other mean settings for the Bernoulli distributions of the arms, examine the results obtained, and develop more intuition for Thompson Sampling for Bernoullis.
 
 ### Gradient Bandits
 
