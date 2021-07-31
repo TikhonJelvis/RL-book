@@ -1,0 +1,14 @@
+* Programming
+** Intro
+   - Why focus on programming?
+   - What is abstraction? Why does it matter?
+     - Abstraction *separate from* implementation.
+   - Think like a designer: do our code constructs reflect what we're
+     expressing?
+** Techniques
+   - Quick preview of Python features
+   - Why it's useful to explore more of the language
+   - What does each techniques give us?
+** Extended Example
+   Explain abstraction + concrete techniques using Probability types
+   as the example.
