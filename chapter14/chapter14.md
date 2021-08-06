@@ -1,8 +1,10 @@
+# Finishing Touches
+
 ## Multi-Armed Bandits: Exploration versus Exploitation {#sec:multi-armed-bandits-chapter}
 
 We learnt in Chapter [-@sec:rl-control-chapter] that balancing exploration and exploitation is vital in RL Control algorithms. While we want to exploit actions that seem to be fetching good returns,  we also want to adequately explore all possible actions so we can obtain an accurate-enough estimate of their Q-Values. We had mentioned that this is essentially the Explore-Exploit dilemma of the famous [Multi-Armed Bandit Problem](https://en.wikipedia.org/wiki/Multi-armed_bandit). The Multi-Armed Bandit problem provides a simple setting to understand the explore-exploit tradeoff and to develop explore-exploit balancing algorithms. The approaches followed by the Multi-Armed Bandits algorithms are then well-transportable to the more complex setting of RL Control.
 
-In this Chapter, we start by specifying the Multi-Armed Bandit problem, followed by coverage of a variety of techniques to solve the Multi-Armed Bandit problem (i.e., effectively balancing exploration with exploitation). We've actually seen one of these algorithms already for RL Control - following an $\epsilon$-greedy policy, which naturally is applicable to the simpler setting of Multi-Armed Bandits. We had mentioned in Chapter [-@sec:rl-control-chapter] that we can simply replace the $\epsilon$-greedy approach with any other algorithm for explore-exploit tradeoff. In this chapter, we consider a variety of such algorithms, many of which are far more sophisticated compared to the simple $\epsilon$-greedy approach. However, we cover these algorithms for the simple setting of Multi-Armed Bandits as it promotes understanding and development of intuition. After covering a range of algorithms for Multi-Armed Bandits, we consider an extended problem known as Contextual Bandits, that is a step between the Multi-Armed Bandits problem and the RL Control problem (in terms of problem complexity). We explain how the algorithms for Multi-Armed Bandits can be easily transported to the more nuanced/extended setting of Contextual Bandits. We finish this chapter by explaining how we can further extend Contextual Bandits to the RL Control problem, and that the algorithms developed for both Multi-Armed Bandits and Contextual Bandits are also applicable for RL Control. 
+In this Chapter, we start by specifying the Multi-Armed Bandit problem, followed by coverage of a variety of techniques to solve the Multi-Armed Bandit problem (i.e., effectively balancing exploration with exploitation). We've actually seen one of these algorithms already for RL Control - following an $\epsilon$-greedy policy, which naturally is applicable to the simpler setting of Multi-Armed Bandits. We had mentioned in Chapter [-@sec:rl-control-chapter] that we can simply replace the $\epsilon$-greedy approach with any other algorithm for explore-exploit tradeoff. In this chapter, we consider a variety of such algorithms, many of which are far more sophisticated compared to the simple $\epsilon$-greedy approach. However, we cover these algorithms for the simple setting of Multi-Armed Bandits as it promotes understanding and development of intuition. After covering a range of algorithms for Multi-Armed Bandits, we consider an extended problem known as Contextual Bandits, that is a step between the Multi-Armed Bandits problem and the RL Control problem (in terms of problem complexity). Finally, we explain how the algorithms for Multi-Armed Bandits can be easily transported to the more nuanced/extended setting of Contextual Bandits, and further extended to RL Control.
 
 ### Introduction to the Multi-Armed Bandit Problem
 
@@ -24,17 +26,17 @@ The term *Multi-Armed Bandit* (abbreviated as MAB) is a spoof name that stands f
 \begin{definition}
 A {\em Multi-Armed Bandit} (MAB) comprises of:
 \begin{itemize}
-\item A finite set of actions $\mathcal{A}$ (known as the "arms")
+\item A finite set of {\em Action}s $\mathcal{A}$ (known as the "arms").
 \item Each action ("arm") $a \in \mathcal{A}$ is associated with a probability distribution over $\mathbb{R}$ (unknown to the AI Agent) denoted as $\mathcal{R}^a$, defined as:
 $$\mathcal{R}^a(r) = \mathbb{P}[r|a] \text{ for all } r \in \mathbb{R}$$
 \item A time-indexed sequence of AI agent-selected actions $A_t \in \mathcal{A}$ for time steps $t=1, 2, \ldots$, and a time-indexed sequence of Environment-generated {\em Reward} random variables $R_t \in \mathbb{R}$ for time steps $t=1, 2, \ldots$, with $R_t$ randomly drawn from the probability distribution $\mathcal{R}^{A_t}$.
 \end{itemize}
 \end{definition}
 
-The AI agent's goal is to maximize the following *Cumulative Rewards* over a certain number of time steps $T$:
-$$\sum_{t=1}^T R_t$$
+The AI agent's goal is to maximize the following *Expected Cumulative Rewards* over a certain number of time steps $T$:
+$$\mathbb{E}[\sum_{t=1}^T R_t]$$
 
-So the AI agent has $T$ selections of actions to make (in sequence), basing each of those selections only on the rewards it has observed before that time step (specifically, the AI Agent does not have knowledge of the probability distributions $\mathcal{R}^a$). Any selection strategy to maximize the Cumulative Rewards risks wasting time on "duds" while exploring and also risks missing untapped "gems" while exploiting.
+So the AI agent has $T$ selections of actions to make (in sequence), basing each of those selections only on the rewards it has observed before that time step (specifically, the AI Agent does not have knowledge of the probability distributions $\mathcal{R}^a$). Any selection strategy to maximize the Expected Cumulative Rewards risks wasting time on "duds" while exploring and also risks missing untapped "gems" while exploiting. 
 
 It is immediately observable that the environment doesn't have a notion of *State*. When the AI Agent selects an arm, the Environment simply samples from the probability distribution for that arm. However, the agent might maintain a statistic of history as it's *State*, which would help the agent in making the arm-selection (action) decision. The arm-selection action is then based on a (*Policy*) function of the agent's *State*. So, the agent's arm-selection strategy is basically this *Policy*. Thus, even though a MAB is not posed as an MDP, the agent could model it as an MDP and solve it with an appropriate Planning or Learning algorithm. However, many MAB algorithms don't take this formal MDP approach. Instead, they rely on heuristic methods that don't aim to *optimize* - they simply strive for *good* Cumulative Rewards (in Expectation). Note that even in a simple heuristic algorithm, $A_t$ is a random variable simply because it is a function of past (random) rewards.
 
@@ -50,7 +52,7 @@ We define *Regret* $l_t$ as the opportunity loss at a single time step $t$, as f
 $$l_t = \mathbb{E}[V^* - Q(A_t)]$$
 We define the *Total Regret* $L_T$ as the total opportunity loss, as follows:
 $$L_T = \sum_{t=1}^T l_t = \sum_{t=1}^T \mathbb{E}[V^* - Q(A_t)]$$
-Maximizing the *Cumulative Reward* is the same as Minimizing *Total Regret*.
+Maximizing the *Expected Cumulative Rewards* is the same as Minimizing *Total Regret*.
 
 #### Counts and Gaps
 
@@ -273,7 +275,9 @@ Now we come to an important idea that is central to many algorithms for MAB. Thi
 
 ![Q-Value Distributions \label{fig:q_value_distribution1}](./chapter14/q_value_distribution1.png "Q-Value Distributions")
 
-To keep things simple, let's assume the sampling distribution of the mean reward is a gaussian distribution (for each $a$), and so we maintain an estimate of $\mu_a$ and $\sigma_a$ for each arm $a$ to represent the mean and standard deviation of the sampling distribution of mean reward for $a$. $\mu_a$ would be calculated as the average of the sample rewards seen so far for an arm $a$. $\sigma_a$ would be calculated as the standard error of the mean reward, i.e., the sample standard deviation of the rewards seen so far, divided by the square root of the number of samples (for a given arm $a$). Let us say that after playing the arms a few times, we arrive at the gaussian sampling distribution of mean reward for each of the 3 arms, as illustrated in Figure \ref{fig:q_value_distribution1}. Let's refer to the three arms as red, blue and green, as indicated by the colors of the normal distributions in Figure \ref{fig:q_value_distribution1}. The blue arm has the highest $\sigma_a$. This could be either because the sample standard deviation is high or it could be because we have played the blue arm just a few times (remember the square root of number of samples in the denominator of the standard error calculation). Now looking at this Figure, we have to decide which arm to select next. The intuition behind *Optimism in the Face of Uncertainty* is that the more uncertain we are about the $Q(a)$ for an arm $a$, the more important it is to play that arm. This is because more uncertainty on $Q(a)$ makes it more likely to be the best arm (all else being equal on the arms). The rough heuristic then would be to select the arm with the highest value of $\mu_a + c \cdot \sigma_a$ across the arms (for some fixed $c$). Thus, we are comparing $c$ standard errors higher than the mean estimate (i.e., the upper-end of an appropriate confidence interval for the mean reward). In this Figure, this might be for the blue arm. So we play the blue arm, and let's say we get a somewhat low reward for the blue arm. This might do two things to the blue sampling distribution - it can move blue's $\mu_a$ lower and it can also also lower blue's $\sigma_a$ (simply due to the fact that the number of blue samples has grown). With the new $\mu_a$ and $\sigma_a$ for blue, let's say the updated sampling distributions are as shown in Figure \ref{fig:q_value_distribution2}. With blue's sampling distribution of the mean reward narrower, let's say red now has the highest $\mu_a + c \cdot \sigma_a$, and so we play the red arm. This process goes on until the sampling distributions get narrow enough to give us adequate confidence on the mean rewards for the actions (i.e., obtain confident estimates of $Q(a)$) so we can home in on the action with highest $Q(a)$.
+To keep things simple, let's assume the sampling distribution of the mean reward is a gaussian distribution (for each $a$), and so we maintain an estimate of $\mu_a$ and $\sigma_a$ for each arm $a$ to represent the mean and standard deviation of the sampling distribution of mean reward for $a$. $\mu_a$ would be calculated as the average of the sample rewards seen so far for an arm $a$. $\sigma_a$ would be calculated as the standard error of the mean reward estimate, i.e., the sample standard deviation of the rewards seen so far, divided by the square root of the number of samples (for a given arm $a$). Let us say that after playing the arms a few times, we arrive at the gaussian sampling distribution of mean reward for each of the 3 arms, as illustrated in Figure \ref{fig:q_value_distribution1}. Let's refer to the three arms as red, blue and green, as indicated by the colors of the normal distributions in Figure \ref{fig:q_value_distribution1}. The blue arm has the highest $\sigma_a$. This could be either because the sample standard deviation is high or it could be because we have played the blue arm just a few times (remember the square root of number of samples in the denominator of the standard error calculation). Now looking at this Figure, we have to decide which arm to select next. The intuition behind *Optimism in the Face of Uncertainty* is that the more uncertain we are about the $Q(a)$ for an arm $a$, the more important it is to play that arm. This is because more uncertainty on $Q(a)$ makes it more likely to be the best arm (all else being equal on the arms). The rough heuristic then would be to select the arm with the highest value of $\mu_a + c \cdot \sigma_a$ across the arms (for some fixed $c$). Thus, we are comparing (across actions) $c$ standard errors higher than the mean reward estimate (i.e., the upper-end of an appropriate confidence interval for the mean reward). In this Figure, this might be for the blue arm. So we play the blue arm, and let's say we get a somewhat low reward for the blue arm. This might do two things to the blue sampling distribution - it can move blue's $\mu_a$ lower and it can also also lower blue's $\sigma_a$ (simply due to the fact that the number of blue samples has grown). With the new $\mu_a$ and $\sigma_a$ for blue, let's say the updated sampling distributions are as shown in Figure \ref{fig:q_value_distribution2}. With blue's sampling distribution of the mean reward narrower, let's say red now has the highest $\mu_a + c \cdot \sigma_a$, and so we play the red arm. This process goes on until the sampling distributions get narrow enough to give us adequate confidence on the mean rewards for the actions (i.e., obtain confident estimates of $Q(a)$) so we can home in on the action with highest $Q(a)$.
+
+It pays to emphasize that *Optimism in the Face of Uncertainty* is a great approach to resolve the Explore-Exploit dilemma because you gain regardless of whether the exploration due to Optimism pays off or not. If it does pay off, you gain immediately by collecting the large rewards. If it does not pay off, you still gain by acquiring the knowledge that certain actions (that you have explored) might not be the best actions, which helps you in the long-run by focusing your attention on other actions.
 
 ![Q-Value Distributions \label{fig:q_value_distribution2}](./chapter14/q_value_distribution2.png "Q-Value Distributions")
 
@@ -570,7 +574,7 @@ This doesn't introduce any bias in the estimate of the gradient of $J(\cdot)$ be
 We can use $B = \bar{R}_t = \frac 1 t \sum_{s=1}^t R_s$ (average rewards until time step $t$). So, the update to scores $s_t(a)$ for all $a\in\mathcal{A}$ is:
 $$s_{t+1}(a) = s_t(a) + \alpha \cdot (R_t - \bar{R}_t) \cdot (\mathbb{I}_{a=A_t} - \pi_t(a))$$
 
-Now let's write some code to implement this Gradient Algorithm.
+Now let's write some code to implement this Gradient Algorithm. Apart from the usual constructor inputs `arm_distributions`, `time_steps` and `num_episodes` that are passed along to the constructor of the abstract base class `MABBase`, `GradientBandits`' constructor also takes as input `learning_rate` (specifying the initial learning rate) and `learning_rate_decay` (specifying the speed at which the learning rate decays), as seen in how the variable `step_size` is set at every time step. The variable `scores` represents $s_t(a)$ for all $a \in \mathcal{A}$ and the variable `probs` represents $\pi_t(a)$ for all $a \in \mathcal{A}$. The rest of the code below should be self-explanatory, based on the above description of the calculations.
 
 ```python
 from rl.distribution import Distribution, Categorical
@@ -628,8 +632,113 @@ The above code is in the file [rl/chapter14/gradient_bandits.py](https://github.
 
 We encourage you to modify the code in `__main__` to try other mean and standard deviation settings for the Gaussian distributions of the arms, examine the results obtained, and develop more intuition for this Gradient Algorithm.
 
+### Horse Races
+
+We've implemented several algorithm for the MAB problem. Now it's time for a competition between them, that we will call a *Horse Race*. In this Horse Race, we will compare the *Total Regret* across the algorithms, and we will also examine the number of times the different arms get pulled by the various algorithms. We expect a good algorithm to have small total regret and we expect a good algorithm to pull the arms with high *Gap*s few number of times and pull the arms with low (and zero) gaps large number of times.
+
+The code in the file [rl/chapter14/plot_mab_graphs.py](https://github.com/TikhonJelvis/RL-book/tree/master/rl/chapter14/plot_mab_graphs.py) has a function to run a horse race for Gaussian arms with the following algorithms:
+
+* Greedy with Optimistic Initialization
+* $\epsilon$-Greedy
+* Decaying $\epsilon_t$-Greedy
+* Thompson Sampling
+* Gradient Bandit
+
+![Gaussian Horse Race - Total Regret Curves \label{fig:gaussian_horse_race_total_regret}](./chapter14/gaussian_horse_race_total_regret.png "Gaussian Horse Race - Total Regret Curves")
+
+Running this horse race for 7 Gaussian arms with 500 time steps and 500 episodes and the settings as specified in the file rl/chapter14/plot_mab_graphs.py, we obtain Figure \ref{fig:gaussian_horse_race_total_regret} for the Total Regret Curves for each of these algorithms.
+
+![Gaussian Horse Race - Arms Count \label{fig:gaussian_horse_race_arms_count}](./chapter14/gaussian_horse_race_arms_count.png "Gaussian Horse Race - Arms Count")
+
+Figure \ref{fig:gaussian_horse_race_arms_count} shows the number of times each arm is pulled (for each of the algorithms). The X-axis is sorted by the mean of the rewards distribution of the arms. As we can see, the arms with low means are pulled only a few times and the arms with high means are pulled often.
+
+The file rl/chapter14/plot_mab_graphs.py also has a function to run a horse race for Bernoulli arms with the following algorithms:
+
+* Greedy with Optimistic Initialization
+* $\epsilon$-Greedy
+* Decaying $\epsilon_t$-Greedy
+* UCB1
+* Thompson Sampling
+* Gradient Bandit
+
+![Bernoulli Horse Race - Total Regret Curves \label{fig:bernoulli_horse_race_total_regret}](./chapter14/bernoulli_horse_race_total_regret.png "Bernoulli Horse Race - Total Regret Curves")
+
+Running this horse race for 9 Bernoulli arms with 500 time steps and 500 episodes and the settings as specified in the file rl/chapter14/plot_mab_graphs.py, we obtain Figure \ref{fig:bernoulli_horse_race_total_regret} for the Total Regret Curves for each of these algorithms.
+
+![Bernoulli Horse Race - Arms Count \label{fig:bernoulli_horse_race_arms_count}](./chapter14/bernoulli_horse_race_arms_count.png "Bernoulli Horse Race - Arms Count")
+
+Figure \ref{fig:bernoulli_horse_race_arms_count} shows the number of times each arm is pulled (for each of the algorithms). The X-axis is sorted by the mean of the rewards distribution of the arms. As we can see, the arms with low means are pulled only a few times and the arms with high means are pulled often.
+
+As ever, we encourage you to experiment with the code in [rl/chapter14/plot_mab_graphs.py](https://github.com/TikhonJelvis/RL-book/tree/master/rl/chapter14/plot_mab_graphs.py) - try different arm distributions, try different input parameters for each of the algorithms, plot the graphs, and try to explain the relative performance of the algorithms (perhaps by writing some more diagnostics code). This will help build tremendous intuition on the pros and cons of these algorithms.
+
 ### Information State Space MDP
 
-### Contextual Bandits
+We had mentioned earlier in this chapter that although a MAB problem is not posed as an MDP, the agent could maintain a statistic of history as it's *State*, which would help the agent in making the arm-selection (action) decision. So the agent treats the MAB problem as an MDP and the arm-selection action is essentially a (*Policy*) function of the agent's *State*. One can then arrive at the Optimal arm-selection strategy by solving the Control problem of this MDP with an appropriate Planning or Learning algorithm. The representation of *State* as a statistic of history is known as *Information State* (to indicate that the AI Agent captures all of the relevant information known so far in the *State* of the modeled MDP). Before we explain this *Information State Space MDP* approach in more detail, it pays to develop an intuitive understanding of the *Value of Information*.
 
-### Extending to RL Control
+The key idea is that *Exploration* enables the agent to acquire information, which in turn enables the agent to make more informed decisions as far as it's future arm-selection strategy is concerned. The natural question to ask then is whether we can quantify the value of this information that can be acquired by *Exploration*. In other words, how much would a decision-maker be willing to pay to acquire information (through exploration), prior to making a decision? Vaguely speaking, the decision-maker should be paying an amount equal to the gains in long-term reward that can be obtained upon getting the information, less the sacrifice of immediate reward one would have obtained had one exploited rather than explored. We can see that this approach aims to settle the explore-exploit trade-off in a mathematically rigorous manner by establishing the *Value of Information*. Note that information gain is higher in a more uncertain situation (all else being equal). Therefore, it makes sense to explore uncertain situations more. By formalizing the value of information, we can trade-off exploration and exploitation *optimally*.
+
+Now let us formalize the approach of treating a MAB as an Information State Space MDP. After each time step of a MAB, we construct an *Information State* $\tilde{s}$, which is a statistic of the history until that time step. Essentially, $\tilde{s}$ summarizes all of the information accumulated so far that is pertinent to be able to predict the reward distribution for each action. Each action $a$ causes a transition to a new information state $\tilde{s}'$ (by adding information about the reward obtained after performing action $a$), with probability $\tilde{\mathcal{P}}(\tilde{s}, a, \tilde{s}')$. Note that this probability depends on the reward probability function $\mathcal{R}^a$ of the MAB. Moreover, the MAB reward $r$ obtained upon performing action $a$ constitutes the Reward of the Information State Space MDP for that time step. Putting all this together, we have an MDP $\tilde{M}$ in information state space as follows:
+
+* Denote the Information State Space as $\tilde{\mathcal{S}}$.
+* The Action Space is the action space of the given MAB: $\mathcal{A}$.
+* The State Transition Probability function is $\tilde{\mathcal{P}}$.
+* The Reward Transition function is given by the Reward probability function $\mathcal{R}^a$ of the MAB.
+* Discount Factor $\gamma = 1$.
+
+The key point to note is that since $\mathcal{R}^a$ is unknown to the AI Agent in the MAB problem, the State Transition Probability function and the Reward Transition function of the Information State Space MDP $\tilde{M}$ are unknown to the AI Agent. However, at any given time step, the AI Agent can utilize the information within $\tilde{s}$ to form an estimate of $\mathcal{R}^a$, which in turn gives estimates of the State Transition Probability function and the Reward Transition function of the Information State Space MDP $\tilde{M}$.
+
+Note that $\tilde{M}$ will typically be a fairly complex MDP over an infinite number of information states, and hence is not easy to solve. However, since it is after all an MDP, we can use Dynamic Programming or Reinforcement Learning algorithms to arrive at the Optimal Policy, which prescribes the optimal action to take at that time step. If a Dynamic Programming approach is taken, then after each time step, as new information arrives (in the form of the MAB reward in response to the action taken), the estimates of the State Transition probability function and the Reward Transition function change, meaning the Information State Space MDP to be solved changes, and consequently the Action-Selection strategy for the MAB problem (prescribed by the Optimal Policy of the Information State Space MDP) changes. A common approach is to treat the Information State Space MDP as a *Bayes-Adaptive MDP*. Specifically, if we have $m$ arms $a_1, \ldots, a_m$, the state $\tilde{s}$ is modeled as $(\tilde{s_{a_1}}, \ldots, \tilde{s_{a_m}})$ such that $\tilde{s_{a}}$ for any $a \in \mathcal{A}$ represents a posterior probability distribution over $\mathcal{R}^a$, which is Bayes-updated after observing the reward upon each pull of the arm $a$. This Bayes-Adaptive MDP can be tackled with the highly-celebrated Dynamic Programming method known as [Gittins Index](https://en.wikipedia.org/wiki/Gittins_index). The Gittins Index approach finds the Bayes-optimal explore-exploit trade-off with respect to the prior distribution.
+
+To grasp the concept of Information State Space MDP, let us consider a Bernoulli Bandit problem with $m$ arms with arm $a$'s reward probability function $\mathcal{R}^a$ given by the Bernoulli distribution $\mathcal{B}(\mu_a)$, where $\mu_a \in [0, 1]$ (i.e., reward = 1 with probability $\mu_a$, and reward = 0 with probability $1 - \mu_a$). If we denote the $m$ arms by $a_1, a_2, \ldots, a_m$, then the information state is $\tilde{s} = (\alpha_{a_1}, \beta_{a_1}, \alpha_{a_2}, \beta_{a_2}\ldots, \alpha_{a_m}, \beta_{a_m})$, where $\alpha_a$ is the number of pulls of arms $a$ (so far) for which the reward was 1 and $\beta_a$ is the number of pulls of arm $a$ (so far) for which the reward was 0. Note that by the Law of Large Numbers, in the long-run, $\frac {\alpha_a} {\alpha_a + \beta_a} \rightarrow \mu_a$.
+
+We can treat this as a Bayes-adaptive MDP as follows: We model the prior distribution over $\mathcal{R}^a$ as the Beta Distribution $Beta(\alpha_a, \beta_a)$ over the unknown parameters $\mu_a$. Each time arm $a$ is pulled, we update the posterior for $\mathcal{R}^a$ as:
+
+* $Beta(\alpha_a+1, \beta_a)$ if $r=1$
+* $Beta(\alpha_a, \beta_a+1)$ if $r=0$
+
+Note that the component $(\alpha_a, \beta_a)$ within the information state provides the reward model $Beta(\alpha_a, \beta_a)$. Moreover, note that each state transition (updating either $\alpha_a$ or $\beta_a$ by 1) is essentially a Bayesian model update.
+
+Note that in general, an exact solution to a Bayes-adaptive MDP is typically intractable. In 2014, [Guez, Heess, Silver, Dayan](https://proceedings.neurips.cc/paper/2014/file/839ab46820b524afda05122893c2fe8e-Paper.pdf) came up with a Simulation-based Search method, which involves a forward search in information state space using simulations from current information state, to solve a Bayes-adaptive MDP.
+
+### Extending to Contextual Bandits and RL Control
+
+A Contextual Bandit problem is a natural extension of the MAB problem, by introducing the concept of *Context* that has an influence on the rewards probability distribution for each arm. Before we provide a formal definition of a Contextual Bandit problem, we will provide an intuitive explanation with a canonical example. Consider the problem of showing a banner advertisement on a web site where there is a choice of displaying one among $m$ different advertisements at a time. If the user clicks on the advertisement, there is a reward of 1 (if the user doesn't click, the reward is 0). The selection of the advertisement to display is the arm-selection (out of $m$ arms, i.e., advertisements). This seems like a standard MAB problem, except that on a web site, we don't have a single user. In each round, a random user (among typically millions of users) appears. Each user will have their own characteristics of how they would respond to advertisements, meaning the rewards probability distribution for each arm would depend on the user. We refer to the user characteristics (as relevant to their interest in responding to specific advertisements) as the *Context*. This means, the *Context* influences the rewards probability distribution for each arm. This is known as the *Contextual Bandit* problem, which we formalize below:
+
+\begin{definition}
+A {\em Contextual Bandit} comprises of:
+\begin{itemize}
+\item A finite set of {\em Action}s $\mathcal{A}$ (known as the "arms").
+\item A probability distribution $\mathcal{C}$ over {\em Context}s,  defined as:
+$$\mathcal{C}(c) = \mathbb{P}[c] \text{ for all Contexts } c$$
+\item Each pair of a context $c$ and an action ("arm") $a \in \mathcal{A}$ is associated with a probability distribution over $\mathbb{R}$ (unknown to the AI Agent) denoted as $\mathcal{R}^a_c$, defined as:
+$$\mathcal{R}^a_c(r) = \mathbb{P}[r|c,a] \text{ for all } r \in \mathbb{R}$$
+\item A time-indexed sequence of Environment-generated random Contexts $C_t$ for time steps $t=1, 2, \ldots$, a time-indexed sequence of AI agent-selected actions $A_t \in \mathcal{A}$ for time steps $t=1, 2, \ldots$, and a time-indexed sequence of Environment-generated {\em Reward} random variables $R_t \in \mathbb{R}$ for time steps $t=1, 2, \ldots$, such that for each time step $t$, $C_t$ is first randomly drawn from the probability distribution $\mathcal{C}$, after which the AI agent selects the action $A_t$, after which $R_t$ is randomly drawn from the probability distribution $\mathcal{R}^{A_t}_{C_t}$.
+\end{itemize}
+\end{definition}
+
+The AI agent's goal is to maximize the following *Expected Cumulative Rewards* over a certain number of time steps $T$:
+$$\mathbb{E}[\sum_{t=1}^T R_t]$$
+
+Each of the algorithms we've covered for the MAB problem can be easily extended to the Contextual Bandit problem. The key idea in the extension of the MAB algorithms is that we have to take into account the Context, when dealing with the rewards probability distribution. In the MAB problem, the algorithms deal with a finite set of reward distributions, one for each of the actions. Here in the Contextual Bandit problem, the algorithms work with function approximations for the rewards probability distributions where each function approximation takes as input a pair of (Context, Action). 
+
+We won't cover the details of the extensions of all MAB Algorithms to Contextual Bandit algorithms. Rather, we simply sketch a simple Upper-Confidence-Bound algorithm for the Contextual Bandit problem to convey a sense of how to extend the MAB algorithms to the Contextual Bandit problem. Assume that the sampling distribution of the mean reward for each (Context, Action) pair is a gaussian distribution, and so we maintain two function approximations $\mu(c,a; \bm{w})$ and $\sigma(c, a; \bm{v})$ to represent the mean and standard deviation of the sampling distribution of mean reward for any context $c$ and any action $a$. It's important to note that for MAB, we simply maintained a discrete set of estimates $\mu_a$ and $\sigma_a$, one for each action $a$. Here we replace $\mu_a$ with function approximation $\mu(c,a; \bm{w})$ and we replace $\sigma_a$ with function approximation $\sigma(c, a; \bm{v})$. After receipt of each reward from the Environment, the parameters $\bm{w}$ and $\bm{v}$ are appropriately updated. We essentially perform supervised learning in an incremental manner when updating these parameters of the function approximations. Note that $\sigma(c,a;\bm{v})$ represents a function approximation for the standard error of the mean reward estimate for a given context $c$ and given action $a$. A simple Upper-Confidence-Bound algorithm would then be to select the action for a given context $C_t$ at time step $t$ that maximizes $\mu(C_t,a; \bm{w}) + \alpha \cdot \sigma(C_t, a; \bm{v})$ over all choices of $a \in \mathcal{A}$, for some fixed $\alpha$. Thus, we are comparing (across actions) $\alpha$ standard errors higher than the mean reward estimate (i.e., the upper-end of an appropriate confidence interval for the mean reward) for Context $C_t$. 
+
+We want to highlight that many authors refer to the *Context* in Contextual Bandits as *State*. We desist from using the term *State* in Contextual Bandits since we want to reserve the term *State* to refer to the concept of "transitions" (as is the case in MDPs). Note that the Context does not "transition" to the next Context in the next time step in Contextual Bandits problems. Rather, the Context is drawn at random independently at each time step from the Context probability distribution $\mathcal{C}$. This is in contrast to the *State* in MDPs which transitions to the next state at the next time step based on the State Transition probability function of the MDP.
+
+We finish this chapter by simply pointing out that the approaches of the MAB algorithms can be further extended to resolve the Explore-Exploit dilemma in RL Control. From the perspective of this extension, it pays to emphasize that MAB algorithms that fall under the category of *Optimism in the Face of Uncertainty* can be roughly split into:
+
+* Those that estimate the $Q$-Values (i.e., estimate $\mathbb{E}[r|a]$ from observed data) and the uncertainty of the $Q$-Values estimate. When extending to RL Control, we estimate the $Q$-Value Function for the (unknown) MDP and the uncertainty of the $Q$-Value Function estimate. Note that when moving from MAB to RL Control, the $Q$-Values are no longer simply the Expected Reward for a given action - rather, they are the Expected Return (i.e., accumulated rewards) from a given state and a given action. This extension from Expected Reward to Expected Return introduces complexity in the calculation of the uncertainty of the $Q$-Value Function estimate.
+* Those that estimate the Model of the MDP, i.e., estimate of the State-Reward Transition Probability function $\mathcal{P}_R$ of the MDP, and the uncertainty of the $\mathcal{P}_R$ estimate. This includes extension of Bayesian Bandits, Thompson Sampling and Bayes-Adaptive MDP (for Information State Space MDP) where we replace $\mathbb{P}[\mathcal{R}|H_t]$ in the case of Bandits with $\mathbb{P}[\mathcal{P}_R|H_t]$ in the case of RL Control. Some of these algorithms sample from the estimated $\mathcal{P}_R$, and learn the Optimal Value Function/Optimal Policy from the samples. Some other algorithms are Planning-oriented. Specifically, the Planning-oriented approach is to run a Planning method (eg: Policy Iteration, Value Iteration) using the estimated $\mathcal{P}_R$, then generate more data using the Optimal Policy (produced by the Planning method), use the generated data to improve the $\mathcal{P}_R$ estimate, then run the Planning method again to come up with the Optimal Policy (for the MDP based on the improved $\mathcal{P}_R$ estimate), and loop on in this manner until convergence. As an example of this Planning-oriented approach, we refer you to the [paper on RMax Algorithm](https://www.jmlr.org/papers/volume3/brafman02a/brafman02a.pdf) to learn more.
+
+
+### Key Takeaways from this Chapter
+
+* The Multi-Armed Bandit problem provides a simple setting to understand and appreciate the nuances of the Explore-Exploit dilemma that we typically need to resolve within RL Control algorithms.
+* In this chapter, we covered the following broad approaches to resolve the Explore-Exploit dilemma:
+    - Naive Exploration, eg: $\epsilon$-greedy
+    - Optimistic Initialization
+    - Optimism in the Face of Uncertainty, eg: UCB, Bayesian UCB
+    - Probability Matching, eg: Thompson Sampling
+    - Gradient Bandit Algorithms
+    - Information State Space MDPs (incorporating value of Information), typically solved by treating as Bayes-Adaptive MDPs
+* The above MAB algorithms are well-extensible to Contextual Bandits and RL Control.

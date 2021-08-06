@@ -1,4 +1,4 @@
-from typing import Sequence, Callable, Tuple
+from typing import Sequence, Tuple
 from abc import ABC, abstractmethod
 from rl.distribution import Distribution
 from numpy import ndarray, mean, vstack, cumsum, full, bincount
