@@ -1,0 +1,13 @@
+digraph planning_learning
+{
+  layout = "circo"
+
+  PO [label="Policy", fontsize=30, fontcolor=Red]
+  EX [label="Experiences", fontsize=30, fontcolor=Red]
+  MO [label="Model M", fontsize=30, fontcolor=Red]
+
+  PO->EX [label="Interacting with\nEnvironment E", color=Green, fontcolor=Black]
+  EX->MO [label="Supervised\nLearning", color=Blue, fontcolor=Black]
+  MO->PO [label="Planning", color=Magenta3, fontcolor=Black]
+  EX->PO [label="Model-Free\nRL", color=Magenta3, fontcolor=Black]
+}
