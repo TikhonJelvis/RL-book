@@ -1,0 +1,10 @@
+digraph learning
+{
+  layout = "circo"
+
+  PO [label="Policy", fontsize=30, fontcolor=Red]
+  EX [label="Experiences", fontsize=30, fontcolor=Red]
+
+  PO->EX [label="Interacting with\nEnvironment E", color=Green, fontcolor=Black]
+  EX->PO [label="Model-Free\nRL", color=Blue, fontcolor=Black]
+}
