@@ -283,7 +283,7 @@ class Range(FiniteDistribution[int]):
 
     def table(self) -> Mapping[int, float]:
         length = self.high - self.low
-        return {x: 1/length for x in range(self.low, self.high)}
+        return {x: 1 / length for x in range(self.low, self.high)}
 
 
 class Choose(FiniteDistribution[A]):
