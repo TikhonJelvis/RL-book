@@ -4,7 +4,7 @@ from rl.policy import FiniteDeterministicPolicy, FinitePolicy
 from rl.finite_horizon import WithTime
 from typing import Sequence, Tuple, Iterator
 from scipy.stats import poisson
-from rl.distribution import Categorical, Constant
+from rl.distribution import Categorical
 from rl.finite_horizon import (
     finite_horizon_MRP, unwrap_finite_horizon_MRP, evaluate,
     finite_horizon_MDP, unwrap_finite_horizon_MDP, optimal_vf_and_policy)
