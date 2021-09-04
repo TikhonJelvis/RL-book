@@ -1,4 +1,5 @@
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE NamedFieldPuns #-}
@@ -6,10 +7,15 @@
 -- combinations of features.
 module RL.Approx.Linear where
 
+import qualified Control.Monad                          as Monad
+import qualified Control.Monad.Bayes.Class              as Probability
+import qualified Control.Monad.Bayes.Sampler            as Probability
+
 import qualified Data.Vector                             as V
 
 import           Numeric.LinearAlgebra                    ( (#>)
                                                           , (<.>)
+                                                          , Matrix
                                                           , R
                                                           , Vector
                                                           , inv
@@ -18,6 +24,8 @@ import           Numeric.LinearAlgebra                    ( (#>)
                                                           , tr'
                                                           , (|>)
                                                           )
+
+import qualified Numeric.LinearAlgebra                   as Matrix
 
 import           Text.Printf                              ( printf )
 
@@ -99,3 +107,33 @@ instance Approx Linear a where
 instance Within (Linear a) where
   within ϵ l₁ l₂ = Matrix.allWithin ϵ (w l₁) (w l₂)
 
+
+
+-----------------------------------------------------------------------------
+-- Test Cases
+-----------------------------------------------------------------------------
+
+-- Y = Β X + ε
+-- Β = [ 1, 3, 5]
+-- X = [ [2, 4, 6], [2, 8, 7], [1, 9, 5], [2, 2, 6], [3, 5, 8]]
+-- eps = N(0, σ²) where σ = 0.5
+
+b :: Matrix Double
+b = Matrix.row [ 1, 3, 5]
+
+x :: Matrix Double
+x = Matrix.fromLists [ [2, 4, 6], [2, 8, 7], [1, 9, 5], [2, 2, 6], [3, 5, 8]]
+
+eps :: IO [Double]
+eps = Probability.sampleIO ((Monad.replicateM 5) (Probability.normal 0 0.5) )
+
+y :: IO (Matrix Double)
+
+y = do eps' <- eps
+       pure (tr' ((b <> (tr' x)) + (Matrix.row eps')))
+
+-- Now let's create feature functions to setup the linear
+linTest :: Linear (Matrix Double)
+linTest = create 0 [ \x -> Matrix.atIndex x (0, 0), \x -> Matrix.atIndex x (1, 0), \x -> Matrix.atIndex x (2, 0)]       
+
+testDirection = direction linTest (V.fromList (fmap Matrix.asRow (Matrix.toRows x)))
