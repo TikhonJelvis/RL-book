@@ -7,7 +7,7 @@ from rl.distribution import Categorical, Choose
 from rl.finite_horizon import (finite_horizon_MRP, evaluate,
                                unwrap_finite_horizon_MRP, WithTime)
 from rl.function_approx import Dynamic
-from rl.markov_process import FiniteMarkovRewardProcess
+from rl.markov_process import FiniteMarkovRewardProcess, NonTerminal
 import rl.iterate as iterate
 
 
@@ -30,7 +30,8 @@ class TestEvaluate(unittest.TestCase):
         self.finite_flip_flop = FlipFlop(0.7)
 
     def test_evaluate_finite_mrp(self):
-        start = Dynamic({s: 0.0 for s in self.finite_flip_flop.states()})
+        start = Dynamic({s: 0.0 for s in
+                         self.finite_flip_flop.non_terminal_states})
         v = iterate.converged(
             evaluate_finite_mrp(
                 self.finite_flip_flop,
@@ -46,7 +47,8 @@ class TestEvaluate(unittest.TestCase):
             self.assertLess(abs(v(s) - 170), 0.1)
 
     def test_evaluate_mrp(self):
-        start = Dynamic({s: 0.0 for s in self.finite_flip_flop.states()})
+        start = Dynamic({s: 0.0 for s in
+                         self.finite_flip_flop.non_terminal_states})
 
         v = iterate.converged(
             evaluate_mrp(
@@ -54,7 +56,7 @@ class TestEvaluate(unittest.TestCase):
                 γ=0.99,
                 approx_0=start,
                 non_terminal_states_distribution=Choose(
-                    set(self.finite_flip_flop.states())
+                    self.finite_flip_flop.non_terminal_states
                 ),
                 num_state_samples=5
             ),
@@ -75,14 +77,15 @@ class TestEvaluate(unittest.TestCase):
             done=lambda a, b: a.within(b, 1e-4)
         )
 
-        assert_allclose(v.evaluate([True, False]),
-                        v_finite.evaluate([True, False]),
+        assert_allclose(v.evaluate([NonTerminal(True), NonTerminal(False)]),
+                        v_finite.evaluate([NonTerminal(True),
+                                           NonTerminal(False)]),
                         rtol=0.01)
 
     def test_compare_to_backward_induction(self):
         finite_horizon = finite_horizon_MRP(self.finite_flip_flop, 10)
 
-        start = Dynamic({s: 0.0 for s in finite_horizon.states()})
+        start = Dynamic({s: 0.0 for s in finite_horizon.non_terminal_states})
         v = iterate.converged(
             evaluate_finite_mrp(
                 finite_horizon,
@@ -92,13 +95,17 @@ class TestEvaluate(unittest.TestCase):
             done=lambda a, b: a.within(b, 1e-4)
         )
 
-        self.assertEqual(len(v.values_map), 22)
+        self.assertEqual(len(v.values_map), 20)
 
         finite_v =\
             list(evaluate(unwrap_finite_horizon_MRP(finite_horizon), gamma=1))
 
-        for time in range(0, 10):
-            self.assertAlmostEqual(v(WithTime(state=True, time=time)),
-                                   finite_v[time][True])
-            self.assertAlmostEqual(v(WithTime(state=False, time=time)),
-                                   finite_v[time][False])
+        for time in range(10):
+            self.assertAlmostEqual(
+                v(NonTerminal(WithTime(state=True, time=time))),
+                finite_v[time][NonTerminal(True)]
+            )
+            self.assertAlmostEqual(
+                v(NonTerminal(WithTime(state=False, time=time))),
+                finite_v[time][NonTerminal(False)]
+            )

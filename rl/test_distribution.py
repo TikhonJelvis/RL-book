@@ -1,3 +1,4 @@
+from collections import Counter
 import unittest
 
 from rl.distribution import (Bernoulli, Categorical, Choose, Constant,
@@ -20,7 +21,7 @@ def assert_almost_equal(test_case, dist_a, dist_b):
 
 class TestDistribution(unittest.TestCase):
     def setUp(self):
-        self.finite = Choose(set(range(0, 6)))
+        self.finite = Choose(range(0, 6))
         self.sampled = SampledDistribution(
             lambda: self.finite.sample(),
             100000
@@ -113,6 +114,7 @@ class TestChoose(unittest.TestCase):
     def setUp(self):
         self.one = Choose({1})
         self.six = Choose({1, 2, 3, 4, 5, 6})
+        self.repeated = Choose([1,1,1,2])
 
     def test_choose(self):
         assert_almost_equal(self, self.one, Constant(1))
@@ -123,6 +125,19 @@ class TestChoose(unittest.TestCase):
         assert_almost_equal(self, self.six, categorical_six)
         self.assertAlmostEqual(self.six.probability(1), 1/6)
         self.assertAlmostEqual(self.six.probability(0), 0.)
+
+    def test_repeated(self):
+        counts = Counter(self.repeated.sample_n(1000))
+        self.assertLess(abs(counts[1] - 750), 50)
+        self.assertLess(abs(counts[2] - 250), 50)
+
+        table = self.repeated.table()
+        self.assertAlmostEqual(table[1], 0.75)
+        self.assertAlmostEqual(table[2], 0.25)
+
+        counts = Counter(self.repeated.sample_n(1000))
+        self.assertLess(abs(counts[1] - 750), 50)
+        self.assertLess(abs(counts[2] - 250), 50)
 
 
 class TestCategorical(unittest.TestCase):

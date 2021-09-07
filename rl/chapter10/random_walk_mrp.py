@@ -1,4 +1,4 @@
-from typing import Mapping, Dict, Optional, Tuple
+from typing import Mapping, Dict, Tuple
 from rl.distribution import Categorical
 from rl.markov_process import FiniteMarkovRewardProcess
 
@@ -27,15 +27,13 @@ class RandomWalkMRP(FiniteMarkovRewardProcess[int]):
         super().__init__(self.get_transition_map())
 
     def get_transition_map(self) -> \
-            Mapping[int, Optional[Categorical[Tuple[int, float]]]]:
-        d: Dict[int, Optional[Categorical[Tuple[int, float]]]] = {
+            Mapping[int, Categorical[Tuple[int, float]]]:
+        d: Dict[int, Categorical[Tuple[int, float]]] = {
             i: Categorical({
                 (i + 1, 0. if i < self.barrier - 1 else 1.): self.p,
                 (i - 1, 0.): 1 - self.p
             }) for i in range(1, self.barrier)
         }
-        d[0] = None
-        d[self.barrier] = None
         return d
 
 

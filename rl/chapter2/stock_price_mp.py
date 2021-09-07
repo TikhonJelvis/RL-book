@@ -3,7 +3,7 @@ from typing import Optional, Mapping
 import numpy as np
 import itertools
 from rl.distribution import Categorical, Constant
-from rl.markov_process import MarkovProcess
+from rl.markov_process import MarkovProcess, NonTerminal, State
 from rl.gen_utils.common_funcs import get_logistic_func, get_unit_sigmoid_func
 from rl.chapter2.stock_price_simulations import\
     plot_single_trace_all_processes
@@ -25,12 +25,14 @@ class StockPriceMP1(MarkovProcess[StateMP1]):
     def up_prob(self, state: StateMP1) -> float:
         return get_logistic_func(self.alpha1)(self.level_param - state.price)
 
-    def transition(self, state: StateMP1) -> Categorical[StateMP1]:
-        up_p = self.up_prob(state)
-
+    def transition(
+        self,
+        state: NonTerminal[StateMP1]
+    ) -> Categorical[State[StateMP1]]:
+        up_p = self.up_prob(state.state)
         return Categorical({
-            StateMP1(state.price + 1): up_p,
-            StateMP1(state.price - 1): 1 - up_p
+            NonTerminal(StateMP1(state.state.price + 1)): up_p,
+            NonTerminal(StateMP1(state.state.price - 1)): 1 - up_p
         })
 
 
@@ -51,12 +53,14 @@ class StockPriceMP2(MarkovProcess[StateMP2]):
     def up_prob(self, state: StateMP2) -> float:
         return 0.5 * (1 + self.alpha2 * handy_map[state.is_prev_move_up])
 
-    def transition(self, state: StateMP2) -> Categorical[StateMP2]:
-        up_p = self.up_prob(state)
-
+    def transition(
+        self,
+        state: NonTerminal[StateMP2]
+    ) -> Categorical[State[StateMP2]]:
+        up_p = self.up_prob(state.state)
         return Categorical({
-            StateMP2(state.price + 1, True): up_p,
-            StateMP2(state.price - 1, False): 1 - up_p
+            NonTerminal(StateMP2(state.state.price + 1, True)): up_p,
+            NonTerminal(StateMP2(state.state.price - 1, False)): 1 - up_p
         })
 
 
@@ -77,12 +81,18 @@ class StockPriceMP3(MarkovProcess[StateMP3]):
             state.num_down_moves / total
         ) if total else 0.5
 
-    def transition(self, state: StateMP3) -> Categorical[StateMP3]:
-        up_p = self.up_prob(state)
-
+    def transition(
+        self,
+        state: NonTerminal[StateMP3]
+    ) -> Categorical[State[StateMP3]]:
+        up_p = self.up_prob(state.state)
         return Categorical({
-            StateMP3(state.num_up_moves + 1, state.num_down_moves): up_p,
-            StateMP3(state.num_up_moves, state.num_down_moves + 1): 1 - up_p
+            NonTerminal(StateMP3(
+                state.state.num_up_moves + 1, state.state.num_down_moves
+            )): up_p,
+            NonTerminal(StateMP3(
+                state.state.num_up_moves, state.state.num_down_moves + 1
+            )): 1 - up_p
         })
 
 
@@ -94,9 +104,11 @@ def process1_price_traces(
     num_traces: int
 ) -> np.ndarray:
     mp = StockPriceMP1(level_param=level_param, alpha1=alpha1)
-    start_state_distribution = Constant(StateMP1(price=start_price))
+    start_state_distribution = Constant(
+        NonTerminal(StateMP1(price=start_price))
+    )
     return np.vstack([
-        np.fromiter((s.price for s in itertools.islice(
+        np.fromiter((s.state.price for s in itertools.islice(
             mp.simulate(start_state_distribution),
             time_steps + 1
         )), float) for _ in range(num_traces)])
@@ -110,10 +122,10 @@ def process2_price_traces(
 ) -> np.ndarray:
     mp = StockPriceMP2(alpha2=alpha2)
     start_state_distribution = Constant(
-        StateMP2(price=start_price, is_prev_move_up=None)
+        NonTerminal(StateMP2(price=start_price, is_prev_move_up=None))
     )
     return np.vstack([
-        np.fromiter((s.price for s in itertools.islice(
+        np.fromiter((s.state.price for s in itertools.islice(
             mp.simulate(start_state_distribution),
             time_steps + 1
         )), float) for _ in range(num_traces)])
@@ -127,10 +139,10 @@ def process3_price_traces(
 ) -> np.ndarray:
     mp = StockPriceMP3(alpha3=alpha3)
     start_state_distribution = Constant(
-        StateMP3(num_up_moves=0, num_down_moves=0)
+        NonTerminal(StateMP3(num_up_moves=0, num_down_moves=0))
     )
     return np.vstack([np.fromiter(
-        (start_price + s.num_up_moves - s.num_down_moves for s in
+        (start_price + s.state.num_up_moves - s.state.num_down_moves for s in
          itertools.islice(
              mp.simulate(start_state_distribution),
              time_steps + 1

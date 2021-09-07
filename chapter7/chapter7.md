@@ -43,7 +43,7 @@ You start with wealth $W_0$ at time $t=0$. As mentioned earlier, the goal is to 
 
 For ease of exposition, we will formalize the problem setting and derive Merton's beautiful analytical solution for the case of $n=1$ (i.e., only 1 risky asset). The solution generalizes in a straightforward manner to the case of $n > 1$ risky assets, so the heavier notation for $n$ risky assets is not worth much.
 
-Since we are operating in continuous-time, the risky asset follows a stochastic process (denoted $S$)- specifically an Ito process (introductory background on Ito processes and Ito's Lemma covered in [-@sec:stochasticcalculus-appendix]), as follows:
+Since we are operating in continuous-time, the risky asset follows a stochastic process (denoted $S$)- specifically an Ito process (introductory background on Ito processes and Ito's Lemma covered in Appendix [-@sec:stochasticcalculus-appendix]), as follows:
 
 $$dS_t = \mu \cdot S_t \cdot dt + \sigma \cdot S_t \cdot dz_t$$
 
@@ -419,7 +419,7 @@ Q^*_t(W_t, x_t) = \frac {- e^{- \frac {(\mu - r)^2 (T-t-1)} {2 \sigma^2}}} a \cd
 \end{equation}
 for all $t = 0, 1, \ldots, T-1$.
 
-### Porting to Real-World
+### Porting to Real-World {#sec:asset-alloc-discrete-code}
 
 We have covered a continuous-time setting  and a discrete-time setting with simplifying assumptions that provide analytical tractability. The specific simplifying assumptions that enabled analytical tractability were:
 
@@ -429,7 +429,7 @@ We have covered a continuous-time setting  and a discrete-time setting with simp
 
 But real-world problems involving dynamic asset-allocation and consumption are not so simple and clean. We have arbitrary, more complex asset price movements. Utility functions don't fit into simple CRRA/CARA formulas. In practice, trading often occurs in discrete space - asset prices, allocation amounts and consumption are often discrete quantities. Moreover, when we change our asset allocations or liquidate a portion of our portfolio to consume, we incur transaction costs. Furthermore, trading doesn't always happen in continuous-time - there are typically specific  windows of time where one is locked-out from trading or there are trading restrictions. Lastly, many investments are illiquid (eg: real-estate) or simply not allowed to be liquidated until a certain horizon (eg: retirement funds), which poses major constraints on extracting money from one's portfolio for consumption. So even though prices/allocation amounts/consumption might be close to being continuous-variables, the other above-mentioned frictions mean that we don't get the benefits of calculus that we obtained in the simple examples we covered.
 
-With the above real-world considerations, we need to tap into Dynamic Programming  - more specifically, Approximate Dynamic Programming since real-world problems have large state spaces and large action spaces (even if these spaces are not continuous, they tend to be close to continuous). Appropriate function approximation of the Value Function is key to solving these problems. Implementing a full-blown real-world investment and consumption management system is beyond the scope of this book, but let us implement an illustrative example that provides sufficient understanding of how a full-blown real-world example would be implemented. We have to keep things simple enough and yet sufficiently general. So here is the setting we will implement:
+With the above real-world considerations, we need to tap into Dynamic Programming  - more specifically, Approximate Dynamic Programming since real-world problems have large state spaces and large action spaces (even if these spaces are not continuous, they tend to be close to continuous). Appropriate function approximation of the Value Function is key to solving these problems. Implementing a full-blown real-world investment and consumption management system is beyond the scope of this book, but let us implement an illustrative example that provides sufficient understanding of how a full-blown real-world example would be implemented. We have to keep things simple enough and yet sufficiently general. So here is the setting we will implement for:
 
 * One risky asset and one riskless asset.
 * Finite number of time steps (discrete-time setting akin to Section [-@sec:discrete-asset-alloc]).
@@ -440,17 +440,17 @@ With the above real-world considerations, we need to tap into Dynamic Programmin
 * Finite number of choices of investment amounts in the risky asset at each time step (expressed as `risky_alloc_choices: Sequence[float]` in the code below).
 * Arbitrary probability distribution of the initial wealth $W_0$ (expressed as `initial_wealth_distribution: Distribution[float]` in the code below).
 
-The code in the class `AssetAllocDiscrete` below is fairly self-explanatory. We use the function `back_opt_qvf` covered in Section [-@sec:bi-approx-q-value-iteration] of Chapter [-@sec:funcapprox-chapter] to perform backward induction on the optimal Q-Value Function. Since the state space is continuous, the optimal Q-Value Function is represented as a `FunctionApprox` (specifically, as a `DNNApprox`). Moreover, since we are working with a generic distribution of returns that govern the state transitions of this MDP, we need to work with the methods of the abstract class `MarkovDecisionProcess` (and not the class `FiniteMarkovDecisionProcess`). The method `backward_induction_qvf` below makes the call to `back_opt_qvf`. Since the risky returns distribution is arbitrary and since the utility function is arbitrary, we don't have prior knowledge of the functional form of the Q-Value function. Hence, the user of the class `AssetAllocDiscrete` also needs to provide the set of feature functions (`feature_functions` in the code below) and the specification of a deep neural network to represent the Q-Value function (`dnn_spec` in the code below). The rest of the code below is mainly about preparing the input `mdp_f0_mu_triples` to be passed to `back_opt_qvf`. As was explained in Section [-@sec:bi-approx-q-value-iteration] of Chapter [-@sec:funcapprox-chapter], `mdp_f0_mu_triples` is a sequence (for each time step) of the following triples:
+The code in the class `AssetAllocDiscrete` below is fairly self-explanatory. We use the function `back_opt_qvf` covered in Section [-@sec:bi-approx-q-value-iteration] of Chapter [-@sec:funcapprox-chapter] to perform backward induction on the optimal Q-Value Function. Since the state space is continuous, the optimal Q-Value Function is represented as a `QValueFunctionApprox` (specifically, as a `DNNApprox`). Moreover, since we are working with a generic distribution of returns that govern the state transitions of this MDP, we need to work with the methods of the abstract class `MarkovDecisionProcess` (and not the class `FiniteMarkovDecisionProcess`). The method `backward_induction_qvf` below makes the call to `back_opt_qvf`. Since the risky returns distribution is arbitrary and since the utility function is arbitrary, we don't have prior knowledge of the functional form of the Q-Value function. Hence, the user of the class `AssetAllocDiscrete` also needs to provide the set of feature functions (`feature_functions` in the code below) and the specification of a deep neural network to represent the Q-Value function (`dnn_spec` in the code below). The rest of the code below is mainly about preparing the input `mdp_f0_mu_triples` to be passed to `back_opt_qvf`. As was explained in Section [-@sec:bi-approx-q-value-iteration] of Chapter [-@sec:funcapprox-chapter], `mdp_f0_mu_triples` is a sequence (for each time step) of the following triples:
 
 * A `MarkovDecisionProcess[float, float]` object, which in the code below is prepared by the method `get_mdp`. *State* is the portfolio wealth (`float` type) and *Action* is the quantity of investment in the risky asset (also of `float` type). `get_mdp` creates a class `AssetAllocMDP` that implements the abstract class `MarkovDecisionProcess`. To do so, we need to implement the `step` method and the `actions` method. The `step` method returns an instance of `SampledDistribution`, which is based on the `sr_sampler_func` that returns a sample of the pair of next state (next time step's wealth) and reward, given the current state (current wealth) and action (current time step's quantity of investment in the risky asset).
-* A `DNNApprox[Tuple[float, float]]` object, which in the code below is prepared by the method `get_qvf_func_approx`. This method sets up a 'DNNApprox' object that represents a neural-network function approximation for the optimal Q-Value Function. So the input to this neural network would be a `Tuple[float, float]` representing a (state, action) pair. 
-* A `Distribution[float]` object, which in the code below is prepared by the method `get_states_distribution`. This method constructs a `SampledDistribution[float]` representing the distribution of states (distribution of portfolio wealth) at each time step. The `SampledDistribution[float]` is prepared using the function `states_sampler_func` that generates a sampling trace by sampling the state-transitions (portfolio wealth transitions) from time 0 to the given time step in a time-incremental manner (invoking the `sample` method of the risky asset's return `Distribution`s and the `sample` method of a uniform distribution over the action choices specified by `risky_alloc_choices`).
+* A `QValueFunctionApprox[float], float]` object, which in the code below is prepared by the method `get_qvf_func_approx`. This method sets up a `DNNApprox[Tuple[NonTerminal[float], float]]` object that represents a neural-network function approximation for the optimal Q-Value Function. So the input to this neural network would be a `Tuple[NonTerminal[float], float]` representing a (state, action) pair. 
+* An `NTStateDistribution[float]` object, which in the code below is prepared by the method `get_states_distribution`. This method constructs a `SampledDistribution[NonTerminal[float]]` representing the distribution of non-terminal states (distribution of portfolio wealth) at each time step. The `SampledDistribution[NonTerminal[float]]` is prepared using the function `states_sampler_func` that generates a sampling trace by sampling the state-transitions (portfolio wealth transitions) from time 0 to the given time step in a time-incremental manner (invoking the `sample` method of the risky asset's return `Distribution`s and the `sample` method of a uniform distribution over the action choices specified by `risky_alloc_choices`).
 
 
 ```python
 from rl.distribution import Distribution, SampledDistribution, Choose
 from rl.function_approx import DNNSpec, AdamGradient, DNNApprox
-from rl.approximate_dynamic_programming import back_opt_qvf
+from rl.approximate_dynamic_programming import back_opt_qvf, QValueFunctionApprox
 from operator import itemgetter
 import numpy as np
 
@@ -468,7 +468,7 @@ class AssetAllocDiscrete:
         return len(self.risky_return_distributions)
 
     def uniform_actions(self) -> Choose[float]:
-        return Choose(set(self.risky_alloc_choices))
+        return Choose(self.risky_alloc_choices)
 
     def get_mdp(self, t: int) -> MarkovDecisionProcess[float, float]:
         distr: Distribution[float] = self.risky_return_distributions[t]
@@ -481,46 +481,58 @@ class AssetAllocDiscrete:
 
             def step(
                 self,
-                wealth: float,
+                wealth: NonTerminal[float],
                 alloc: float
-            ) -> SampledDistribution[Tuple[float, float]]:
+            ) -> SampledDistribution[Tuple[State[float], float]]:
 
                 def sr_sampler_func(
                     wealth=wealth,
                     alloc=alloc
-                ) -> Tuple[float, float]:
+                ) -> Tuple[State[float], float]:
                     next_wealth: float = alloc * (1 + distr.sample()) \
-                        + (wealth - alloc) * (1 + rate)
+                        + (wealth.state - alloc) * (1 + rate)
                     reward: float = utility_f(next_wealth) \
                         if t == steps - 1 else 0.
-                    return (next_wealth, reward)
+                    next_state: State[float] = Terminal(next_wealth) \
+                        if t == steps - 1 else NonTerminal(next_wealth)
+                    return (next_state, reward)
 
                 return SampledDistribution(
                     sampler=sr_sampler_func,
                     expectation_samples=1000
                 )
 
-            def actions(self, wealth: float) -> Sequence[float]:
+            def actions(self, wealth: NonTerminal[float]) -> Sequence[float]:
                 return alloc_choices
 
         return AssetAllocMDP()
 
-    def get_qvf_func_approx(self) -> DNNApprox[Tuple[float, float]]:
+    def get_qvf_func_approx(self) -> \
+            DNNApprox[Tuple[NonTerminal[float], float]]:
+
         adam_gradient: AdamGradient = AdamGradient(
             learning_rate=0.1,
             decay1=0.9,
             decay2=0.999
         )
+        ffs: List[Callable[[Tuple[NonTerminal[float], float]], float]] = []
+        for f in self.feature_functions:
+            def this_f(pair: Tuple[NonTerminal[float], float], f=f) -> float:
+                return f((pair[0].state, pair[1]))
+            ffs.append(this_f)
+
         return DNNApprox.create(
-            feature_functions=self.feature_functions,
+            feature_functions=ffs,
             dnn_spec=self.dnn_spec,
             adam_gradient=adam_gradient
         )
 
-    def get_states_distribution(self, t: int) -> SampledDistribution[float]:
+    def get_states_distribution(self, t: int) -> \
+            SampledDistribution[NonTerminal[float]]:
+
         actions_distr: Choose[float] = self.uniform_actions()
 
-        def states_sampler_func() -> float:
+        def states_sampler_func() -> NonTerminal[float]:
             wealth: float = self.initial_wealth_distribution.sample()
             for i in range(t):
                 distr: Distribution[float] = self.risky_return_distributions[i]
@@ -528,17 +540,20 @@ class AssetAllocDiscrete:
                 alloc: float = actions_distr.sample()
                 wealth = alloc * (1 + distr.sample()) + \
                     (wealth - alloc) * (1 + rate)
-            return wealth
+            return NonTerminal(wealth)
 
         return SampledDistribution(states_sampler_func)
 
     def backward_induction_qvf(self) -> \
-            Iterator[DNNApprox[Tuple[float, float]]]:
-        init_fa: DNNApprox[Tuple[float, float]] = self.get_qvf_func_approx()
+            Iterator[QValueFunctionApprox[float, float]]:
+
+        init_fa: DNNApprox[Tuple[NonTerminal[float], float]] = \
+            self.get_qvf_func_approx()
+
         mdp_f0_mu_triples: Sequence[Tuple[
             MarkovDecisionProcess[float, float],
-            DNNApprox[Tuple[float, float]],
-            SampledDistribution[float]
+            DNNApprox[Tuple[NonTerminal[float], float]],
+            SampledDistribution[NonTerminal[float]]
         ]] = [(
             self.get_mdp(i),
             init_fa,
@@ -578,7 +593,7 @@ $$\phi_2((W_t, x_t)) = W_t$$
 $$\phi_3((W_t, x_t)) = x_t$$
 $$\phi_4((W_t, x_t)) = x_t^2$$
 
-We set `initial_wealth_distribution` to be a normal distribution with a mean of `init_wealth` (set equal to 1.0 below) and a standard distribution of `init_wealth_var` (set equal to a small value of 0.1 below).
+We set `initial_wealth_distribution` to be a normal distribution with a mean of `init_wealth` (set equal to 1.0 below) and a standard distribution of `init_wealth_stdev` (set equal to a small value of 0.1 below).
 
 ```python
 from rl.distribution import Gaussian
@@ -589,7 +604,7 @@ sigma: float = 0.2
 r: float = 0.07
 a: float = 1.0
 init_wealth: float = 1.0
-init_wealth_var: float = 0.1
+init_wealth_stdev: float = 0.1
 
 excess: float = mu - r
 var: float = sigma * sigma
@@ -621,7 +636,7 @@ dnn: DNNSpec = DNNSpec(
 )
 init_wealth_distr: Gaussian = Gaussian(
     mu=init_wealth,
-    sigma=init_wealth_var
+    sigma=init_wealth_stdev
 )
 
 aad: AssetAllocDiscrete = AssetAllocDiscrete(
@@ -640,17 +655,17 @@ Next, we perform the Q-Value backward induction, step through the returned itera
 ```python
 from pprint import pprint
 
-it_qvf: Iterator[DNNApprox[Tuple[float, float]]] = \
+it_qvf: Iterator[QValueFunctionApprox[float, float]] = \
     aad.backward_induction_qvf()
 
 for t, q in enumerate(it_qvf):
     print(f"Time {t:d}")
     print()
     opt_alloc: float = max(
-        ((q.evaluate([(init_wealth, ac)])[0], ac) for ac in alloc_choices),
+        ((q((NonTerminal(init_wealth), ac)), ac) for ac in alloc_choices),
         key=itemgetter(0)
     )[1]
-    val: float = max(q.evaluate([(init_wealth, ac)])[0]
+    val: float = max(q((NonTerminal(init_wealth), ac))
                      for ac in alloc_choices)
     print(f"Opt Risky Allocation = {opt_alloc:.3f}, Opt Val = {val:.3f}")
     print("Optimal Weights below:")

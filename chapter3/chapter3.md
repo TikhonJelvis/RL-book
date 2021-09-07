@@ -39,7 +39,7 @@ Similar to the definitions of Markov Processes and Markov Reward Processes, for 
 
 \begin{definition}
 
- A {\em Markov Decision Process} comprises of:
+A {\em Markov Decision Process} comprises of:
 
 \begin{itemize}
 
@@ -68,7 +68,9 @@ $$\mathcal{P}_R: \mathcal{N} \times \mathcal{A} \times \mathcal{D} \times \mathc
 
 defined as:
 
-$$\mathcal{P}_R(s,a,r,s') = \mathbb{P}[(R_{t+1}=r, S_{t+1}=s') |(S_t=s, A_t=a)]$$ such that $$\sum_{s'\in \mathcal{S}} \sum_{r \in \mathcal{D}} \mathcal{P}_R(s,a,r,s') = 1 \text{ for all } s \in \mathcal{N}, a \in \mathcal{A}$$
+$$\mathcal{P}_R(s,a,r,s') = \mathbb{P}[(R_{t+1}=r, S_{t+1}=s') |(S_t=s, A_t=a)]$$
+for time steps $t = 0, 1, 2, \ldots$, for all $s \in \mathcal{N}, a \in \mathcal{A}, r \in \mathcal{D}, s' \in \mathcal{N}$ such that
+$$\sum_{s'\in \mathcal{S}} \sum_{r \in \mathcal{D}} \mathcal{P}_R(s,a,r,s') = 1 \text{ for all } s \in \mathcal{N}, a \in \mathcal{A}$$
 
 Henceforth, any time we say Markov Decision Process, assume we are refering to a Discrete-Time Stationary Markov Decision Process with countable spaces and countable transitions (unless explicitly specified otherwise), which in turn can be characterized by the state-reward transition probability function $\mathcal{P}_R$. Given a specification of $\mathcal{P}_R$, we can construct:
 
@@ -108,7 +110,7 @@ $$\pi: \mathcal{N} \times \mathcal{A} \rightarrow [0,1]$$
 
 defined as:
 
-$$\pi(s, a) = \mathbb{P}[A_t = a|S_t = s] \text{ for time steps } t = 0, 1, 2, \ldots, \text{ for all } s\in \mathcal{N}, a \in \mathcal{A}$$
+$$\pi(s, a) = \mathbb{P}[A_t = a|S_t = s] \text{ for time steps } t = 0, 1, 2, \ldots, \text{ for all } s \in \mathcal{N}, a \in \mathcal{A}$$ such that $$\sum_{a \in \mathcal{A}} \pi(s,a) = 1 \text{ for all } s \in \mathcal{N}$$
 
 Note that the definition above assumes that a Policy is Markovian, i.e., the action probabilities depend only on the current state and not the history. The definition above also assumes that a Policy is Stationary, i.e., $\mathbb{P}[A_t = a|S_t = s]$ is invariant in time $t$. If we do encounter a situation where the policy would need to depend on the time $t$, we'll simply include $t$ to be part of the state, which would make the Policy stationary (albeit at the cost of state-space bloat and hence, computational cost).
 
@@ -120,7 +122,7 @@ where $\pi_D: \mathcal{N} \rightarrow \mathcal{A}$.
 
 So we shall denote deterministic policies simply with the function $\pi_D$. We shall refer to non-deterministic policies as stochastic policies (the word stochastic reflecting the fact that the agent will perform a random action according to the probability distribution specified by $\pi$). So when we use the notation $\pi$, assume that we are dealing with a stochastic (i.e., non-deterministic) policy and when we use the notation $\pi_D$, assume that we are dealing with a deterministic policy.
 
-Let's write some code to get a grip on the concept of Policy  - we start with the design of an abstract class called `Policy` that represents a general Policy, as we have articulated above. The only method it contains is an `@abstractmethod act` that accepts as input a `state: S` (as seen before in the classes `MarkovProcess` and `MarkovRewardProcess`, `S` is a generic type to represent a generic state) and produces as output `None` for a terminal `state: S` and a `Distribution[A]` for a non-terminal `state: S` representing the probability distribution of the random action as a function of the input state.
+Let's write some code to get a grip on the concept of Policy  - we start with the design of an abstract class called `Policy` that represents a general Policy, as we have articulated above. The only method it contains is an `@abstractmethod act` that accepts as input a `state: NonTerminal[S]` (as seen before in the classes `MarkovProcess` and `MarkovRewardProcess`, `S` is a generic type to represent a generic state space) and produces as output a `Distribution[A]` representing the probability distribution of the random action as a function of the input non-terminal state. Note that `A` represents a generic type to represent a generic action space.
 
 ```python
 A = TypeVar('A')
@@ -129,24 +131,37 @@ S = TypeVar('S')
 class Policy(ABC, Generic[S, A]):
 
     @abstractmethod
-    def act(self, state: S) -> Optional[Distribution[A]]:
+    def act(self, state: NonTerminal[S]) -> Distribution[A]:
         pass
 ```
 
-The simplest type of `Policy` is one that produces a single fixed action with 100% probability for each state. We can represent such a policy with the following `class Always`:
+Next, we implement a class for deterministic policies.
 
 ```python
-class Always(Policy[S, A]):
-    action: A
+@dataclass(frozen=True)
+class DeterministicPolicy(Policy[S, A]):
+    action_for: Callable[[S], A]
 
-    def __init__(self, action: A):
-        self.action = action
-
-    def act(self, _: S) -> Optional[Distribution[A]]:
-        return Constant(self.action)
+    def act(self, state: NonTerminal[S]) -> Constant[A]:
+        return Constant(self.action_for(state.state))
 ```
 
-Now let's write some code to create some concrete policies for an example we are familiar with - the simple inventory example. We first create a concrete class `SimpleInventoryDeterministicPolicy` for deterministic inventory replenishment policies that implements the interface of the abstract class `Policy` (specifically implements the `@abstractmethod act`). Note that the generic state `S` is replaced here with the class `InventoryState` that represents a state in the inventory example, comprising of the On-Hand and On-Order inventory quantities. Also note that the generic action `A` is replaced here with the `int` type since in this example, the action is the quantity of inventory to be ordered at store-closing (which is an integer quantity). Note that since our class is meant to produce a deterministic policy, the `act` method returns a `Constant[int]` which is a probability distribution with 100% of the probability concentrated at a single `int` value (`int` represents the integer quantity of inventory to be ordered). The code in `act` implements the following deterministic policy:
+We will often encounter policies that assign equal probabilities to all actions, from each non-terminal state. We implement this class of policies as follows:
+
+```python
+from rl.distribution import Choose
+
+@dataclass(frozen=True)
+class UniformPolicy(Policy[S, A]):
+    valid_actions: Callable[[S], Iterable[A]]
+
+    def act(self, state: NonTerminal[S]) -> Choose[A]:
+        return Choose(self.valid_actions(state.state))
+```
+
+The above code is in the file [rl/policy.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/policy.py).
+
+Now let's write some code to create some concrete policies for an example we are familiar with - the simple inventory example. We first create a concrete class `SimpleInventoryDeterministicPolicy` for deterministic inventory replenishment policies that is a derived class of `DeterministicPolicy`. Note that the generic state type `S` is replaced here with the class `InventoryState` that represents a state in the inventory example, comprising of the On-Hand and On-Order inventory quantities. Also note that the generic action type `A` is replaced here with the `int` type since in this example, the action is the quantity of inventory to be ordered at store-closing (which is an integer quantity). Invoking the `act` method of `SimpleInventoryDeterministicPolicy` runs the following deterministic policy:
 
 $$\pi_D((\alpha, \beta)) = \max(C - (\alpha + \beta), 0)$$ where $C$ is a parameter representing the "reorder point" (meaning, we order only when the inventory position falls below the "reorder point"), $\alpha$ is the On-Hand Inventory at store-closing, $\beta$ is the On-Order Inventory at store-closing, and inventory position is equal to $\alpha + \beta$. In Chapter [-@sec:mrp-chapter], we set the reorder point to be equal to the store capacity $C$.
 
@@ -161,19 +176,22 @@ class InventoryState:
     def inventory_position(self) -> int:
         return self.on_hand + self.on_order
 
-class SimpleInventoryDeterministicPolicy(Policy[InventoryState, int]):
+class SimpleInventoryDeterministicPolicy(
+        DeterministicPolicy[InventoryState, int]
+):
     def __init__(self, reorder_point: int):
         self.reorder_point: int = reorder_point
 
-    def act(self, state: InventoryState) -> Constant[int]:
-        return Constant(max(self.reorder_point - state.inventory_position(),
-                            0))
+        def action_for(s: InventoryState) -> int:
+            return max(self.reorder_point - s.inventory_position(), 0)
+
+        super().__init__(action_for)
 ```
 
-We can instantiate a specific deterministic policy with a reorder point of say 10 as:   
+We can instantiate a specific deterministic policy with a reorder point of say 8 as:   
 
 ```python
-si_dp = SimpleInventoryDeterministicPolicy(reorder_point=10)
+si_dp = SimpleInventoryDeterministicPolicy(reorder_point=8)
 ```
 
 Now let's write some code to create stochastic policies for the inventory example. Similar to `SimpleInventoryDeterministicPolicy`, we create a concrete class `SimpleInventoryStochasticPolicy` that implements the interface of the abstract class `Policy` (specifically implements the `@abstractmethod act`). The code in `act` implements the following stochastic policy:
@@ -190,19 +208,22 @@ class SimpleInventoryStochasticPolicy(Policy[InventoryState, int]):
     def __init__(self, reorder_point_poisson_mean: float):
         self.reorder_point_poisson_mean: float = reorder_point_poisson_mean
 
-    def act(self, state: InventoryState) -> SampledDistribution[int]:
+    def act(self, state: NonTerminal[InventoryState]) -> \
+            SampledDistribution[int]:
         def action_func(state=state) -> int:
             reorder_point_sample: int = \
                 np.random.poisson(self.reorder_point_poisson_mean)
-            return max(reorder_point_sample - state.inventory_position(), 0)
-
+            return max(
+                reorder_point_sample - state.state.inventory_position(),
+                0
+            )
         return SampledDistribution(action_func)
 ```
 
-We can instantiate a specific stochastic policy with a reorder point poisson distribution mean of say 5.2 as:   
+We can instantiate a specific stochastic policy with a reorder point poisson distribution mean of say 8.0 as:   
 
 ```python
-si_sp = SimpleInventoryStochasticPolicy(reorder_point_poisson_mean=5.2)
+si_sp = SimpleInventoryStochasticPolicy(reorder_point_poisson_mean=8.0)
 ```
 
 We will revisit the simple inventory example in a bit after we cover the code for Markov Decision Processes, when we'll show how to simulate the Markov Decision Process for this simple inventory example, with the agent running a deterministic policy. But before we move on to the code design for Markov Decision Processes (to accompany the above implementation of Policies), we require an important insight linking Markov Decision Processes, Policies and Markov Reward Processes.
@@ -225,11 +246,9 @@ $$\mathcal{R}^{\pi}(s) = \sum_{a\in \mathcal{A}} \pi(s,a) \cdot \mathcal{R}(s,a)
 
 So any time we talk about an MDP evaluated with a fixed policy, you should know that we are effectively talking about the implied MRP. This insight is now going to be key in the design of our code to represent Markov Decision Processes.
 
-We create an abstract class called `MarkovDecisionProcess` (code shown below) with two `@abstractmethod`s - `step` and `actions`. The `step` method is key: it is meant to specify the distribution of pairs of next state and reward, given a state and action. The `actions` method's interface specifies that it takes as input a `state: S` and produces as output an `Iterable[A]` to represent the set of actions allowable for the input `state` (since the set of actions can be potentially infinite, in which case we'd have to return an `Iterator[A]`, the return type is fairly generic, i.e., `Iterable[A]`).
+We create an abstract class called `MarkovDecisionProcess` (code shown below) with two `@abstractmethod`s - `step` and `actions`. The `step` method is key: it is meant to specify the distribution of pairs of next state and reward, given a non-terminal state and action. The `actions` method's interface specifies that it takes as input a `state: NonTerminal[S]` and produces as output an `Iterable[A]` to represent the set of actions allowable for the input `state` (since the set of actions can be potentially infinite - in which case we'd have to return an `Iterator[A]` - the return type is fairly generic, i.e., `Iterable[A]`).
 
-The `apply_policy` method takes as input a `policy: Policy[S, A]` and returns a `MarkovRewardProcess` representing the implied MRP. Let's understand the code in `apply_policy`: First, we construct a `class RewardProcess` that implements the `@abstractmethod transition_reward` of `MarkovRewardProcess`. `transition_reward` takes as input a `state: S`, creates `actions: Optional[Distribution[A]]` by applying the given `policy` on `state`, and finally uses the `apply` method of `Distribution` to transform `actions: Distribution[A]` into a `Distribution[Tuple[S, float]]` (distribution of (next state, reward) pairs) using the `@abstractmethod step`.
-
-The `is_terminal` method takes as input a `state: S` and returns a `bool` signifying whether `state` is a terminal state or not. Since the `actions` method can returns the set of actions in the form of any `Iterable` type, the only way to check if it's an empty `Iterable` is by turning it into an `Iterator`, and checking if the `next` invocation on the `Iterator` triggers `StopIteration` (in which case, it would be an empty `Iterable`).
+The `apply_policy` method takes as input a `policy: Policy[S, A]` and returns a `MarkovRewardProcess` representing the implied MRP. Let's understand the code in `apply_policy`: First, we construct a `class RewardProcess` that implements the `@abstractmethod transition_reward` of `MarkovRewardProcess`. `transition_reward` takes as input a `state: NonTerminal[S]`, creates `actions: Distribution[A]` by applying the given `policy` on `state`, and finally uses the `apply` method of `Distribution` to transform `actions: Distribution[A]` into a `Distribution[Tuple[State[S], float]]` (distribution of (next state, reward) pairs) using the `@abstractmethod step`.
 
 We also write the `simulate_actions` method that is analogous to the `simulate_reward` method we had written for `MarkovRewardProcess` for generating a sampling trace. In this case, each step in the sampling trace involves sampling an action from the given `policy` and then sampling the pair of next state and reward, given the `state` and sampled `action`. Each generated `TransitionStep` object consists of the 4-tuple: (state, action, next state, reward). Here's the actual code:
 
@@ -238,23 +257,22 @@ from rl.distribution import Distribution
 
 @dataclass(frozen=True)
 class TransitionStep(Generic[S, A]):
-    state: S
+    state: NonTerminal[S]
     action: A
-    next_state: S
+    next_state: State[S]
     reward: float
 
 class MarkovDecisionProcess(ABC, Generic[S, A]):
-
     @abstractmethod
-    def actions(self, state: S) -> Iterable[A]:
+    def actions(self, state: NonTerminal[S]) -> Iterable[A]:
         pass
 
     @abstractmethod
     def step(
         self,
-        state: S,
+        state: NonTerminal[S],
         action: A
-    ) -> Optional[Distribution[Tuple[S, float]]]:
+    ) -> Distribution[Tuple[State[S], float]]:
         pass
 
     def apply_policy(self, policy: Policy[S, A]) -> MarkovRewardProcess[S]:
@@ -263,47 +281,32 @@ class MarkovDecisionProcess(ABC, Generic[S, A]):
         class RewardProcess(MarkovRewardProcess[S]):
             def transition_reward(
                 self,
-                state: S
-            ) -> Optional[Distribution[Tuple[S, float]]]:
-                actions: Optional[Distribution[A]] = policy.act(state)
-                if actions is None:
-                    return None
-
+                state: NonTerminal[S]
+            ) -> Distribution[Tuple[State[S], float]]:
+                actions: Distribution[A] = policy.act(state)
                 return actions.apply(lambda a: mdp.step(state, a))
 
-        return RewardProcess()        
-
-    def is_terminal(self, state: S) -> bool:
-        try:
-            next(iter(self.actions(state)))
-            return False
-        except StopIteration:
-            return True
+        return RewardProcess()
 
     def simulate_actions(
             self,
-            start_states: Distribution[S],
+            start_states: Distribution[NonTerminal[S]],
             policy: Policy[S, A]
     ) -> Iterable[TransitionStep[S, A]]:
-        state: S = start_states.sample()
-        reward: float = 0
+        state: State[S] = start_states.sample()
 
-        while True:
+        while isinstance(state, NonTerminal):
             action_distribution = policy.act(state)
-            if action_distribution is None:
-                return
 
             action = action_distribution.sample()
             next_distribution = self.step(state, action)
-            if next_distribution is None:
-                return
 
             next_state, reward = next_distribution.sample()
             yield TransitionStep(state, action, next_state, reward)
             state = next_state
 ```
 
-The above code for `Policy`, `Always` and `MarkovDecisionProcess` is in the file [rl/markov_decision_process.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/markov_decision_process.py).   
+The above code is in the file [rl/markov_decision_process.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/markov_decision_process.py).   
 
 ### Simple Inventory Example with Unlimited Capacity (Infinite State/Action Space)
 
@@ -311,43 +314,42 @@ Now we come back to our simple inventory example. Unlike previous situations of 
 
 We will cover details on these approximate algorithms later in the book - for now, it's important for you to simply get familiar with how to model infinite MDPs of this type. This infinite-space inventory example serves as a great learning for an introduction to modeling an infinite (but countable) MDP.
 
-We create a concrete class `SimpleInventoryMDPNoCap` that implements the abstract class `MarkovDecisionProcess` (specifically implements `@abstractmethod apply_policy` and `@abstractmethod actions`). The attributes `poisson_lambda`, `holding_cost` and `stockout_cost` have the same semantics as what we had covered for Markov Reward Processes in Chapter [-@sec:mrp-chapter] (`SimpleInventoryMRP`). The `step` method takes as input a `state: InventoryState` and an `order: int` (representing the MDP action). We sample from the poisson probability distribution of customer demand (calling it `demand_sample: int`). Using `order: int` and `demand_sample: int`, we obtain a sample of the pair of `next_state: InventoryState` and `reward: float`. This sample pair is returned as a `SampledDistribution` object. The above sampling dynamics effectively describe the MDP in terms of this `step` method. The `actions` method returns an `Iterator[int]`, an infinite generator of non-negative integers to represent the fact that the action space (order quantities) for any state comprise of all non-negative integers.
+We create a concrete class `SimpleInventoryMDPNoCap` that implements the abstract class `MarkovDecisionProcess` (specifically implements `@abstractmethod step` and `@abstractmethod actions`). The attributes `poisson_lambda`, `holding_cost` and `stockout_cost` have the same semantics as what we had covered for Markov Reward Processes in Chapter [-@sec:mrp-chapter] (`SimpleInventoryMRP`). The `step` method takes as input a `state: NonTerminal[InventoryState]` and an `order: int` (representing the MDP action). We sample from the poisson probability distribution of customer demand (calling it `demand_sample: int`). Using `order: int` and `demand_sample: int`, we obtain a sample of the pair of `next_state: InventoryState` and `reward: float`. This sample pair is returned as a `SampledDistribution` object. The above sampling dynamics effectively describe the MDP in terms of this `step` method. The `actions` method returns an `Iterator[int]`, an infinite generator of non-negative integers to represent the fact that the action space (order quantities) for any state comprise of all non-negative integers.
 
 ```python
 import itertools
 import numpy as np
 from rl.distribution import SampledDistribution
 
+@dataclass(frozen=True)
 class SimpleInventoryMDPNoCap(MarkovDecisionProcess[InventoryState, int]):
-    def __init__(self, poisson_lambda: float, holding_cost: float,
-                 stockout_cost: float):
-        self.poisson_lambda: float = poisson_lambda
-        self.holding_cost: float = holding_cost
-        self.stockout_cost: float = stockout_cost
+    poisson_lambda: float
+    holding_cost: float
+    stockout_cost: float
 
     def step(
         self,
-        state: InventoryState,
+        state: NonTerminal[InventoryState],
         order: int
-    ) -> SampledDistribution[Tuple[InventoryState, float]]:
+    ) -> SampledDistribution[Tuple[State[InventoryState], float]]:
 
         def sample_next_state_reward(
             state=state,
             order=order
-        ) -> Tuple[InventoryState, float]:
+        ) -> Tuple[State[InventoryState], float]:
             demand_sample: int = np.random.poisson(self.poisson_lambda)
-            ip: int = state.inventory_position()
+            ip: int = state.state.inventory_position()
             next_state: InventoryState = InventoryState(
                 max(ip - demand_sample, 0),
                 order
             )
-            reward: float = - self.holding_cost * state.on_hand\
+            reward: float = - self.holding_cost * state.state.on_hand\
                 - self.stockout_cost * max(demand_sample - ip, 0)
-            return next_state, reward
+            return NonTerminal(next_state), reward
 
         return SampledDistribution(sample_next_state_reward)
 
-    def actions(self, state: InventoryState) -> Iterator[int]:
+    def actions(self, state: NonTerminal[InventoryState]) -> Iterator[int]:
         return itertools.count(start=0, step=1)
 ```
 
@@ -366,118 +368,121 @@ $$\mathcal{N} \rightarrow (\mathcal{A} \rightarrow (\mathcal{S} \times \mathcal{
 Since $\mathcal{S}$ is finite, $\mathcal{A}$ is finite, and the set of next state and reward transitions for each pair of current state and action is also finite, we can represent $\mathcal{P}_R$ as a data structure of type `StateActionMapping[S, A]` as shown below:
 
 ```python
-StateReward = FiniteDistribution[Tuple[S, float]]
+StateReward = FiniteDistribution[Tuple[State[S], float]]
 ActionMapping = Mapping[A, StateReward[S]]
-StateActionMapping = Mapping[S, Optional[ActionMapping[A, S]]]
+StateActionMapping = Mapping[NonTerminal[S], ActionMapping[A, S]]
 ```
 
-The constructor (``__init__`` method) of `FiniteMarkovDecisionProcess` takes as input `mapping: StateActionMapping[S, A]` that represents the complete structure of the Finite MDP - it maps each non-terminal state to an action map (maps each terminal state to `None`), and it maps each action in each action map to a finite probability distribution of pairs of next state and reward (essentially the structure of the $\mathcal{P}_R$ function). Along with the attribute `mapping`, we also have an attribute `non_terminal_states: Sequence[S]` that is an ordered sequence of non-terminal states. Now let's consider the implementation of the abstract method `step` of `MarkovDecisionProcess`. It takes as input a `state: S` and an `action: A`. `self.mapping[state][action]` gives us an object of type `FiniteDistribution[Tuple[S, float]]` which represents a finite probability distribution of pairs of next state and reward, which is exactly what we want to return. On the other hand, if `self.mapping[state]` is `None` (meaning it's a terminal state), then we simply return `None`.  This satisfies the responsibility of `FiniteMarkovDecisionProcess` in terms of implementing the `@abstractmethod step` of the abstract class `MarkovDecisionProcess`. The other `@abstractmethod` to implement is the `actions` method which produces an `Iterable` on the allowed actions $\mathcal{A}(s)$ for a given $s\in \mathcal{S}$ by invoking `self.mapping[state].keys()` (it returns an empty iterable for non-terminal states). The `action_mapping` and `states` methods are quite straightforward. Finally, `__repr__` method pretty-prints `self.mapping`.
+The constructor (``__init__`` method) of `FiniteMarkovDecisionProcess` takes as input `mapping` which is essentially of the same structure as `StateActionMapping[S, A]`, except that the `Mapping` is specified in terms of `S` rather than `NonTerminal[S]` or `State[S]` so as to make it easy for a user to specify a `FiniteMarkovDecisionProcess` without the overhead of wrapping `S` in `NonTerminal[S]` or `Terminal[S]`. But this means `__init__` need to do the wrapping to construct the attribute `self.mapping: StateActionMapping[S, A]`. This represents the complete structure of the Finite MDP - it maps each non-terminal state to an action map, and it maps each action in each action map to a finite probability distribution of pairs of next state and reward (essentially the structure of the $\mathcal{P}_R$ function). Along with the attribute `self.mapping`, we also have an attribute `non_terminal_states: Sequence[NonTerminal[S]]` that is an ordered sequence of non-terminal states. Now let's consider the implementation of the abstract method `step` of `MarkovDecisionProcess`. It takes as input a `state: NonTerminal[S]` and an `action: A`. `self.mapping[state][action]` gives us an object of type `FiniteDistribution[Tuple[State[S], float]]` which represents a finite probability distribution of pairs of next state and reward, which is exactly what we want to return.  This satisfies the responsibility of `FiniteMarkovDecisionProcess` in terms of implementing the `@abstractmethod step` of the abstract class `MarkovDecisionProcess`. The other `@abstractmethod` to implement is the `actions` method which produces an `Iterable` on the allowed actions $\mathcal{A}(s)$ for a given $s\in \mathcal{N}$ by invoking `self.mapping[state].keys()`. The `action_mapping` and `__repr__` methods shown below are quite straightforward.
 
 ```python
-from rl.distribution import SampledDistribution
+from rl.distribution import FiniteDistribution, SampledDistribution
 
 class FiniteMarkovDecisionProcess(MarkovDecisionProcess[S, A]):
 
     mapping: StateActionMapping[S, A]
-    non_terminal_states: Sequence[S]
+    non_terminal_states: Sequence[NonTerminal[S]]
 
-    def __init__(self, mapping: StateActionMapping[S, A]):
-        self.mapping = mapping
-        self.non_terminal_states = [s for s, v in mapping.items()
-                                    if v is not None]
+    def __init__(
+        self,
+        mapping: Mapping[S, Mapping[A, FiniteDistribution[Tuple[S, float]]]]
+    ):
+        non_terminals: Set[S] = set(mapping.keys())
+        self.mapping = {NonTerminal(s): {a: Categorical(
+            {(NonTerminal(s1) if s1 in non_terminals else Terminal(s1), r): p
+             for (s1, r), p in v.table().items()}
+        ) for a, v in d.items()} for s, d in mapping.items()}
+        self.non_terminal_states = list(self.mapping.keys())
 
     def __repr__(self) -> str:
         display = ""
         for s, d in self.mapping.items():
-            if d is None:
-                display += f"{s} is a Terminal State\n"
-            else:
-                display += f"From State {s}:\n"
-                for a, d1 in d.items():
-                    display += f"  With Action {a}:\n"
-                    for (s1, r), p in d1.table():
-                        display += f"    To [State {s1} and "\
-                            + f"Reward {r:.3f}] with Probability {p:.3f}\n"
+            display += f"From State {s.state}:\n"
+            for a, d1 in d.items():
+                display += f"  With Action {a}:\n"
+                for (s1, r), p in d1:
+                    opt = "Terminal " if isinstance(s1, Terminal) else ""
+                    display += f"    To [{opt}State {s1.state} and "\
+                        + f"Reward {r:.3f}] with Probability {p:.3f}\n"
         return display
 
-    def step(self, state: S, action: A) -> Optional[StateReward]:
-        action_map: Optional[ActionMapping[A, S]] = self.mapping[state]
-        if action_map is None:
-            return None
+    def step(self, state: NonTerminal[S], action: A) -> StateReward[S]:
+        action_map: ActionMapping[A, S] = self.mapping[state]
         return action_map[action]
 
-    def actions(self, state: S) -> Iterable[A]:
-        actions = self.mapping[state]
-        return iter([]) if actions is None else actions.keys()
+    def actions(self, state: NonTerminal[S]) -> Iterable[A]:
+        return self.mapping[state].keys()
 
-    def action_mapping(self, state: S) -> Optional[ActionMapping[A, S]]:
+    def action_mapping(self, state: NonTerminal[S]) -> ActionMapping[A, S]:
         return self.mapping[state]
-
-    def states(self) -> Iterable[S]:
-        return self.mapping.keys()
 ```
 
-Now that we've implemented a finite MDP, let's implement a finite policy that maps each non-terminal state to a probability distribution over a finite set of actions (and maps each terminal state to `None`). So we create a concrete class `FinitePolicy` that implements the interface of the abstract class `Policy` (specifically implements the `@abstractmethod act`). The input to the constructor (`__init__` method) is `policy_map: Mapping[S, Optional[FiniteDistribution[A]]]` since this type captures the structure of the $\pi: \mathcal{N} \times \mathcal{A} \rightarrow [0, 1]$ function in the curried form:
+Now that we've implemented a finite MDP, let's implement a finite policy that maps each non-terminal state to a probability distribution over a finite set of actions. So we create a concrete class `@datasclass FinitePolicy` that implements the interface of the abstract class `Policy` (specifically implements the `@abstractmethod act`). An instance of `FinitePolicy` is specified with the attribute `self.policy_map: Mapping[S, FiniteDistribution[A]]]` since this type captures the structure of the $\pi: \mathcal{N} \times \mathcal{A} \rightarrow [0, 1]$ function in the curried form
+
 $$\mathcal{N} \rightarrow (\mathcal{A} \rightarrow [0, 1])$$
-for the case of finite $\mathcal{S}$ and finite $\mathcal{A}$. The `act` method and `states` method are straightforward. We also implement a `__repr__` method for pretty-printing of `self.policy_map`.
+for the case of finite $\mathcal{S}$ and finite $\mathcal{A}$. The `act` method is straightforward. We also implement a `__repr__` method for pretty-printing of `self.policy_map`.
 
 ```python
+@dataclass(frozen=True)
 class FinitePolicy(Policy[S, A]):
-    policy_map: Mapping[S, Optional[FiniteDistribution[A]]]
-
-    def __init__(
-        self,
-        policy_map: Mapping[S, Optional[FiniteDistribution[A]]]
-    ):
-        self.policy_map = policy_map
+    policy_map: Mapping[S, FiniteDistribution[A]]
 
     def __repr__(self) -> str:
         display = ""
         for s, d in self.policy_map.items():
-            if d is None:
-                display += f"{s} is a Terminal State\n"
-            else:
-                display += f"For State {s}:\n"
-                for a, p in d:
-                    display += f"  Do Action {a} with Probability {p:.3f}\n"
+            display += f"For State {s}:\n"
+            for a, p in d:
+                display += f"  Do Action {a} with Probability {p:.3f}\n"
         return display
 
-    def act(self, state: S) -> Optional[FiniteDistribution[A]]:
-        return self.policy_map[state]
+    def act(self, state: NonTerminal[S]) -> FiniteDistribution[A]:
+        return self.policy_map[state.state]
+```
 
-    def states(self) -> Iterable[S]:
-        return self.policy_map.keys()
-```   
+Let's also implement a finite deterministic policy as a derived class of `FinitePolicy`.
+
+```python
+class FiniteDeterministicPolicy(FinitePolicy[S, A]):
+    action_for: Mapping[S, A]
+
+    def __init__(self, action_for: Mapping[S, A]):
+        self.action_for = action_for
+        super().__init__(policy_map={s: Constant(a) for s, a in
+                                     self.action_for.items()})
+
+    def __repr__(self) -> str:
+        display = ""
+        for s, a in self.action_for.items():
+            display += f"For State {s}: Do Action {a}\n"
+        return display
+```
 
 Armed with a `FinitePolicy` class, we can now write a method `apply_finite_policy` in `FiniteMarkovDecisionProcess` that takes as input a `policy: FinitePolicy[S, A]` and returns a `FiniteMarkovRewardProcess[S]` by processing the finite structures of both of the MDP and the Policy, and producing a finite structure of the implied MRP.      
 
 ```python
 from collections import defaultdict
-from rl.distribution import Categorical
+from rl.distribution import FiniteDistribution, Categorical
 
     def apply_finite_policy(self, policy: FinitePolicy[S, A])\
             -> FiniteMarkovRewardProcess[S]:
 
-        transition_mapping: Dict[S, Optional[StateReward[S]]] = {}
+        transition_mapping: Dict[S, FiniteDistribution[Tuple[S, float]]] = {}
 
         for state in self.mapping:
-            action_map: Optional[ActionMapping[A, S]] = self.mapping[state]
-            if action_map is None:
-                transition_mapping[state] = None
-            else:
-                outcomes: DefaultDict[Tuple[S, float], float]\
-                    = defaultdict(float)
-                actions = policy.act(state)
-                if actions is not None:
-                    for action, p_action in actions:
-                        for outcome, p_state_reward in action_map[action]:
-                            outcomes[outcome] += p_action * p_state_reward
-                transition_mapping[state] = Categorical(outcomes)
+            action_map: ActionMapping[A, S] = self.mapping[state]
+            outcomes: DefaultDict[Tuple[S, float], float]\
+                = defaultdict(float)
+            actions = policy.act(state)
+            for action, p_action in actions:
+                for (s1, r), p in action_map[action].table().items():
+                    outcomes[(s1.state, r)] += p_action * p
+
+            transition_mapping[state.state] = Categorical(outcomes)
 
         return FiniteMarkovRewardProcess(transition_mapping)
 ```      
 
-The above code for `FiniteMarkovRewardProcess` and `FinitePolicy` is in the file [rl/markov_decision_process.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/markov_decision_process.py).   
+The above code for `FiniteMarkovRewardProcess` is in the file [rl/markov_decision_process.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/markov_decision_process.py) and the above code for `FinitePolicy` and `FiniteDeterministicPolicy` is in the file [rl/policy.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/policy.py).
 
 ### Simple Inventory Example as a Finite Markov Decision Process
 
@@ -501,13 +506,16 @@ So now we have a specification of $\mathcal{R}_T$, but when it comes to our codi
 
 In fact, most Markov Processes you'd encounter in practice can be modeled as a combination of $\mathcal{R}_T$ and $\mathcal{P}$, and you'd simply follow the above $\mathcal{R}_T$ to $\mathcal{P}_R$ representation transformation drill to present this information in the form of $\mathcal{P}_R$ to instantiate a `FiniteMarkovDecisionProcess`. We designed the interface to accept $\mathcal{P}_R$ as input since that is the most general interface for specifying Markov Decision Processes.
 
-So now let's write some code for the simple inventory example as a Finite Markov Decision Process as described above. All we have to do is to create a derived class inherited from `FiniteMarkovDecisionProcess` and write a method to construct the `mapping: StateActionMapping` (i.e., $\mathcal{P}_R$) that the `__init__` constuctor of `FiniteMarkovRewardProcess` requires as input. Note that the generic state `S` is replaced here with the `@dataclass InventoryState` to represent the inventory state, comprising of the On-Hand and On-Order inventory quantities, and the generic action `A` is replaced here with `int` to represent the order quantity.
+So now let's write some code for the simple inventory example as a Finite Markov Decision Process as described above. All we have to do is to create a derived class inherited from `FiniteMarkovDecisionProcess` and write a method to construct the `mapping` (i.e., $\mathcal{P}_R$) that the `__init__` constuctor of `FiniteMarkovRewardProcess` requires as input. Note that the generic state type `S` is replaced here with the `@dataclass InventoryState` to represent the inventory state, comprising of the On-Hand and On-Order inventory quantities, and the generic action type `A` is replaced here with `int` to represent the order quantity.
 
 ```python
 from scipy.stats import poisson
 from rl.distribution import Categorical
 
-InvOrderMapping = StateActionMapping[InventoryState, int]
+InvOrderMapping = Mapping[
+    InventoryState,
+    Mapping[int, Categorical[Tuple[InventoryState, float]]]
+]
 
 class SimpleInventoryMDPCap(FiniteMarkovDecisionProcess[InventoryState, int]):
 
@@ -557,8 +565,6 @@ class SimpleInventoryMDPCap(FiniteMarkovDecisionProcess[InventoryState, int]):
 Now let's test this out with some example inputs (as shown below). We construct an instance of the `SimpleInventoryMDPCap` class with these inputs (named `si_mdp` below), then construct an instance of the `FinitePolicy[InventoryState, int]` class (a deterministic policy, named `fdp` below), and combine them to produce the implied MRP (an instance of the `FiniteMarkovRewardProcess[InventoryState]` class). 
 
 ```python
-from rl.distribution import Constant
-
 user_capacity = 2
 user_poisson_lambda = 1.0
 user_holding_cost = 1.0
@@ -572,10 +578,11 @@ si_mdp: FiniteMarkovDecisionProcess[InventoryState, int] =\
         stockout_cost=user_stockout_cost
     )
 
-fdp: FinitePolicy[InventoryState, int] = FinitePolicy(
-    {InventoryState(alpha, beta):
-     Constant(user_capacity - (alpha + beta)) for alpha in
-     range(user_capacity + 1) for beta in range(user_capacity + 1 - alpha)}
+fdp: FiniteDeterministicPolicy[InventoryState, int] = \
+    FiniteDeterministicPolicy(
+        {InventoryState(alpha, beta): user_capacity - (alpha + beta)
+         for alpha in range(user_capacity + 1)
+         for beta in range(user_capacity + 1 - alpha)}
 )
 
 implied_mrp: FiniteMarkovRewardProcess[InventoryState] =\
@@ -758,6 +765,8 @@ As a consequence of the above Lemma, all we need to do to prove Theorem \eqref{t
 \pi_D^*(s) = \argmax_{a \in \mathcal{A}} Q^*(s,a) \mbox{ for all } s \in \mathcal{N}
 \label{eq:mdp_optimal_policy}
 \end{equation}
+Note that for any specific $s$, if two or more actions $a$ achieve the maximization of $Q^*(s,a)$, then we use an arbitrary rule in breaking ties and assigning a single action $a$ as the output of the above $\argmax$ operation.
+
 First we show that $\pi_D^*$ achieves the Optimal Value Functions $V^*$ and $Q^*$. Since $\pi_D^*(s) = \argmax_{a \in \mathcal{A}} Q^*(s,a)$ and $V^*(s) = \max_{a \in \mathcal{A}} Q^*(s,a)$ for all $s \in \mathcal{N}$, we can infer for all $s \in \mathcal{N}$ that:
 $$V^*(s) = Q^*(s,\pi_D^*(s))$$
 This says that we achieve the Optimal Value Function from a given non-terminal state $s$ if we first take the action prescribed by the policy $\pi_D^*$ (i.e., the action $\pi_D^*(s)$), followed by achieving the Optimal Value Function from each of the next time step's states. But note that each of the next time step's states can achieve the Optimal Value Function by doing the same thing described above ("first take action prescribed by $\pi_D^*$, followed by ..."), and so on and so forth for further time step's states. Thus, the Optimal Value Function $V^*$ is achieved if from each non-terminal state, we take the action prescribed by $\pi_D^*$. Likewise, the Optimal Action-Value Function $Q^*$ is achieved if from each non-terminal state, we take the action $a$ (argument to $Q^*$) followed by future actions prescribed by $\pi_D^*$. Formally, this says:

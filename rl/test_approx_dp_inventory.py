@@ -1,20 +1,23 @@
+from typing import Sequence, Mapping
 import unittest
+
+import numpy as np
+
 from rl.approximate_dynamic_programming import (
     evaluate_finite_mrp, evaluate_mrp, value_iteration_finite, value_iteration)
 from rl.dynamic_programming import value_iteration_result
-from typing import Sequence, Mapping
-import numpy as np
-import rl.iterate as iterate
-from rl.distribution import Constant, Choose
+from rl.distribution import Choose
 from rl.function_approx import Dynamic
-from rl.markov_process import FiniteMarkovRewardProcess
-from rl.markov_decision_process import (FiniteMarkovDecisionProcess,
-                                        FinitePolicy)
+import rl.iterate as iterate
+from rl.markov_process import FiniteMarkovRewardProcess, NonTerminal
+from rl.markov_decision_process import FiniteMarkovDecisionProcess
+from rl.policy import FiniteDeterministicPolicy
+
 from rl.chapter3.simple_inventory_mdp_cap import (InventoryState,
                                                   SimpleInventoryMDPCap)
 
 
-@unittest.skip("Explanation (ie test is too slow)")
+# @unittest.skip("Explanation (ie test is too slow)")
 class TestEvaluate(unittest.TestCase):
     def setUp(self):
         user_capacity = 2
@@ -32,17 +35,17 @@ class TestEvaluate(unittest.TestCase):
                 stockout_cost=user_stockout_cost
             )
 
-        self.fdp: FinitePolicy[InventoryState, int] = FinitePolicy(
-            {InventoryState(alpha, beta):
-             Constant(user_capacity - (alpha + beta)) for alpha in
-             range(user_capacity + 1) for beta in
-             range(user_capacity + 1 - alpha)}
+        self.fdp: FiniteDeterministicPolicy[InventoryState, int] = \
+            FiniteDeterministicPolicy(
+                {InventoryState(alpha, beta): user_capacity - (alpha + beta)
+                 for alpha in range(user_capacity + 1)
+                 for beta in range(user_capacity + 1 - alpha)}
         )
 
         self.implied_mrp: FiniteMarkovRewardProcess[InventoryState] =\
             self.si_mdp.apply_finite_policy(self.fdp)
 
-        self.states: Sequence[InventoryState] = \
+        self.states: Sequence[NonTerminal[InventoryState]] = \
             self.implied_mrp.non_terminal_states
 
     def test_evaluate_mrp(self):
@@ -60,7 +63,7 @@ class TestEvaluate(unittest.TestCase):
             ),
             done=lambda a, b: a.within(b, 1e-4)
         )
-        # print(mrp_finite_fa.values_map)
+
         mrp_vf2: np.ndarray = mrp_finite_fa.evaluate(self.states)
 
         self.assertLess(max(abs(mrp_vf1 - mrp_vf2)), 0.001)
@@ -73,14 +76,14 @@ class TestEvaluate(unittest.TestCase):
                 Choose(self.states),
                 num_state_samples=30
             ),
-            done=lambda a, b: a.within(b, 0.1)
+            done=lambda a, b: a.within(b, 1e-4)
         )
         # print(mrp_fa.values_map)
         mrp_vf3: np.ndarray = mrp_fa.evaluate(self.states)
-        self.assertLess(max(abs(mrp_vf1 - mrp_vf3)), 1.0)
+        self.assertLess(max(abs(mrp_vf1 - mrp_vf3)), 0.001)
 
     def test_value_iteration(self):
-        mdp_map: Mapping[InventoryState, float] = value_iteration_result(
+        mdp_map: Mapping[NonTerminal[InventoryState], float] = value_iteration_result(
             self.si_mdp,
             self.gamma
         )[0]
@@ -94,12 +97,12 @@ class TestEvaluate(unittest.TestCase):
                 self.gamma,
                 fa
             ),
-            done=lambda a, b: a.within(b, 0.1)
+            done=lambda a, b: a.within(b, 1e-5)
         )
         # print(mdp_finite_fa.values_map)
         mdp_vf2: np.ndarray = mdp_finite_fa.evaluate(self.states)
 
-        self.assertLess(max(abs(mdp_vf1 - mdp_vf2)), 0.001)
+        self.assertLess(max(abs(mdp_vf1 - mdp_vf2)), 0.01)
 
         mdp_fa = iterate.converged(
             value_iteration(
@@ -109,8 +112,8 @@ class TestEvaluate(unittest.TestCase):
                 Choose(self.states),
                 num_state_samples=30
             ),
-            done=lambda a, b: a.within(b, 0.1)
+            done=lambda a, b: a.within(b, 1e-5)
         )
         # print(mdp_fa.values_map)
         mdp_vf3: np.ndarray = mdp_fa.evaluate(self.states)
-        self.assertLess(max(abs(mdp_vf1 - mdp_vf3)), 1.0)
+        self.assertLess(max(abs(mdp_vf1 - mdp_vf3)), 0.01)

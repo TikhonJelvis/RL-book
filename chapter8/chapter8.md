@@ -643,7 +643,7 @@ It turns out that even in the multi-period setting, when the market is complete,
  
 To ensure that the market is complete in a multi-period setting, we need to assume that the market is "frictionless" - that we can trade in real-number quantities in any asset and that there are no transaction costs for any trades at any time step. From a computational perspective, we walk back in time from the final time step (call it $t=T$) to $t=0$, and calculate the fundamental asset's units in the replicating portfolio in a "backward recursive manner". As in the case of the single-period setting, each backward-recursive step from outcomes at time $t+1$ to a specific outcome at time $t$ simply involves solving a linear system of equations where each unknown is the replicating portfolio units in a specific fundamental asset and each equation corresponds to the value of the replicating portfolio at a specific outcome at time $t+1$ (which is established recursively). The market is complete if there is a unique solution to each linear system of equations (for each time $t$ and for each outcome at time $t$) in this backward-recursive computation. This gives us not just the replicating portfolio (and consequently, hedges) at each outcome at each time step, but also the price at each outcome at each time step (the price is equal to the value of the calculated replicating portfolio at that outcome at that time step).
  
- Equivalently, we can do a backward-recursive calculation in terms of the risk-neutral probability measures, with each risk-neutral probability measure giving us the transition probabilities from an outcome at time step $t$ to outcomes at time step $t+1$. Again, in a complete market, it amounts to a unique solution of each of these linear system of equations. For each of these linear system of equations, an unknown is a transition probability to a time $t+1$ outcome and an equation corresponds to a specific fundamental asset's prices at the time $t+1$ outcomes. This calculation is popularized (and easily understood) in the simple context of a [Binomial Options Pricing Model](https://en.wikipedia.org/wiki/Binomial_options_pricing_model). We devote Section [-@sec:binomial-pricing-model] to coverage of the original Binomial Options Pricing Model and model it as a Finite-State Finite-Horizon  MDP (and utilize the ADP code developed in [-@sec:dp-chapter] to solve the MDP).
+ Equivalently, we can do a backward-recursive calculation in terms of the risk-neutral probability measures, with each risk-neutral probability measure giving us the transition probabilities from an outcome at time step $t$ to outcomes at time step $t+1$. Again, in a complete market, it amounts to a unique solution of each of these linear system of equations. For each of these linear system of equations, an unknown is a transition probability to a time $t+1$ outcome and an equation corresponds to a specific fundamental asset's prices at the time $t+1$ outcomes. This calculation is popularized (and easily understood) in the simple context of a [Binomial Options Pricing Model](https://en.wikipedia.org/wiki/Binomial_options_pricing_model). We devote Section [-@sec:binomial-pricing-model] to coverage of the original Binomial Options Pricing Model and model it as a Finite-State Finite-Horizon  MDP (and utilize the ADP code developed in Chapter [-@sec:dp-chapter] to solve the MDP).
 
  
 #### Continuous-Time Complete-Market Setting
@@ -656,7 +656,7 @@ So to summarize, we are in good shape to price/hedge in a multi-period and conti
 
 ### Optimal Exercise of American Options cast as a Finite MDP {#sec:binomial-pricing-model}
 
-The original Binomial Options Pricing Model was developed to price (and hedge) options (including American) on an underlying whose price evolves according to a lognormal stochastic process, with the stochastic process approximated in the form of a simple discrete-time, discrete-states process that enables enormous computational tractability. The lognormal stochastic process is basically of the same form as the stochastic process of the underlying price in the Black-Scholes model (covered in Appendix [-@sec:black-scholes-appendix]). However, the underlying price process in the Black-Scholes model is specified in the real-world probability measure whereas here we specify the underlying price process in the risk-neutral probability measure. This is because here we will employ the pricing method of riskless rate-discounted expectation (under the risk-neutral probability measure) of the option payoff. Recall that in the single-period setting, the underlying asset price's expected rate of growth is calibrated to be equal to the riskless rate $r$, under the risk-probability probability measure. This calibration applies even in the multi-period and continuous-time setting. For a continuous-time lognormal stochastic process, the lognormal drift will hence be equal to $r$ in the risk-neutral probability measure (rather than $\mu$ in the real-world probability measure, as per the Black-Scholes model). Precisely, the stochastic process $S$ for the underlying price in the risk-neutral probability measure is:
+The original Binomial Options Pricing Model was developed to price (and hedge) options (including American Options) on an underlying whose price evolves according to a lognormal stochastic process, with the stochastic process approximated in the form of a simple discrete-time, discrete-states process that enables enormous computational tractability. The lognormal stochastic process is basically of the same form as the stochastic process of the underlying price in the Black-Scholes model (covered in Appendix [-@sec:black-scholes-appendix]). However, the underlying price process in the Black-Scholes model is specified in the real-world probability measure whereas here we specify the underlying price process in the risk-neutral probability measure. This is because here we will employ the pricing method of riskless rate-discounted expectation (under the risk-neutral probability measure) of the option payoff. Recall that in the single-period setting, the underlying asset price's expected rate of growth is calibrated to be equal to the riskless rate $r$, under the risk-probability probability measure. This calibration applies even in the multi-period and continuous-time settings. For a continuous-time lognormal stochastic process, the lognormal drift will hence be equal to $r$ in the risk-neutral probability measure (rather than $\mu$ in the real-world probability measure, as per the Black-Scholes model). Precisely, the stochastic process $S$ for the underlying price in the risk-neutral probability measure is:
 
 $$dS_t = r \cdot S_t \cdot dt + \sigma \cdot S_t \cdot dz_t$$
 
@@ -685,13 +685,13 @@ The set of states $\mathcal{S}_i$ at time step $i$ (for all $0 \leq i \leq T+1$)
 
 $$S_{i,j} = S_{0,0} \cdot e^{\frac {(2j - i)\sigma T} n}$$
 
-Finally, the method `get_opt_vf_and_policy` calculates $u$ (`up_factor`) and $q$ (`up_prob`), prepares the requisite state-reward transitions (conditional on current state and action) to move from one time step to the next, and passes along the constructed time-sequenced transitions (`Sequence[StateActionMapping[int, bool]]`) to `rl.finite_horizon.get_opt_vf_and_policy` (which we had written in Chapter [-@sec:dp-chapter]) to perform the requisite backward induction and return an `Iterator` on pairs of `V[int]` and `FinitePolicy[int, bool]`. Note that the states at any time-step $i$ are the integers from $0$ to $i$ and hence, represented as `int`, and the actions are represented as `bool` (`True` for exercise and `False` for continue). We need to point out a couple of small details in the code. Firstly, we represent an early terminal state (in case of option exercise before expiration of the option) as -1. Secondly, note that there is no action map from an early terminal state and so, the value associated with a key (state) of -1 is `None` (according to the representation protocol in  `StateActionMapping` which specifies a `FiniteMarkovDecisionProcess`).
+Finally, the method `get_opt_vf_and_policy` calculates $u$ (`up_factor`) and $q$ (`up_prob`), prepares the requisite state-reward transitions (conditional on current state and action) to move from one time step to the next, and passes along the constructed time-sequenced transitions to `rl.finite_horizon.get_opt_vf_and_policy` (which we had written in Chapter [-@sec:dp-chapter]) to perform the requisite backward induction and return an `Iterator` on pairs of `V[int]` and `FiniteDeterministicPolicy[int, bool]`. Note that the states at any time-step $i$ are the integers from $0$ to $i$ and hence, represented as `int`, and the actions are represented as `bool` (`True` for exercise and `False` for continue). Note that we represent an early terminal state (in case of option exercise before expiration of the option) as -1.
 
 ```python
 from rl.distribution import Constant, Categorical
 from rl.finite_horizon import optimal_vf_and_policy
 from rl.dynamic_programming import V
-from rl.markov_decision_process import FinitePolicy
+from rl.policy import FiniteDeterministicPolicy
 
 @dataclass(frozen=True)
 class OptimalExerciseBinTree:
@@ -711,24 +711,24 @@ class OptimalExerciseBinTree:
                                         np.sqrt(self.dt()))
 
     def get_opt_vf_and_policy(self) -> \
-            Iterator[Tuple[V[int], FinitePolicy[int, bool]]]:
+            Iterator[Tuple[V[int], FiniteDeterministicPolicy[int, bool]]]:
         dt: float = self.dt()
         up_factor: float = np.exp(self.vol * np.sqrt(dt))
         up_prob: float = (np.exp(self.rate * dt) * up_factor - 1) / \
             (up_factor * up_factor - 1)
         return optimal_vf_and_policy(
             steps=[
-                {j: None if j == -1 else {
+                {NonTerminal(j): {
                     True: Constant(
                         (
-                            -1,
+                            Terminal(-1),
                             self.payoff(i * dt, self.state_price(i, j))
                         )
                     ),
                     False: Categorical(
                         {
-                            (j + 1, 0.): up_prob,
-                            (j, 0.): 1 - up_prob
+                            (NonTerminal(j + 1), 0.): up_prob,
+                            (NonTerminal(j), 0.): 1 - up_prob
                         }
                     )
                 } for j in range(i + 1)}
@@ -743,14 +743,14 @@ Now we want to try out this code on an American Call Option and American Put Opt
 ```python
     def option_exercise_boundary(
         self,
-        policy_seq: Sequence[FinitePolicy[int, bool]],
+        policy_seq: Sequence[FiniteDeterministicPolicy[int, bool]],
         is_call: bool
     ) -> Sequence[Tuple[float, float]]:
         dt: float = self.dt()
         ex_boundary: List[Tuple[float, float]] = []
         for i in range(self.num_steps + 1):
             ex_points = [j for j in range(i + 1)
-                         if policy_seq[i].act(j).value and
+                         if policy_seq[i].action_for[j] and
                          self.payoff(i * dt, self.state_price(i, j)) > 0]
             if len(ex_points) > 0:
                 boundary_pt = min(ex_points) if is_call else max(ex_points)
@@ -829,7 +829,7 @@ plot_list_of_curves(
 european: float = opt_ex_bin_tree.european_price(is_call, strike)
 print(f"European Price = {european:.3f}")
 
-am_price: float = vf_seq[0][0]
+am_price: float = vf_seq[0][NonTerminal(0)]
 print(f"American Price = {am_price:.3f}")
 ```
 

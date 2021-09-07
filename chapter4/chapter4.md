@@ -1,10 +1,10 @@
 ## Dynamic Programming Algorithms {#sec:dp-chapter}
 
-As a reminder, much of this book is about algorithms to solve the MDP Control problem, i.e., to compute the Optimal Value Function (and an associated Optimal Policy). We will also cover algorithms for the MDP Prediction problem, i.e., to compute the Value Function when the agent executes a fixed policy $\pi$ (which, as we know from Chapter [-@sec:mdp-chapter], is the same as the $\pi$-implied MRP problem). Our typical approach will be to first cover algorithms to solve the Prediction problem before covering algorithms to solve the Control problem - not just because Prediction is a key component in solving the Control problem, but also because it helps understand the key aspects of the techniques employed in the Control algorithm in the simpler setting of Prediction.
+As a reminder, much of this book is about algorithms to solve the MDP Control problem, i.e., to compute the Optimal Value Function (and an associated Optimal Policy). We will also cover algorithms for the MDP Prediction problem, i.e., to compute the Value Function when the AI agent executes a fixed policy $\pi$ (which, as we know from Chapter [-@sec:mdp-chapter], is the same as the $\pi$-implied MRP problem). Our typical approach will be to first cover algorithms to solve the Prediction problem before covering algorithms to solve the Control problem - not just because Prediction is a key component in solving the Control problem, but also because it helps understand the key aspects of the techniques employed in the Control algorithm in the simpler setting of Prediction.
 
 ### Planning versus Learning
 
-In this book, we shall look at Planning and Control from the lens of AI (and we'll specifically use the terminology of AI). We shall distinguish between algorithms that don't have a model of the MDP environment (no access to the $\mathcal{P}_R$ function) versus algorithms that do have a model of the MDP environment (meaning $\mathcal{P}_R$ is available to us either in terms of explicit probability distribution representations or available to us just as a sampling model). The former (algorithms without access to a model) are known as *Learning Algorithms* to reflect the fact that the agent will need to interact with the real-world environment (eg: a robot learning to navigate in an actual forest) and learn the Value Function from streams of data (states encountered,  actions taken, rewards observed) it receives through environment interactions. The latter (algorithms with access to a model) are known as *Planning Algorithms* to reflect the fact that the agent requires no real-world environment interaction and in fact, projects (with the help of the model) probabilistic scenarios of future states/rewards for various choices of actions, and solves for the requisite Value Function with appropriate probabilistic reasoning of the projected outcomes. In both Learning and Planning, the Bellman Equation will be the fundamental concept driving the algorithms but the details of the algorithms will typically make them appear fairly different. We will only focus on Planning algorithms in this chapter, and in fact, will only focus on a subclass of Planning algorithms known as Dynamic Programming. 
+In this book, we shall look at Prediction and Control from the lens of AI (and we'll specifically use the terminology of AI). We shall distinguish between algorithms that don't have a model of the MDP environment (no access to the $\mathcal{P}_R$ function) versus algorithms that do have a model of the MDP environment (meaning $\mathcal{P}_R$ is available to us either in terms of explicit probability distribution representations or available to us just as a sampling model). The former (algorithms without access to a model) are known as *Learning Algorithms* to reflect the fact that the AI agent will need to interact with the real-world environment (eg: a robot learning to navigate in an actual forest) and learn the Value Function from data (states encountered,  actions taken, rewards observed) it receives through interactions with the environment. The latter (algorithms with access to a model of the MDP environment) are known as *Planning Algorithms* to reflect the fact that the AI agent requires no real-world environment interaction and in fact, projects (with the help of the model) probabilistic scenarios of future states/rewards for various choices of actions, and solves for the requisite Value Function based on the projected outcomes. In both Learning and Planning, the Bellman Equation will be the fundamental concept driving the algorithms but the details of the algorithms will typically make them appear fairly different. We will only focus on Planning algorithms in this chapter, and in fact, will only focus on a subclass of Planning algorithms known as Dynamic Programming. 
 
 
 ### Usage of the term *Dynamic Programming*
@@ -115,15 +115,18 @@ The above function take a function (`step: Callable[X], X]`) and a starting valu
 
 ```python
 def converge(values: Iterator[X], done: Callable[[X, X], bool]) -> Iterator[X]:
-    a = next(values)
+    a = next(values, None)
+    if a is None:
+        return
+
     yield a
 
     for b in values:
+        yield b
         if done(a, b):
-            break
-        else:
-            a = b
-            yield b
+            return
+
+        a = b
 ```
 
 The above function takes the generated values from `iterate` (argument `values: Iterator[X]`) and a signal to indicate convergence (argument `done: Callable[[X, X], bool]`), and produces the generated values until `done` is `True`. It is the user's responsibility to write the function `done` and pass it to `converge`. Now let's use these two functions to solve for $x=\cos(x)$.
@@ -136,31 +139,31 @@ values = converge(
     lambda a, b: np.abs(a - b) < 1e-3
 )
 for i, v in enumerate(values):
-    print(f"{i}: {v:.3f}")
+    print(f"{i}: {v:.4f}")
 ```
 
 This prints a trace with the index of the stream and the value at that index as the function $\cos$ is repeatedly applied. It terminates when two successive values are within 3 decimal places of each other.
 
 ```
-0: 0.000
-1: 1.000
-2: 0.540
-3: 0.858
-4: 0.654
-5: 0.793
-6: 0.701
-7: 0.764
-8: 0.722
-9: 0.750
-10: 0.731
-11: 0.744
-12: 0.736
-13: 0.741
-14: 0.738
-15: 0.740
-16: 0.738
-17: 0.740
-18: 0.739
+0: 0.0000
+1: 1.0000
+2: 0.5403
+3: 0.8576
+4: 0.6543
+5: 0.7935
+6: 0.7014
+7: 0.7640
+8: 0.7221
+9: 0.7504
+10: 0.7314
+11: 0.7442
+12: 0.7356
+13: 0.7414
+14: 0.7375
+15: 0.7401
+16: 0.7384
+17: 0.7396
+18: 0.7388
 ```
 
 We encourage you to try other starting values (other than the one we have above: $x_0 = 0.0$) and see the trace. We also encourage you to identify other function $f$ which are contractions in an appropriate metric. The above fixed-point code is in the file [rl/iterate.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/iterate.py). In this file, you will find two more functions `last` and `converged` to produce the final value of the given iterator when it's values converge according to the `done` function.
@@ -227,7 +230,7 @@ It pays to emphasize that Banach Fixed-Point Theorem not only assures convergenc
 
 ```python
 DEFAULT_TOLERANCE = 1e-5
-V = Mapping[S, float]
+V = Mapping[NonTerminal[S], float]
 
 def evaluate_mrp(
     mrp: FiniteMarkovRewardProcess[S],
@@ -241,13 +244,13 @@ def evaluate_mrp(
 
     return iterate(update, v_0)
 
+
 def almost_equal_np_arrays(
     v1: np.ndarray,
     v2: np.ndarray,
     tolerance: float = DEFAULT_TOLERANCE
 ) -> bool:
     return max(abs(v1 - v2)) < tolerance
-
 
 def evaluate_mrp_result(
     mrp: FiniteMarkovRewardProcess[S],
@@ -260,7 +263,7 @@ def evaluate_mrp_result(
     return {s: v_star[i] for i, s in enumerate(mrp.non_terminal_states)}
 ```
 
-The code should be fairly self-explanatory. Since the Policy Evaluation problem applies to Finite MRPs, the function `evaluate_mrp` above takes as input `mrp: FiniteMarkovDecisionProcess[S]` and a `gamma: float` to produce an `Iterator` on Value Functions represented as `np.ndarray` (for fast vector/matrix calculations). The function `update` in `evaluate_mrp` represents the application of the Bellman Policy Operator $\bbpi$. The function `evaluate_mrp_result` produces the Value Function for the given `mrp` and the given `gamma`, returning the last value function on the `Iterator` (which terminates based on the `almost_equal_np_arrays` function, considering the maximum of the absolute value differences across all states). Note that the return type of `evaluate_mrp_result` is `V[S]` which is an alias for `Mapping[S, float]`, capturing the semantic of $\mathcal{N} \rightarrow \mathbb{R}$. Note that `evaluate_mrp` is useful for debugging (by looking at the trace of value functions in the execution of the Policy Evaluation algorithm) while `evaluate_mrp_result` produces the desired output Value Function.
+The code should be fairly self-explanatory. Since the Policy Evaluation problem applies to Finite MRPs, the function `evaluate_mrp` above takes as input `mrp: FiniteMarkovDecisionProcess[S]` and a `gamma: float` to produce an `Iterator` on Value Functions represented as `np.ndarray` (for fast vector/matrix calculations). The function `update` in `evaluate_mrp` represents the application of the Bellman Policy Operator $\bbpi$. The function `evaluate_mrp_result` produces the Value Function for the given `mrp` and the given `gamma`, returning the last value function on the `Iterator` (which terminates based on the `almost_equal_np_arrays` function, considering the maximum of the absolute value differences across all states). Note that the return type of `evaluate_mrp_result` is `V[S]` which is an alias for `Mapping[NonTerminal[S], float]`, capturing the semantic of $\mathcal{N} \rightarrow \mathbb{R}$. Note that `evaluate_mrp` is useful for debugging (by looking at the trace of value functions in the execution of the Policy Evaluation algorithm) while `evaluate_mrp_result` produces the desired output Value Function.
 
 If the number of non-terminal states of a given MRP is $m$, then the running time of each iteration is $O(m^2)$. Note though that to construct an MRP from a given MDP and a given policy, we have to perform $O(m^2\cdot k)$ operations, where $k = |\mathcal{A}|$.
 
@@ -273,12 +276,13 @@ $$G: \mathbb{R}^m \rightarrow (\mathcal{N} \rightarrow \mathcal{A})$$
 interpreted as a function mapping a Value Function $\bv$ (represented as a vector) to a deterministic policy $\pi_D': \mathcal{N} \rightarrow \mathcal{A}$, is defined as:
 
 \begin{equation}
-G(\bv)(s) = \pi_D'(s) = \argmax_{a\in \mathcal{A}} \{\mathcal{R}(s,a) + \gamma \sum_{s' \in \mathcal{N}} \mathcal{P}(s,a,s') \cdot \bv(s') \} \text{ for all } s \in \mathcal{N}
+G(\bv)(s) = \pi_D'(s) = \argmax_{a\in \mathcal{A}} \{\mathcal{R}(s,a) + \gamma \cdot \sum_{s' \in \mathcal{N}} \mathcal{P}(s,a,s') \cdot \bv(s') \} \text{ for all } s \in \mathcal{N}
 \label{eq:greedy_policy_function1}
 \end{equation}
+Note that for any specific $s$, if two or more actions $a$ achieve the maximization of $\mathcal{R}(s,a) + \gamma \cdot \sum_{s' \in \mathcal{N}} \mathcal{P}(s,a,s') \cdot \bv(s')$, then we use an arbitrary rule in breaking ties and assigning a single action $a$ as the output of the above $\argmax$ operation.
 We shall use Equation \eqref{eq:greedy_policy_function1} in our mathematical exposition but we require a different (but equivalent) expression for $G(\bv)(s)$ to guide us with our code since the interface for `FiniteMarkovDecisionProcess` operates on $\mathcal{P}_R$, rather than $\mathcal{R}$ and $\mathcal{P}$. The equivalent expression for $G(\bv)(s)$ is as follows:
 \begin{equation}
- G(\bv)(s )= \argmax_{a\in \mathcal{A}} \{\sum_{s'\in \mathcal{S}} \sum_{r \in \mathcal{D}} \mathcal{P}_R(s,a,r,s') \cdot (r  + \gamma \cdot \bm{W}(s'))\} \text{ for all } s\in \mathcal{N}
+ G(\bv)(s) = \argmax_{a\in \mathcal{A}} \{\sum_{s'\in \mathcal{S}} \sum_{r \in \mathcal{D}} \mathcal{P}_R(s,a,r,s') \cdot (r  + \gamma \cdot \bm{W}(s'))\} \text{ for all } s\in \mathcal{N}
 \label{eq:greedy_policy_function2}
 \end{equation}
 
@@ -298,27 +302,32 @@ Now let's write some code to create this "greedy policy" from a given value func
 ```python
 import operator
 
+def extended_vf(v: V[S], s: State[S]) -> float:
+    def non_terminal_vf(st: NonTerminal[S], v=v) -> float:
+        return v[st]
+    return s.on_non_terminal(non_terminal_vf, 0.0)
+
 def greedy_policy_from_vf(
     mdp: FiniteMarkovDecisionProcess[S, A],
     vf: V[S],
     gamma: float
-) -> FinitePolicy[S, A]:
-    greedy_policy_dict: Dict[S, FiniteDistribution[A]] = {}
+) -> FiniteDeterministicPolicy[S, A]:
+    greedy_policy_dict: Dict[S, A] = {}
 
     for s in mdp.non_terminal_states:
-
         q_values: Iterator[Tuple[A, float]] = \
             ((a, mdp.mapping[s][a].expectation(
-                lambda s_r: s_r[1] + gamma * vf.get(s_r[0], 0.)
+                lambda s_r: s_r[1] + gamma * extended_vf(vf, s_r[0])
             )) for a in mdp.actions(s))
+        greedy_policy_dict[s.state] = \
+            max(q_values, key=operator.itemgetter(1))[0]
 
-        greedy_policy_dict[s] =\
-            Constant(max(q_values, key=operator.itemgetter(1))[0])
-
-    return FinitePolicy(greedy_policy_dict)
+    return FiniteDeterministicPolicy(greedy_policy_dict)
 ```
 
-As you can see above, we loop through all the non-terminal states that serve as keys in `greedy_policy_dict: Dict[S, FiniteDistribution[A]]`. Within this loop, we go through all the actions in $\mathcal{A}(s)$ and compute Q-Value $Q(s,a)$ as the sum (over all $(s',r)$ pairs) of $\mathcal{P}_R(s,a,r,s') \cdot (r  + \gamma \cdot \bm{W}(s'))$, written as $\mathbb{E}_{(s',r) \sim \mathcal{P}_R}[r + \gamma \cdot \bm{W}(s')]$. Finally, we calculate $\argmax_a Q(s,a)$ for all non-terminal states $s$, and return it as a `FinitePolicy` (which is our greedy policy).
+As you can see above, the function `greedy_policy_from_vf` loops through all the non-terminal states that serve as keys in `greedy_policy_dict: Dict[S, A]`. Within this loop, we go through all the actions in $\mathcal{A}(s)$ and compute Q-Value $Q(s,a)$ as the sum (over all $(s',r)$ pairs) of $\mathcal{P}_R(s,a,r,s') \cdot (r  + \gamma \cdot \bm{W}(s'))$, written as $\mathbb{E}_{(s',r) \sim \mathcal{P}_R}[r + \gamma \cdot \bm{W}(s')]$. Finally, we calculate $\argmax_a Q(s,a)$ for all non-terminal states $s$, and return it as a `FinitePolicy` (which is our greedy policy).
+
+Note that the `extended_vf` represents the $\bm{W}: \mathcal{S} \rightarrow \mathbb{R}$ function used in the right-hand-side of Equation \eqref{eq:greedy_policy_function2}, which is the usual value function when it's argument is a non-terminal state and is the default value of 0 when it's argument is a terminal state. We shall use the `extended_vf` function in other Dynamic Programming algorithms later in this chapter as they also involve the $\bm{W}: \mathcal{S} \rightarrow \mathbb{R}$ function in the right-hand-side of their corresponding governing equation.
 
 The word "Greedy" is a reference to the term "Greedy Algorithm", which means an algorithm that takes heuristic steps guided by locally-optimal choices in the hope of moving towards a global optimum. Here, the reference to *Greedy Policy* means if we have a policy $\pi$ and its corresponding Value Function $\bvpi$ (obtained say using Policy Evaluation algorithm), then applying the Greedy Policy function $G$ on $\bvpi$ gives us a deterministic policy $\pi_D': \mathcal{N} \rightarrow \mathcal{A}$ that is hopefully "better" than $\pi$ in the sense that $\bm{V}^{\pi_D'}$ is "greater" than $\bvpi$. We shall now make this statement precise and show how to use the *Greedy Policy Function* to perform *Policy Improvement*.
 
@@ -421,7 +430,7 @@ For a Finite MDP with $|\mathcal{N}| = m$ and $\gamma < 1$, Policy Iteration alg
 
 ![Policy Iteration Convergence \label{fig:policy_iteration_convergence}](./chapter4/policy_iteration_convergence.png "At Convergence of Policy Iteration")
 
-Now let's write some code for Policy Iteration Algorithm. Unlike Policy Evaluation which repeatedly operates on Value Functions (and returns a Value Function), Policy Iteration repeatedly operates on a pair of Value Function and Policy (and returns a pair of Value Function and Policy). In the code below, notice the type `Tuple[V[S], FinitePolicy[S, A]]` that represents a pair of Value Function and Policy. The function `policy_iteration` repeatedly applies the function `update` on a pair of Value Function and Policy. The `update` function, after splitting its input `vf_policy` into `vf: V[S]` and `pi: FinitePolicy[S, A]`, creates a MRP (`mrp: FiniteMarkovRewardProcess[S]`) from the combination of the input `mdp` and `pi`. Then it performs a policy evaluation on `mrp` (using the `evaluate_mrp_result` function) to produce a Value Function `policy_vf: V[S]`, and finally creates a greedy (improved) policy named `improved_pi` from `policy_vf` (using the previously-written function `greedy_policy_from_vf`). Thus the function `update` performs a Policy Evaluation followed by a Policy Improvement. Notice also that `policy_iteration` offers the option to perform the matrix-inversion-based computation of Value Function for a given policy (`get_value_function_vec` method of the `mrp` object), in case the state space is not too large. `policy_iteration` returns an `Iterator` on pairs of Value Function and Policy produced by this process of repeated Policy Evaluation and Policy Improvement.  `almost_equal_vf_pis` is the function to decide termination based on the distance between two successive Value Functions produced by Policy Iteration. `policy_iteration_result` returns the final (optimal) pair of Value Function and Policy (from the `Iterator` produced by `policy_iteration`), based on the termination criterion of `almost_equal_vf_pis`.
+Now let's write some code for Policy Iteration Algorithm. Unlike Policy Evaluation which repeatedly operates on Value Functions (and returns a Value Function), Policy Iteration repeatedly operates on a pair of Value Function and Policy (and returns a pair of Value Function and Policy). In the code below, notice the type `Tuple[V[S], FinitePolicy[S, A]]` that represents a pair of Value Function and Policy. The function `policy_iteration` repeatedly applies the function `update` on a pair of Value Function and Policy. The `update` function, after splitting its input `vf_policy` into `vf: V[S]` and `pi: FinitePolicy[S, A]`, creates an MRP (`mrp: FiniteMarkovRewardProcess[S]`) from the combination of the input `mdp` and `pi`. Then it performs a policy evaluation on `mrp` (using the `evaluate_mrp_result` function) to produce a Value Function `policy_vf: V[S]`, and finally creates a greedy (improved) policy named `improved_pi` from `policy_vf` (using the previously-written function `greedy_policy_from_vf`). Thus the function `update` performs a Policy Evaluation followed by a Policy Improvement. Notice also that `policy_iteration` offers the option to perform the matrix-inversion-based computation of Value Function for a given policy (`get_value_function_vec` method of the `mrp` object), in case the state space is not too large. `policy_iteration` returns an `Iterator` on pairs of Value Function and Policy produced by this process of repeated Policy Evaluation and Policy Improvement.  `almost_equal_vf_pis` is the function to decide termination based on the distance between two successive Value Functions produced by Policy Iteration. `policy_iteration_result` returns the final (optimal) pair of Value Function and Policy (from the `Iterator` produced by `policy_iteration`), based on the termination criterion of `almost_equal_vf_pis`.
 
 ```python
 DEFAULT_TOLERANCE = 1e-5
@@ -433,14 +442,14 @@ def policy_iteration(
 ) -> Iterator[Tuple[V[S], FinitePolicy[S, A]]]:
 
     def update(vf_policy: Tuple[V[S], FinitePolicy[S, A]])\
-            -> Tuple[V[S], FinitePolicy[S, A]]:
+            -> Tuple[V[S], FiniteDeterministicPolicy[S, A]]:
 
         vf, pi = vf_policy
         mrp: FiniteMarkovRewardProcess[S] = mdp.apply_finite_policy(pi)
         policy_vf: V[S] = {mrp.non_terminal_states[i]: v for i, v in
                            enumerate(mrp.get_value_function_vec(gamma))}\
             if matrix_method_for_mrp_eval else evaluate_mrp_result(mrp, gamma)
-        improved_pi: FinitePolicy[S, A] = greedy_policy_from_vf(
+        improved_pi: FiniteDeterministicPolicy[S, A] = greedy_policy_from_vf(
             mdp,
             policy_vf,
             gamma
@@ -450,7 +459,7 @@ def policy_iteration(
 
     v_0: V[S] = {s: 0.0 for s in mdp.non_terminal_states}
     pi_0: FinitePolicy[S, A] = FinitePolicy(
-        {s: Choose(set(mdp.actions(s))) for s in mdp.non_terminal_states}
+        {s.state: Choose(mdp.actions(s)) for s in mdp.non_terminal_states}
     )
     return iterate(update, (v_0, pi_0))
 
@@ -465,7 +474,7 @@ def almost_equal_vf_pis(
 def policy_iteration_result(
     mdp: FiniteMarkovDecisionProcess[S, A],
     gamma: float,
-) -> Tuple[V[S], FinitePolicy[S, A]]:
+) -> Tuple[V[S], FiniteDeterministicPolicy[S, A]]:
     return converged(policy_iteration(mdp, gamma), done=almost_equal_vf_pis)
 ```
 
@@ -598,7 +607,7 @@ The above equation says $\bvs$ is the Fixed-Point of the Bellman Policy Operator
 $$\bm{V}^{G(\bvs)} = \bvs$$
 This says that evaluating the MDP with the deterministic greedy policy $G(\bvs)$ (policy created from the Optimal Value Function $\bvs$ using the Greedy Policy Function $G$) in fact achieves the Optimal Value Function $\bvs$. In other words, $G(\bvs)$ is the (Deterministic) Optimal Policy $\pi^*$ we've been seeking.
 
-Now let's write the code for Value Iteration. The function `value_iteration` returns an `Iterator` on Value Functions (of type `V[S]`) produced by the Value Iteration algorithm. It uses the function `update` for application of the Bellman Optimality Operator. `update` prepares the Q-Values for a state by looping through all the allowable actions for the state, and then calculates the maximum of those Q-Values (over the actions). The Q-Value calculation is same as what we saw in `greedy_policy_from_vf`: $\mathbb{E}_{(s',r) \sim \mathcal{P}_R}[r + \gamma \cdot \bm{W}(s')]$, using the $\mathcal{P}_R$ probabilities represented in the `mapping` attribute of the `mdp` object (essentially Equation \eqref{eq:bellman_optimality_operator2}). The function `value_iteration_result` returns the final (optimal) Value Function, together with it's associated Optimal Policy. It simply returns the last Value Function of the `Iterable[V[S]]` returned by `value_iteration`, using the termination condition specified in `almost_equal_vfs`.
+Now let's write the code for Value Iteration. The function `value_iteration` returns an `Iterator` on Value Functions (of type `V[S]`) produced by the Value Iteration algorithm. It uses the function `update` for application of the Bellman Optimality Operator. `update` prepares the Q-Values for a state by looping through all the allowable actions for the state, and then calculates the maximum of those Q-Values (over the actions). The Q-Value calculation is same as what we saw in `greedy_policy_from_vf`: $\mathbb{E}_{(s',r) \sim \mathcal{P}_R}[r + \gamma \cdot \bm{W}(s')]$, using the $\mathcal{P}_R$ probabilities represented in the `mapping` attribute of the `mdp` object (essentially Equation \eqref{eq:bellman_optimality_operator2}). Note the use of the previously-written function `extended_vf` to handle the function $\bm{W}: \mathcal{S} \rightarrow \mathbb{R}$ that appears in the definition of Bellman Optimality Operator in Equation \eqref{eq:bellman_optimality_operator2}. The function `value_iteration_result` returns the final (optimal) Value Function, together with it's associated Optimal Policy. It simply returns the last Value Function of the `Iterator[V[S]]` returned by `value_iteration`, using the termination condition specified in `almost_equal_vfs`.
 
 ```python
 DEFAULT_TOLERANCE = 1e-5
@@ -609,7 +618,7 @@ def value_iteration(
 ) -> Iterator[V[S]]:
     def update(v: V[S]) -> V[S]:
         return {s: max(mdp.mapping[s][a].expectation(
-            lambda s_r: s_r[1] + gamma * v.get(s_r[0], 0.)
+            lambda s_r: s_r[1] + gamma * extended_vf(v, s_r[0])
         ) for a in mdp.actions(s)) for s in v}
 
     v_0: V[S] = {s: 0.0 for s in mdp.non_terminal_states}
@@ -625,17 +634,16 @@ def almost_equal_vfs(
 def value_iteration_result(
     mdp: FiniteMarkovDecisionProcess[S, A],
     gamma: float
-) -> Tuple[V[S], FinitePolicy[S, A]]:
+) -> Tuple[V[S], FiniteDeterministicPolicy[S, A]]:
     opt_vf: V[S] = converged(
         value_iteration(mdp, gamma),
         done=almost_equal_vfs
     )
-    opt_policy: FinitePolicy[S, A] = greedy_policy_from_vf(
+    opt_policy: FiniteDeterministicPolicy[S, A] = greedy_policy_from_vf(
         mdp,
         opt_vf,
         gamma
     )
-
     return opt_vf, opt_policy
 ```
 
@@ -645,7 +653,7 @@ We encourage you to play with the above implementations of Policy Evaluation, Po
 
 ### Revisiting the Simple Inventory Example
 
-Let's revisit the simple inventory example. We shall consider the version with a space capacity since we want an example of a `FiniteMarkovDecisionProcess`. It will help us test our code for Policy Evaluation, Policy Iteration and Value Iteration. More importantly, it will help us identify the mathematical structure of the optimal policy of ordering for this store inventory problem. So let's take another look at the code we wrote in Chapter [-@sec:mdp-chapter] to set up an instance of a `SimpleInventoryMDPCap` and a `FinitePolicy` (that we can use for Policy Evaluation).
+Let's revisit the simple inventory example. We shall consider the version with a space capacity since we want an example of a `FiniteMarkovDecisionProcess`. It will help us test our code for Policy Evaluation, Policy Iteration and Value Iteration. More importantly, it will help us identify the mathematical structure of the optimal policy of ordering for this store inventory problem. So let's take another look at the code we wrote in Chapter [-@sec:mdp-chapter] to set up an instance of a `SimpleInventoryMDPCap` and a `FiniteDeterministicPolicy` (that we can use for Policy Evaluation).
 
 ```python
 user_capacity = 2
@@ -661,10 +669,11 @@ si_mdp: FiniteMarkovDecisionProcess[InventoryState, int] =\
         stockout_cost=user_stockout_cost
     )
 
-fdp: FinitePolicy[InventoryState, int] = FinitePolicy(
-    {InventoryState(alpha, beta):
-     Constant(user_capacity - (alpha + beta)) for alpha in
-     range(user_capacity + 1) for beta in range(user_capacity + 1 - alpha)}
+fdp: FiniteDeterministicPolicy[InventoryState, int] = \
+    FiniteDeterministicPolicy(
+        {InventoryState(alpha, beta): user_capacity - (alpha + beta)
+         for alpha in range(user_capacity + 1)
+         for beta in range(user_capacity + 1 - alpha)}
 )
 ```
 
@@ -681,12 +690,12 @@ pprint(evaluate_mrp_result(implied_mrp, gamma=user_gamma))
 This prints the following Value Function.
 
 ```
-{InventoryState(on_hand=2, on_order=0): -30.345029758390766,
- InventoryState(on_hand=0, on_order=0): -35.510518165628724,
- InventoryState(on_hand=1, on_order=0): -28.932174210147306,
- InventoryState(on_hand=0, on_order=1): -27.932174210147306,
- InventoryState(on_hand=0, on_order=2): -28.345029758390766,
- InventoryState(on_hand=1, on_order=1): -29.345029758390766}
+{NonTerminal(state=InventoryState(on_hand=0, on_order=0)): -35.510518165628724,
+ NonTerminal(state=InventoryState(on_hand=0, on_order=1)): -27.93217421014731,
+ NonTerminal(state=InventoryState(on_hand=0, on_order=2)): -28.345029758390766,
+ NonTerminal(state=InventoryState(on_hand=1, on_order=0)): -28.93217421014731,
+ NonTerminal(state=InventoryState(on_hand=1, on_order=1)): -29.345029758390766,
+ NonTerminal(state=InventoryState(on_hand=2, on_order=0)): -30.345029758390766}
 ```
    
 Next, let's run Policy Iteration.
@@ -703,25 +712,19 @@ print(opt_policy_pi)
 This prints the following Optimal Value Function and Optimal Policy.
 
 ```
-{InventoryState(on_hand=2, on_order=0): -29.991900091403522,
- InventoryState(on_hand=0, on_order=0): -34.89485578163003,
- InventoryState(on_hand=1, on_order=0): -28.660960231637496,
- InventoryState(on_hand=0, on_order=1): -27.660960231637496,
- InventoryState(on_hand=0, on_order=2): -27.991900091403522,
- InventoryState(on_hand=1, on_order=1): -28.991900091403522}
+{NonTerminal(state=InventoryState(on_hand=0, on_order=1)): -27.660960231637507,
+ NonTerminal(state=InventoryState(on_hand=0, on_order=0)): -34.894855781630035,
+ NonTerminal(state=InventoryState(on_hand=2, on_order=0)): -29.991900091403533,
+ NonTerminal(state=InventoryState(on_hand=1, on_order=1)): -28.991900091403533,
+ NonTerminal(state=InventoryState(on_hand=1, on_order=0)): -28.660960231637507,
+ NonTerminal(state=InventoryState(on_hand=0, on_order=2)): -27.991900091403533}
 
-For State InventoryState(on_hand=0, on_order=0):
-  Do Action 1 with Probability 1.000
-For State InventoryState(on_hand=0, on_order=1):
-  Do Action 1 with Probability 1.000
-For State InventoryState(on_hand=0, on_order=2):
-  Do Action 0 with Probability 1.000
-For State InventoryState(on_hand=1, on_order=0):
-  Do Action 1 with Probability 1.000
-For State InventoryState(on_hand=1, on_order=1):
-  Do Action 0 with Probability 1.000
-For State InventoryState(on_hand=2, on_order=0):
-  Do Action 0 with Probability 1.000
+For State InventoryState(on_hand=0, on_order=0): Do Action 1
+For State InventoryState(on_hand=0, on_order=1): Do Action 1
+For State InventoryState(on_hand=0, on_order=2): Do Action 0
+For State InventoryState(on_hand=1, on_order=0): Do Action 1
+For State InventoryState(on_hand=1, on_order=1): Do Action 0
+For State InventoryState(on_hand=2, on_order=0): Do Action 0
 ```
 
 As we can see, the Optimal Policy is to not order if the Inventory Position (sum of On-Hand and On-Order) is greater than 1 unit and to order 1 unit if the Inventory Position is 0 or 1. Finally, let's run Value Iteration.
@@ -735,7 +738,7 @@ print(opt_policy_vi)
 
 You'll see the output from Value Iteration matches the output produced from Policy Iteration - this is a good validation of our code correctness. We encourage you to play around with `user_capacity`, `user_poisson_lambda`, `user_holding_cost`, `user_stockout_cost` and `user_gamma`(code in `__main__` in [rl/chapter3/simple_inventory_mdp_cap.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/chapter3/simple_inventory_mdp_cap.py)). As a valuable exercise, using this code, discover the mathematical structure of the Optimal Policy as a function of the above inputs.
 
-### Generalized Policy Iteration
+### Generalized Policy Iteration {#sec:gpi}
 
 In this section, we dig into the structure of the Policy Iteration algorithm and show how this structure can be generalized. Let us start by looking at a 2-dimensional layout of how the Value Functions progress in Policy Iteration from the starting Value Function $\bm{V_0}$ to the final Value Function $\bvs$.
 
@@ -758,7 +761,7 @@ Policy Evaluation aims for the first notion of consistency, but in the process, 
 
 ![Progression Lines of Value Function and Policy in Policy Iteration \label{fig:vf_policy_intersecting_lines}](./chapter4/vf_policy_intersecting_lines.png "Progression Lines of Value Function and Policy in Policy Iteration")
 
-Now we are ready to talk about *Generalized Policy Iteration* - it is the idea that we have evaluate the Value Function for a policy with *any* Policy Evaluation method, and we can improve a policy with *any* Policy Improvement method (not necessarily the methods used in the classical Policy Iteration DP algorithm). In particular, we'd like to emphasize the idea that neither of Policy Evaluation and Policy Improvement need to go fully towards the notion of consistency they are respectively striving for. As a simple example, think of modifying Policy Evaluation (say for a policy $\pi$) to not go all the way to $\bm{V}^{\pi}$, but instead just perform say 3 Bellman Policy Evaluations. This means it would partially bridge the gap on the first notion of consistency (getting closer to $\bm{V}^{\pi}$ but not go all the way to $\bm{V}^{\pi}$), but it would also mean not slipping too much on the second notion of consistency. As another example, think of updating just 5 of the states (say in a large state space) with the Greedy Policy Improvement function (rather than the normal Greedy Policy Improvement function that operates on all the states). This means it would partially bridge the gap on the second notion of consistency (getting closer to $G(\bm{V}^{\pi})$ but not go all the way to $G(\bm{V}^{\pi})$), but it would also mean not slipping too much on the first notion of consistency. A concrete example of Generalized Policy Iteration is in fact Value Iteration. In Value Iteration, we apply the Bellman Policy Iterator just once before moving on to Policy Improvement. In a 2-dimensional layout, this is what Value Iteration looks like:
+Now we are ready to talk about *Generalized Policy Iteration* - it is the idea that we can evaluate the Value Function for a policy with *any* Policy Evaluation method, and we can improve a policy with *any* Policy Improvement method (not necessarily the methods used in the classical Policy Iteration DP algorithm). In particular, we'd like to emphasize the idea that neither of Policy Evaluation and Policy Improvement need to go fully towards the notion of consistency they are respectively striving for. As a simple example, think of modifying Policy Evaluation (say for a policy $\pi$) to not go all the way to $\bm{V}^{\pi}$, but instead just perform say 3 Bellman Policy Evaluations. This means it would partially bridge the gap on the first notion of consistency (getting closer to $\bm{V}^{\pi}$ but not go all the way to $\bm{V}^{\pi}$), but it would also mean not slipping too much on the second notion of consistency. As another example, think of updating just 5 of the states (say in a large state space) with the Greedy Policy Improvement function (rather than the normal Greedy Policy Improvement function that operates on all the states). This means it would partially bridge the gap on the second notion of consistency (getting closer to $G(\bm{V}^{\pi})$ but not go all the way to $G(\bm{V}^{\pi})$), but it would also mean not slipping too much on the first notion of consistency. A concrete example of Generalized Policy Iteration is in fact Value Iteration. In Value Iteration, we apply the Bellman Policy Iterator just once before moving on to Policy Improvement. In a 2-dimensional layout, this is what Value Iteration looks like:
 
 
 $$\pi_1 = G(\bm{V_0}), \bm{V_0} \rightarrow \bm{B}^{\pi_1}(\bm{V_0}) = \bm{V_1}$$
@@ -767,11 +770,11 @@ $$\ldots$$
 $$\ldots$$
 $$\pi_{j+1} = G(\bm{V_j}), \bm{V_j} \rightarrow \bm{B}^{\pi_{j+1}}(\bm{V_j}) = \bvs$$
 
-So the greedy policy improvement step is unchanged, but Policy Evaluation is reduced to just a single Bellman Policy Operator application. In fact, pretty much all algorithms in Reinforcement Learning can be viewed as special cases of Generalized Policy Iteration. In Reinforcement Learning algorithms, we often do the evaluation for just a single state (versus for all states in usual Policy Iteration, or even in Value Iteration) and we also often do the policy improvement for just a single state. So many Reinforcement Learning algorithms are an alternating sequence of single-state evaluation and single-state policy improvement (where the single-state is the state produced by sampling or the state that is encountered in a real-world environment interaction). Figure \ref{fig:generalized_policy_iteration_lines} illustrates Generalized Policy Iteration as the red arrows (versus the black arrows which correspond to usual Policy Iteration algorithm). Note how the red arrows don't go all the way to either the "value function line"" or the "policy line" but the red arrows do go some part of the way towards the line they are meant to go towards at that stage in the algorithm.
+So the greedy policy improvement step is unchanged, but Policy Evaluation is reduced to just a single Bellman Policy Operator application. In fact, pretty much all control algorithms in Reinforcement Learning can be viewed as special cases of Generalized Policy Iteration. In some of the simple versions of Reinforcement Learning Control algorithms, the Policy Evaluation step is done for just a single state (versus for all states in usual Policy Iteration, or even in Value Iteration) and the Policy Improvement step is also done for just a single state. So essentially these Reinforcement Learning Control algorithms are an alternating sequence of single-state policy evaluation and single-state policy improvement (where the single-state is the state produced by sampling or the state that is encountered in a real-world environment interaction). Figure \ref{fig:generalized_policy_iteration_lines} illustrates Generalized Policy Iteration as the red arrows (versus the black arrows which correspond to usual Policy Iteration algorithm). Note how the red arrows don't go all the way to either the "value function line" or the "policy line" but the red arrows do go some part of the way towards the line they are meant to go towards at that stage in the algorithm.
 
 ![Progression Lines of Value Function and Policy in Generalized Policy Iteration \label{fig:generalized_policy_iteration_lines}](./chapter4/gpi.png "Progression Lines of Value Function and Policy in Policy Iteration and Generalized Policy Iteration")
 
-We would go so far as to say that the Bellman Equations and the concept of Generalized Policy Iteration are the two most important concepts to internalize in the study of Reinforcement Learning, and we highly encourage you to think along the lines of these two ideas when we present several algorithms later in this book. The importance of the concept of Generalize Policy Iteration (GPI) might not be fully visible to you yet, but we hope that GPI will be your mantra by the time you finish this book. For now, let's just note the key takeaway regarding GPI - it is any algorithm to solve MDP control that alternates between *some form of* value evaluation for a policy and *some form of* policy improvement. We will bring up GPI several times later in this book.
+We would go so far as to say that the Bellman Equations and the concept of Generalized Policy Iteration are the two most important concepts to internalize in the study of Reinforcement Learning, and we highly encourage you to think along the lines of these two ideas when we present several algorithms later in this book. The importance of the concept of Generalized Policy Iteration (GPI) might not be fully visible to you yet, but we hope that GPI will be your mantra by the time you finish this book. For now, let's just note the key takeaway regarding GPI - it is any algorithm to solve MDP control that alternates between *some form of* value evaluation for a policy and *some form of* policy improvement. We will bring up GPI several times later in this book.
 
 ### Aysnchronous Dynamic Programming
 
@@ -788,9 +791,9 @@ $$g(s) = |V(s) - \max_{a\in \mathcal{A}} \{ \mathcal{R}(s,a) + \gamma \cdot \sum
 
 After each state's value is updated with the Bellman Optimality Operator, we update the Value Function Gap for all the states whose Value Function Gap does get changed as a result of this state value update. These are exactly the states from which we have a probabilistic transition to the state whose value just got updated. What this also means is that we need to maintain the reverse transition dynamics in our data structure representation. So, after each state value update, the queue of states is resorted (by their value function gaps). We always pull out the state with the largest value function gap (from the top of the queue), and update the value function for that state. This prioritizes updates of states with the largest gaps, and it ensures that we quickly get to a point where all value function gaps are low enough.
 
-Another form of Asynchronous Dynamic Programming worth mentioning here is *Real-Time Dynamic Programming* (RTDP). RTDP means we run a Dynamic Programming algorithm *while* the agent is experiencing real-time interaction with the environment. When a state is visited during the real-time interaction, we make an update for that state's value. Then, as we transition to another state as a result of the real-time interaction, we update that new state's value, and so on. Note also that in RTDP, the choice of action is the real-time action executed by the agent, which the environment responds to. This action choice is governed by the policy implied by the value function for the encountered state at that point in time in the real-time interaction.
+Another form of Asynchronous Dynamic Programming worth mentioning here is *Real-Time Dynamic Programming* (RTDP). RTDP means we run a Dynamic Programming algorithm *while* the AI agent is experiencing real-time interaction with the environment. When a state is visited during the real-time interaction, we make an update for that state's value. Then, as we transition to another state as a result of the real-time interaction, we update that new state's value, and so on. Note also that in RTDP, the choice of action is the real-time action executed by the AI agent, which the environment responds to. This action choice is governed by the policy implied by the value function for the encountered state at that point in time in the real-time interaction.
 
-Finally, we need to highlight that often special types of structures of MDPs can benefit from specific customizations of Dynamic Programming algorithms (typically, Asynchronous). One such specialization is when each state is encountered not more than once in each random sequence of state occurrences when an agent plays out an MDP, and when all such random sequences of the MDP terminate. This structure can be conceptualized as a [Directed Acylic Graph](https://en.wikipedia.org/wiki/Directed_acyclic_graph) wherein each non-terminal node in the Directed Acyclic Graph (DAG) represents a pair of non-terminal state and action, and each terminal node in the DAG represents a terminal state (the graph edges represent probabilistic transitions of the MDP). In this specialization, the MDP Prediction and Control problems can be solved in a fairly simple manner - by walking backwards on the DAG from the terminal nodes and setting the Value Function of visited states (in the backward DAG walk) using the Bellman Optimality Equation (for Control) or Bellman Policy Equation (for Prediction). Here we don't need the "iterate to convergence" approach of Policy Evaluation or Policy Iteration or Value Iteration. Rather, all these Dynamic Programming algorithms essentially reduce to a simple back-propagation of the Value Function on the DAG. This means, states are visited (and their Value Functions set) in the order determined by the reverse sequence of a [Topological Sort](https://en.wikipedia.org/wiki/Topological_sorting) on the DAG. We shall make this DAG back-propagation Dynamic Programming algorithm clear for a special DAG structure - Finite-Horizon MDPs - where all random sequences of the MDP terminate within a fixed number of time steps and each time step has a separate (from other time steps) set of states. This special case of Finite-Horizon MDPs is fairly common in Financial Applications and so, we cover it in detail in the next section.
+Finally, we need to highlight that often special types of structures of MDPs can benefit from specific customizations of Dynamic Programming algorithms (typically, Asynchronous). One such specialization is when each state is encountered not more than once in each random sequence of state occurrences when an AI agent plays out an MDP, and when all such random sequences of the MDP terminate. This structure can be conceptualized as a [Directed Acylic Graph](https://en.wikipedia.org/wiki/Directed_acyclic_graph) wherein each non-terminal node in the Directed Acyclic Graph (DAG) represents a pair of non-terminal state and action, and each terminal node in the DAG represents a terminal state (the graph edges represent probabilistic transitions of the MDP). In this specialization, the MDP Prediction and Control problems can be solved in a fairly simple manner - by walking backwards on the DAG from the terminal nodes and setting the Value Function of visited states (in the backward DAG walk) using the Bellman Optimality Equation (for Control) or Bellman Policy Equation (for Prediction). Here we don't need the "iterate to convergence" approach of Policy Evaluation or Policy Iteration or Value Iteration. Rather, all these Dynamic Programming algorithms essentially reduce to a simple back-propagation of the Value Function on the DAG. This means, states are visited (and their Value Functions set) in the order determined by the reverse sequence of a [Topological Sort](https://en.wikipedia.org/wiki/Topological_sorting) on the DAG. We shall make this DAG back-propagation Dynamic Programming algorithm clear for a special DAG structure - Finite-Horizon MDPs - where all random sequences of the MDP terminate within a fixed number of time steps and each time step has a separate (from other time steps) set of states. This special case of Finite-Horizon MDPs is fairly common in Financial Applications and so, we cover it in detail in the next section.
 
 ### Finite-Horizon Dynamic Programming: Backward Induction {#sec:finite-horizon-section}
 
@@ -813,7 +816,7 @@ $$\{(t, s_t) | t = 0, 1, \ldots, T, s_t \in \mathcal{T}_t\}$$
 
 As usual, the set of non-terminal states is denoted as $\mathcal{N} = \mathcal{S} - \mathcal{T}$.
 
-We denote the set of rewards receivable by the agent at time $t$ as $\mathcal{D}_t$ (countable subset of $\mathbb{R}$) and we denote the allowable actions for states in $\mathcal{N}_t$ as $\mathcal{A}_t$. In a more generic setting, as we shall represent in our code, each non-terminal state $(t, s_t)$  has it's own set of allowable actions, denoted $\mathcal{A}(s_t)$, However, for ease of exposition, here we shall treat all non-terminal states at a particular time step to have the same set of allowable actions $\mathcal{A}_t$. Let us denote the entire action space $\mathcal{A}$ of the MDP as the union of all the $\mathcal{A}_t$ over all $t = 0, 1, \ldots, T-1$.
+We denote the set of rewards receivable by the AI agent at time $t$ as $\mathcal{D}_t$ (countable subset of $\mathbb{R}$) and we denote the allowable actions for states in $\mathcal{N}_t$ as $\mathcal{A}_t$. In a more generic setting, as we shall represent in our code, each non-terminal state $(t, s_t)$  has it's own set of allowable actions, denoted $\mathcal{A}(s_t)$, However, for ease of exposition, here we shall treat all non-terminal states at a particular time step to have the same set of allowable actions $\mathcal{A}_t$. Let us denote the entire action space $\mathcal{A}$ of the MDP as the union of all the $\mathcal{A}_t$ over all $t = 0, 1, \ldots, T-1$.
 
 The state-reward transition probability function
 
@@ -891,13 +894,15 @@ $$(\mathcal{P}_R^{\pi_t})_t(s_t, r_{t+1}, s_{t+1}) = \sum_{a_t \in \mathcal{A}_t
 
 So for a Finite MDP, this yields a simple algorithm to calculate $V^{\pi}_t$ for all $t$ by simply decrementing down from $t=T-1$ to $t=0$ and using Equation \eqref{eq:bellman_policy_equation_finite_horizon} to calculate $V^{\pi}_t$ for all $t = 0, 1, \ldots, T-1$ from the known values of $W^{\pi}_{t+1}$ (since we are decrementing in time index $t$).
 
-This algorithm is the adaptation of Policy Evaluation to the finite horizon case with this simple technique of "stepping back in time" (known as *Backward Induction*). Let's write some code to implement this algorithm. We are given a MDP over the augmented (finite) state space `WithTime[S]`, and a policy $\pi$ (also over the augmented state space `WithTime[S]`). So, we can use the method `apply_finite_policy` in `FiniteMarkovDecisionProcess[WithTime[S], A]` to obtain the $\pi$-implied MRP of type `FiniteMarkovRewardProcess[WithTime[S]]`. Our first task to to "unwrap" the state-reward probability transition function $\mathcal{P}_R^{\pi}$ of this $\pi$-implied MRP into a time-indexed sequenced of state-reward probability transition functions $(\mathcal{P}_R^{\pi_t})_t, t = 0, 1, \ldots, T-1$. This is accomplished by the following function `unwrap_finite_horizon_MRP` (`itertools.groupby` groups the augmented states by their time step, and the function `without_time` strips the time step from the augmented states when placing the states in $(\mathcal{P}_R^{\pi_t})_t$, i.e., `Sequence[RewardTransition[S]]`).
+This algorithm is the adaptation of Policy Evaluation to the finite horizon case with this simple technique of "stepping back in time" (known as *Backward Induction*). Let's write some code to implement this algorithm. We are given an MDP over the augmented (finite) state space `WithTime[S]`, and a policy $\pi$ (also over the augmented state space `WithTime[S]`). So, we can use the method `apply_finite_policy` in `FiniteMarkovDecisionProcess[WithTime[S], A]` to obtain the $\pi$-implied MRP of type `FiniteMarkovRewardProcess[WithTime[S]]`.
+
+Our first task to to "unwrap" the state-reward probability transition function $\mathcal{P}_R^{\pi}$ of this $\pi$-implied MRP into a time-indexed sequenced of state-reward probability transition functions $(\mathcal{P}_R^{\pi_t})_t, t = 0, 1, \ldots, T-1$. This is accomplished by the following function `unwrap_finite_horizon_MRP` (`itertools.groupby` groups the augmented states by their time step, and the function `without_time` strips the time step from the augmented states when placing the states in $(\mathcal{P}_R^{\pi_t})_t$, i.e., `Sequence[RewardTransition[S]]`).
 
 ```python
 from itertools import groupby
 
-StateReward = FiniteDistribution[Tuple[S, float]]
-RewardTransition = Mapping[S, Optional[StateReward[S]]]
+StateReward = FiniteDistribution[Tuple[State[S], float]]
+RewardTransition = Mapping[NonTerminal[S], StateReward[S]]
 
 def unwrap_finite_horizon_MRP(
     process: FiniteMarkovRewardProcess[WithTime[S]]
@@ -906,35 +911,47 @@ def unwrap_finite_horizon_MRP(
     def time(x: WithTime[S]) -> int:
         return x.time
 
-    def without_time(
-        arg: Optional[StateReward[WithTime[S]]]
-    ) -> Optional[StateReward[S]]:
-        return None if arg is None else arg.map(
-            lambda s_r: (s_r[0].state, s_r[1])
-        )
+    def single_without_time(
+        s_r: Tuple[State[WithTime[S]], float]
+    ) -> Tuple[State[S], float]:
+        if isinstance(s_r[0], NonTerminal):
+            ret: Tuple[State[S], float] = (
+                NonTerminal(s_r[0].state.state),
+                s_r[1]
+            )
+        else:
+            ret = (Terminal(s_r[0].state.state), s_r[1])
+        return ret
 
-    return [{s.state: without_time(process.transition_reward(s))
-             for s in states} for _, states in groupby(
-                 sorted(process.states(), key=time),
-                 key=time
-             )][:-1]
+    def without_time(arg: StateReward[WithTime[S]]) -> StateReward[S]:
+        return arg.map(single_without_time)
+
+    return [{NonTerminal(s.state): without_time(
+        process.transition_reward(NonTerminal(s))
+    ) for s in states} for _, states in groupby(
+        sorted(
+            (nt.state for nt in process.non_terminal_states),
+            key=time
+        ),
+        key=time
+    )]
 ```
 
-Now that we have the state-reward transition functions $(\mathcal{P}_R^{\pi_t})_t$ arranged in the form of a `Sequence[RewardTransition[S]]`, we are ready to perform backward induction to calculate $V^{\pi}_t$. The following function `evaluate` accomplishes it with a straightforward use of Equation \eqref{eq:bellman_policy_equation_finite_horizon}, as described above.
+Now that we have the state-reward transition functions $(\mathcal{P}_R^{\pi_t})_t$ arranged in the form of a `Sequence[RewardTransition[S]]`, we are ready to perform backward induction to calculate $V^{\pi}_t$. The following function `evaluate` accomplishes it with a straightforward use of Equation \eqref{eq:bellman_policy_equation_finite_horizon}, as described above. Note the use of the previously-written `extended_vf` function, that represents the $W^{\pi}_t: \mathcal{S}_t \rightarrow \mathbb{R}$ function appearing on the right-hand-side of Equation \eqref{eq:bellman_policy_equation_finite_horizon}.
 
 ```python
 def evaluate(
     steps: Sequence[RewardTransition[S]],
     gamma: float
 ) -> Iterator[V[S]]:
-    v: List[Dict[S, float]] = []
+    v: List[V[S]] = []
 
     for step in reversed(steps):
         v.append({s: res.expectation(
-            lambda s_r: s_r[1] + gamma * (v[-1][s_r[0]] if
-                                          len(v) > 0 and s_r[0] in v[-1]
-                                          else 0.)
-            ) for s, res in step.items() if res is not None})
+            lambda s_r: s_r[1] + gamma * (
+                extended_vf(v[-1], s_r[0]) if len(v) > 0 else 0.
+            )
+        ) for s, res in step.items()})
 
     return reversed(v)
 ```
@@ -995,7 +1012,7 @@ This algorithm is the adaptation of Value Iteration to the finite horizon case w
 from itertools import groupby
 
 ActionMapping = Mapping[A, StateReward[S]]
-StateActionMapping = Mapping[S, Optional[ActionMapping[A, S]]]
+StateActionMapping = Mapping[NonTerminal[S], ActionMapping[A, S]]
 
 def unwrap_finite_horizon_MDP(
     process: FiniteMarkovDecisionProcess[WithTime[S], A]
@@ -1003,19 +1020,32 @@ def unwrap_finite_horizon_MDP(
     def time(x: WithTime[S]) -> int:
         return x.time
 
-    def without_time(
-        arg: Optional[ActionMapping[A, WithTime[S]]]
-    ) -> Optional[ActionMapping[A, S]]:
-        return None if arg is None else {
-            a: sr_distr.map(lambda s_r: (s_r[0].state, s_r[1]))
-            for a, sr_distr in arg.items()
-        }
+    def single_without_time(
+        s_r: Tuple[State[WithTime[S]], float]
+    ) -> Tuple[State[S], float]:
+        if isinstance(s_r[0], NonTerminal):
+            ret: Tuple[State[S], float] = (
+                NonTerminal(s_r[0].state.state),
+                s_r[1]
+            )
+        else:
+            ret = (Terminal(s_r[0].state.state), s_r[1])
+        return ret
 
-    return [{s.state: without_time(process.action_mapping(s))
-             for s in states} for _, states in groupby(
-                sorted(process.states(), key=time),
-                key=time
-             )][:-1]
+    def without_time(arg: ActionMapping[A, WithTime[S]]) -> \
+            ActionMapping[A, S]:
+        return {a: sr_distr.map(single_without_time)
+                for a, sr_distr in arg.items()}
+
+    return [{NonTerminal(s.state): without_time(
+        process.action_mapping(NonTerminal(s))
+    ) for s in states} for _, states in groupby(
+        sorted(
+            (nt.state for nt in process.non_terminal_states),
+            key=time
+        ),
+        key=time
+    )]
 ```
 
 Now that we have the state-reward transition functions $(\mathcal{P}_R)_t$ arranged in the form of a `Sequence[StateActionMapping[S, A]]`, we are ready to perform backward induction to calculate $V^*_t$. The following function `optimal_vf_and_policy` accomplishes it with a straightforward use of Equation \eqref{eq:bellman_policy_equation_finite_horizon}, as described above.
@@ -1026,24 +1056,22 @@ from operator import itemgetter
 def optimal_vf_and_policy(
     steps: Sequence[StateActionMapping[S, A]],
     gamma: float
-) -> Iterator[Tuple[V[S], FinitePolicy[S, A]]]:
-    v_p: List[Tuple[Dict[S, float], FinitePolicy[S, A]]] = []
+) -> Iterator[Tuple[V[S], FiniteDeterministicPolicy[S, A]]]:
+    v_p: List[Tuple[V[S], FiniteDeterministicPolicy[S, A]]] = []
 
     for step in reversed(steps):
-        this_v: Dict[S, float] = {}
-        this_a: Dict[S, FiniteDistribution[A]] = {}
+        this_v: Dict[NonTerminal[S], float] = {}
+        this_a: Dict[S, A] = {}
         for s, actions_map in step.items():
-            if actions_map is not None:
-                action_values = ((res.expectation(
-                    lambda s_r: s_r[1] + gamma * (v_p[-1][0][s_r[0]] if
-                                                  len(v_p) > 0 and
-                                                  s_r[0] in v_p[-1][0]
-                                                  else 0.)
-                ), a) for a, res in actions_map.items())
-                v_star, a_star = max(action_values, key=itemgetter(0))
-                this_v[s] = v_star
-                this_a[s] = Constant(a_star)
-        v_p.append((this_v, FinitePolicy(this_a)))
+            action_values = ((res.expectation(
+                lambda s_r: s_r[1] + gamma * (
+                    extended_vf(v_p[-1][0], s_r[0]) if len(v_p) > 0 else 0.
+                )
+            ), a) for a, res in actions_map.items())
+            v_star, a_star = max(action_values, key=itemgetter(0))
+            this_v[s] = v_star
+            this_a[s.state] = a_star
+        v_p.append((this_v, FiniteDeterministicPolicy(this_a)))
 
     return reversed(v_p)
 ```
@@ -1052,7 +1080,7 @@ If $|\mathcal{N}_t|$ is $O(m)$ for all $t$ and $|\mathcal{A}_t|$ is $O(k)$, then
 
 Note that these algorithms for finite-horizon finite MDPs do not require any "iterations to convergence" like we had for regular Policy Evaluation and Value Iteration. Rather, in these algorithms we simply walk back in time and immediately obtain the Value Function for each time step from the next time step's Value Function (which is already known since we walk back in time). This technique of "backpropagation of Value Function" goes by the name of *Backward Induction* algorithms, and is quite commonplace in many Financial applications (as we shall see later in this book). The above Backward Induction code is in the file [rl/finite_horizon.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/finite_horizon.py).
 
-### Dynamic Pricing for End-of-Life/End-of-Season of a Product
+### Dynamic Pricing for End-of-Life/End-of-Season of a Product {#sec:dynamic-pricing-section}
 
 Now we consider a rather important business application - Dynamic Pricing. We consider the problem of Dynamic Pricing for the case of products that reach their end of life or at the end of a season after which we don't want to carry the product anymore. We need to adjust the prices up and down dynamically depending on how much inventory of the product you have, how many days to go for end-of-life/end-of-season, and your expectations of customer demand as a function of price adjustments. To make things concrete, assume you own a super-market and you are $T$ days away from Halloween. You have just received $M$ Halloween masks from your supplier and you won't be receiving any more inventory during these final $T$ days. You want to dynamically set the selling price of the Halloween masks at the start of each day in a manner that maximizes your *Expected Total Sales Revenue* for Halloween masks from today until Halloween (assume no one will buy Halloween masks after Halloween). 
 
@@ -1079,12 +1107,13 @@ Using the definition of $(\mathcal{P}_R)_t$ and using the boundary condition $W_
 
 Now let's write some code to represent this Dynamic Programming problem as a `FiniteMarkovDecisionProcess` and determine it's optimal policy, i.e., the Optimal (Dynamic) Price at time step $t$ and at any level of inventory $I_t$. The type $\mathcal{N}_t$ is `int` and the type $\mathcal{A}_t$ is also`int`. So we shall be creating a MDP of type `FiniteMarkovDecisionProcess[WithTime[int], int]` (since the augmented state space is `WithTime[int]`). Our first task is to construct $\mathcal{P}_R$ of type:
 
-`Mapping[WithTime[int], Optional[Mapping[int, FiniteDistribution[Tuple[WithTime[int], float]]]]]`
+`Mapping[WithTime[int], Mapping[int, FiniteDistribution[Tuple[WithTime[int], float]]]]`
 
-In the class `ClearancePricingMDP` below, $\mathcal{P}_R$ is manufactured in `__init__` and is used to create the attribute `mdp: FiniteMarkovDecisionProces[WithTime[int], int]`. Since $\mathcal{P}_R$ is independent of time, we first create a single-step (time-invariant) MDP `single_step_mdp: FiniteMarkovDecisionProcess[int, int]` (think of this as the building-block MDP), and then use the method `finite_horizon_mdp` (from file [rl/finite_horizon.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/finite_horizon.py)) to turn `single_step_mdp` to `mdp`. The constructor argument `initial_inventory: int` represents the initial inventory $M$. The constructor argument `time_steps` represents the number of time steps $T$. The constructor argument `price_lambda_pairs` represents $[(P_i, \lambda_i) | 1 \leq i \leq N]$.
+In the class `ClearancePricingMDP` below, $\mathcal{P}_R$ is manufactured in `__init__` and is used to create the attribute `mdp: FiniteMarkovDecisionProces[WithTime[int], int]`. Since $\mathcal{P}_R$ is independent of time, we first create a single-step (time-invariant) MDP `single_step_mdp: FiniteMarkovDecisionProcess[int, int]` (think of this as the building-block MDP), and then use the function `finite_horizon_MDP` (from file [rl/finite_horizon.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/finite_horizon.py)) to create `self.mdp` from `self.single_step_mdp`. The constructor argument `initial_inventory: int` represents the initial inventory $M$. The constructor argument `time_steps` represents the number of time steps $T$. The constructor argument `price_lambda_pairs` represents $[(P_i, \lambda_i) | 1 \leq i \leq N]$.
 
 ```python
 from scipy.stats import poisson
+from rl.finite_horizon import finite_horizon_MDP
 
 class ClearancePricingMDP:
 
@@ -1120,9 +1149,11 @@ class ClearancePricingMDP:
 Now let's write two methods for this class:
 
 * `get_vf_for_policy` that produces the Value Function for a given policy $\pi$, by first creating the $\pi$-implied MRP from `mdp`, then unwrapping the MRP into a sequence of state-reward transition probability functions $(\mathcal{P}_R^{\pi_t})_t$, and then performing backward induction using the previously-written function `evaluate` to calculate the Value Function.
-* `get_optimal_vf_and_policy` that produces the Optimal Value Function and Optimal Policy, by first unwrapping `mdp` into a sequence of state-reward transition probability functions $(\mathcal{P}_R)_t$, and then performing backward induction using the previously-written function `optimal_vf_and_policy` to calculate the Optimal Value Function and Optimal Policy.
+* `get_optimal_vf_and_policy` that produces the Optimal Value Function and Optimal Policy, by first unwrapping `self.mdp` into a sequence of state-reward transition probability functions $(\mathcal{P}_R)_t$, and then performing backward induction using the previously-written function `optimal_vf_and_policy` to calculate the Optimal Value Function and Optimal Policy.
 
 ```python
+from rl.finite_horizon import evaluate, optimal_vf_and_policy
+
     def get_vf_for_policy(
         self,
         policy: FinitePolicy[WithTime[int], int]
@@ -1132,7 +1163,7 @@ Now let's write two methods for this class:
         return evaluate(unwrap_finite_horizon_MRP(mrp), 1.)
 
     def get_optimal_vf_and_policy(self)\
-            -> Iterator[Tuple[V[int], FinitePolicy[int, int]]]:
+            -> Iterator[Tuple[V[int], FiniteDeterministicPolicy[int, int]]]:
         return optimal_vf_and_policy(unwrap_finite_horizon_MDP(self.mdp), 1.)
 ```
 
@@ -1155,9 +1186,8 @@ Now let us calculate it's Value Function for a stationary policy that chooses "F
 def policy_func(x: int) -> int:
     return 0 if x < 2 else (1 if x < 5 else (2 if x < 8 else 3))
 
-stationary_policy: FinitePolicy[int, int] = FinitePolicy(
-    {s: Constant(policy_func(s)) for s in range(ii + 1)}
-)
+stationary_policy: FiniteDeterministicPolicy[int, int] = \
+    FiniteDeterministicPolicy({s: policy_func(s) for s in range(ii + 1)})
 
 single_step_mrp: FiniteMarkovRewardProcess[int] = \
     cp.single_step_mdp.apply_finite_policy(stationary_policy)

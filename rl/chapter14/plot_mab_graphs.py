@@ -1,5 +1,5 @@
 from operator import itemgetter
-from rl.chapter14.mab_env import MABEnv
+from rl.distribution import Gaussian, Bernoulli
 from rl.chapter14.epsilon_greedy import EpsilonGreedy
 from rl.chapter14.ucb1 import UCB1
 from rl.chapter14.ts_gaussian import ThompsonSamplingGaussian
@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 
 
 def plot_gaussian_algorithms() -> None:
-    mean_vars_data = [
+    means_vars_data = [
         (0., 10.),
         (2., 20.),
         (4., 1.),
@@ -18,7 +18,7 @@ def plot_gaussian_algorithms() -> None:
         (8., 4.),
         (9., 6.),
         (10., 4.)]
-    mu_star = max(mean_vars_data, key=itemgetter(0))[0]
+    mu_star = max(means_vars_data, key=itemgetter(0))[0]
 
     steps = 500
     episodes = 500
@@ -35,10 +35,10 @@ def plot_gaussian_algorithms() -> None:
     lr = 0.1
     lr_decay = 20.
 
-    me = MABEnv.get_gaussian_mab_env(mean_vars_data)
+    arm_distrs = [Gaussian(μ=m, σ=s) for m, s in means_vars_data]
 
     greedy_opt_init = EpsilonGreedy(
-        mab=me,
+        arm_distributions=arm_distrs,
         time_steps=steps,
         num_episodes=episodes,
         epsilon=0.,
@@ -47,7 +47,7 @@ def plot_gaussian_algorithms() -> None:
         mean_init=mi
     )
     eps_greedy = EpsilonGreedy(
-        mab=me,
+        arm_distributions=arm_distrs,
         time_steps=steps,
         num_episodes=episodes,
         epsilon=eps,
@@ -56,7 +56,7 @@ def plot_gaussian_algorithms() -> None:
         mean_init=0.
     )
     decay_eps_greedy = EpsilonGreedy(
-        mab=me,
+        arm_distributions=arm_distrs,
         time_steps=steps,
         num_episodes=episodes,
         epsilon=eps,
@@ -65,14 +65,14 @@ def plot_gaussian_algorithms() -> None:
         mean_init=0.
     )
     ts = ThompsonSamplingGaussian(
-        mab=me,
+        arm_distributions=arm_distrs,
         time_steps=steps,
         num_episodes=episodes,
         init_mean=ts_mi,
         init_stdev=ts_si
     )
     grad_bandits = GradientBandits(
-        mab=me,
+        arm_distributions=arm_distrs,
         time_steps=steps,
         num_episodes=episodes,
         learning_rate=lr,
@@ -85,7 +85,7 @@ def plot_gaussian_algorithms() -> None:
         '$\epsilon$-Greedy',
         'Decaying $\epsilon$-Greedy',
         'Thompson Sampling',
-        'Gradient Bandits'
+        'Gradient Bandit'
     ]
 
     exp_cum_regrets = [
@@ -100,8 +100,8 @@ def plot_gaussian_algorithms() -> None:
     for i in range(len(exp_cum_regrets)):
         plt.plot(exp_cum_regrets[i], color=plot_colors[i], label=labels[i])
     plt.xlabel("Time Steps", fontsize=20)
-    plt.ylabel("Expected Cumulative Regret", fontsize=20)
-    plt.title("Cumulative Regret Curves", fontsize=25)
+    plt.ylabel("Expected Total Regret", fontsize=20)
+    plt.title("Total Regret Curves", fontsize=25)
     plt.xlim(xmin=x_vals[0], xmax=x_vals[-1])
     plt.ylim(ymin=0.0)
     plt.grid(True)
@@ -115,7 +115,7 @@ def plot_gaussian_algorithms() -> None:
         ts.get_expected_action_counts(),
         grad_bandits.get_expected_action_counts()
     ]
-    index = arange(len(me.arms_sampling_funcs))
+    index = arange(len(means_vars_data))
     spacing = 0.4
     width = (1 - spacing) / len(exp_act_counts)
 
@@ -132,7 +132,7 @@ def plot_gaussian_algorithms() -> None:
     plt.title("Arms Counts Plot", fontsize=25)
     plt.xticks(
         index - 0.3,
-        ["$\mu$=%.1f,$\sigma$=%.1f" % (m, s) for m, s in mean_vars_data]
+        ["$\mu$=%.1f,$\sigma$=%.1f" % (m, s) for m, s in means_vars_data]
     )
     plt.legend(loc='upper left', fontsize=15)
     plt.tight_layout()
@@ -157,10 +157,10 @@ def plot_bernoulli_algorithms() -> None:
     lr = 0.5
     lr_decay = 20.
 
-    me = MABEnv.get_bernoulli_mab_env(probs_data)
+    arm_distrs = [Bernoulli(p) for p in probs_data]
 
     greedy_opt_init = EpsilonGreedy(
-        mab=me,
+        arm_distributions=arm_distrs,
         time_steps=steps,
         num_episodes=episodes,
         epsilon=0.,
@@ -169,7 +169,7 @@ def plot_bernoulli_algorithms() -> None:
         mean_init=mi
     )
     eps_greedy = EpsilonGreedy(
-        mab=me,
+        arm_distributions=arm_distrs,
         time_steps=steps,
         num_episodes=episodes,
         epsilon=eps,
@@ -178,7 +178,7 @@ def plot_bernoulli_algorithms() -> None:
         mean_init=0.
     )
     decay_eps_greedy = EpsilonGreedy(
-        mab=me,
+        arm_distributions=arm_distrs,
         time_steps=steps,
         num_episodes=episodes,
         epsilon=eps,
@@ -187,19 +187,19 @@ def plot_bernoulli_algorithms() -> None:
         mean_init=0.
     )
     ucb1 = UCB1(
-        mab=me,
+        arm_distributions=arm_distrs,
         time_steps=steps,
         num_episodes=episodes,
         bounds_range=1.0,
         alpha=ucb_alpha
     )
     ts = ThompsonSamplingBernoulli(
-        mab=me,
+        arm_distributions=arm_distrs,
         time_steps=steps,
         num_episodes=episodes
     )
     grad_bandits = GradientBandits(
-        mab=me,
+        arm_distributions=arm_distrs,
         time_steps=steps,
         num_episodes=episodes,
         learning_rate=lr,
@@ -213,7 +213,7 @@ def plot_bernoulli_algorithms() -> None:
         'Decaying $\epsilon$-Greedy',
         'UCB1',
         'Thompson Sampling',
-        'Gradient Bandits'
+        'Gradient Bandit'
     ]
 
     exp_cum_regrets = [
@@ -229,8 +229,8 @@ def plot_bernoulli_algorithms() -> None:
     for i in range(len(exp_cum_regrets)):
         plt.plot(exp_cum_regrets[i], color=plot_colors[i], label=labels[i])
     plt.xlabel("Time Steps", fontsize=20)
-    plt.ylabel("Expected Cumulative Regret", fontsize=20)
-    plt.title("Cumulative Regret Curves", fontsize=25)
+    plt.ylabel("Expected Total Regret", fontsize=20)
+    plt.title("Total Regret Curves", fontsize=25)
     plt.xlim(xmin=x_vals[0], xmax=x_vals[-1])
     plt.ylim(ymin=0.0)
     plt.grid(True)
@@ -245,7 +245,7 @@ def plot_bernoulli_algorithms() -> None:
         ts.get_expected_action_counts(),
         grad_bandits.get_expected_action_counts()
     ]
-    index = arange(len(me.arms_sampling_funcs))
+    index = arange(len(probs_data))
     spacing = 0.4
     width = (1 - spacing) / len(exp_act_counts)
 
@@ -270,5 +270,5 @@ def plot_bernoulli_algorithms() -> None:
 
 
 if __name__ == '__main__':
-    # plot_gaussian_algorithms()
+    plot_gaussian_algorithms()
     plot_bernoulli_algorithms()

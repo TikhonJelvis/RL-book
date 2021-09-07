@@ -344,10 +344,12 @@ Now let us write some code to solve this MDP. We write a class `OptimalOrderExec
 * `price_dynamics` refers to the time-sequenced functions $f_t$ that represent the price dynamics: $P_{t+1} \sim f_t(P_t, N_t)$. $f_t$ outputs a probability distribution of prices for $P_{t+1}$.
 * `utility_func` refers to the Utility of Sales Proceeds function, incorporating any risk-aversion.
 * `discount_factor` refers to the discount factor $\gamma$.
-* `func_approx` refers to the `FunctionApprox` type to be used to approximate the Value Function for each time step.
+* `func_approx` refers to the `ValueFunctionApprox` type to be used to approximate the Value Function for each time step.
 * `initial_price_distribution` refers to the probability distribution of prices $P_0$ at time 0, which is used to generate the samples of states at each of the time steps (needed in the approximate backward induction algorithm).
 
 ```python
+from rl.approximate_dynamic_programming import ValueFunctionApprox
+
 @dataclass(frozen=True)
 class PriceAndShares:
     price: float
@@ -361,17 +363,18 @@ class OptimalOrderExecution:
     price_dynamics: Sequence[Callable[[PriceAndShares], Distribution[float]]]
     utility_func: Callable[[float], float]
     discount_factor: float
-    func_approx: FunctionApprox[PriceAndShares]
+    func_approx: ValueFunctionApprox[PriceAndShares]
     initial_price_distribution: Distribution[float]
 ```
 
 The two key things we need to perform the backward induction are:
 
-* A method `get_mdp` that given a time step $t$, produces the `MarkovDecisionProcess` object representing the transitions from time $t$ to time $t+1$. The class `OptimalExecutionMDP` within `get_mdp` implements the abstract methods `step` and `action` of the abstract class `MarkovDecisionProcess`. The code should be fairly self-explanatory - just a couple of things to point out here. Firstly, the input `p_r: PriceAndShares` to the `step` method represents the state $(P_t, R_t)$ at time $t$, and the variable `p_s: PriceAndDShares` represents the pair of $(P_t, N_t)$, which serves as input to `avg_exec_price_diff` and `price_dynamics` (function attributes of `OptimalOrderExecution`). Secondly, note that the `actions` method returns an `Iterator` on a single `int` at time $t = T-1$ because of the constraint $N_{T-1} = R_{T-1}$.
-* A method `get_states_distribution` that given a time step $t$, produces the probability distribution of states $(P_t, R_t)$ at time $t$ (of type `SampledDistribution[PriceAndShares]`). The code here is fairly similar to the `get_states_distribiution` method of `AssetAllocDiscrete` in Chapter [-@sec:portfolio-chapter] (essentially, walking forward from time 0 to time $t$ by sampling from the state-transition probability distribution and also sampling from uniform choices over all actions at each time step).
+* A method `get_mdp` that given a time step $t$, produces the `MarkovDecisionProcess` object representing the transitions from time $t$ to time $t+1$. The class `OptimalExecutionMDP` within `get_mdp` implements the abstract methods `step` and `action` of the abstract class `MarkovDecisionProcess`. The code should be fairly self-explanatory - just a couple of things to point out here. Firstly, the input `p_r: NonTerminal[PriceAndShares]` to the `step` method represents the state $(P_t, R_t)$ at time $t$, and the variable `p_s: PriceAndShares` represents the pair of $(P_t, N_t)$, which serves as input to `avg_exec_price_diff` and `price_dynamics` (function attributes of `OptimalOrderExecution`). Secondly, note that the `actions` method returns an `Iterator` on a single `int` at time $t = T-1$ because of the constraint $N_{T-1} = R_{T-1}$.
+* A method `get_states_distribution` that given a time step $t$, produces the probability distribution of states $(P_t, R_t)$ at time $t$ (of type `SampledDistribution[NonTerminal[PriceAndShares]]`). The code here is fairly similar to the `get_states_distribiution` method of `AssetAllocDiscrete` in Chapter [-@sec:portfolio-chapter] (essentially, walking forward from time 0 to time $t$ by sampling from the state-transition probability distribution and also sampling from uniform choices over all actions at each time step).
 
-```
+```python
     def get_mdp(self, t: int) -> MarkovDecisionProcess[PriceAndShares, int]:
+
         utility_f: Callable[[float], float] = self.utility_func
         price_diff: Sequence[Callable[[PriceAndShares], float]] = \
             self.avg_exec_price_diff
@@ -383,77 +386,79 @@ The two key things we need to perform the backward induction are:
 
             def step(
                 self,
-                p_r: PriceAndShares,
+                p_r: NonTerminal[PriceAndShares],
                 sell: int
-            ) -> SampledDistribution[Tuple[PriceAndShares, float]]:
+            ) -> SampledDistribution[Tuple[State[PriceAndShares],
+                                           float]]:
 
                 def sr_sampler_func(
                     p_r=p_r,
                     sell=sell
-                ) -> Tuple[PriceAndShares, float]:
+                ) -> Tuple[State[PriceAndShares], float]:
                     p_s: PriceAndShares = PriceAndShares(
-                        price=p_r.price,
+                        price=p_r.state.price,
                         shares=sell
                     )
                     next_price: float = dynamics[t](p_s).sample()
-                    next_rem: int = p_r.shares - sell
+                    next_rem: int = p_r.state.shares - sell
                     next_state: PriceAndShares = PriceAndShares(
                         price=next_price,
                         shares=next_rem
                     )
                     reward: float = utility_f(
-                        sell * (p_r.price - price_diff[t](p_s))
+                        sell * (p_r.state.price - price_diff[t](p_s))
                     )
-                    return (next_state, reward)
+                    return (NonTerminal(next_state), reward)
 
                 return SampledDistribution(
                     sampler=sr_sampler_func,
                     expectation_samples=100
                 )
 
-            def actions(self, p_s: PriceAndShares) -> Iterator[int]:
+            def actions(self, p_s: NonTerminal[PriceAndShares]) -> \
+                    Iterator[int]:
                 if t == steps - 1:
-                    return iter([p_s.shares])
+                    return iter([p_s.state.shares])
                 else:
-                    return iter(range(p_s.shares + 1))
+                    return iter(range(p_s.state.shares + 1))
 
         return OptimalExecutionMDP()
 
     def get_states_distribution(self, t: int) -> \
-            SampledDistribution[PriceAndShares]:
+            SampledDistribution[NonTerminal[PriceAndShares]]:
 
-        def states_sampler_func() -> PriceAndShares:
+        def states_sampler_func() -> NonTerminal[PriceAndShares]:
             price: float = self.initial_price_distribution.sample()
             rem: int = self.shares
             for i in range(t):
-                sell: int = Choose(set(range(rem + 1))).sample()
+                sell: int = Choose(range(rem + 1)).sample()
                 price = self.price_dynamics[i](PriceAndShares(
                     price=price,
                     shares=rem
                 )).sample()
                 rem -= sell
-            return PriceAndShares(
+            return NonTerminal(PriceAndShares(
                 price=price,
                 shares=rem
-            )
+            ))
 
         return SampledDistribution(states_sampler_func)
 ```
 
 Finally, we produce the Optimal Value Function and Optimal Policy for each time step with the following method `backward_induction_vf_and_pi`: 
 
-```
+```python
 from rl.approximate_dynamic_programming import back_opt_vf_and_policy
 
     def backward_induction_vf_and_pi(
         self
-    ) -> Iterator[Tuple[FunctionApprox[PriceAndShares],
-                        Policy[PriceAndShares, int]]]:
+    ) -> Iterator[Tuple[ValueFunctionApprox[PriceAndShares],
+                        DeterministicPolicy[PriceAndShares, int]]]:
 
         mdp_f0_mu_triples: Sequence[Tuple[
             MarkovDecisionProcess[PriceAndShares, int],
-            FunctionApprox[PriceAndShares],
-            SampledDistribution[PriceAndShares]
+            ValueFunctionApprox[PriceAndShares],
+            SampledDistribution[NonTerminal[PriceAndShares]]
         ]] = [(
             self.get_mdp(i),
             self.func_approx,
@@ -564,8 +569,8 @@ dynamics = [lambda p_s: Gaussian(
     sigma=0.
 ) for _ in range(num_time_steps)]
 ffs = [
-    lambda p_s: p_s.price * p_s.shares,
-    lambda p_s: float(p_s.shares * p_s.shares)
+    lambda p_s: p_s.state.price * p_s.state.shares,
+    lambda p_s: float(p_s.state.shares * p_s.state.shares)
 ]
 fa: FunctionApprox = LinearFunctionApprox.create(feature_functions=ffs)
 init_price_distrib: Gaussian = Gaussian(
@@ -583,8 +588,8 @@ ooe: OptimalOrderExecution = OptimalOrderExecution(
     func_approx=fa,
     initial_price_distribution=init_price_distrib
 )
-it_vf: Iterator[Tuple[FunctionApprox[PriceAndShares],
-                      Policy[PriceAndShares, int]]] = \
+it_vf: Iterator[Tuple[ValueFunctionApprox[PriceAndShares],
+                      DeterministicPolicy[PriceAndShares, int]]] = \
     ooe.backward_induction_vf_and_pi()
 ```
 
@@ -600,15 +605,15 @@ state: PriceAndShares = PriceAndShares(
 The code to evaluate the obtained Optimal Value Function and Optimal Policy on the above state is as follows:
 
 ```
-for t, (v, p) in enumerate(it_vf):
+for t, (vf, pol) in enumerate(it_vf):
     print(f"Time {t:d}")
     print()
-    opt_sale: int = p.act(state).value
-    val: float = v.evaluate([state])[0]
+    opt_sale: int = pol.action_for(state)
+    val: float = vf(NonTerminal(state))
     print(f"Optimal Sales = {opt_sale:d}, Opt Val = {val:.3f}")
     print()
     print("Optimal Weights below:")
-    print(v.weights.weights)
+    print(vf.weights.weights)
     print()
 ```
 
@@ -658,13 +663,13 @@ for t in range(num_time_steps):
     print(f"Time {t:d}")
     print()
     left: int = num_time_steps - t
-    opt_sale: float = num_shares / num_time_steps
+    opt_sale_anal: float = num_shares / num_time_steps
     wt1: float = 1
     wt2: float = -(2 * beta + alpha * (left - 1)) / (2 * left)
-    val: float = wt1 * state.price * state.shares + \
+    val_anal: float = wt1 * state.price * state.shares + \
         wt2 * state.shares * state.shares
 
-    print(f"Optimal Sales = {opt_sale:.3f}, Opt Val = {val:.3f}")
+    print(f"Optimal Sales = {opt_sale_anal:.3f}, Opt Val = {val_anal:.3f}")
     print(f"Weight1 = {wt1:.3f}")
     print(f"Weight2 = {wt2:.3f}")
     print()

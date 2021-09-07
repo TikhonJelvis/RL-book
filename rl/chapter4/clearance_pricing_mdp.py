@@ -1,9 +1,10 @@
 from rl.markov_decision_process import (
-    FiniteMarkovDecisionProcess, FiniteMarkovRewardProcess, FinitePolicy)
+    FiniteMarkovDecisionProcess, FiniteMarkovRewardProcess)
+from rl.policy import FiniteDeterministicPolicy, FinitePolicy
 from rl.finite_horizon import WithTime
 from typing import Sequence, Tuple, Iterator
 from scipy.stats import poisson
-from rl.distribution import Categorical, Constant
+from rl.distribution import Categorical
 from rl.finite_horizon import (
     finite_horizon_MRP, unwrap_finite_horizon_MRP, evaluate,
     finite_horizon_MDP, unwrap_finite_horizon_MDP, optimal_vf_and_policy)
@@ -49,7 +50,7 @@ class ClearancePricingMDP:
         return evaluate(unwrap_finite_horizon_MRP(mrp), 1.)
 
     def get_optimal_vf_and_policy(self)\
-            -> Iterator[Tuple[V[int], FinitePolicy[int, int]]]:
+            -> Iterator[Tuple[V[int], FiniteDeterministicPolicy[int, int]]]:
         return optimal_vf_and_policy(unwrap_finite_horizon_MDP(self.mdp), 1.)
 
 
@@ -70,9 +71,8 @@ if __name__ == '__main__':
     def policy_func(x: int) -> int:
         return 0 if x < 2 else (1 if x < 5 else (2 if x < 8 else 3))
 
-    stationary_policy: FinitePolicy[int, int] = FinitePolicy(
-        {s: Constant(policy_func(s)) for s in range(ii + 1)}
-    )
+    stationary_policy: FiniteDeterministicPolicy[int, int] = \
+        FiniteDeterministicPolicy({s: policy_func(s) for s in range(ii + 1)})
 
     single_step_mrp: FiniteMarkovRewardProcess[int] = \
         cp.single_step_mdp.apply_finite_policy(stationary_policy)
@@ -97,7 +97,9 @@ if __name__ == '__main__':
         print("---------------")
         pprint(vf)
         print(policy)
-        prices.append([pairs[policy.act(s).value][0] for s in range(ii + 1)])
+        prices.append(
+            [pairs[policy.action_for[s]][0]
+             for s in range(ii + 1)])
 
     import matplotlib.pyplot as plt
     from matplotlib import cm

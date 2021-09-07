@@ -6,8 +6,8 @@ from scipy.stats import poisson
 import random
 
 from rl.markov_decision_process import MarkovDecisionProcess
-from rl.markov_process import MarkovRewardProcess
-from rl.markov_decision_process import Policy
+from rl.markov_process import MarkovRewardProcess, NonTerminal, State
+from rl.policy import Policy, DeterministicPolicy
 from rl.distribution import Constant, SampledDistribution
 
 
@@ -20,36 +20,35 @@ class InventoryState:
         return self.on_hand + self.on_order
 
 
+@dataclass(frozen=True)
 class SimpleInventoryMDPNoCap(MarkovDecisionProcess[InventoryState, int]):
-    def __init__(self, poisson_lambda: float, holding_cost: float,
-                 stockout_cost: float):
-        self.poisson_lambda: float = poisson_lambda
-        self.holding_cost: float = holding_cost
-        self.stockout_cost: float = stockout_cost
+    poisson_lambda: float
+    holding_cost: float
+    stockout_cost: float
 
     def step(
         self,
-        state: InventoryState,
+        state: NonTerminal[InventoryState],
         order: int
-    ) -> SampledDistribution[Tuple[InventoryState, float]]:
+    ) -> SampledDistribution[Tuple[State[InventoryState], float]]:
 
         def sample_next_state_reward(
             state=state,
             order=order
-        ) -> Tuple[InventoryState, float]:
+        ) -> Tuple[State[InventoryState], float]:
             demand_sample: int = np.random.poisson(self.poisson_lambda)
-            ip: int = state.inventory_position()
+            ip: int = state.state.inventory_position()
             next_state: InventoryState = InventoryState(
                 max(ip - demand_sample, 0),
                 order
             )
-            reward: float = - self.holding_cost * state.on_hand\
+            reward: float = - self.holding_cost * state.state.on_hand\
                 - self.stockout_cost * max(demand_sample - ip, 0)
-            return next_state, reward
+            return NonTerminal(next_state), reward
 
         return SampledDistribution(sample_next_state_reward)
 
-    def actions(self, state: InventoryState) -> Iterator[int]:
+    def actions(self, state: NonTerminal[InventoryState]) -> Iterator[int]:
         return itertools.count(start=0, step=1)
 
     def fraction_of_days_oos(
@@ -67,35 +66,41 @@ class SimpleInventoryMDPNoCap(MarkovDecisionProcess[InventoryState, int]):
 
         for _ in range(num_traces):
             steps = itertools.islice(
-                impl_mrp.simulate_reward(Constant(start)),
+                impl_mrp.simulate_reward(Constant(NonTerminal(start))),
                 time_steps
             )
             for step in steps:
-                if step.reward < -self.holding_cost * step.next_state.on_hand:
+                if step.reward < -self.holding_cost * step.state.state.on_hand:
                     count += 1
 
         return float(count) / (time_steps * num_traces)
 
 
-class SimpleInventoryDeterministicPolicy(Policy[InventoryState, int]):
+class SimpleInventoryDeterministicPolicy(
+        DeterministicPolicy[InventoryState, int]
+):
     def __init__(self, reorder_point: int):
         self.reorder_point: int = reorder_point
 
-    def act(self, state: InventoryState) -> Constant[int]:
-        return Constant(max(self.reorder_point - state.inventory_position(),
-                            0))
+        def action_for(s: InventoryState) -> int:
+            return max(self.reorder_point - s.inventory_position(), 0)
+
+        super().__init__(action_for)
 
 
 class SimpleInventoryStochasticPolicy(Policy[InventoryState, int]):
     def __init__(self, reorder_point_poisson_mean: float):
         self.reorder_point_poisson_mean: float = reorder_point_poisson_mean
 
-    def act(self, state: InventoryState) -> SampledDistribution[int]:
+    def act(self, state: NonTerminal[InventoryState]) -> \
+            SampledDistribution[int]:
         def action_func(state=state) -> int:
             reorder_point_sample: int = \
                 np.random.poisson(self.reorder_point_poisson_mean)
-            return max(reorder_point_sample - state.inventory_position(), 0)
-
+            return max(
+                reorder_point_sample - state.state.inventory_position(),
+                0
+            )
         return SampledDistribution(action_func)
 
 

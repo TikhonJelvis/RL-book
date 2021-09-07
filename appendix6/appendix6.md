@@ -2,12 +2,12 @@
 
 ### Definition of a Vector Space
 
-A Vector space is defined as a [commutative group](https://en.wikipedia.org/wiki/Abelian_group) $\mathcal{V}$ under an addition operation (written as $+$), together with multiplication of elements of $\mathcal{V}$ with elements of a [field](https://en.wikipedia.org/wiki/Field_(mathematics)) $\mathcal{K}$ (known as scalars), expressed as a binary in-fix operation $\cdot: \mathcal{K} \times \mathcal{V} \rightarrow \mathcal{V}$, with the following properties:
+A Vector space is defined as a [commutative group](https://en.wikipedia.org/wiki/Abelian_group) $\mathcal{V}$ under an addition operation (written as $+$), together with multiplication of elements of $\mathcal{V}$ with elements of a [field](https://en.wikipedia.org/wiki/Field_(mathematics)) $\mathcal{K}$ (known as scalars), expressed as a binary in-fix operation $*: \mathcal{K} \times \mathcal{V} \rightarrow \mathcal{V}$, with the following properties:
 
-- $a \cdot (b \cdot \bm{v}) = (a \cdot b) \cdot \bm{v}$, for all $a, b \in \mathcal{K}$, for all $\bm{v} \in \mathcal{V}$.
-- $1 \cdot \bm{v} = \bm{v}$ for all $\bm{v} \in \mathcal{V}$ where $1$ denotes the multiplicative identity of $\mathcal{K}$.
-- $a \cdot (\bm{v_1} + \bm{v_2}) = a \cdot \bm{v_1} + a \cdot \bm{v_2}$ for all $a \in \mathcal{K}$, for all $\bm{v_1}, \bm{v_2} \in \mathcal{V}$.
-- $(a + b) \cdot \bm{v} = a \cdot \bm{v} + b \cdot \bm{v}$ for all $a, b \in \mathcal{K}$, for all $\bm{v} \in \mathcal{V}$.
+- $a * (b * \bm{v}) = (a * b) * \bm{v}$, for all $a, b \in \mathcal{K}$, for all $\bm{v} \in \mathcal{V}$.
+- $1 * \bm{v} = \bm{v}$ for all $\bm{v} \in \mathcal{V}$ where $1$ denotes the multiplicative identity of $\mathcal{K}$.
+- $a * (\bm{v_1} + \bm{v_2}) = a * \bm{v_1} + a * \bm{v_2}$ for all $a \in \mathcal{K}$, for all $\bm{v_1}, \bm{v_2} \in \mathcal{V}$.
+- $(a + b) * \bm{v} = a * \bm{v} + b * \bm{v}$ for all $a, b \in \mathcal{K}$, for all $\bm{v} \in \mathcal{V}$.
 
 ### Definition of a Function Space
 
@@ -15,16 +15,16 @@ The set $\mathcal{F}$ of all functions from an arbitrary generic domain $\mathca
 
 $$(f + g)(x) = f(x) + g(x) \text{ for all } f, g \in \mathcal{F}, \text{ for all } x \in \mathcal{X}$$
 
-and scalar multiplication operation ($\cdot$) defined as:
+and scalar multiplication operation ($*$) defined as:
 
-$$(a \cdot f)(x) = a \cdot f(x) \text{ for all } f \in \mathcal{F}, \text{ for all } a \in \mathcal{K}, \text{ for all } x \in \mathcal{X}$$
+$$(a * f)(x) = a * f(x) \text{ for all } f \in \mathcal{F}, \text{ for all } a \in \mathcal{K}, \text{ for all } x \in \mathcal{X}$$
 
 ### Function Space of Linear Maps
 
 A linear map is a function $f: \mathcal{V} \rightarrow \mathcal{W}$ where $\mathcal{V}$ is a vector space over a scalars field $\mathcal{K}$ and $\mathcal{W}$ is a vector space over the same scalars field $\mathcal{K}$, having the following two properties:
 
 - $f(\bm{v_1} + \bm{v_2}) = f(\bm{v_1}) + f(\bm{v_2})$ for all $\bm{v_1}, \bm{v_2} \in \mathcal{V}$ (i.e., application of $f$ commutes with the addition operation).
-- $f(a \cdot \bm{v}) = a \cdot f(\bm{v})$ for all $\bm{v} \in \mathcal{V}$, for all $a \in \mathcal{K}$ (i.e., applications of $f$ commutes with the scalar multiplication operation).
+- $f(a * \bm{v}) = a * f(\bm{v})$ for all $\bm{v} \in \mathcal{V}$, for all $a \in \mathcal{K}$ (i.e., applications of $f$ commutes with the scalar multiplication operation).
 
 Then the set of all linear maps with domain $\mathcal{V}$ and co-domain $\mathcal{W}$ constitute a function space (restricted to just this subspace of all linear maps, rather than the space of all $\mathcal{V} \rightarrow \mathcal{W}$ functions). This function space (restricted to the subspace of all $\mathcal{V} \rightarrow \mathcal{W}$ linear maps) is denoted as the vector space $\mathcal{L}(\mathcal{V}, \mathcal{W})$.
 
@@ -46,7 +46,7 @@ $$I(\bm{w_1}) + I(\bm{w_2}) = I(\bm{w_1} + \bm{w_2}) \text{ for all } \bm{w_1}, 
 
 and multiplication operation defined as:
 
-$$a \cdot I(\bm{w}) = I(a \cdot \bm{w}) \text{ for all } \bm{w} \in \mathcal{P}, \text{ for all } a \in \mathbb{R}$$
+$$a * I(\bm{w}) = I(a * \bm{w}) \text{ for all } \bm{w} \in \mathcal{P}, \text{ for all } a \in \mathbb{R}$$
 
 We refer to this vector space $\mathcal{G}$ as the *Representational Space* (to signify the fact that addition and multiplication operations in $\mathcal{G}$ essentially "delegate" to addition and multiplication operations in the Parameters Space $\mathcal{P}$, with any parameters $\bm{w} \in \mathcal{P}$ serving as the internal representation of a function approximation $I(\bm{w}): \mathcal{X} \rightarrow \mathbb{R}$). This "delegation" from $\mathcal{G}$ to $\mathcal{P}$ implies that $I$ is a linear map from Parameters Space $\mathcal{P}$ to Representational Space $\mathcal{G}$.
 
@@ -71,7 +71,7 @@ for all $x \in \mathcal{X}$, for all $\bm{w} \in \mathbb{R}^m$.
 Also note that in the case of linear function approximations, the function $I: \mathcal{R}^m \rightarrow (\mathcal{X} \rightarrow \mathbb{R})$ is a linear map from $\mathcal{R}^m = \mathcal{P}$ to a vector subspace of the function space $\mathcal{F}$ of all $\mathcal{X} \rightarrow \mathbb{R}$ functions over scalars field $\mathbb{R}$ (with pointwise operations). This is because for all $x \in \mathcal{X}$:
 
 $$\bm{\Phi}(x)^T \cdot (\bm{w}_1 + \bm{w}_2) = \bm{\Phi}(x)^T \cdot \bm{w}_1 + \bm{\Phi}(x)^T \cdot \bm{w}_2 \text{ for all } \bm{w}_1, \bm{w}_2 \in \mathbb{R}^m$$
-$$\bm{\Phi}(x)^T \cdot (a \cdot \bm{w}) = a \cdot (\bm{\Phi}(x)^T \cdot \bm{w}) \text{ for all } \bm{w} \in \mathbb{R}^m, \text{ for all } a \in \mathbb{R}$$
+$$\bm{\Phi}(x)^T \cdot (a * \bm{w}) = a * (\bm{\Phi}(x)^T \cdot \bm{w}) \text{ for all } \bm{w} \in \mathbb{R}^m, \text{ for all } a \in \mathbb{R}$$
 
 The key concept here is that for the case of linear function approximations, addition and multiplication "delegating" operations in $\mathcal{G}$ coincide with addition and multiplication "pointwise" operations in $\mathcal{F}$, which implies that $\mathcal{G}$ is isomorphic to a vector subspace of $\mathcal{F}$.
 
@@ -83,7 +83,7 @@ $$SGD: \mathcal{X} \times \mathbb{R} \rightarrow (\mathcal{P} \rightarrow \mathc
 
 representing a mapping from (predictor, response) data to a "parameters-update" function (in order to improve the function approximation), defined as:
 
-$$SGD(x, y)(\bm{w}) = \bm{w} - \alpha \cdot (f(x, \bm{w}) - y) \cdot G(x)(\bm{w})$$
+$$SGD(x, y)(\bm{w}) = \bm{w} + (- \alpha \cdot (f(x, \bm{w}) - y) * G(x)(\bm{w}))$$
 for all $x \in \mathcal{X}, y \in \mathbb{R}, \bm{w} \in \mathcal{P}$, where $\alpha \in \mathbb{R}^+$ represents the learning rate (step size of SGD).
 
 For a fixed data pair $(x, y) \in \mathcal{X} \times \mathbb{R}$, with prediction error function $e: \mathcal{P} \rightarrow \mathbb{R}$ defined as $e(\bm{w}) = y - f(x, \bm{w})$, the (SGD-based) parameters change function (function from parameters to change in parameters)
@@ -92,7 +92,7 @@ $$U: \mathcal{P} \rightarrow \mathcal{P}$$
 
 is defined as:
 
-$$U(\bm{w}) = SGD(x, y)(\bm{w}) - \bm{w} = \alpha \cdot e(\bm{w}) \cdot G(x)(\bm{w})$$
+$$U(\bm{w}) = SGD(x, y)(\bm{w}) + (-1 * \bm{w}) = \alpha * (e(\bm{w}) * G(x)(\bm{w}))$$
 
 for all $\bm{w} \in \mathcal{P}$.
 
@@ -110,7 +110,7 @@ Updating vector $\bm{w}$ to vector $\bm{w} + U(\bm{w})$ in the Parameter Space $
 
 As a reminder, for the case of linear function approximations, $\mathcal{G}$ is isomorphic to a vector subspace of the function space $\mathcal{F}$ of all $\mathcal{X} \rightarrow \mathbb{R}$ functions over the scalars field $\mathbb{R}$ (addition and multiplication "delegating" operations in $\mathcal{G}$ coincide with addition and multiplication "pointwise" operations in $\mathcal{F}$).
 
-So in the case of linear function approximations, when updating vector $\bm{w}$ to vector $\bm{w} + \alpha \cdot (y - \bm{\Phi}(x)^T \cdot \bm{w}) \cdot \bm{\Phi}(x)$ in the Parameter Space $\mathcal{P} = \mathbb{R}^m$, applying the linear map $I: \mathbb{R}^m \rightarrow \mathcal{G}$ updates functions in $\mathcal{G}$ with corresponding pointwise addition and multiplication operations.
+So in the case of linear function approximations, when updating vector $\bm{w}$ to vector $\bm{w} + \alpha * ((y - \bm{\Phi}(x)^T \cdot \bm{w}) * \bm{\Phi}(x))$ in the Parameter Space $\mathcal{P} = \mathbb{R}^m$, applying the linear map $I: \mathbb{R}^m \rightarrow \mathcal{G}$ updates functions in $\mathcal{G}$ with corresponding pointwise addition and multiplication operations.
 
 Concretely, a linear function approximation $g: \mathcal{X} \rightarrow \mathbb{R}$ defined as $g(z) = \bm{\Phi}(z)^T \cdot \bm{w}$ for all $z \in \mathcal{X}$ updates correspondingly to the function $g^{(x,y)}: \mathcal{X} \rightarrow \mathbb{R}$ defined as $g^{(x,y)}(z) = \bm{\Phi}(z)^T \cdot \bm{w} + \alpha \cdot (y - \bm{\Phi}(x)^T \cdot \bm{w}) \cdot (\bm{\Phi}(z)^T \cdot \bm{\Phi}(x))$ for all $z \in \mathcal{X}$.
 

@@ -1,11 +1,11 @@
-from typing import Tuple, Sequence, Set, Mapping, Dict, Callable, Optional
+from typing import Tuple, Callable, Sequence, Set, Mapping, Dict
 from dataclasses import dataclass
-from operator import itemgetter
-from rl.distribution import Categorical, Choose, Constant
+from rl.distribution import Categorical, Choose
+from rl.markov_process import NonTerminal
 from rl.markov_decision_process import FiniteMarkovDecisionProcess
-from rl.markov_decision_process import StateActionMapping
-from rl.markov_decision_process import FinitePolicy
+from rl.policy import FiniteDeterministicPolicy
 from rl.dynamic_programming import value_iteration_result, V
+from operator import itemgetter
 
 '''
 Cell specifies (row, column) coordinate
@@ -65,8 +65,8 @@ class WindyGrid:
         print()
 
     @staticmethod
-    def add_tuples(a: Cell, b: Cell) -> Cell:
-        return a[0] + b[0], a[1] + b[1]
+    def add_move_to_cell(cell: Cell, move: Cell) -> Cell:
+        return cell[0] + move[0], cell[1] + move[1]
 
     def is_valid_state(self, cell: Cell) -> bool:
         '''
@@ -88,8 +88,10 @@ class WindyGrid:
         given a non-terminal state, returns the set of all possible
         (action, next_state) pairs
         '''
-        temp: Set[Tuple[Move, Cell]] = {(a, WindyGrid.add_tuples(nt_state, a))
-                                        for a in possible_moves}
+        temp: Set[Tuple[Move, Cell]] = {(a, WindyGrid.add_move_to_cell(
+            nt_state,
+            a
+        )) for a in possible_moves}
         return {(a, s) for a, s in temp if self.is_valid_state(s)}
 
     def get_transition_probabilities(self, nt_state: Cell) \
@@ -110,26 +112,35 @@ class WindyGrid:
             if (r, c) in self.terminals:
                 d[a] = Categorical({((r, c), -1.): 1.})
             else:
-                '''
-                write your code here
-                '''
+                down_prob, up_prob = self.wind[c]
+                stay_prob: float = 1. - down_prob - up_prob
+                d1: Dict[Tuple[Cell, float], float] = \
+                    {((r, c), -1.): stay_prob}
+                if self.is_valid_state((r - 1, c)):
+                    d1[((r - 1, c), -1.)] = down_prob
+                if self.is_valid_state((r + 1, c)):
+                    d1[((r + 1, c), -1.)] = up_prob
+                d1[((r, c), -1. - self.bump_cost)] = \
+                    down_prob * (1 - self.is_valid_state((r - 1, c))) + \
+                    up_prob * (1 - self.is_valid_state((r + 1, c)))
+                d[a] = Categorical(d1)
         return d
 
     def get_finite_mdp(self) -> FiniteMarkovDecisionProcess[Cell, Move]:
         '''
         returns the FiniteMarkovDecision object for this windy grid problem
         '''
-        d1: StateActionMapping[Cell, Move] = \
+        return FiniteMarkovDecisionProcess(
             {s: self.get_transition_probabilities(s) for s in
              self.get_all_nt_states()}
-        d2: StateActionMapping[Cell, Move] = {s: None for s in self.terminals}
-        return FiniteMarkovDecisionProcess({**d1, **d2})
+        )
 
-    def get_vi_vf_and_policy(self) -> Tuple[V[Cell], FinitePolicy[Cell, Move]]:
+    def get_vi_vf_and_policy(self) -> \
+            Tuple[V[Cell], FiniteDeterministicPolicy[Cell, Move]]:
         '''
         Performs the Value Iteration DP algorithm returning the
         Optimal Value Function (as a V[Cell]) and the Optimal Policy
-        (as a FinitePolicy[Cell, Move])
+        (as a FiniteDeterministicPolicy[Cell, Move])
         '''
         return value_iteration_result(self.get_finite_mdp(), gamma=1.)
 
@@ -153,35 +164,30 @@ class WindyGrid:
              for a in action_values}
         ).sample()
 
-    def get_states_actions_dict(self) -> Mapping[Cell, Optional[Set[Move]]]:
+    def get_states_actions_dict(self) -> Mapping[Cell, Set[Move]]:
         '''
-        Returns a dictionary whose keys are the states and the corresponding
-        values are the set of actions for the state (if the key is a
-        non-terminal state) or is None if the state is a terminal state.
+        Returns a dictionary whose keys are the non-terminal states and
+        the corresponding values are the set of actions for the state
         '''
-        d1: Mapping[Cell, Optional[Set[Move]]] = \
-            {s: {a for a, _ in self.get_actions_and_next_states(s)}
-             for s in self.get_all_nt_states()}
-        d2: Mapping[Cell, Optional[Set[Move]]] = \
-            {s: None for s in self.terminals}
-        return {**d1, **d2}
+        return {s: {a for a, _ in self.get_actions_and_next_states(s)}
+                for s in self.get_all_nt_states()}
 
     def get_sarsa_vf_and_policy(
         self,
-        states_actions_dict: Mapping[Cell, Optional[Set[Move]]],
+        states_actions_dict: Mapping[Cell, Set[Move]],
         sample_func: Callable[[Cell, Move], Tuple[Cell, float]],
         episodes: int = 10000,
         step_size: float = 0.01
-    ) -> Tuple[V[Cell], FinitePolicy[Cell, Move]]:
+    ) -> Tuple[V[Cell], FiniteDeterministicPolicy[Cell, Move]]:
         '''
         states_actions_dict gives us the set of possible moves from
-        a non-block cell.
+        a non-terminal cell.
         sample_func is a function with two inputs: state and action,
         and with output as a sampled pair of (next_state, reward).
         '''
         q: Dict[Cell, Dict[Move, float]] = \
             {s: {a: 0. for a in actions} for s, actions in
-             states_actions_dict.items() if actions is not None}
+             states_actions_dict.items()}
         nt_states: CellSet = {s for s in q}
         uniform_states: Choose[Cell] = Choose(nt_states)
         for episode_num in range(episodes):
@@ -193,21 +199,22 @@ class WindyGrid:
             to the SARSA algorithm's Q-Value Function updates.
             '''
 
-        vf_dict: V[Cell] = {s: max(d.values()) for s, d in q.items()}
-        policy: FinitePolicy[Cell, Move] = FinitePolicy(
-            {s: Constant(max(d.items(), key=itemgetter(1))[0])
-             for s, d in q.items()}
-        )
-        return (vf_dict, policy)
+        vf_dict: V[Cell] = {NonTerminal(s): max(d.values()) for s, d
+                            in q.items()}
+        policy: FiniteDeterministicPolicy[Cell, Move] = \
+            FiniteDeterministicPolicy(
+                {s: max(d.items(), key=itemgetter(1))[0] for s, d in q.items()}
+            )
+        return vf_dict, policy
 
     def get_q_learning_vf_and_policy(
         self,
-        states_actions_dict: Mapping[Cell, Optional[Set[Move]]],
+        states_actions_dict: Mapping[Cell, Set[Move]],
         sample_func: Callable[[Cell, Move], Tuple[Cell, float]],
         episodes: int = 10000,
         step_size: float = 0.01,
         epsilon: float = 0.1
-    ) -> Tuple[V[Cell], FinitePolicy[Cell, Move]]:
+    ) -> Tuple[V[Cell], FiniteDeterministicPolicy[Cell, Move]]:
         '''
         states_actions_dict gives us the set of possible moves from
         a non-block cell.
@@ -216,7 +223,7 @@ class WindyGrid:
         '''
         q: Dict[Cell, Dict[Move, float]] = \
             {s: {a: 0. for a in actions} for s, actions in
-             states_actions_dict.items() if actions is not None}
+             states_actions_dict.items()}
         nt_states: CellSet = {s for s in q}
         uniform_states: Choose[Cell] = Choose(nt_states)
         for episode_num in range(episodes):
@@ -227,22 +234,23 @@ class WindyGrid:
             to the Q-learning algorithm's Q-Value Function updates.
             '''
 
-        vf_dict: V[Cell] = {s: max(d.values()) for s, d in q.items()}
-        policy: FinitePolicy[Cell, Move] = FinitePolicy(
-            {s: Constant(max(d.items(), key=itemgetter(1))[0])
-             for s, d in q.items()}
-        )
+        vf_dict: V[Cell] = {NonTerminal(s): max(d.values()) for s, d
+                            in q.items()}
+        policy: FiniteDeterministicPolicy[Cell, Move] = \
+            FiniteDeterministicPolicy(
+                {s: max(d.items(), key=itemgetter(1))[0] for s, d in q.items()}
+            )
         return (vf_dict, policy)
 
     def print_vf_and_policy(
         self,
         vf_dict: V[Cell],
-        policy: FinitePolicy[Cell, Move]
+        policy: FiniteDeterministicPolicy[Cell, Move]
     ) -> None:
         display = "%5.2f"
         display1 = "%5d"
         vf_full_dict = {
-            **{s: display % -v for s, v in vf_dict.items()},
+            **{s.state: display % -v for s, v in vf_dict.items()},
             **{s: display % 0.0 for s in self.terminals},
             **{s: 'X' * 5 for s in self.blocks}
         }
@@ -252,7 +260,7 @@ class WindyGrid:
                                         for j in range(self.columns)))
         print()
         pol_full_dict = {
-            **{s: possible_moves[policy.act(s).value]
+            **{s: possible_moves[policy.action_for[s]]
                for s in self.get_all_nt_states()},
             **{s: 'T' for s in self.terminals},
             **{s: 'X' for s in self.blocks}
@@ -285,13 +293,14 @@ if __name__ == '__main__':
         mdp: FiniteMarkovDecisionProcess[Cell, Move] = wg.get_finite_mdp()
 
         def sample_func(state: Cell, action: Move) -> Tuple[Cell, float]:
-            return mdp.step(state, action).sample()
+            s, r = mdp.step(NonTerminal(state), action).sample()
+            return s.state, r
 
         sarsa_vf_dict, sarsa_policy = wg.get_sarsa_vf_and_policy(
             states_actions_dict=wg.get_states_actions_dict(),
             sample_func=sample_func,
-            episodes=100000,
-            step_size=0.01
+            episodes=10000,
+            step_size=0.03
         )
         print("SARSA\n")
         wg.print_vf_and_policy(
@@ -302,9 +311,9 @@ if __name__ == '__main__':
         ql_vf_dict, ql_policy = wg.get_q_learning_vf_and_policy(
             states_actions_dict=wg.get_states_actions_dict(),
             sample_func=sample_func,
-            episodes=30000,
-            step_size=0.01,
-            epsilon=0.1
+            episodes=10000,
+            step_size=0.03,
+            epsilon=0.2
         )
         print("Q-Learning\n")
         wg.print_vf_and_policy(

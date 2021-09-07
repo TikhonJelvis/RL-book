@@ -24,7 +24,7 @@ class TestConverge(unittest.TestCase):
             return abs(a - b) < 0.1
 
         ns = (1.0 / n for n in iterate(lambda x: x + 1, start=1))
-        self.assertAlmostEqual(converged(ns, close), 0.33, places=2)
+        self.assertAlmostEqual(converged(ns, close), 0.25, places=2)
 
         ns = (1.0 / n for n in iterate(lambda x: x + 1, start=1))
         all_ns = [1.0, 0.5, 0.33]

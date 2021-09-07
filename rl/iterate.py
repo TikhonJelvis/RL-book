@@ -1,6 +1,6 @@
 '''Finding fixed points of functions using iterators.'''
 import itertools
-from typing import (Callable, Iterable, Iterator, Optional, TypeVar)
+from typing import Callable, Iterable, Iterator, Optional, TypeVar
 
 X = TypeVar('X')
 Y = TypeVar('Y')
@@ -56,11 +56,11 @@ def converge(values: Iterator[X], done: Callable[[X, X], bool]) -> Iterator[X]:
     yield a
 
     for b in values:
+        yield b
         if done(a, b):
             return
 
         a = b
-        yield b
 
 
 def converged(values: Iterator[X],
@@ -106,3 +106,14 @@ def accumulate(
         iterable = itertools.chain([initial], iterable)  # type: ignore
 
     return itertools.accumulate(iterable, func)  # type: ignore
+
+
+if __name__ == '__main__':
+    import numpy as np
+    x = 0.0
+    values = converge(
+        iterate(lambda y: np.cos(y), x),
+        lambda a, b: np.abs(a - b) < 1e-3
+    )
+    for i, v in enumerate(values):
+        print(f"{i}: {v:.4f}")
