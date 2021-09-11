@@ -121,19 +121,26 @@ instance Within (Linear a) where
 b :: Matrix Double
 b = Matrix.row [ 1, 3, 5]
 
-x :: Matrix Double
-x = Matrix.fromLists [ [2, 4, 6], [2, 8, 7], [1, 9, 5], [2, 2, 6], [3, 5, 8]]
+x :: [Vector Double]
+x =  fmap Matrix.fromList [[2, 4, 6], [2, 8, 7], [1, 9, 5], [2, 2, 6], [3, 5, 8]]
 
-eps :: IO [Double]
-eps = Probability.sampleIO ((Monad.replicateM 5) (Probability.normal 0 0.5) )
+eps :: IO (Vector Double)
+-- fmap for IO is done implicitly! since it can't be passed as an argument
+eps = fmap  Matrix.fromList ((Monad.replicateM 5) (Probability.normal 0 0.5) )
 
-y :: IO (Matrix Double)
+y :: IO [Vector Double]
 
 y = do eps' <- eps
-       pure (tr' ((b <> (tr' x)) + (Matrix.row eps')))
+       pure (fmap go x)
+         where go xvec = b #> xvec 
 
 -- Now let's create feature functions to setup the linear
-linTest :: Linear (Matrix Double)
-linTest = create 0 [ \x -> Matrix.atIndex x (0, 0), \x -> Matrix.atIndex x (1, 0), \x -> Matrix.atIndex x (2, 0)]       
+linTest :: Linear (Vector Double)
+linTest = create 0 [ \x -> Matrix.atIndex x 0,
+                     \x -> Matrix.atIndex x 1,
+                     \x -> Matrix.atIndex x 2
+                   ]       
 
-testDirection = direction linTest (V.fromList (fmap Matrix.asRow (Matrix.toRows x)))
+-- X is a matrix of Doubles, but we need a list of Vectors
+-- V.fromList turns it into the vector, but we need asRow to make a list for each row
+testDirection = direction linTest (Matrix.fromList (fmap Matrix.asRow (Matrix.toRows x)))
