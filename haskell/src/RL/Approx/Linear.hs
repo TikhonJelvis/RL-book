@@ -118,21 +118,21 @@ instance Within (Linear a) where
 -- X = [ [2, 4, 6], [2, 8, 7], [1, 9, 5], [2, 2, 6], [3, 5, 8]]
 -- eps = N(0, σ²) where σ = 0.5
 
-b :: Matrix Double
-b = Matrix.row [ 1, 3, 5]
+b :: Vector Double
+b = Matrix.fromList [ 1, 3, 5]
 
 x :: [Vector Double]
 x =  fmap Matrix.fromList [[2, 4, 6], [2, 8, 7], [1, 9, 5], [2, 2, 6], [3, 5, 8]]
 
-eps :: IO (Vector Double)
+eps :: IO [Double]
 -- fmap for IO is done implicitly! since it can't be passed as an argument
-eps = fmap  Matrix.fromList ((Monad.replicateM 5) (Probability.normal 0 0.5) )
+eps = (Monad.replicateM 5) (Probability.sampleIO (Probability.normal 0 0.05) )
 
-y :: IO [Vector Double]
+y :: IO (Vector Double)
 
 y = do eps' <- eps
-       pure (fmap go x)
-         where go xvec = b #> xvec 
+       let go xvec epsilon = b <.> xvec + epsilon 
+       pure (Matrix.fromList (zipWith go x  eps')) 
 
 -- Now let's create feature functions to setup the linear
 linTest :: Linear (Vector Double)
@@ -141,6 +141,7 @@ linTest = create 0 [ \x -> Matrix.atIndex x 0,
                      \x -> Matrix.atIndex x 2
                    ]       
 
--- X is a matrix of Doubles, but we need a list of Vectors
+-- X is a list of Vector Double, i.e. [Vector Double]
 -- V.fromList turns it into the vector, but we need asRow to make a list for each row
-testDirection = direction linTest (Matrix.fromList (fmap Matrix.asRow (Matrix.toRows x)))
+testDirection = do y' <- y
+                   pure (direction linTest Batch {xs = V.fromList x, ys = y'})
