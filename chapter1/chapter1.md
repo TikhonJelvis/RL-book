@@ -26,11 +26,16 @@ Just what *is* an abstraction? An appropriately abstract question! An abstractio
 
 We want to organize code around abstractions for the same reason that we use abstractions to understand more complex ideas. How do you understand code? Do you run the program in your head? That's a natural starting point and it works for simple programs but it quickly becomes difficult and then impossible. A computer doesn't have working-memory limitations and can run *billions* of instructions a second—we can't possibly keep up. The computer doesn't need structure or abstraction in the code it runs, but we need it to have any hope of writing or understanding anything beyond the simplest of programs. Abstractions in our code group information and logic so that we can think about rich concepts rather than tracking every single bit of information and every single instruction separately.
 
-The details may differ, but designing code around abstractions that correspond to a solid mental model of the domain works well in any area and with any programming language. Designing and using abstractions like that isn't always easy and can take more up-front thinking than other approaches—but, done well, it pays massive dividends over the life of a project. The goal of writing clean code with well-designed abstraction is to make it easier for ourselves to deal with complexity; this matters as much for "one-off" experimental code as it does for large software engineering efforts done in teams!
+The details may differ, but designing code around abstractions that correspond to a solid mental model of the domain works well in any area and with any programming language. It might take some extra up-front thought but, done well, this style of design pays dividends. Our goal is to write code that makes life easier *for ourselves*; this helps for everything from "one-off" experimental code through software engineering efforts with large teams.
 
 ### Probability
 
-Let's jump into a real example of code design to see the process in practice. One of the most important building blocks for reinforcement learning—really statistics and machine learning in general—is probability. How do we want to work with probability and probability distributions in our code?
+But what does designing clean abstractions actually entail? There are always two parts to answering this question:
+
+  1. Understanding the domain concept that you are modeling.
+  2. Figuring out how to express that concept with features and patterns provided by your programming language.
+
+Let's jump into an extended example to see exactly what this means. One of the key building blocks for reinforcement learning—all of statistics and machine learning, really—is probability. How are we going to handle uncertainty and randomness in our code?
 
 One approach would be to keep probability implicit. Whenever we have a random variable, we could call a function and get a random result. If we were writing a Monopoly game with two six-side dice, we would define it like this:
 
@@ -44,7 +49,7 @@ def roll_dice():
     return six_sided() + six_sided()
 ```
 
-This works, but it's pretty limited. We can't do anything except get one outcome at a time. More importantly, this code doesn't reflect how we *think* about probabilities: there's *randomness* but we never even mentioned distributions. We have outcomes and we have a function we can call repeatedly, but there's no way to tell that function apart from a function that has nothing to do with probability but just happens to return an integer.
+This works, but it's pretty limited. We can't do anything except get one outcome at a time. More importantly, this only captures a slice of how we *think* about probability: there's *randomness* but we never even mentioned distributions. We have outcomes and we have a function we can call repeatedly, but there's no way to tell that function apart from a function that has nothing to do with probability but just happens to return an integer.
 
 How can we write code to get the expected value of a distribution? If we have a parametric distribution—a distribution like Poisson or Gaussian characterized by parameters—can we get the parameters out if we need them?
 
@@ -54,9 +59,11 @@ Since distributions are implicit in the code, the *intentions* of the code aren'
 
 To address these problems, let's define an abstraction for probability distributions.
 
-How do we represent a distribution in code? What can we *do* with distributions? That depends on exactly what kind of distribution we're working with. If we know something about the structure of a distribution—perhaps it's a Poisson distribution where λ=5, perhaps it's an empirical distribution where we've measured probabilities for each outcome—we might be able to do quite a bit. We might be able to produce an exact PDF or CDF, calculate expectations exactly and do various operations efficiently. But that isn't the case for all the distributions we work with! What if the distribution comes from a complicated simulation? At the extreme, we might not be able to do anything except draw samples from the distribution.
+How do we represent a distribution in code? What can we *do* with distributions? That depends on exactly what kind of distribution we're working with. If we know something about the structure of a distribution—perhaps it's a Poisson distribution where λ=5, perhaps it's an empirical distribution with set probabilities for each outcome—we could do quite a bit: produce an exact PDF or CDF, calculate expectations and do various operations efficiently. But that isn't the case for all the distributions we work with! What if the distribution comes from a complicated simulation? At the extreme, we might not be able to do anything except draw samples from the distribution.
 
-The least common denominator is sampling. We can sample distributions were we don't know enough to do anything else, and we can sample distributions where we know the exact form and parameters. In Python, we can express this idea with a class:
+Sampling is the least common denominator. We can sample distributions were we don't know enough to do anything else, and we can sample distributions where we know the exact form and parameters. Any abstraction we start with for probability needs to cover sampling, and any abstraction that requires more than just sampling will not let us handle all the distributions we care about.
+
+In Python, we can express this idea with a class:
 
 ``` python
 from abc import ABC, abstractmethod
@@ -67,19 +74,30 @@ class Distribution(ABC):
         pass
 ```
 
-This class gives us a minimal **interface**: a definition of what we require for something to qualify as a distribution. Any kind of distribution we implement in the future will be able to, at minimum, generate samples; when we write functions that sample distributions, they can require their inputs to inherit from `Distribution`.
+This class defines an **interface**: a definition of what we require for something to qualify as a distribution. Any kind of distribution we implement in the future will be able to, at minimum, generate samples; when we write functions that sample distributions, they can require their inputs to inherit from `Distribution`.
 
-Note how this class itself does not actually implement `sample`. When we have a specific kind of distribution, we will be able to sample it, but the `Distribution` class defines the *abstract idea* of what constitutes a distribution rather than defining a *specific* kind of distribution. To reflect this in Python, we've made `Distribution` an **ABC** (Abstract Base Class), with `sample` being an *abstract* method—a method without an implementation. Like their names imply, abstract classes and abstract methods are features that Python provides to help us define abstractions. We can define the `Distribution` class to structure the rest of our probability code before we define any specific distributions.
+The class itself does not actually implement `sample`. `Distribution` captures the *abstract concept* of distributions that we can sample, but we would need to specify a specific distribution to actually sample anything. To reflect this in Python, we've made `Distribution` an **abstract base class** (ABC), with `sample` as an *abstract* method—a method without an implementation. Abstract classes and abstract methods are features that Python provides to help us define interfaces for abstractions. We can define the `Distribution` class to structure the rest of our probability code before we define any specific distributions.
 
 #### A Concrete Distribution
 
-Let's say that we wanted to model six-sided dice, just like we did with our original example. We could do this by defining a `Die` class that represents an n-sided die and inherits from `Distribution`:
+Now that we have an interface, what do we do with it? An interface can be approached from two sides:
+
+  * Something that **requires** the interface. This will be code that uses operations specified in the interface and work with *any* value that satisfies those requirements.
+  * Something that **provides** the interface. This will be some value that has supports the operations specified in the interface.
+
+If we have some code that requires an interface and some other code that satisfies the interface, we know that we can put the two together and get something that works—even if the two sides were written without any knowledge or reference to each other. The interface manages how the two sides interact.
+
+To use our `Distribution` class, we can start by providing a **concrete class**[^concrete] that implements the interface. Let's say that we wanted to model dice—perhaps for a game of D&D or Monopoly. We could do this by defining a `Die` class that represents an n-sided die and inherits from `Distribution`:
+
+[^concrete]: In this context, a concrete class is any class that is not an abstract class. More generally, "concrete" is the opposite of "abstract"—when an abstraction can represent multiple more specific concepts, we call any of the specific concepts "concrete".
 
 ``` python
+import random
+
 class Die(Distribution):
     def __init__(self, sides):
         self.sides = sides
-        
+
     def sample(self):
         return random.randint(1, self.sides)
 
@@ -90,9 +108,11 @@ def roll_dice():
     return six_sided.sample() + six_sided.sample()
 ```
 
-So far, we've written a bunch of extra code to... exactly recreate the function we started with. What was the point?
+This version of `roll_dice` has exactly the same behavior as `roll_dice` in the previous section, but it took a bunch of extra code to get there. What was the point?
 
-The key difference from the original code is that we now have a value that represents the *distribution* of rolling a die, not just the outcome of a single roll. When we come across a `Die` object in the code we know it represents an n-sided die. We now have a place to add other functionality for n-sided dice, like adding a `__repr__` method so that the object has a readable string representation:
+The key difference is that we now have a value that represents the *distribution* of rolling a die, not just the outcome of a roll. When we come across a `Die` object in the code we know it represents an n-sided die and we can implement more die-specific functionality on this class. For example, it would be useful for debugging if we could print not just the *outcome* of rolling a die but the die itself—otherwise, how would we know if we rolled a die with the right number of sides for the given situation?
+
+In Python, we would do this by defining a `__repr__` method for the class:
 
 ``` python
 class Die(Distribution):
@@ -129,7 +149,7 @@ We could specify this information in the docstring for `Distribution` and its su
 class Die(Distribution):
     def __init__(self, sides: int):
         self.sides = sides
-        
+
     def sample(self) -> int:
         return random.randint(1, sides)
 ```
