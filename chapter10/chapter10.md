@@ -1225,6 +1225,6 @@ Thus, we see that our implementation of TD($\lambda$) prediction with the above 
 ### Key Takeaways from this Chapter
 
 * Bias-Variance tradeoff of TD versus MC.
-* MC learns the mean of the observed returns while TD learns something "deeper" - it implicitly estimates an MRP from the given data and produces the Value Function of the implicitly-estimated MRP.
+* MC learns the statistical mean of the observed returns while TD learns something "deeper" - it implicitly estimates an MRP from the observed  data and produces the Value Function of the implicitly-estimated MRP.
 * Understanding TD versus MC versus DP from the perspectives of "bootstrapping" and "experiencing" (Figure \ref{fig:unified_view_of_rl} provides a great view).
 * "Equivalence" of $\lambda$-Return Prediction and TD($\lambda$) Prediction, hence TD is equivalent to TD(0) and MC is "equivalent" to TD(1).
