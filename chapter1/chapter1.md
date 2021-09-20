@@ -110,9 +110,23 @@ def roll_dice():
 
 This version of `roll_dice` has exactly the same behavior as `roll_dice` in the previous section, but it took a bunch of extra code to get there. What was the point?
 
-The key difference is that we now have a value that represents the *distribution* of rolling a die, not just the outcome of a roll. When we come across a `Die` object in the code we know it represents an n-sided die and we can implement more die-specific functionality on this class. For example, it would be useful for debugging if we could print not just the *outcome* of rolling a die but the die itself—otherwise, how would we know if we rolled a die with the right number of sides for the given situation?
+The key difference is that we now have a value that represents the *distribution* of rolling a die, not just the outcome of a roll. The code is easier to understand—when we come across a `Die` object, the meaning and intention behind it is clear—and it gives us a place to add additional die-specific functionality. For example, it would be useful for debugging if we could print not just the *outcome* of rolling a die but the die itself—otherwise, how would we know if we rolled a die with the right number of sides for the given situation?
 
-In Python, we would do this by defining a `__repr__` method for the class:
+If we were using a function to represent our die, printing it would not be useful:
+
+``` python
+>>> print(six_sided)
+<function six_sided at 0x7f00ea3e3040>
+```
+
+That said, the `Die` class we've defined so far isn't much better:
+
+``` python
+>>> print(Die(6))
+<__main__.Die object at 0x7ff6bcadc190>
+```
+
+With a class—and unlike a function—we can fix this. Python lets us change some of the built-in behavior of objects by overriding special methods. To change how the class is printed, we can override `__repr__`: [^f-strings]
 
 ``` python
 class Die(Distribution):
@@ -121,66 +135,265 @@ class Die(Distribution):
         return f"Die(sides={self.sides})"
 ```
 
-When `six_sided` was a function, `print(six_sided)` would give us:
+Much better:
 
 ``` python
->>> print(six_sided)
-<function six_sided at 0x7f00ea3e3040>
-```
-
-With a `Die` class and a `__repr__` method, we get[^f-strings]:
-
-``` python
->>> print(six_sided)
+>>> print(Die(6))
 Die(sides=6)
 ```
 
 This seems small but makes debugging *much* easier, especially as the codebase gets larger and more complex.
 
-[^f-strings]: Our definition of `__repr__` used a Python feature called an "f-string". By putting an `f` in front of a string literal, we can inject the value of a Python expression like `self.sides` into the string by putting the expression between `{` and `}`.
+[^f-strings]: Our definition of `__repr__` used a Python feature called an "f-string". Introduced in Python 3.6, f-strings make it easier to inject Python values into strings. By putting an `f` in front of a string literal, we can include a Python value in a string: `f"{1 + 1}"` gives us the string `"2"`.
 
-#### Types
+##### Dataclasses
 
-With dice, we know the outcome will be an `int`. If we have a coin flip, it will be "heads" or "tails". A normal distribution produces a `double`. In general, the outcome can be anything. Our abstract `Distribution` class did not say anything about this—we have an abstract `sample` method but nothing telling us what that method returns. This works, but it gets confusing: some code we write will work for any kind of distribution, some code needs distributions that return numbers, other code will need something else... No matter what, `sample` better return *something*, otherwise the distribution doesn't really make sense!
+The `Die` class we wrote is intentionally simple. Our die is defined by a single property: the number of sides it has. The `__init__` method takes the number of sides as an input and puts it into a field; once a `Die` object is created, there is no reason to change this value—if we need a die with a different number of sides, we can just create a new object. Abstractions do not have to be complex to be useful.
 
-We could specify this information in the docstring for `Distribution` and its subclasses. That would be enough to tell programmers what the type should be, but not enough to integrate with tools or check for incompatibilities. Luckily, Python gives us a language feature to help with this: **type annotations**. When we define a function or a method, we can specify the types of inputs it needs and the type of value it returns. For example, `sides` in the `Die` class needs to be an `int` and sample will always return an `int`. Annotations let us make this explicit:
+Unfortunately, some of the default behavior of Python classes isn't well-suited to simple classes. We've already seen that we need to override `__repr__` to get useful behavior, but that's not the only default that's inconvenient. Python's default way to compare objects for equality—the `__eq__` method—uses the `is` operator, which means it compares objects *by identity*. This makes sense for classes in general which can change over time, but it is a poor fit for simple abstraction like `Die`. Two `Die` objects with the same number of sides have the same behavior and represent the same probability distribution, but with the default version of `__eq__`, two `Die` objects declared separately will never be equal:
+
+``` python
+>>> six_sided = Die(6)
+>>> six_sided == six_sided
+True
+>>> six_sided == Die(6)
+False
+>>> Die(6) == Die(6)
+False
+```
+
+This behavior is inconvenient and confusing, the sort of edge-case that leads to hard-to-spot bugs. Just like we overrode `__repr__`, we can fix this by overriding `__eq__`:
+
+``` python
+def __eq__(self, other):
+    return self.sides == other.sides
+```
+
+This fixes the weird behavior we saw earlier:
+
+``` python
+>>> Die(6) == Die(6)
+True
+```
+
+However, this simple implementation will lead to errors if we use `==` to compare a `Die` with a non-`Die` value:
+
+``` python
+>>> Die(6) == None
+Traceback (most recent call last):
+  File "<stdin>", line 1, in <module>
+  File ".../rl/chapter1/probability.py", line 18, in __eq__
+    return self.sides == other.sides
+AttributeError: 'NoneType' object has no attribute 'sides'
+```
+
+We generally won't be comparing values of different types with `==`—for `None`, `Die(6) is None` would be more idiomatic—but the usual expectation in Python is that `==` on different types will return `False` rather than raising an exception. We can fix by explicitly checking the type of `other`:
+
+``` python
+def __eq__(self, other):
+    if isinstance(other, Die):
+        return self.sides == other.sides
+
+    return False
+```
+
+``` python
+>>> Die(6) == None
+False
+```
+
+Most of the classes we will define in the rest of the book follow this same pattern—they're defined by a small number of parameters, all that `__init__` does is set a few fields and they need custom `__repr__` and `__eq__` methods. Manually defining `__init__`, `__repr__` and `__eq__` for every single class isn't *too* bad—the definitions are entirely systematic—but it carries some real costs:
+
+  * Extra code without important content makes it harder to *read* and *navigate* through a codebase.
+  * It's easy for mistakes to sneak in. For example, if you add a field to a class but forget to add it to its `__eq__` method, you won't get an error—`==` will just ignore that field. Unless you have tests that explicitly check how `==` handles your new field, this oversight can sneak through and lead to weird behavior in code that uses your class.
+  * Frankly, writing these methods by hand is just *tedious*.
+
+Luckily, Python 3.7 introduced a feature that fixes all of these
+problems: **dataclasses**. The `dataclasses` module provides a
+decorator[^decorators] that lets us write a class that behaves like
+`Die` without needing to manually implement `__init__`, `__repr__` or
+`__eq__`. We still have access to "normal" class features like
+inheritance (`(Distribution)`) and custom methods (`sample`):
+
+``` python
+from dataclasses import dataclass
+
+@dataclass
+class Die(Distribution):
+    sides: int
+
+    def sample(self):
+        return random.randint(1, self.sides)
+```
+
+[^decorators]: Python decorators are modifiers that can be applied to class, function and method definitions. A decorator is written *above* the definition that it applies to, starting with a `@` symbol. Examples include `abstractmethod`—which we saw earlier—and `dataclass`.
+
+This version of `Die` has the exact behavior we want in a way that's easier to write and—more importantly—*far* easier to read. For comparison, here's the code we would have needed *without* dataclasses:
 
 ``` python
 class Die(Distribution):
-    def __init__(self, sides: int):
+    def __init__(self, sides):
         self.sides = sides
 
-    def sample(self) -> int:
-        return random.randint(1, sides)
+    def __repr__(self):
+        return f"Die(sides={self.sides})"
+
+    def __eq__(self, other):
+        if isinstance(other, Die):
+            return self.sides == other.sides
+
+        return False
+
+    def sample(self):
+        return random.randint(1, self.sides)
 ```
 
-Right away, this acts as documentation—anybody who wants to construct a `Die` object will know they have to specify an `int` for `sides`. However, Python doesn't do anything to prevent you from passing in an incompatible value for `sides`; you won't realize the mistake until you call `sample` and get an error—with a confusing error message to boot:
+As you can imagine, the difference would be even starker for classes with more fields!
+
+Dataclasses provide such a useful foundation for classes in Python that the *majority* of the classes we define in this book are dataclasses—we use dataclasses unless we have a *specific* reason not to.
+
+##### Immutability
+
+Once we've created a `Die` object, it does not make sense to change its number of sides—if we need a distribution for a different die, we can create a new object instead. If we change the `sides` of a `Die` object in one part of our code, it will also change in every other part of the codebase that uses that object, in ways that are hard to track. Even if the change made sense in one place, chance are it is not expected in other parts of the code. Changing state can create invisible connections between seemingly separate parts of the codebase which becomes hard to mentally track. A sure recipe for bugs!
+
+Normally, we avoid this kind of problem in Python purely by convention: nothing *stops* us from changing `sides` on a `Die` object, but we know not to do that. This is doable, but hardly ideal; just like it is better to rely on seatbelts rather than pure driver skill, it is better to have the language prevent us from doing the wrong thing than relying on pure convention. Normal Python classes don't have a convenient way to stop fields from changing, but luckily dataclasses do:
 
 ``` python
->>> bad_die = Die("foo")
->>> bad_die.sample()
+@dataclass(frozen=True)
+class Die(Distribution):
+    ...
+```
+
+With `frozen=True`, attempting to change `sides` will raise an exception:
+
+``` python
+>>> d = Die(6)
+>>> d.sides = 10
 Traceback (most recent call last):
   File "<stdin>", line 1, in <module>
-  File ".../rl/probability.py", line 15, in sample
+  File "<string>", line 4, in __setattr__
+dataclasses.FrozenInstanceError: cannot assign to field 'sides'
+```
+
+An object that we cannot change is called **immutable**. Instead of changing the object *in place*, we can return a fresh copy with the field changed; `dataclasses` provides a `replace` function that makes this easy:
+
+``` python
+>>> import dataclasses
+>>> d6 = Die(6)
+>>> d20 = dataclasses.replace(d6, sides=20)
+>>> d20
+Die(sides=20)
+```
+
+This example is a bit convoluted—with such a simple object, we would just write `d20 = Die(20)`—but `dataclasses.replace` becomes a lot more useful with more complex objects that have multiple fields.
+
+Returning a fresh copy of data rather than modifying in place is a common pattern in Python libraries. For example, the majority of Pandas operations—like `drop` or `fillna`—return a *copy* of the dataframe rather than modifying the dataframe in place. These methods have an `inplace` argument as an option, but this leads to enough confusing behavior that the Pandas team is currently deliberating on [deprecating `inplace`][inplace] altogether.
+
+[inplace]: https://github.com/pandas-dev/pandas/issues/16529
+
+Apart from helping prevent odd behavior and bugs, `frozen=True` has an important bonus: we can use immutable objects as dictionary keys and set elements. Without `frozen=True`, we would get a `TypeError` because non-frozen dataclasses do not implement `__hash__`:
+
+``` python
+>>> d = Die(6)
+>>> {d : "abc"}
+Traceback (most recent call last):
+  File "<stdin>", line 1, in <module>
+TypeError: unhashable type: 'Die'
+>>> {d}
+Traceback (most recent call last):
+  File "<stdin>", line 1, in <module>
+TypeError: unhashable type: 'Die'
+```
+
+With `frozen=True`, dictionaries and sets work as expected:
+
+``` python
+>>> d = Die(6)
+>>> {d : "abc"}
+{Die(sides=6): 'abc'}
+>>> {d}
+{Die(sides=6)}
+```
+
+Immutable dataclass objects act like plain data—not too different from strings and ints. In this book, we follow the same practice with `frozen=True` as we do with dataclasses in general: we set `frozen=True` unless there is a specific reason not to.
+
+#### Checking Types
+
+A die has to have an int number of sides—`0.5` sides or `"foo"` sides simply doesn't make sense. Python will not stop us from *trying* `Die("foo")`, but we would get a `TypeError` if we tried sampling it:
+
+``` python
+>>> foo = Die("foo")
+>>> foo.sample()
+Traceback (most recent call last):
+  File "<stdin>", line 1, in <module>
+  File ".../rl/chapter1/probability.py", line 37, in sample
     return random.randint(1, self.sides)
   File ".../lib/python3.8/random.py", line 248, in randint
     return self.randrange(a, b+1)
 TypeError: can only concatenate str (not "int") to str
 ```
 
-The code fails somewhere inside the implementation of `random.randint`. Even on this small scale, it would take a bit of detective work to figure out what the *actual* problem is; imagine what this would be like in a much larger codebase!
+The types of an object's fields are a useful indicator of how the object should be used. Python's dataclasses let us use **type annotations** to specify the type of each field:
 
-Luckily, we can use type annotations with an external **type checker** like mypy or pyright to catch these problems *before we even run our code*. If we annotate that the `sides` argument needs to be an `int` and later write `Die("foo")`, we would get an error right in our editor:
+``` python
+@dataclass(frozen=True)
+class Die(Distribution):
+    sides: int
+```
 
-> probability.py:21: error: Argument 1 to "Die" has incompatible type "str"; expected "int"
+In normal Python, these type annotations exist primarily for documentation—a user can see the types of each field at a glance, but the language does not raise an error when an object is created with the wrong types in a field. External tools—IDEs and typecheckers—can catch type mismatches in annotated Python code without running the code. With a type-aware editor, `Die("foo")` would be underlined with an error message:
 
-Unlike the runtime exception which pointed us to some line inside the Python standard library, this error points to exactly the part of the code where the problems occurs.
+> Argument of type "Literal['foo']" cannot be assigned to parameter "sides" of type "int" in function "__init__"
+> "Literal['foo']" is incompatible with "int" [reportGeneralTypeIssues]
 
-By using type annotations throughout our code, we can both make the *intentions* of the code clearer to the reader while also giving enough structure for automated tools like mypy to catch mismatches like this for us.
+This particular message comes from **pyright** running over the [language server protocol][lsp] (LSP), but Python has a number of different typecheckers available[^typecheckers].
+
+[lsp]: https://microsoft.github.io/language-server-protocol/
+
+[^typecheckers]: Python has a number of external typecheckers that can integrate with different editors, including **mypy**, **pyright**, **pytype** and **pyre**. The PyCharm IDE has a proprietary typechecker built-in. Different checkers *mostly* (but not *entirely*) overlap in functionality and coverage, with different styles of error messages.
+
+Instead of needing to call `sample` to see an error—which we then have to carefully read to track back to the source of the mistake—the mistake is highlighted for us without even needing to run the code.
+
+##### Static Typing?
+
+Being able to find type mismatches *without running code* is called **static typing**. Some languages—like Java and Haskell—require *all* code to be statically typed; Python does not. In fact, Python started out as a **dynamically typed** languages with no type annotations and not typechecking. With older versions of Python, type errors could only ever happen at runtime.
+
+Python is still *primarily* a dynamically typed language—type annotations are optional in most places and there is no built-in checking for annotations. In the `Die("foo")` example, we only got an error when we ran code that passed `sides` into a function that *required* an `int` (`random.randint`). We can get static checking with external tools, but even then it remains *optional*—even statically checked Python code runs dynamic type checks, and we can freely mix statically checked and "normal" Python. Optional static typing on top of a dynamically typed languages is called **gradual typing** because we can incrementally add static types to an existing dynamically typed codebase.
+
+Dataclass fields are not the only place where knowing types is useful; it would also be handy for function parameters, return values and variables. Python supports *optional* annotations on all of these; dataclasses are the only language construct where annotations are *required*. To help mix annotated and unannotated code, typecheckers will report mismatches in code that is explicitly annotated, but will usually not try to guess types for unannotated code.
+
+How would we add type annotations to our example code? So far, we've defined two classes:
+
+  * `Distribution`, an abstract class defining interfaces for probability distributions in general
+  * `Die`, a concrete class for the distribution of an n-sided die
+
+We've already annotated the `sides` in `Die` has to be an `int`. We also know that the *outcome* of a die roll is an `int`. We can annotate this by adding `-> int` after `def sample(...)`:
+
+``` python
+@dataclass(frozen=True)
+class Die(Distribution):
+    sides: int
+
+    def sample(self) -> int:
+        return random.randint(1, self.sides)
+```
+
+Other kinds of concrete distributions would have other sorts of outcomes. A coin flip would either be `"heads"` or `"tails"`; a normal distribution would produce a `float`.
 
 #### Type Variables
 
-Type annotations are pretty clear when a function always returns a specific type: we always know that sampling a `Die` will give us an `Int`. But how do we handle general-purpose abstractions like `Distribution`? While *specific* distributions will have a *specific* type of outcome, the type will vary depending on the distribution. To deal with this, we need **type variables**: variables that stand in for *some* type that might be different each time the code is used. Type variables are also known as "generics" because they let us write classes that generically work for any type.
+Annotating `sample` for specific cases like `Die`—where outcomes are always `int`—is pretty straightforward. But what can we do about the abstract `Distribution` class itself? In general, a distribution can have any kind of outcomes. The abstract `Distribution` class we wrote earlier does not tell us anything about what `sample` returns:
+
+``` python
+class Distribution(ABC):
+    @abstractmethod
+    def sample(self):
+        pass
+```
+
+This works—annotations are optional, after all—but it can get confusing: some code we write will work for any kind of distribution, some code needs distributions that return numbers, other code will need something else... In every instance `sample` better return *something*, but even that isn't explicitly annotated.
+
+While *specific* distributions will have a *specific* type of outcome, the type will vary depending on the distribution. To deal with this, we need **type variables**: variables that stand in for *some* type that might be different each time the code is used. Type variables are also known as "generics" because they let us write classes that generically work for any type.
 
 To add annotations to the abstract `Distribution` class, we will need to define a type variable for the outcomes of the distribution, then tell Python that `Distribution` is "generic" in that type:
 
@@ -195,9 +408,22 @@ class Distribution(ABC, Generic[A]): # Distribution is "generic in A"
         pass
 ```
 
-Traditionally, type variables have one-letter capitalized names—although it's perfectly fine to use full words if that would make the code clearer. In this code, we've defined a type variable `A` and used `Generic[A]` to specify that `Distribution` uses this variable. The type `Distribution[Int]` would cover distributions that have integer outcomes, `Distribution[Double]` would cover distributions with doubles as outcomes... etc. The `sample` method returns a value of type `A`, which means that it will always return a value that has the type of outcome specified for a `Distribution`. After doing this, we would updated our definition of `Die` to specify that it is a subclass of `Distribution[Int]` in particular:
+In this code, we've defined a type variable `A`[^type-variable-names] and used `Generic[A]` to specify that `Distribution` uses this variable. We can now write type annotations for distributions *with specific types of outcomes*: for example, `Die` would be an instance of `Distribution[int]` since the outcome of a die roll is always an `int`. We can make this explicit in the class definition:
 
 ``` python
 class Die(Distribution[int]):
     ...
 ```
+
+This lets us write specialized functions that only work with certain kinds of distributions. Let's say we wanted to write a function that approximated the expected value of a distribution by sampling repeatedly and calculating the mean. This function makes sense for distributions that have numeric outcomes—whether `float` or `int`—but not other kinds of distributions. (How would we calculate an average for a coin flip that could be `"heads"` or `"tails"`?) We can annotate this explicitly by using `Distribution[float]`: [^float]
+
+``` python
+import statistics
+
+def expected_value(d: Distribution[float], n: int) -> float:
+    return statistics.mean(d.sample() for _ in range(n))
+```
+
+`expected_value(Die(6))` would not result in any errors because `Die` inherits from `Distribution[int]`, which is compatible with `Distribution[float]`. But if we created a class `Coin` that inherited from `Distribution[str]`, `expected_value(Coin())` *would* lead to a static type error—which is great because running the code would raise a `TypeError` at runtime too.
+
+[^type-variable-names]: Traditionally, type variables have one-letter capitalized names—although it's perfectly fine to use full words if that would make the code clearer.
