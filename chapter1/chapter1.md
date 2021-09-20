@@ -8,7 +8,7 @@ Programming is creative work with few constraints: imagine something and you can
 
 There's no easy answer. Programming is inherently iterative—we rarely get the right design at first, but we can always edit code and refactor over time. But iteration itself is not enough; just like a painter needs technique and composition, a programmer needs patterns and design.
 
-Existing teaching resources tend to deemphasize programming techniques and design. Theory- and algorithm-heavy books show algorithms as self-contained procedures written in pseudocode, without the broader context—and corresponding design questions—of a real codebase. Newer AI and ML materials sometimes take a different tack and provide real code examples using industry-strength frameworks, but rarely touch on software design questions.
+Existing teaching resources tend to deemphasize programming techniques and design. Theory- and algorithm-heavy books show algorithms as self-con\-tain\-ed procedures written in pseudocode, without the broader context—and corresponding design questions—of a real codebase. Newer AI and ML materials sometimes take a different tack and provide real code examples using industry-strength frameworks, but rarely touch on software design questions.
 
 In this book, we take a third approach. Starting *from scratch*, we build a Python framework that reflects the key ideas and algorithms in the text. The abstractions we define map to the key concepts we introduce; how we structure the code maps to the relationships between those concepts.
 
@@ -343,14 +343,24 @@ class Die(Distribution):
 
 In normal Python, these type annotations exist primarily for documentation—a user can see the types of each field at a glance, but the language does not raise an error when an object is created with the wrong types in a field. External tools—IDEs and typecheckers—can catch type mismatches in annotated Python code without running the code. With a type-aware editor, `Die("foo")` would be underlined with an error message:
 
-> Argument of type "Literal['foo']" cannot be assigned to parameter "sides" of type "int" in function "__init__"
-> "Literal['foo']" is incompatible with "int" [reportGeneralTypeIssues]
+> Argument of type `"Literal['foo']"` cannot be assigned to parameter `"sides"` of type `"int"` in function `"__init__"`
+>
+> `"Literal['foo']"` is incompatible with `"int"` `[reportGeneralTypeIssues]`
 
 This particular message comes from **pyright** running over the [language server protocol][lsp] (LSP), but Python has a number of different typecheckers available[^typecheckers].
 
 [lsp]: https://microsoft.github.io/language-server-protocol/
 
-[^typecheckers]: Python has a number of external typecheckers that can integrate with different editors, including **mypy**, **pyright**, **pytype** and **pyre**. The PyCharm IDE has a proprietary typechecker built-in. Different checkers *mostly* (but not *entirely*) overlap in functionality and coverage, with different styles of error messages.
+[^typecheckers]: Python has a number of external typecheckers, including:
+
+      * **mypy**
+      * **pyright**
+      * **pytype**
+      * **pyre**
+
+    The PyCharm IDE also has a propriety typchecker built-in.
+
+    These tools can be run from the command line or integrated into editors. Different checkers *mostly* overlap in functionality and coverage, but have slight differences in the sort of errors they detect and the style of error messages they generate.
 
 Instead of needing to call `sample` to see an error—which we then have to carefully read to track back to the source of the mistake—the mistake is highlighted for us without even needing to run the code.
 
@@ -400,11 +410,16 @@ To add annotations to the abstract `Distribution` class, we will need to define 
 ``` python
 from typing import Generic, TypeVar
 
-A = TypeVar("A") # Defining a type variable named "A"
+# Defining a type variable named "A"
+A = TypeVar("A")
 
-class Distribution(ABC, Generic[A]): # Distribution is "generic in A"
+
+# Distribution is "generic in A"
+class Distribution(ABC, Generic[A]):
+
+    # Sampling must return a value of type A
     @abstractmethod
-    def sample(self) -> A: # Sampling returns a value of type A
+    def sample(self) -> A:
         pass
 ```
 
@@ -415,7 +430,9 @@ class Die(Distribution[int]):
     ...
 ```
 
-This lets us write specialized functions that only work with certain kinds of distributions. Let's say we wanted to write a function that approximated the expected value of a distribution by sampling repeatedly and calculating the mean. This function makes sense for distributions that have numeric outcomes—whether `float` or `int`—but not other kinds of distributions. (How would we calculate an average for a coin flip that could be `"heads"` or `"tails"`?) We can annotate this explicitly by using `Distribution[float]`: [^float]
+This lets us write specialized functions that only work with certain kinds of distributions. Let's say we wanted to write a function that approximated the expected value of a distribution by sampling repeatedly and calculating the mean. This function works for distributions that have numeric outcomes—`float` or `int`—but not other kinds of distributions. (How would we calculate an average for a coin flip that could be `"heads"` or `"tails"`?) We can annotate this explicitly by using `Distribution[float]`: [^float]
+
+[^float]: The `float` type in Python *also* covers `int`, so we can pass a `Distribution[int]` anywhere that a `Distribution[float]` is required.
 
 ``` python
 import statistics
@@ -424,6 +441,11 @@ def expected_value(d: Distribution[float], n: int) -> float:
     return statistics.mean(d.sample() for _ in range(n))
 ```
 
-`expected_value(Die(6))` would not result in any errors because `Die` inherits from `Distribution[int]`, which is compatible with `Distribution[float]`. But if we created a class `Coin` that inherited from `Distribution[str]`, `expected_value(Coin())` *would* lead to a static type error—which is great because running the code would raise a `TypeError` at runtime too.
+With this function:
+
+  * `expected_value(Die(6))` would be fine
+  * `expected_value(Coin())` (where `Coin` is a `Distribution[str]`) would be a type error
+
+Using `expected_value` on a distribution with non-numeric outcomes would raise a `TypeError` at runtime. Having this highlighted in the editor can save us time---we see the mistake right away, rather than waiting for tests to run---and will catch the problem even if our test suite doesn't.
 
 [^type-variable-names]: Traditionally, type variables have one-letter capitalized names—although it's perfectly fine to use full words if that would make the code clearer.
