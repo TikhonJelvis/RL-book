@@ -22,7 +22,12 @@ There is no single easy answer to these questions. No two programming challenges
 
 We might have no easy answers, but we do have patterns and principles that—in our experience—consistently produce quality code. Taken together, these ideas form a philosophy of code design oriented around defining and combining **abstractions** that reflect how we think about our domain. Since code itself can point to specific design ideas and capabilities, there's a feedback loop: expanding the abstractions we've designed can help us find new algorithms and functionality, improving our understanding of the domain.
 
-Just what *is* an abstraction? An appropriately abstract question! An abstraction is a "compound idea": a single concept that combines multiple separate ideas into one. The human mind can only handle so many distinct ideas at a time—we have an inherently limited working memory. A rather simplified model is that we only have a handful of "slots" in working memory and we simply can't track more independent thoughts at the same time. The way we overcome this limitation is by coming up with *new* ideas—new *abstractions*—that combine multiple distinct concepts into one.
+Just what *is* an abstraction? An appropriately abstract question! An abstraction is a "compound idea": a single concept that combines multiple separate ideas into one. We can combine ideas along two axes:
+
+  * We can *compose* different concepts together, thinking about how they behave as one unit. A car engine has thousands of parts that interact in complex ways, but we can think about it as a single object for most purposes.
+  * We can *unify* different concepts by identifying how they are similar. Different breeds of dogs might look totally different, but we can think of all of them as dogs.
+
+The human mind can only handle so many distinct ideas at a time—we have an inherently limited working memory. A rather simplified model is that we only have a handful of "slots" in working memory and we simply can't track more independent thoughts at the same time. The way we overcome this limitation is by coming up with *new* ideas—new *abstractions*—that combine multiple concepts into one.
 
 We want to organize code around abstractions for the same reason that we use abstractions to understand more complex ideas. How do you understand code? Do you run the program in your head? That's a natural starting point and it works for simple programs but it quickly becomes difficult and then impossible. A computer doesn't have working-memory limitations and can run *billions* of instructions a second—we can't possibly keep up. The computer doesn't need structure or abstraction in the code it runs, but we need it to have any hope of writing or understanding anything beyond the simplest of programs. Abstractions in our code group information and logic so that we can think about rich concepts rather than tracking every single bit of information and every single instruction separately.
 
@@ -392,7 +397,7 @@ Other kinds of concrete distributions would have other sorts of outcomes. A coin
 
 #### Type Variables
 
-Annotating `sample` for specific cases like `Die`—where outcomes are always `int`—is pretty straightforward. But what can we do about the abstract `Distribution` class itself? In general, a distribution can have any kind of outcomes. The abstract `Distribution` class we wrote earlier does not tell us anything about what `sample` returns:
+Annotating `sample` for the `Die` class was straightforward: the outcome of a die roll is always a number, so `sample` always returns `int`. But what type would `sample` in general have? The `Distribution` class defines an interface for *any* distribution, which means it needs to cover *any* type of outcomes. For our first version of the `Distribution` class, we didn't annotate anything for `sample`:
 
 ``` python
 class Distribution(ABC):
@@ -401,23 +406,23 @@ class Distribution(ABC):
         pass
 ```
 
-This works—annotations are optional, after all—but it can get confusing: some code we write will work for any kind of distribution, some code needs distributions that return numbers, other code will need something else... In every instance `sample` better return *something*, but even that isn't explicitly annotated.
+This works—annotations are optional—but it can get confusing: some code we write will work for any kind of distribution, some code needs distributions that return numbers, other code will need something else... In every instance `sample` better return *something*, but that isn't explicitly annotated. When we leave out annotations our code will still work, but our editor or IDE will not catch as many mistakes.
 
-While *specific* distributions will have a *specific* type of outcome, the type will vary depending on the distribution. To deal with this, we need **type variables**: variables that stand in for *some* type that might be different each time the code is used. Type variables are also known as "generics" because they let us write classes that generically work for any type.
+The difficulty here is that different kinds of distributions—different *implementations of the `Distribution` interface*—will return different types from `sample`. To deal with this, we need **type variables**: variables that stand in for *some* type that can be different in different contexts. Type variables are also known as "generics" because they let us write classes that generically work for any type.
 
 To add annotations to the abstract `Distribution` class, we will need to define a type variable for the outcomes of the distribution, then tell Python that `Distribution` is "generic" in that type:
 
 ``` python
 from typing import Generic, TypeVar
 
-# Defining a type variable named "A"
+# A type variable named "A"
 A = TypeVar("A")
 
 
 # Distribution is "generic in A"
 class Distribution(ABC, Generic[A]):
 
-    # Sampling must return a value of type A
+    # Sampling must produce a value of type A
     @abstractmethod
     def sample(self) -> A:
         pass
@@ -446,6 +451,103 @@ With this function:
   * `expected_value(Die(6))` would be fine
   * `expected_value(Coin())` (where `Coin` is a `Distribution[str]`) would be a type error
 
-Using `expected_value` on a distribution with non-numeric outcomes would raise a `TypeError` at runtime. Having this highlighted in the editor can save us time---we see the mistake right away, rather than waiting for tests to run---and will catch the problem even if our test suite doesn't.
+Using `expected_value` on a distribution with non-numeric outcomes would raise a `TypeError` at runtime. Having this highlighted in the editor can save us time—we see the mistake right away, rather than waiting for tests to run—and will catch the problem even if our test suite doesn't.
 
 [^type-variable-names]: Traditionally, type variables have one-letter capitalized names—although it's perfectly fine to use full words if that would make the code clearer.
+
+#### Functionality
+
+So far, we've covered two abstractions for working with probability distributions:
+
+  * `Distribution`: an abstract class that defines the *interface* for probability distributions
+  * `Die`: a distribution for rolling fair n-sided dice
+
+This is an illustrative example, but it doesn't let us do much. If all we needed were n-sided dice, a separate `Distribution` class would be overkill. Abstractions are a means for managing complexity, but any abstraction we define also adds some complexity to a codebase itself—it's one more concept for a programmer to learn and understand. It's always worth considering whether the added complexity from defining and using an abstraction is worth the benefit. How does the abstraction help us understand the code? What kind of mistakes does it prevent—and what kind of mistakes does it *encourage*? What kind of added functionality does it give us? If we don't have sufficiently solid answers to these questions, we should consider leaving the abstraction out.
+
+If all we cared about were dice, `Distribution` wouldn't carry its weight. Reinforcement learning, though, involves both a wide range of specific distributions—any given reinforcement learning problem can have domain-specific distributions—as well as algorithms that need to work for all of these problems. This gives us two reasons to define a `Distribution` abstraction: `Distribution` will *unify* different applications of reinforcement learning and will *generalize* our reinforcement learning code to work in different contexts. By programming against a general interface like `Distribution`, our algorithms will be able to work for the different applications we present in the book—and even work for applications we weren't thinking about when we designed the code.
+
+One of the practical advantages of defining general-purpose abstractions in our code is that it gives us a place to add functionality that will work for *any* instance of the abstraction. For example, one of the most common operations for a probability distribution that we can sample is drawing *n* samples. Of course, we could just write a loop every time we needed to do this:
+
+``` python
+samples = []
+for _ in range(100):
+    samples += [distribution.sample()]
+```
+
+This code is *fine*, but it's not *great*. A `for` loop in Python might be doing pretty much *anything*; it's used for repeating pretty much anything. It's hard to understand what a loop is doing at a glance, so we'd have to carefully read the code to see that it's putting 100 samples in a list. Since this is such a common operation, we can add a method for it instead:
+
+``` python
+class Distribution(ABC, Generic[A]):
+    ...
+
+    def sample_n(self, n: int) -> Sequence[A]:
+        return [self.sample() for _ in range(n)]
+```
+
+The implementation here is different—it's using a **list comprehension**[^list-comprehension] rather than a normal `for` loop—but it's accomplishing the same thing. The more important distinction happens when we *use* the method; instead of needing a `for` loop or list comprehension each time, we can just write:
+
+``` python
+samples = distribution.sample_n(100)
+```
+
+The meaning of this line of code—and the programmer's intention behind it—are immediately clear at a glance.
+
+Of course, this example is pretty limited. The list comprehension to build a list with 100 samples is a bit more complicated than just calling `sample_n(100)`, but not by much—it's still perfectly readable at a glance. This pattern of implementing general-purpose functions on our abstractions becomes a lot more useful as the functions themselves become more complicated.
+
+However, there is another advantage to defining methods like `sample_n`: some kinds of distributions might have more efficient or more accurate ways to implement the same logic. If that's the case, we would override `sample_n` to use the better implementation. Code that uses `sample_n` would automatically benefit; code that used a loop or comprehension instead would not. For example, this happens if we implement a distribution by wrapping a function from NumPy's `random` module:
+
+``` python
+import numpy as np
+
+@dataclass
+class Gaussian(Distribution[float]):
+    μ: float
+    σ: float
+
+    def sample(self) -> float:
+        return np.random.normal(loc=self.μ, scale=self.σ)
+
+    def sample_n(self, n: int) -> Sequence[float]:
+        return np.random.normal(loc=self.μ, scale=self.σ, size=n)
+```
+
+NumPy is optimized for array operations, which means that there is an up-front cost to calling `np.random.normal` *the first time*, but it can quickly generate additional samples after that. The performance impact is significant[^timing]:
+
+``` python
+>>> d = Gaussian(μ=0, σ=1)
+>>> timeit.timeit(lambda: [d.sample() for _ in range(100)])
+293.33819171399955
+>>> timeit.timeit(lambda: d.sample_n(100))
+5.566364272999635
+```
+
+That's a 53× difference!
+
+[^list-comprehension]: List comprehensions are a Python feature to build lists by looping over something. The simplest pattern is the same as writing a `for` loop:
+
+    ``` python
+    foo = [expr for x in xs]
+
+    # is the same as:
+    foo = []
+    for x in xs:
+        foo += [expr]
+    ```
+
+    List comprehensions can combine multiple lists, acting like nested `for` loops:
+
+    ``` python
+    >>> [(x, y) for x in range(3) for y in range(2)]
+    [(0, 0), (0, 1), (1, 0), (1, 1), (2, 0), (2, 1)]
+    ```
+
+    They can also have `if` clauses to only keep elements that match a condition:
+
+    ``` python
+    >>> [x for x in range(10) if x % 2 == 0]
+    [0, 2, 4, 6, 8]
+    ```
+
+    Some combination of `for` and `if` clauses can let us build surprisingly complicated lists! Comprehensions will usually be easier to read than loops—a loop could be doing *anything*, a comprehension is always creating a list—but it's always a judgement call. A couple of nested for loops might be easier to read than a sufficiently convoluted comprehension with too many `for` and `if` clauses!
+
+[^timing]: This code uses the [`timeit`](https://docs.python.org/3/library/timeit.html) module from Python's standard library, which provides a simple way to benchmark small bits of Python code. By default, it measures how long it takes to execute 1,000,000 iterations of the function in seconds, so the two examples here took 0.293ms and 0.006ms respectively.
