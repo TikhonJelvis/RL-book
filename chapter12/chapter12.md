@@ -742,7 +742,7 @@ Gradient Q-Learning & \cmark & \cmark & \xmark \\ \hline
 \end{tabular}
 \end{center}
 \caption{Convergence of RL Control Algorithms}
-\label{fig:rl_control_convergence_with_lspi_convergence}
+\label{fig:rl_control_with_lspi_convergence}
 \end{figure}
 
 
