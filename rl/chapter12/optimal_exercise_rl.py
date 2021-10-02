@@ -167,7 +167,7 @@ class OptimalExerciseRL:
             a_mat /= len(training_data)
             a_mat += reg_mat
             b_vec /= len(training_data)
-            wts: np.ndarray = np.linalg.inv(a_mat).dot(b_vec)
+            wts: np.ndarray = np.linalg.solve(a_mat, b_vec)
             fa = replace(
                 fa,
                 weights=replace(
