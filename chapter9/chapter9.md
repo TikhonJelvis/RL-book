@@ -625,28 +625,28 @@ Time 0
 Optimal Sales = 20, Opt Val = 9779.976
 
 Optimal Weights below:
-[ 0.99999476 -0.02199715]
+[ 0.9999948  -0.02199718]
 
 Time 1
 
 Optimal Sales = 20, Opt Val = 9762.479
 
 Optimal Weights below:
-[ 0.99999345 -0.02374559]
+[ 0.9999935  -0.02374564]
 
 Time 2
 
 Optimal Sales = 20, Opt Val = 9733.324
 
 Optimal Weights below:
-[ 0.99999333 -0.02666096]
+[ 0.99999335 -0.02666098]
 
 Time 3
 
-Optimal Sales = 20, Opt Val = 9675.014
+Optimal Sales = 20, Opt Val = 9675.013
 
 Optimal Weights below:
-[ 0.99999314 -0.03249176]
+[ 0.99999316 -0.03249182]
 
 Time 4
 

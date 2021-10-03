@@ -259,12 +259,12 @@ si_mrp.display_value_function(gamma=user_gamma)
 This prints the following:   
 
 ```
-{NonTerminal(state=InventoryState(on_hand=1, on_order=1)): -29.345,
- NonTerminal(state=InventoryState(on_hand=2, on_order=0)): -30.345,
- NonTerminal(state=InventoryState(on_hand=0, on_order=0)): -35.511,
+{NonTerminal(state=InventoryState(on_hand=0, on_order=0)): -35.511,
  NonTerminal(state=InventoryState(on_hand=0, on_order=1)): -27.932,
  NonTerminal(state=InventoryState(on_hand=0, on_order=2)): -28.345,
- NonTerminal(state=InventoryState(on_hand=1, on_order=0)): -28.932}
+ NonTerminal(state=InventoryState(on_hand=1, on_order=0)): -28.932,
+ NonTerminal(state=InventoryState(on_hand=1, on_order=1)): -29.345,
+ NonTerminal(state=InventoryState(on_hand=2, on_order=0)): -30.345}
  ```
     
 Next, we run Monte-Carlo Prediction by first generating a stream of trace experiences (in the form of sampling traces) from the MRP, and then calling `mc_prediction` using `Tabular` with equal-weights-learning-rate (i.e., default `count_to_weight_func` of `lambda n: 1.0 / n`).
