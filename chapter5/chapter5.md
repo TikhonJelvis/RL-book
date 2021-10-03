@@ -375,9 +375,9 @@ We denote $\bm{\Phi}$ as the $n$ rows $\times$ $m$ columns matrix defined as $\b
 $$\frac 1 n \cdot \bm{\Phi}^T \cdot (\bm{\Phi} \cdot \bm{w^*} - \bm{Y}) + \lambda \cdot \bm{w^*} = 0$$
 $$\Rightarrow (\bm{\Phi}^T \cdot \bm{\Phi} + n \lambda \cdot \bm{I_m}) \cdot \bm{w^*} = \bm{\Phi}^T \cdot \bm{Y}$$
 $$\Rightarrow \bm{w^*} = (\bm{\Phi}^T \cdot \bm{\Phi} + n \lambda \cdot \bm{I_m})^{-1} \cdot \bm{\Phi}^T \cdot \bm{Y}$$
-where $\bm{I_m}$ is the $m \times m$ identity matrix. Note that this requires inversion of the $m \times m$ matrix $\bm{\Phi}^T \cdot \bm{\Phi} + n \lambda \cdot \bm{I_m}$ and so, this direct solution for $\bm{w^*}$ requires that $m$ not be too large.
+where $\bm{I_m}$ is the $m \times m$ identity matrix. Note that this direct linear-algebraic solution for solving a square linear system of equations of size $m$ is computationally feasible only if $m$ is not too large. 
 
-On the other hand, if the number of feature functions $m$ is too large, then this direct-solve method is infeasible. In that case, we solve for $\bm{w^*}$ by repeatedly calling `update`. The attribute `direct_solve: bool` in `LinearFunctionApprox` specifies whether to perform a direct solution (linear algebra calculations shown above) or to perform a sequence of iterative (incremental) `updates` to $\bm{w}$ using gradient descent. The code below for the method `solve` does exactly this:
+On the other hand, if the number of feature functions $m$ is large, then we solve for $\bm{w^*}$ by repeatedly calling `update`. The attribute `direct_solve: bool` in `LinearFunctionApprox` specifies whether to perform a direct solution (linear algebra calculations shown above) or to perform a sequence of iterative (incremental) `updates` to $\bm{w}$ using gradient descent. The code below for the method `solve` does exactly this:
 
 ```python
 import itertools
@@ -400,7 +400,7 @@ import rl.iterate import iterate
                 self,
                 weights=Weights.create(
                     adam_gradient=self.weights.adam_gradient,
-                    weights=np.dot(np.linalg.inv(left), right)
+                    weights=np.linalg.solve(left, right)
                 )
             )
         else:
