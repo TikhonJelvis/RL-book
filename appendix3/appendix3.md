@@ -174,7 +174,12 @@ $$y_t = \log(x_t)$$
 
 Applying Ito's Lemma on $y_t$ with respect to $x_t$, we get:
 
-$$dy_t = \frac {dx_t} {x_t} - \frac {\sigma^2(t)} 2 \cdot dt = (\mu(t) - \frac {\sigma^2(t)} 2) \cdot dt + \sigma(t) \cdot dz_t$$
+\begin{align*}
+dy_t & = (\mu(t) \cdot x_t \cdot \frac 1 {x_t} - \frac {\sigma^2(t) \cdot x_t^2} 2 \cdot \frac 1 {x_t^2}) \cdot dt + \sigma(t) \cdot x_t \cdot \frac 1 {x_t} \cdot dz_t \\
+& = (\mu(t) - \frac {\sigma^2(t)} 2) \cdot dt + \sigma(t) \cdot dz_t
+\end{align*}
+
+So,
 $$y_T = y_S + \int_S^T (\mu(t) - \frac {\sigma^2(t)} 2) \cdot dt + \int_S^T  \sigma(t) \cdot dz_t$$
 $$x_T = x_S \cdot e^{\int_S^T (\mu(t) - \frac {\sigma^2(t)} 2) \cdot dt + \int_S^T  \sigma(t) \cdot dz_t}$$
 
@@ -203,8 +208,12 @@ As in the process of the previous section, $z$ is standard (one-dimensional) Bro
 $$y_t = x_t \cdot e^{-\int_0^t \mu(u) \cdot du}$$
 Applying Ito's Lemma on $y_t$ with respect to $x_t$, we get:
 
-$$dy_t = e^{-\int_0^t \mu(u) \cdot du} \cdot dx_t - x_t \cdot e^{-\int_0^t \mu(u) \cdot du} \cdot  \mu(t) \cdot dt = \sigma(t) \cdot e^{-\int_0^t \mu(u) \cdot du} \cdot dz_t$$
-$y_t$ is a martingale. Using Ito Isometry, we get:
+\begin{align*}
+dy_t & = (- x_t \cdot \mu(t) \cdot e^{-\int_0^t \mu(u) \cdot du} + \mu(t) \cdot x_t \cdot e^{-\int_0^t \mu(u) \cdot du}) \cdot dt + \sigma(t) \cdot e^{-\int_0^t \mu(u) \cdot du} \cdot dz_t \\
+& = \sigma(t) \cdot e^{-\int_0^t \mu(u) \cdot du} \cdot dz_t
+\end{align*}
+
+So the process $y$ is a martingale. Using Ito Isometry, we get:
 
 $$y_T \sim \mathcal{N}(y_S, \int_S^T \sigma^2(t) \cdot e^{-\int_0^t 2 \mu(u) \cdot du} \cdot dt)$$
 
