@@ -273,9 +273,12 @@ U(W_1) =
 $$
 
 Applying Ito's Lemma (see Appendix [-@sec:stochasticcalculus-appendix]) on $\log W_t$ gives us:
-$$d(\log W_t) = \frac 1 W_t \cdot dW_t - \frac 1 {2 W_t^2} \cdot (dW_t)^2$$
-$$\Rightarrow d(\log W_t) = (r + \pi (\mu - r)) \cdot dt + \pi \cdot \sigma \cdot dz_t - \frac {\pi^2 \sigma^2} 2 \cdot dt$$
-$$\Rightarrow \log W_t = \int_0^t (r + \pi (\mu - r) - \frac {\pi^2 \sigma^2} 2) \cdot du + \int_0^t \pi \cdot \sigma \cdot dz_u$$
+\begin{align*}
+d(\log W_t) & = ((r + \pi (\mu - r)) \cdot W_t \cdot \frac 1 {W_t} - \frac {\pi^2 \cdot \sigma^2 \cdot W_t^2} {2} \cdot \frac 1 {W_t^2}) \cdot dt + \pi \cdot \sigma \cdot W_t \cdot \frac 1 {W_t} \cdot dz_t \\
+& = (r + \pi (\mu - r) - \frac {\pi^2 \sigma^2} 2) \cdot dt + \pi \cdot \sigma \cdot dz_t
+\end{align*}
+Therefore,
+$$\log W_t = \int_0^t (r + \pi (\mu - r) - \frac {\pi^2 \sigma^2} 2) \cdot du + \int_0^t \pi \cdot \sigma \cdot dz_u$$
 Using the martingale property and Ito Isometry for the Ito integral $\int_0^t \pi \cdot \sigma \cdot dz_u$ (see Appendix [-@sec:stochasticcalculus-appendix]), we get:
 
 $$\log W_1 \sim \mathcal{N}(r+\pi(\mu -r) - \frac {\pi^2 \sigma^2} 2,  \pi^2 \sigma^2)$$

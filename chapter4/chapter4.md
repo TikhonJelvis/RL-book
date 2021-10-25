@@ -430,7 +430,7 @@ For a Finite MDP with $|\mathcal{N}| = m$ and $\gamma < 1$, Policy Iteration alg
 
 ![Policy Iteration Convergence \label{fig:policy_iteration_convergence}](./chapter4/policy_iteration_convergence.png "At Convergence of Policy Iteration")
 
-Now let's write some code for Policy Iteration Algorithm. Unlike Policy Evaluation which repeatedly operates on Value Functions (and returns a Value Function), Policy Iteration repeatedly operates on a pair of Value Function and Policy (and returns a pair of Value Function and Policy). In the code below, notice the type `Tuple[V[S], FinitePolicy[S, A]]` that represents a pair of Value Function and Policy. The function `policy_iteration` repeatedly applies the function `update` on a pair of Value Function and Policy. The `update` function, after splitting its input `vf_policy` into `vf: V[S]` and `pi: FinitePolicy[S, A]`, creates an MRP (`mrp: FiniteMarkovRewardProcess[S]`) from the combination of the input `mdp` and `pi`. Then it performs a policy evaluation on `mrp` (using the `evaluate_mrp_result` function) to produce a Value Function `policy_vf: V[S]`, and finally creates a greedy (improved) policy named `improved_pi` from `policy_vf` (using the previously-written function `greedy_policy_from_vf`). Thus the function `update` performs a Policy Evaluation followed by a Policy Improvement. Notice also that `policy_iteration` offers the option to perform the matrix-inversion-based computation of Value Function for a given policy (`get_value_function_vec` method of the `mrp` object), in case the state space is not too large. `policy_iteration` returns an `Iterator` on pairs of Value Function and Policy produced by this process of repeated Policy Evaluation and Policy Improvement.  `almost_equal_vf_pis` is the function to decide termination based on the distance between two successive Value Functions produced by Policy Iteration. `policy_iteration_result` returns the final (optimal) pair of Value Function and Policy (from the `Iterator` produced by `policy_iteration`), based on the termination criterion of `almost_equal_vf_pis`.
+Now let's write some code for Policy Iteration Algorithm. Unlike Policy Evaluation which repeatedly operates on Value Functions (and returns a Value Function), Policy Iteration repeatedly operates on a pair of Value Function and Policy (and returns a pair of Value Function and Policy). In the code below, notice the type `Tuple[V[S], FinitePolicy[S, A]]` that represents a pair of Value Function and Policy. The function `policy_iteration` repeatedly applies the function `update` on a pair of Value Function and Policy. The `update` function, after splitting its input `vf_policy` into `vf: V[S]` and `pi: FinitePolicy[S, A]`, creates an MRP (`mrp: FiniteMarkovRewardProcess[S]`) from the combination of the input `mdp` and `pi`. Then it performs a policy evaluation on `mrp` (using the `evaluate_mrp_result` function) to produce a Value Function `policy_vf: V[S]`, and finally creates a greedy (improved) policy named `improved_pi` from `policy_vf` (using the previously-written function `greedy_policy_from_vf`). Thus the function `update` performs a Policy Evaluation followed by a Policy Improvement. Notice also that `policy_iteration` offers the option to perform the linear-algebra-solver-based computation of Value Function for a given policy (`get_value_function_vec` method of the `mrp` object), in case the state space is not too large. `policy_iteration` returns an `Iterator` on pairs of Value Function and Policy produced by this process of repeated Policy Evaluation and Policy Improvement.  `almost_equal_vf_pis` is the function to decide termination based on the distance between two successive Value Functions produced by Policy Iteration. `policy_iteration_result` returns the final (optimal) pair of Value Function and Policy (from the `Iterator` produced by `policy_iteration`), based on the termination criterion of `almost_equal_vf_pis`.
 
 ```python
 DEFAULT_TOLERANCE = 1e-5
@@ -712,12 +712,12 @@ print(opt_policy_pi)
 This prints the following Optimal Value Function and Optimal Policy.
 
 ```
-{NonTerminal(state=InventoryState(on_hand=0, on_order=1)): -27.660960231637507,
+{NonTerminal(state=InventoryState(on_hand=1, on_order=0)): -28.660960231637507,
+ NonTerminal(state=InventoryState(on_hand=0, on_order=2)): -27.991900091403533,
+ NonTerminal(state=InventoryState(on_hand=0, on_order=1)): -27.660960231637507,
  NonTerminal(state=InventoryState(on_hand=0, on_order=0)): -34.894855781630035,
- NonTerminal(state=InventoryState(on_hand=2, on_order=0)): -29.991900091403533,
  NonTerminal(state=InventoryState(on_hand=1, on_order=1)): -28.991900091403533,
- NonTerminal(state=InventoryState(on_hand=1, on_order=0)): -28.660960231637507,
- NonTerminal(state=InventoryState(on_hand=0, on_order=2)): -27.991900091403533}
+ NonTerminal(state=InventoryState(on_hand=2, on_order=0)): -29.991900091403533}
 
 For State InventoryState(on_hand=0, on_order=0): Do Action 1
 For State InventoryState(on_hand=0, on_order=1): Do Action 1

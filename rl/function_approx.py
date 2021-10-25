@@ -622,7 +622,7 @@ class LinearFunctionApprox(FunctionApprox[X]):
                 self,
                 weights=Weights.create(
                     adam_gradient=self.weights.adam_gradient,
-                    weights=np.dot(np.linalg.inv(left), right)
+                    weights=np.linalg.solve(left, right)
                 )
             )
         else:
