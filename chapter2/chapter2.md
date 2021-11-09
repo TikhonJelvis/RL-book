@@ -505,7 +505,7 @@ Assume you have storage capacity for at most $C \in \mathbb{Z}_{\geq 0}$ bicycle
 * Close the store at 6pm and observe the state (this state is $S_{t+1}$)
 
 If we let this process run for a while, in steady-state we ensure that $\alpha + \beta \leq C$. So to model this process as a Finite Markov Process, we shall only consider the steady-state (finite) set of states
-$$\mathcal{S} = \{(\alpha, \beta) : 0 \leq \alpha + \beta \leq C\}$$
+$$\mathcal{S} = \{(\alpha, \beta) | \alpha \in \mathbb{Z}_{\geq 0}, \beta \in \mathbb{Z}_{\geq 0}, 0 \leq \alpha + \beta \leq C\}$$
 So restricting ourselves to this finite set of states, our order quantity equals $C - (\alpha + \beta)$ when the state is $(\alpha, \beta)$.
 
 If current state $S_t$ is $(\alpha, \beta)$, there are only $\alpha + \beta + 1$ possible next states $S_{t+1}$ as follows:

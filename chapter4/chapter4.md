@@ -1091,7 +1091,7 @@ A state for this MDP is given by a pair $(t, I_t)$ where $t \in \{0, 1, \ldots, 
 Note that:
 $$I_0 = M, I_{t+1} = \max(0, I_t - d_t) \mbox{ for } 0 \leq t < T$$
  where $d_t$ is the random demand on day $t$ governed by a Poisson distribution with mean $\lambda_i$ if the action (index of the price choice) on day $t$ is $i \in \mathcal{A}_t$. Also, note that the sales revenue on day $t$ is equal to $\min(I_t, d_t) \cdot P_i$. Therefore, the state-reward probability transition function for time index $t$
- $$(\mathcal{P}_R)_t: \mathcal{N}_t \times \mathcal{A}_t \times \mathcal{D}_{t+1} \times \mathcal{S}_{t+1}$$
+ $$(\mathcal{P}_R)_t: \mathcal{N}_t \times \mathcal{A}_t \times \mathcal{D}_{t+1} \times \mathcal{S}_{t+1} \rightarrow [0, 1]$$
  is defined as:
  $$
  (\mathcal{P}_R)_t(I_t, i, r_{t+1}, I_t - k) =
