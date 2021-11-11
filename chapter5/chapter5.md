@@ -429,41 +429,41 @@ Now we generalize the linear function approximation to accommodate non-linear fu
 
 A couple of things to note about our notation for vectors and matrices when performing linear algebra operations: Vectors will be treated as column vectors (including gradient of a scalar with respect to a vector). When our notation expresses gradient of a vector of dimension $m$ with respect to a vector of dimension $n$, we treat it as a Jacobian matrix with $m$ rows and $n$ columns. We use the notation $dim(\bm{V})$ to refer to the dimension of a vector $\bm{V}$.
 
-We denote the input to layer $l$ as vector $\bm{I_l}$ and the output to layer $l$ as vector $\bm{O_l}$, for all $l = 0, 1, \ldots, L$. Denoting the predictor variable as $x \in \mathcal{X}$, the response variable as $y \in \mathbb{R}$, and the neural network as model $M$ to predict the expected value of $y$ conditional on $x$, we have:
+We denote the input to layer $l$ as vector $\bm{i_l}$ and the output to layer $l$ as vector $\bm{o_l}$, for all $l = 0, 1, \ldots, L$. Denoting the predictor variable as $x \in \mathcal{X}$, the response variable as $y \in \mathbb{R}$, and the neural network as model $M$ to predict the expected value of $y$ conditional on $x$, we have:
 
 \begin{equation}
-\bm{I_0} = \bm{\phi}(x) \in \mathbb{R}^m \text{ and } \bm{O_L} = \mathbb{E}_M[y|x] \text{ and } \bm{I_{l+1}} = \bm{O_l} \text{ for all } l = 0, 1, \ldots, L - 1
+\bm{i_0} = \bm{\phi}(x) \in \mathbb{R}^m \text{ and } \bm{o_L} = \mathbb{E}_M[y|x] \text{ and } \bm{i_{l+1}} = \bm{o_l} \text{ for all } l = 0, 1, \ldots, L - 1
 \label{eq:layers_input_output_connect}
 \end{equation}
 
-We denote the parameters for layer $l$ as the matrix $\bm{w_l}$ with $dim(\bm{O_l})$ rows and $dim(\bm{I_l})$ columns.  Note that the number of neurons in layer $l$ is equal to $dim(\bm{O_l})$. Since we are restricting ourselves to scalar $y$, $dim(\bm{O_L}) = 1$ and so, the number of neurons in the output layer is 1. 
+We denote the parameters for layer $l$ as the matrix $\bm{w_l}$ with $dim(\bm{o_l})$ rows and $dim(\bm{i_l})$ columns.  Note that the number of neurons in layer $l$ is equal to $dim(\bm{o_l})$. Since we are restricting ourselves to scalar $y$, $dim(\bm{o_L}) = 1$ and so, the number of neurons in the output layer is 1. 
 
-The neurons in layer $l$ define a linear transformation from layer input $\bm{I_l}$ to a variable we denote as $\bm{S_l}$. Therefore,
+The neurons in layer $l$ define a linear transformation from layer input $\bm{i_l}$ to a variable we denote as $\bm{s_l}$. Therefore,
 
 \begin{equation}
-\bm{S_l} = \bm{w_l} \cdot \bm{I_l} \text{ for all } l = 0, 1, \ldots, L
+\bm{s_l} = \bm{w_l} \cdot \bm{i_l} \text{ for all } l = 0, 1, \ldots, L
 \label{eq:layer_linearity}
 \end{equation}
 
-We denote the activation function of layer $l$ as $g_l: \mathbb{R} \rightarrow \mathbb{R}$ for all $l = 0, 1, \ldots, L$. The activation function $g_l$ applies point-wise on each dimension of vector $\bm{S_l}$, so we take notational liberty with $g_l$ by writing:
+We denote the activation function of layer $l$ as $g_l: \mathbb{R} \rightarrow \mathbb{R}$ for all $l = 0, 1, \ldots, L$. The activation function $g_l$ applies point-wise on each dimension of vector $\bm{s_l}$, so we take notational liberty with $g_l$ by writing:
 \begin{equation}
-\bm{O_l} = g_l(\bm{S_l}) \text{ for all } l = 0, 1, \ldots, L
+\bm{o_l} = g_l(\bm{s_l}) \text{ for all } l = 0, 1, \ldots, L
 \label{eq:layer_non_linearity}
 \end{equation}
 
-Equations \eqref{eq:layers_input_output_connect}, \eqref{eq:layer_linearity} and \eqref{eq:layer_non_linearity} together define the calculation of the neural network prediction $\bm{O_L}$ (associated with the response variable $y$), given the predictor variable $x$. This calculation is known as *forward-propagation* and will define the `evaluate` method of the deep neural network function approximation class we shall soon write.
+Equations \eqref{eq:layers_input_output_connect}, \eqref{eq:layer_linearity} and \eqref{eq:layer_non_linearity} together define the calculation of the neural network prediction $\bm{o_L}$ (associated with the response variable $y$), given the predictor variable $x$. This calculation is known as *forward-propagation* and will define the `evaluate` method of the deep neural network function approximation class we shall soon write.
 
 Our goal is to derive an expression for the cross-entropy loss gradient $\nabla_{\bm{w_l}} \mathcal{L}$ for all $l = 0, 1, \ldots, L$. For ease of understanding, our following exposition will be expressed in terms of the cross-entropy loss function for a single predictor variable input $x \in \mathcal{X}$ and it's associated single response variable $y \in \mathbb{R}$ (the code will generalize appropriately to the cross-entropy loss function for a given set of data points $[x_i, y_i|1 \leq i \leq n]$).
 
-We can reduce this problem of calculating the cross-entropy loss gradient to the problem of calculating $\bm{P_l} = \nabla_{\bm{S_l}} \mathcal{L}$ for all $l = 0, 1, \ldots, L$, as revealed by the following chain-rule calculation:
-$$\nabla_{\bm{w_l}} \mathcal{L} = (\nabla_{\bm{S_l}} \mathcal{L})^T \cdot \nabla_{\bm{w_l}} \bm{S_l} = \bm{P_l}^T \cdot \nabla_{\bm{w_l}} \bm{S_l} = \bm{P_l} \cdot \bm{I_l}^T \text{ for all } l = 0, 1, \ldots L$$
+We can reduce this problem of calculating the cross-entropy loss gradient to the problem of calculating $\bm{P_l} = \nabla_{\bm{s_l}} \mathcal{L}$ for all $l = 0, 1, \ldots, L$, as revealed by the following chain-rule calculation:
+$$\nabla_{\bm{w_l}} \mathcal{L} = (\nabla_{\bm{s_l}} \mathcal{L})^T \cdot \nabla_{\bm{w_l}} \bm{s_l} = \bm{P_l}^T \cdot \nabla_{\bm{w_l}} \bm{s_l} = \bm{P_l} \cdot \bm{i_l}^T \text{ for all } l = 0, 1, \ldots L$$
 
-Note that $\bm{P_l} \cdot \bm{I_l}^T$ represents the [outer-product](https://en.wikipedia.org/wiki/Outer_product) of the $dim(\bm{O_l})$-size vector $\bm{P_l}$ and the $dim(\bm{I_l})$-size vector $\bm{I_l}$ giving a matrix of size $dim(\bm{O_l}) \times dim(\bm{I_l})$.
+Note that $\bm{P_l} \cdot \bm{i_l}^T$ represents the [outer-product](https://en.wikipedia.org/wiki/Outer_product) of the $dim(\bm{o_l})$-size vector $\bm{P_l}$ and the $dim(\bm{i_l})$-size vector $\bm{i_l}$ giving a matrix of size $dim(\bm{o_l}) \times dim(\bm{i_l})$.
 
 If we include $L^2$ regularization (with $\lambda_l$ as the regularization coefficient for layer $l$), then:
 
 \begin{equation}
-\nabla_{\bm{w_l}} \mathcal{L} = \bm{P_l} \cdot \bm{I_l}^T + \lambda_l \cdot \bm{w_l} \text{ for all } l = 0, 1, \ldots, L
+\nabla_{\bm{w_l}} \mathcal{L} = \bm{P_l} \cdot \bm{i_l}^T + \lambda_l \cdot \bm{w_l} \text{ for all } l = 0, 1, \ldots, L
 \label{eq:loss_gradient_formula}
 \end{equation}
 
@@ -474,9 +474,9 @@ Here's the summary of our notation:
 \hline
 \textbf{Notation} & \textbf{Description} \\
 \hline
-$\bm{I_l}$ & Vector Input to layer $l$ for all $l = 0, 1, \ldots, L$  \\
+$\bm{i_l}$ & Vector Input to layer $l$ for all $l = 0, 1, \ldots, L$  \\
 \hline
-$\bm{O_l}$ & Vector Output of layer $l$ for all $l = 0, 1, \ldots, L$ \\
+$\bm{o_l}$ & Vector Output of layer $l$ for all $l = 0, 1, \ldots, L$ \\
 \hline
 $\bm{\phi}(x)$ & Feature Vector for predictor variable $x$ \\
 \hline
@@ -486,9 +486,9 @@ $\bm{\phi}(x)$ & Feature Vector for predictor variable $x$ \\
  \hline
  $g_l(\cdot)$ & Activation function for layer $l$ for $l = 0, 1, \ldots, L$ \\
  \hline
- $\bm{S_l}$ & $\bm{S_l} = \bm{w_l} \cdot \bm{I_l}, \bm{O_l} = g_l(\bm{S_l})$ for all $l = 0, 1, \ldots L$ \\
+ $\bm{s_l}$ & $\bm{s_l} = \bm{w_l} \cdot \bm{i_l}, \bm{o_l} = g_l(\bm{s_l})$ for all $l = 0, 1, \ldots L$ \\
  \hline
- $\bm{P_l}$ & $\bm{P_l} = \nabla_{\bm{S_l}} \mathcal{L}$ for all $l = 0, 1, \ldots, L$\\
+ $\bm{P_l}$ & $\bm{P_l} = \nabla_{\bm{s_l}} \mathcal{L}$ for all $l = 0, 1, \ldots, L$\\
  \hline
  $\lambda_l$ & Regularization coefficient for layer $l$ for all $l = 0, 1, \ldots, L$ \\
  \hline
@@ -499,7 +499,7 @@ Now that we have reduced the loss gradient calculation to calculation of $\bm{P_
 
 \begin{theorem}
 For all $l = 0, 1, \ldots, L-1$,
-$$\bm{P_l} = (\bm{w_{l+1}}^T \cdot \bm{P_{l+1}}) \circ g_l'(\bm{S_l})$$
+$$\bm{P_l} = (\bm{w_{l+1}}^T \cdot \bm{P_{l+1}}) \circ g_l'(\bm{s_l})$$
 where the symbol $\circ$ represents the \href{https://en.wikipedia.org/wiki/Hadamard_product_(matrices)}{Hadamard Product}, i.e., point-wise multiplication of two vectors of the same dimension.
 \label{th:recursive_gradient_formulation}
 \end{theorem}
@@ -507,63 +507,63 @@ where the symbol $\circ$ represents the \href{https://en.wikipedia.org/wiki/Hada
 \begin{proof}
 We start by applying the chain rule on $\bm{P_l}$.
 \begin{equation}
-\bm{P_l} = \nabla_{\bm{S_l}} \mathcal{L} = (\nabla_{\bm{S_l}} \bm{S_{l+1}})^T \cdot \nabla_{\bm{S_{l+1}}} \mathcal{L} = (\nabla_{\bm{S_l}} \bm{S_{l+1}})^T \cdot \bm{P_{l+1}}
+\bm{P_l} = \nabla_{\bm{s_l}} \mathcal{L} = (\nabla_{\bm{s_l}} \bm{s_{l+1}})^T \cdot \nabla_{\bm{s_{l+1}}} \mathcal{L} = (\nabla_{\bm{s_l}} \bm{s_{l+1}})^T \cdot \bm{P_{l+1}}
 \label{eq:recursive_chain_rule}
 \end{equation}
 Next, note that:
-$$\bm{S_{l+1}} = \bm{w_{l+1}} \cdot g_l(\bm{S_l})$$
+$$\bm{s_{l+1}} = \bm{w_{l+1}} \cdot g_l(\bm{s_l})$$
 Therefore,
-$$\nabla_{\bm{S_l}} \bm{S_{l+1}} = \bm{w_{l+1}} \cdot \bm{Diagonal}(g_l'(\bm{S_l}))$$
+$$\nabla_{\bm{s_l}} \bm{s_{l+1}} = \bm{w_{l+1}} \cdot \bm{Diagonal}(g_l'(\bm{s_l}))$$
 Substituting this in Equation \eqref{eq:recursive_chain_rule} yields:
-$$\bm{P_l} = (\bm{w_{l+1}} \cdot \bm{Diagonal}(g_l'(\bm{S_l})))^T \cdot \bm{P_{l+1}} = \bm{Diagonal}(g_l'(\bm{S_l})) \cdot \bm{w_{l+1}}^T \cdot \bm{P_{l+1}}$$
-$$= g_l'(\bm{S_l}) \circ (\bm{w_{l+1}}^T \cdot \bm{P_{l+1}}) = (\bm{w_{l+1}}^T \cdot \bm{P_{l+1}}) \circ g_l'(\bm{S_l})$$
+$$\bm{P_l} = (\bm{w_{l+1}} \cdot \bm{Diagonal}(g_l'(\bm{s_l})))^T \cdot \bm{P_{l+1}} = \bm{Diagonal}(g_l'(\bm{s_l})) \cdot \bm{w_{l+1}}^T \cdot \bm{P_{l+1}}$$
+$$= g_l'(\bm{s_l}) \circ (\bm{w_{l+1}}^T \cdot \bm{P_{l+1}}) = (\bm{w_{l+1}}^T \cdot \bm{P_{l+1}}) \circ g_l'(\bm{s_l})$$
 \end{proof}
 
-Now all we need to do is to calculate $\bm{P_L} = \nabla_{\bm{S_L}} \mathcal{L}$ so that we can run this recursive formulation for $\bm{P_l}$, estimate the loss gradient $\nabla_{\bm{w_l}} \mathcal{L}$ for any given data (using Equation \eqref{eq:loss_gradient_formula}), and perform gradient descent to arrive at $\bm{w_l^*}$ for all $l = 0, 1, \ldots L$.
+Now all we need to do is to calculate $\bm{P_L} = \nabla_{\bm{s_L}} \mathcal{L}$ so that we can run this recursive formulation for $\bm{P_l}$, estimate the loss gradient $\nabla_{\bm{w_l}} \mathcal{L}$ for any given data (using Equation \eqref{eq:loss_gradient_formula}), and perform gradient descent to arrive at $\bm{w_l^*}$ for all $l = 0, 1, \ldots L$.
 
-Firstly, note that $\bm{S_L}, \bm{O_L}, \bm{P_L}$ are all scalars, so let's just write them as $S_L, O_L, P_L$ respectively (without the bold-facing) to make it explicit in the derivation that they are scalars. Specifically, the gradient
-$$\nabla_{\bm{S_L}} \mathcal{L} = \frac {\partial \mathcal{L}}{\partial S_L}$$
+Firstly, note that $\bm{s_L}, \bm{o_L}, \bm{P_L}$ are all scalars, so let's just write them as $s_L, o_L, P_L$ respectively (without the bold-facing) to make it explicit in the derivation that they are scalars. Specifically, the gradient
+$$\nabla_{\bm{s_L}} \mathcal{L} = \frac {\partial \mathcal{L}}{\partial s_L}$$
 
-To calculate $\frac {\partial \mathcal{L}} {\partial S_L}$, we need to assume a functional form for $\mathbb{P}[y|S_L]$. We work with a fairly generic exponential functional form for the probability distribution function:
+To calculate $\frac {\partial \mathcal{L}} {\partial s_L}$, we need to assume a functional form for $\mathbb{P}[y|s_L]$. We work with a fairly generic exponential functional form for the probability distribution function:
 
 $$p(y|\theta, \tau) = h(y, \tau) \cdot e^{\frac {\theta \cdot y - A(\theta)} {d(\tau)}}$$
 
 where $\theta$ should be thought of as the "center" parameter (related to the mean) of the probability distribution and $\tau$ should be thought of as the "dispersion" parameter (related to the variance) of the distribution. $h(\cdot, \cdot), A(\cdot), d(\cdot)$ are general functions whose specializations define the family of distributions that can be modeled with this fairly generic exponential functional form (note that this structure is adopted from the framework of [Generalized Linear Models](https://en.wikipedia.org/wiki/Generalized_linear_model)). 
 
-For our neural network function approximation, we assume that $\tau$ is a constant, and we set $\theta$ to be $S_L$. So,
+For our neural network function approximation, we assume that $\tau$ is a constant, and we set $\theta$ to be $s_L$. So,
 
-$$\mathbb{P}[y|S_L] = p(y|S_L, \tau) = h(y, \tau) \cdot e^{\frac {S_L \cdot y - A(S_L)} {d(\tau)}}$$
+$$\mathbb{P}[y|s_L] = p(y|s_L, \tau) = h(y, \tau) \cdot e^{\frac {s_L \cdot y - A(s_L)} {d(\tau)}}$$
 
-We require the scalar prediction of the neural network $O_L = g_L(S_L)$ to be equal to $\mathbb{E}_p[y|S_L]$. So the question is: What function $g_L: \mathbb{R} \rightarrow \mathbb{R}$ (in terms of the functional form of $p(y|S_L, \tau)$) would satisfy the requirement of $O_L = g_L(S_L) = \mathbb{E}_p[y|S_L]$? To answer this question, we first establish the following Lemma:
+We require the scalar prediction of the neural network $o_L = g_L(s_L)$ to be equal to $\mathbb{E}_p[y|s_L]$. So the question is: What function $g_L: \mathbb{R} \rightarrow \mathbb{R}$ (in terms of the functional form of $p(y|s_L, \tau)$) would satisfy the requirement of $o_L = g_L(s_L) = \mathbb{E}_p[y|s_L]$? To answer this question, we first establish the following Lemma:
 
 \begin{lemma}
-$$\mathbb{E}_p[y|S_L] = A'(S_L)$$
+$$\mathbb{E}_p[y|s_L] = A'(s_L)$$
 \end{lemma}
 \begin{proof}
 Since
 
-$$\int_{-\infty}^{\infty} p(y | S_L, \tau) \cdot dy = 1,$$
+$$\int_{-\infty}^{\infty} p(y | s_L, \tau) \cdot dy = 1,$$
 
-the partial derivative of the left-hand-side of the above equation with respect to $S_L$ is zero. In other words,
+the partial derivative of the left-hand-side of the above equation with respect to $s_L$ is zero. In other words,
 
-$$\frac {\partial \{\int_{-\infty}^{\infty} p(y | S_L, \tau) \cdot dy\}}{\partial S_L} = 0$$
+$$\frac {\partial \{\int_{-\infty}^{\infty} p(y | s_L, \tau) \cdot dy\}}{\partial s_L} = 0$$
 
 Hence,
 
-$$\frac {\partial \{\int_{-\infty}^{\infty}  h(y, \tau) \cdot e^{\frac {S_L \cdot y - A(S_L)} {d(\tau)}} \cdot dy\}}{\partial S_L} = 0$$
+$$\frac {\partial \{\int_{-\infty}^{\infty}  h(y, \tau) \cdot e^{\frac {s_L \cdot y - A(s_L)} {d(\tau)}} \cdot dy\}}{\partial s_L} = 0$$
 
 Taking the partial derivative inside the integral, we get:
 
-$$\int_{-\infty}^{\infty}  h(y, \tau) \cdot e^{\frac {S_L \cdot y - A(S_L)} {d(\tau)}} \cdot \frac {y - A'(S_L)} {d(\tau)} \cdot dy = 0$$
+$$\int_{-\infty}^{\infty}  h(y, \tau) \cdot e^{\frac {s_L \cdot y - A(s_L)} {d(\tau)}} \cdot \frac {y - A'(s_L)} {d(\tau)} \cdot dy = 0$$
 
-$$\Rightarrow \int_{-\infty}^{\infty}  p(y | S_L, \tau) \cdot (y - A'(S_L)) \cdot dy = 0$$
+$$\Rightarrow \int_{-\infty}^{\infty}  p(y | s_L, \tau) \cdot (y - A'(s_L)) \cdot dy = 0$$
 
-$$\Rightarrow \mathbb{E}_p[y|S_L] = A'(S_L)$$
+$$\Rightarrow \mathbb{E}_p[y|s_L] = A'(s_L)$$
 \end{proof}
 
-So to satisfy $O_L = g_L(S_L) = \mathbb{E}_p[y|S_L]$, we require that
+So to satisfy $o_L = g_L(s_L) = \mathbb{E}_p[y|s_L]$, we require that
 \begin{equation}
-O_L = g_L(S_L) = A'(S_L)
+o_L = g_L(s_L) = A'(s_L)
 \label{eq:glm_eqn}
 \end{equation}
 The above equation is important since it tells us that the output layer activation function $g_L(\cdot)$ must be set to be the derivative of the $A(\cdot)$ function. In the theory of generalized linear models, the derivative of the $A(\cdot)$ function serves as the *canonical link function* for a given probability distribution of the response variable conditional on the predictor variable.
@@ -571,38 +571,38 @@ The above equation is important since it tells us that the output layer activati
 Now we are equipped to derive a simple expression for $P_L$.
 
 \begin{theorem}
-$$P_L = \frac {\partial \mathcal{L}}{\partial S_L} = \frac {O_L - y} {d(\tau)}$$
+$$P_L = \frac {\partial \mathcal{L}}{\partial s_L} = \frac {o_L - y} {d(\tau)}$$
 \end{theorem}
 
 \begin{proof}
 The Cross-Entropy Loss (Negative Log-Likelihood) for a single training data point $(x, y)$ is given by:
 
-$$\mathcal{L} = - \log{(h(y, \tau))} + \frac {A(S_L) - S_L \cdot y} {d(\tau)}$$
+$$\mathcal{L} = - \log{(h(y, \tau))} + \frac {A(s_L) - s_L \cdot y} {d(\tau)}$$
 
 Therefore,
 
-$$P_L = \frac {\partial \mathcal{L}}{\partial S_L} = \frac {A'(S_L) - y} {d(\tau)}$$
-But from Equation \eqref{eq:glm_eqn}, we know that $A'(S_L) = O_L$. Therefore,
+$$P_L = \frac {\partial \mathcal{L}}{\partial s_L} = \frac {A'(s_L) - y} {d(\tau)}$$
+But from Equation \eqref{eq:glm_eqn}, we know that $A'(s_L) = o_L$. Therefore,
 
-$$P_L = \frac {\partial \mathcal{L}}{\partial S_L} = \frac {O_L - y}{d(\tau)}$$
+$$P_L = \frac {\partial \mathcal{L}}{\partial s_L} = \frac {o_L - y}{d(\tau)}$$
 
 \end{proof}
 
-At each iteration of gradient descent, we require an estimate of the loss gradient up to a constant factor. So we can ignore the constant $d(\tau)$ and simply say that $P_L = O_L - y$ (up to a constant factor). This is a rather convenient estimate of $P_L$ for a given data point $(x,y)$ since it represents the neural network prediction error for that data point. When presented with a sequence of data points $[(x_{t,i}, y_{t,i})|1\leq i \leq n_t]$ in iteration $t$, we simply average the prediction errors across these presented data points. Then, beginning with this estimate of $P_L$, we can use the recursive formulation of $\bm{P_l}$ (Theorem \ref{th:recursive_gradient_formulation}) to calculate the gradient of the loss function (Equation \eqref{eq:loss_gradient_formula}) with respect to all the parameters of the neural network (this is known as the back-propagation algorithm for a fully-connected feed-forward deep neural network).
+At each iteration of gradient descent, we require an estimate of the loss gradient up to a constant factor. So we can ignore the constant $d(\tau)$ and simply say that $P_L = o_L - y$ (up to a constant factor). This is a rather convenient estimate of $P_L$ for a given data point $(x,y)$ since it represents the neural network prediction error for that data point. When presented with a sequence of data points $[(x_{t,i}, y_{t,i})|1\leq i \leq n_t]$ in iteration $t$, we simply average the prediction errors across these presented data points. Then, beginning with this estimate of $P_L$, we can use the recursive formulation of $\bm{P_l}$ (Theorem \ref{th:recursive_gradient_formulation}) to calculate the gradient of the loss function (Equation \eqref{eq:loss_gradient_formula}) with respect to all the parameters of the neural network (this is known as the back-propagation algorithm for a fully-connected feed-forward deep neural network).
 
-Here are some common specializations of the functional form for the conditional probability distribution $\mathbb{P}[y|S_L]$, along with the corresponding canonical link function that serves as the activation function $g_L$ of the output layer:
+Here are some common specializations of the functional form for the conditional probability distribution $\mathbb{P}[y|s_L]$, along with the corresponding canonical link function that serves as the activation function $g_L$ of the output layer:
 
 * Normal distribution $y \sim \mathcal{N}(\mu, \sigma^2)$:
-$$S_L = \mu, \tau = \sigma, h(y, \tau) = \frac {e^{\frac {-y^2} {2 \tau^2}}} {\sqrt{2 \pi} \tau}, d(\tau) = \tau, A(S_L) = \frac {S_L^2} {2}$$
-$$\Rightarrow O_L = g_L(S_L) = \mathbb{E}[y|S_L] = S_L$$
+$$s_L = \mu, \tau = \sigma, h(y, \tau) = \frac {e^{\frac {-y^2} {2 \tau^2}}} {\sqrt{2 \pi} \tau}, d(\tau) = \tau, A(s_L) = \frac {s_L^2} {2}$$
+$$\Rightarrow o_L = g_L(s_L) = \mathbb{E}[y|s_L] = s_L$$
 Hence, the output layer activation function $g_L$ is the identity function. This means that the linear function approximation of the previous section is exactly the same as a neural network with 0 hidden layers (just the output layer) and with the output layer activation function equal to the identity function.
 * Bernoulli distribution for binary-valued $y$, parameterized by $p$:
-$$S_L = \log{(\frac p {1-p})}, \tau = 1, h(y, \tau) = 1, d(\tau) = 1, A(S_L) = \log{(1+e^{S_L})}$$
-$$\Rightarrow O_L = g_L(S_L) = \mathbb{E}[y|S_L] = \frac 1 {1+e^{-S_L}}$$
+$$s_L = \log{(\frac p {1-p})}, \tau = 1, h(y, \tau) = 1, d(\tau) = 1, A(s_L) = \log{(1+e^{s_L})}$$
+$$\Rightarrow o_L = g_L(s_L) = \mathbb{E}[y|s_L] = \frac 1 {1+e^{-s_L}}$$
 Hence, the output layer activation function $g_L$ is the logistic function. This generalizes to [softmax](https://en.wikipedia.org/wiki/Softmax_function) $g_L$ when we generalize this framework to multivariate $y$, which in turn enables us to classify inputs $x$ into a finite set of categories represented by $y$ as [one-hot-encodings](https://en.wikipedia.org/wiki/One-hot).
 * Poisson distribution for $y$ parameterized by $\lambda$:
-$$S_L = \log{\lambda}, \tau = 1, h(y, \tau) = \frac 1 {y!}, d(\tau) = 1, A(S_L) = e^{S_L}$$
-$$\Rightarrow O_L = g_L(S_L) = \mathbb{E}[y|S_L] = e^{S_L}$$
+$$s_L = \log{\lambda}, \tau = 1, h(y, \tau) = \frac 1 {y!}, d(\tau) = 1, A(s_L) = e^{s_L}$$
+$$\Rightarrow o_L = g_L(s_L) = \mathbb{E}[y|s_L] = e^{s_L}$$
 Hence, the output layer activation function $g_L$ is the exponential function.
 
 Now we are ready to write a class for function approximation with the deep neural network framework described above. We shall assume that the activation functions $g_l(\cdot)$ are identical for all $l = 0, 1, \ldots, L-1$ (known as the hidden layers activation function) and the activation function $g_L(\cdot)$ will be known as the output layer activation function. Note that often we want to include a bias term in the linear transformations of the layers. To include a bias term in layer 0, just like in the case of `LinearFuncApprox`, we prepend the sequence of feature functions we want to provide as input with an artificial feature function `lambda _: 1.` to represent the constant feature with value 1. This will ensure we have a bias weight in layer 0 in addition to each of the weights (in layer 0) that serve as coefficients to the (non-artificial) feature functions. Moreover, we allow the specification of a `bias` boolean variable to enable a bias term in each if the layers $l = 1, 2, \ldots L$.
@@ -620,7 +620,7 @@ class DNNSpec:
     output_activation_deriv: Callable[[np.ndarray], np.ndarray]
 ```
 
-`neurons` is a sequence of length $L$ specifying $dim(O_0), dim(O_1), \ldots, dim(O_{L-1})$ (note $dim(O_L)$ doesn't need to be specified since we know $dim(O_L) = 1$). If `bias` is set to be `True`, then $dim(I_l) = dim(O_{l-1}) + 1$ for all $l=1, 2, \ldots L$ and so in the code below, when `bias` is `True`, we'll need to prepend the matrix representing $I_l$ with a vector consisting of all 1s (to incorporate the bias term). Note that along with specifying the hidden and output layers activation functions $g_l(\cdot)$ defined as $g_l(\bm{S_l}) = \bm{O_l}$, we also specify the hidden layers activation function derivative (`hidden_activation_deriv`) and the output layer activation function derivative (`output_activation_deriv`) in the form of functions $h_l(\cdot)$ defined as $h_l(g(\bm{S_l})) = h_l(\bm{O_l}) = g_l'(\bm{S_l})$ (as we know, this derivative is required in the back-propagation calculation). We shall soon see that in the code, $h_l(\cdot)$ is a more convenient specification than the direct specification of $g_l'(\cdot)$.
+`neurons` is a sequence of length $L$ specifying $dim(O_0), dim(O_1), \ldots, dim(O_{L-1})$ (note $dim(o_L)$ doesn't need to be specified since we know $dim(o_L) = 1$). If `bias` is set to be `True`, then $dim(I_l) = dim(O_{l-1}) + 1$ for all $l=1, 2, \ldots L$ and so in the code below, when `bias` is `True`, we'll need to prepend the matrix representing $I_l$ with a vector consisting of all 1s (to incorporate the bias term). Note that along with specifying the hidden and output layers activation functions $g_l(\cdot)$ defined as $g_l(\bm{s_l}) = \bm{o_l}$, we also specify the hidden layers activation function derivative (`hidden_activation_deriv`) and the output layer activation function derivative (`output_activation_deriv`) in the form of functions $h_l(\cdot)$ defined as $h_l(g(\bm{s_l})) = h_l(\bm{o_l}) = g_l'(\bm{s_l})$ (as we know, this derivative is required in the back-propagation calculation). We shall soon see that in the code, $h_l(\cdot)$ is a more convenient specification than the direct specification of $g_l'(\cdot)$.
 
 Now we write the `@dataclass DNNApprox` that implements the abstract base class `FunctionApprox`. It has attributes:
 
@@ -631,22 +631,22 @@ Now we write the `@dataclass DNNApprox` that implements the abstract base class 
 
 The method `get_feature_values` is identical to the case of `LinearFunctionApprox` producing a matrix with number of rows equal to the number of $x$ values in it's input `x_values_seq: Iterable[X]` and number of columns equal to the number of specified `feature_functions`.
 
-The method `forward_propagation` implements the forward-propagation calculation that was covered earlier (combining Equations \eqref{eq:layers_input_output_connect} (potentially adjusted for the bias term, as mentioned above), \eqref{eq:layer_linearity} and \eqref{eq:layer_non_linearity}). `forward_propagation` takes as input the same data type as the input of `get_feature_values` (`x_values_seq: Iterable[X]`) and returns a list with $L+2$ numpy arrays. The last element of the returned list is a 1-D numpy array representing the final output of the neural network: $O_L = \mathbb{E}_M[y|x]$ for each of the $x$ values in the input `x_values_seq`. The remaining $L+1$ elements in the returned list are each 2-D numpy arrays, consisting of $\bm{I_l}$ for all $l = 0, 1, \ldots L$ (for each of the $x$ values provided as input in `x_values_seq`).
+The method `forward_propagation` implements the forward-propagation calculation that was covered earlier (combining Equations \eqref{eq:layers_input_output_connect} (potentially adjusted for the bias term, as mentioned above), \eqref{eq:layer_linearity} and \eqref{eq:layer_non_linearity}). `forward_propagation` takes as input the same data type as the input of `get_feature_values` (`x_values_seq: Iterable[X]`) and returns a list with $L+2$ numpy arrays. The last element of the returned list is a 1-D numpy array representing the final output of the neural network: $o_L = \mathbb{E}_M[y|x]$ for each of the $x$ values in the input `x_values_seq`. The remaining $L+1$ elements in the returned list are each 2-D numpy arrays, consisting of $\bm{i_l}$ for all $l = 0, 1, \ldots L$ (for each of the $x$ values provided as input in `x_values_seq`).
 
-The method `evaluate` (`@abstractmethod` in `FunctionApprox`) returns the last element ($O_L = \mathbb{E}_M[y|x]$) of the list returned by `forward_propagation`.
+The method `evaluate` (`@abstractmethod` in `FunctionApprox`) returns the last element ($o_L = \mathbb{E}_M[y|x]$) of the list returned by `forward_propagation`.
 
-The method `backward_propagation` is the most important method of `DNNApprox`, calculating $\nabla_{\bm{w_l}} Obj$ for all $l = 0, 1, \ldots, L$, some objective function $Obj$. We had said previously that for each concrete function approximation that we'd want to implement, if the Objective $Obj(x_i, y_i)$ is the cross-entropy loss function, we can identify a model-computed value $Out(x_i)$ (either the output of the model or an intermediate computation of the model) such that $\frac {\partial Obj(x_i, y_i)} {\partial Out(x_i)}$ is equal to the prediction error $\mathbb{E}_M[y|x_i] - y_i$ (for each training data point $(x_i, y_i)$) and we can come up with a numerical algorithm to compute $\nabla_w Out(x_i)$, so that by chain-rule, we have the required gradient $\nabla_w Obj(x_i, y_i)$ (without regularization). In the case of this DNN function approximation, the model-computed value $Out(x_i)$ is $S_L$. Thus,
+The method `backward_propagation` is the most important method of `DNNApprox`, calculating $\nabla_{\bm{w_l}} Obj$ for all $l = 0, 1, \ldots, L$, some objective function $Obj$. We had said previously that for each concrete function approximation that we'd want to implement, if the Objective $Obj(x_i, y_i)$ is the cross-entropy loss function, we can identify a model-computed value $Out(x_i)$ (either the output of the model or an intermediate computation of the model) such that $\frac {\partial Obj(x_i, y_i)} {\partial Out(x_i)}$ is equal to the prediction error $\mathbb{E}_M[y|x_i] - y_i$ (for each training data point $(x_i, y_i)$) and we can come up with a numerical algorithm to compute $\nabla_w Out(x_i)$, so that by chain-rule, we have the required gradient $\nabla_w Obj(x_i, y_i)$ (without regularization). In the case of this DNN function approximation, the model-computed value $Out(x_i)$ is $s_L$. Thus,
 
-$$\frac {\partial Obj(x_i, y_i)} {\partial Out(x_i)} = \frac {\partial \mathcal{L}} {\partial S_L} = P_L = O_L - y_i = \mathbb{E}_M[y|x_i] - y_i$$
+$$\frac {\partial Obj(x_i, y_i)} {\partial Out(x_i)} = \frac {\partial \mathcal{L}} {\partial s_L} = P_L = o_L - y_i = \mathbb{E}_M[y|x_i] - y_i$$
 
 `backward_propagation` takes two inputs:
 
 1. `fwd_prop: Sequence[np.ndarray]` which represents the output of `forward_propagation` except for the last element (which is the final output of the neural network), i.e., a sequence of $L+1$ 2-D numpy arrays representing the inputs to layers $l = 0, 1, \ldots L$ (for each of an `Iterable` of $x$-values provided as input to the neural network).
 2. `obj_deriv_out: np.ndarray`, which represents the partial derivative of an arbitrary objective function $Obj$ with respect to an arbitrary model-produced value $Out$, evaluated at each of the `Iterable` of $(x,y)$ pairs that are provided as training data.
 
-If we generalize the objective function from the cross-entropy loss function $\mathcal{L}$ to an arbitrary objective function $Obj$ and define $\bm{P_l}$ to be $\nabla_{\bm{S_l}} Obj$ (generalized from $\nabla_{\bm{S_l}} \mathcal{L}$), then the output of `backward_propagation` would be equal to $\bm{P_l} \cdot \bm{I_l}^T$ (i.e., without the regularization term) for all $l = 0, 1, \ldots L$. 
+If we generalize the objective function from the cross-entropy loss function $\mathcal{L}$ to an arbitrary objective function $Obj$ and define $\bm{P_l}$ to be $\nabla_{\bm{s_l}} Obj$ (generalized from $\nabla_{\bm{s_l}} \mathcal{L}$), then the output of `backward_propagation` would be equal to $\bm{P_l} \cdot \bm{i_l}^T$ (i.e., without the regularization term) for all $l = 0, 1, \ldots L$. 
 
-The first step in `backward_propagation` is to set $P_L$ (variable `deriv` in the code) equal to `obj_deriv_out` (which in the case of cross-entropy loss as $Obj$ and $S_L$ as $Out$, reduces to the prediction error $\mathbb{E}_M[y|x_i] - y_i$). As we walk back through the layers of the DNN, the variable `deriv` represents $\bm{P_l} = \nabla_{\bm{S_l}} Obj$, evaluated for each of the values made available by `fwd_prop` (note that `deriv` is updated in each iteration of the loop reflecting Theorem \ref{th:recursive_gradient_formulation}: $\bm{P_l} = (\bm{w_{l+1}}^T \cdot \bm{P_{l+1}}) \circ g_l'(\bm{S_l})$). Note also that the returned list `back_prop` is populated with the result of Equation \eqref{eq:loss_gradient_formula}: $\nabla_{\bm{w_l}} \mathcal{L} = \bm{P_l} \cdot \bm{I_l}^T$.
+The first step in `backward_propagation` is to set $P_L$ (variable `deriv` in the code) equal to `obj_deriv_out` (which in the case of cross-entropy loss as $Obj$ and $s_L$ as $Out$, reduces to the prediction error $\mathbb{E}_M[y|x_i] - y_i$). As we walk back through the layers of the DNN, the variable `deriv` represents $\bm{P_l} = \nabla_{\bm{s_l}} Obj$, evaluated for each of the values made available by `fwd_prop` (note that `deriv` is updated in each iteration of the loop reflecting Theorem \ref{th:recursive_gradient_formulation}: $\bm{P_l} = (\bm{w_{l+1}}^T \cdot \bm{P_{l+1}}) \circ g_l'(\bm{s_l})$). Note also that the returned list `back_prop` is populated with the result of Equation \eqref{eq:loss_gradient_formula}: $\nabla_{\bm{w_l}} \mathcal{L} = \bm{P_l} \cdot \bm{i_l}^T$.
 
 The method `objective_gradient` (`@abstractmethod` in `FunctionApprox`) takes as input an `Iterable` of $(x,y)$ pairs and the $\frac {\partial Obj} {\partial Out}$ function, invokes the `forward_propagation` method (to be passed as input to `backward_propagation`), then invokes `backward_propagation`, and finally adds on the regularization term $\lambda \cdot \bm{w_l}$ to the output of `backward_propagation` to return the gradient $\nabla_{\bm{w_l}} Obj$ for all $l = 0, 1, \ldots L$.
 
@@ -706,7 +706,7 @@ class DNNApprox(FunctionApprox[X]):
         """
         :param x_values_seq: a n-length iterable of input points
         :return: list of length (L+2) where the first (L+1) values
-                 each represent the 2-D input arrays (of size n x |I_l|),
+                 each represent the 2-D input arrays (of size n x |i_l|),
                  for each of the (L+1) layers (L of which are hidden layers),
                  and the last value represents the output of the DNN (as a
                  1-D array of length n)
@@ -743,7 +743,7 @@ class DNNApprox(FunctionApprox[X]):
         : param obj_deriv_out represents the derivative of the objective
         function with respect to the linear predictor of the final layer.
 
-        :return: list (of length L+1) of |O_l| x |I_l| 2-D arrays,
+        :return: list (of length L+1) of |o_l| x |i_l| 2-D arrays,
                  i.e., same as the type of self.weights.weights
         This function computes the gradient (with respect to weights) of
         the objective where the output layer activation function
@@ -753,25 +753,25 @@ class DNNApprox(FunctionApprox[X]):
         back_prop: List[np.ndarray] = [np.dot(deriv, fwd_prop[-1]) /
                                        deriv.shape[1]]
         # L is the number of hidden layers, n is the number of points
-        # layer l deriv represents dObj/dS_l where S_l = I_l . weights_l
-        # (S_l is the result of applying layer l without the activation func)
+        # layer l deriv represents dObj/ds_l where s_l = i_l . weights_l
+        # (s_l is the result of applying layer l without the activation func)
         for i in reversed(range(len(self.weights) - 1)):
-            # deriv_l is a 2-D array of dimension |O_l| x n
+            # deriv_l is a 2-D array of dimension |o_l| x n
             # The recursive formulation of deriv is as follows:
-            # deriv_{l-1} = (weights_l^T inner deriv_l) haddamard g'(S_{l-1}),
-            # which is ((|I_l| x |O_l|) inner (|O_l| x n)) haddamard
-            # (|I_l| x n), which is (|I_l| x n) = (|O_{l-1}| x n)
-            # Note: g'(S_{l-1}) is expressed as hidden layer activation
-            # derivative as a function of O_{l-1} (=I_l).
+            # deriv_{l-1} = (weights_l^T inner deriv_l) haddamard g'(s_{l-1}),
+            # which is ((|i_l| x |o_l|) inner (|o_l| x n)) haddamard
+            # (|i_l| x n), which is (|i_l| x n) = (|o_{l-1}| x n)
+            # Note: g'(s_{l-1}) is expressed as hidden layer activation
+            # derivative as a function of o_{l-1} (=i_l).
             deriv = np.dot(self.weights[i + 1].weights.T, deriv) * \
                 self.dnn_spec.hidden_activation_deriv(fwd_prop[i + 1].T)
-            # If self.dnn_spec.bias is True, then I_l = O_{l-1} + 1, in which
+            # If self.dnn_spec.bias is True, then i_l = o_{l-1} + 1, in which
             # case # the first row of the calculated deriv is removed to yield
-            # a 2-D array of dimension |O_{l-1}| x n.
+            # a 2-D array of dimension |o_{l-1}| x n.
             if self.dnn_spec.bias:
                 deriv = deriv[1:]
             # layer l gradient is deriv_l inner fwd_prop[l], which is
-            # of dimension (|O_l| x n) inner (n x (|I_l|) = |O_l| x |I_l|
+            # of dimension (|o_l| x n) inner (n x (|i_l|) = |o_l| x |i_l|
             back_prop.append(np.dot(deriv, fwd_prop[i]) / deriv.shape[1])
         return back_prop[::-1]
 
