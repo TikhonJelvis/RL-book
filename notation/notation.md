@@ -21,7 +21,11 @@ $\sum_{i=1}^n a_i$ & Sum of terms $a_1, a_2, \ldots, a_n$ \\
 \hline
 $\prod_{i=1}^n a_i$ & Product of terms $a_1, a_2, \ldots, a_n$ \\
 \hline
+$\approx$ & approximately equal to \\ 
+\hline
 $x \in \mathcal{X}$ & $x$ is an element of the set $\mathcal{X}$ \\
+\hline
+$x \notin \mathcal{X}$ & $x$ is not an element of the set $\mathcal{X}$ \\
 \hline
 $\mathcal{X} \cup \mathcal{Y}$ & {\em Union} of the sets $\mathcal{X}$ and $\mathcal{Y}$ \\
 \hline
@@ -31,11 +35,17 @@ $\mathcal{X} - \mathcal{Y}$ & {\em Set Difference} of the sets $\mathcal{X}$ and
 \hline
 $\mathcal{X} \times \mathcal{Y}$ & {\em Cartesian Product} of the sets $\mathcal{X}$ and $\mathcal{Y}$ \\
 \hline
-$f: X \rightarrow Y$ & {\em Function} $f$ with {\em Domain} $X$ and {\em Co-domain} $Y$ \\
-\hline
 $\mathcal{X}^k$ & For a set $\mathcal{X}$ and an integer $k \geq 1$, this refers to the {\em Cartesian Product} $\mathcal{X} \times \mathcal{X} \times \ldots \times \mathcal{X}$ with $k$ occurrences of $\mathcal{X}$ in the Cartesian Product (note: $\mathcal{X}^1 = \mathcal{X}$) \\
 \hline
+$f: X \rightarrow Y$ & {\em Function} $f$ with {\em Domain} $X$ and {\em Co-domain} $Y$ \\
+\hline
 $f^k$ & For a function $f$ and an integer $k \geq 0$, this refers to the {\em function composition} of $f$ with itself, repeated $k$ times. So, $f^k(x)$ is the value $f(f(\ldots f(x) \ldots ))$ with $k$ occurrences of $f$ in this function-composition expression (note: $f^1 = f$ and $f^0$ is the identity function) \\
+\hline
+$f^{-1}$ & {\em Inverse function} of a bijective function $f: \mathcal{X} \rightarrow \mathcal{Y}$, i.e., for all $x \in \mathcal{X}, f^{-1}(f(x)) = x$ and for all $y \in \mathcal{Y}$, $f(f^{-1}(y)) = y$ \\
+\hline
+$f'(x_0)$ & {\em Derivative} of the function $f: \mathcal{X} \rightarrow \mathbb{R}$ with respect to it's domain variable $x \in \mathcal{X}$, evaluated at $x=x_0$ \\
+\hline
+$f''(x_0)$ & {\em Second Derivative} of the function $f: \mathcal{X} \rightarrow \mathbb{R}$ with respect to it's domain variable $x \in \mathcal{X}$, evaluated at $x=x_0$ \\
 \hline
 $\mathbb{P}[X]$ & {\em Probability Density Function} (PDF) of random variable $X$\\
 \hline
@@ -45,11 +55,15 @@ $\mathbb{P}[X|Y]$ & {\em Probability Density Function} (PDF) of random variable 
 \hline
 $\mathbb{P}[X=x|Y=y]$ & Probability that random variable $X$ takes the value $x$, conditional on random variable $Y$ taking the value $y$ \\
 \hline
-$\mathbb{E}[X]$ & Expected Value of random variable $X$ \\
+$\mathbb{E}[X]$ & {\em Expected Value} of random variable $X$ \\
 \hline
-$\mathbb{E}[X|Y]$ & Expected Value of random variable $X$, conditional on the value of random variable $Y$ (i.e., Expected Value of $X$ expressed as a function of the values of $Y$) \\
+$\mathbb{E}[X|Y]$ & {\em Expected Value} of random variable $X$, conditional on the value of random variable $Y$ (i.e., Expected Value of $X$ expressed as a function of the values of $Y$) \\
 \hline
-$\mathbb{E}[X|Y=y]$ & Expected Value of random variable $X$, conditional on random variable $Y$ taking the value $y$ \\
+$\mathbb{E}[X|Y=y]$ & {\em Expected Value} of random variable $X$, conditional on random variable $Y$ taking the value $y$ \\
+\hline
+$x \sim \mathcal{N}(\mu, \sigma^2)$ & Random variable $x$ follows a {\em Normal Distribution} with mean $\mu$ and variance $\sigma^2$ \\
+\hline
+$x \sim Poisson(\lambda)$ & Random variable $x$ follows a {\em Poisson Distribution} with mean $\lambda$\\
 \hline
 $f(x;\bm{w})$ & Here $f$ refers to a parameterized function with domain $\mathcal{X}$ ($x \in \mathcal{X}$), $\bm{w}$ refers to the parameters controlling the definition of the function $f$ \\
 \hline
@@ -71,9 +85,15 @@ $\mathbb{I}_c$ & $\mathbb{I}$ represents the {\em Indicator function} and $\math
 \hline
 $\argmax_{x \in \mathcal{X}} f(x)$ & This refers to the value of $x \in \mathcal{X}$ that maximizes $f(x)$, i.e., $\max_{x \in \mathcal{X}} f(x) = f(\argmax_{x \in \mathcal{X}} f(x))$ \\
 \hline
-$f'(x_0)$ & Derivative of the function $f: \mathcal{X} \rightarrow \mathbb{R}$ with respect to it's domain variable $x \in \mathcal{X}$, evaluated at $x=x_0$ \\
-\hline
 $\nabla_{\bm{w}} f(\bm{w})$ & Gradient of the function $f$ with respect to $\bm{w}$ (note: $\bm{w}$ could be an arbitrary data structure and this gradient is of the same data type as the data type of $\bm{w}$) \\
+\hline
+$\log(x)$ & {\em Natural Logarithm} (to the base $e$) of $x$ \\
+\hline
+$|x|$ & {\em Absolute Value} of $x$ \\
+\hline
+$sign(x)$ & +1 if $x > 0$, -1 if $x < 0$, 0 if $x=0$ \\
+\hline
+$x \leftarrow y$ & Variable $x$ is assigned (or updated to) the value of $y$ \\
 \hline
 \end{tabular}
 \end{table}
