@@ -18,7 +18,7 @@ $$dR_t = r \cdot R_t \cdot dt$$
 
 ### Derivation of the Black-Scholes Equation
 
-We denote the price of the derivative at any time $t$ for any price $S_t$ of the underlying as $V(t, S_t)$. Thus, $V(T, S_T)$ is equal to the payoff $f(S_T)$. Applying Ito's Lemma on $V(t, S_t)$ (see Equation \eqref{eq:itos-lemma} in Appendix [-@sec:stochasticcalculus-overview]), we get:
+We denote the price of the derivative at any time $t$ for any price $S_t$ of the underlying as $V(t, S_t)$. Thus, $V(T, S_T)$ is equal to the payoff $f(S_T)$. Applying Ito's Lemma on $V(t, S_t)$ (see Equation \eqref{eq:itos-lemma} in Appendix [-@sec:stochasticcalculus-appendix]), we get:
 
 \begin{equation}
 dV(t, S_t) = (\pdv{V}{t} + \mu \cdot S_t \cdot \pdv{V}{S_t} + \frac {\sigma^2} 2 \cdot S_t^2 \cdot \pdv[2]{V}{S_t}) \cdot dt + \sigma \cdot S_t \cdot \pdv{V}{S_t} \cdot dz_t

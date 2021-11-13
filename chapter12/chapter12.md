@@ -364,7 +364,7 @@ and the $m$-Vector $\bm{b}$ is accumulated at each atomic experience $(S_{i,t}, 
 $$\bm{b} \leftarrow \bm{b} + \frac 1 {T_i} \cdot \bm{E}_{i,t} \cdot R_{i,t+1}$$
 With Sherman-Morrison incremental inverse, we can reduce the computational complexity from $O(m^3)$ to $O(m^2)$.
 
-#### LSPI Convergence
+#### Convergence of Least-Squares Prediction
 
 Before we move on to Least-Squares for the Control problem, we want to point out that the convergence behavior of Least-Squares Prediction algorithms are identical to their counterpart Incremental RL Prediction algorithms, with the exception that Off-Policy LSMC does not have convergence guarantees. Figure \ref{fig:rl_prediction_with_ls_convergence} shows the updated summary table for convergence of RL Prediction algorithms (that we had displayed at the end of Chapter [-@sec:rl-control-chapter]) to now also include Least-Squares Prediction algorithms. 
 
