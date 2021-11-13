@@ -180,7 +180,7 @@ The natural question that emerges is whether it is possible to construct an algo
 For any fixed $c > 0$, consider a decay schedule for $\epsilon_1, \epsilon_2, \ldots$ as follows:
 
 $$d = \min_{a|\Delta_a > 0} \Delta_a$$
-$$\epsilon_t = \min(1, \frac {c|\mathcal{A}|} {d^2 (t+1)}\}$$
+$$\epsilon_t = \min(1, \frac {c|\mathcal{A}|} {d^2 (t+1)})$$
 
 It can be shown that this decay schedule achieves *Logarithmic* Total Regret. However, note that the above schedule requires advance knowledge of the gaps $\Delta_a$ (which by definition, is not known to the AI Agent). In practice, implementing *some* decay schedule helps considerably. Let's now write some code to implement Decaying $\epsilon_t$-Greedy algorithm along with Optimistic Initialization.
 
