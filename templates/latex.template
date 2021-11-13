@@ -57,7 +57,7 @@
 % see e.g. the example of Kieran Healy:
 %% \setromanfont[Mapping=tex-text,Numbers=OldStyle]{Minion Pro} 
 %% \setsansfont[Mapping=tex-text]{Minion Pro} 
-%% \setmonofont[Mapping=tex-text,Scale=0.8]{Pragmata}
+\setmonofont[Mapping=tex-text,Scale=0.8]{DejaVu Sans Mono}
 
 % Heading styles:
 % These commands keep the koma system from making stupid sans serif section headings
