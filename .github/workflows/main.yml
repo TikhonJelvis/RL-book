@@ -1,0 +1,30 @@
+name: Build RL Book PDF
+
+on:
+  pull_request:
+  push:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v12
+
+      - name: Cachix
+        uses: cachix/cachix-action@v10
+        with:
+          name: rl-book
+          authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
+
+      - name: to-pdf
+        run: nix-shell --run bin/to-pdf
+
+      - uses: actions/upload-artifact@v2
+        with:
+          name: book.pdf
+          path: book.pdf
