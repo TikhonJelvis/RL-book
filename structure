@@ -1,0 +1,35 @@
+# This file lists the order in which chapters of the book are compiled
+#
+# Each line should correspond to a directory under book (ie chapter3
+# corresponds to book/chapter3)
+#
+# Empty lines and lines starting with # are ignored
+
+preface
+notation
+
+chapter0
+chapter1
+chapter2
+chapter3
+chapter4
+chapter5
+chapter6
+chapter7
+chapter8
+chapter9
+chapter10
+chapter11
+chapter12
+chapter13
+chapter14
+chapter15
+chapter16
+
+appendix1
+appendix2
+appendix3
+appendix4
+appendix5
+appendix6
+appendix7
