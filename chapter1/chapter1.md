@@ -1,8 +1,8 @@
 ## Programming and Design {#sec:python .unnumbered}
 
-> The programmer, like the poet, works only slightly removed from pure thought-stuff. He builds his castles in the air, from air, creating by exertion of the imagination. Few media of creation are so flexible, so easy to polish and rework, so readily capable of realizing grand conceptual structures.
-
-- Fred Brooks, *The Mythical Man-Month*
+``` {quoteBy="Fred Brooks" quoteFrom="The Mythical Man-Month"}
+The programmer, like the poet, works only slightly removed from pure thought-stuff. He builds his castles in the air, from air, creating by exertion of the imagination. Few media of creation are so flexible, so easy to polish and rework, so readily capable of realizing grand conceptual structures.
+```
 
 Programming is creative work with few constraints: imagine something and you can probably build it—in *many* different ways. Liberating and gratifying, but also challenging. Just like starting a novel from a blank page or a painting from a blank canvas, a new program is so open that it's a bit intimidating. Where do you start? What will the system look like? How will you get it *right*? How do you split your problem up? How do you prevent your code from evolving into a complete mess?
 
@@ -59,7 +59,7 @@ Since distributions are implicit in the code, the *intentions* of the code aren'
 
 To address these problems, let's define an abstraction for probability distributions.
 
-How do we represent a distribution in code? What can we *do* with distributions? That depends on exactly what kind of distribution we're working with. If we know something about the structure of a distribution—perhaps it's a Poisson distribution where λ=5, perhaps it's an empirical distribution with set probabilities for each outcome—we could do quite a bit: produce an exact PDF or CDF, calculate expectations and do various operations efficiently. But that isn't the case for all the distributions we work with! What if the distribution comes from a complicated simulation? At the extreme, we might not be able to do anything except draw samples from the distribution.
+How do we represent a distribution in code? What can we *do* with distributions? That depends on exactly what kind of distribution we're working with. If we know something about the structure of a distribution—perhaps it's a Poisson distribution where $\lambda=5$, perhaps it's an empirical distribution with set probabilities for each outcome—we could do quite a bit: produce an exact PDF or CDF, calculate expectations and do various operations efficiently. But that isn't the case for all the distributions we work with! What if the distribution comes from a complicated simulation? At the extreme, we might not be able to do anything except draw samples from the distribution.
 
 Sampling is the least common denominator. We can sample distributions were we don't know enough to do anything else, and we can sample distributions where we know the exact form and parameters. Any abstraction we start with for probability needs to cover sampling, and any abstraction that requires more than just sampling will not let us handle all the distributions we care about.
 
@@ -100,7 +100,6 @@ class Die(Distribution):
 
     def sample(self):
         return random.randint(1, self.sides)
-
 
 six_sided = Die(6)
 

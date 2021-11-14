@@ -33,14 +33,17 @@ else
     echo "Converting ${names[@]} to $out"
 fi
 
-pandoc -t pdf \
-       -o "$out" \
-       -F pandoc-crossref \
-       -M chapters \
-       -M title='Foundations of Reinforcement Learning with Applications in Finance' \
-       -M author='Ashwin Rao, Tikhon Jelvis' \
-       --pdf-engine=xelatex \
-       --template templates/latex.template \
-       --top-level-division=part \
-       $( (( book == 1 )) && printf %s '--toc' ) \
-       "${names[@]}"
+pandoc \
+    --to pdf \
+    --output "$out" \
+    --metadata chapters \
+    --metadata title='Foundations of Reinforcement Learning with Applications in Finance' \
+    --metadata author='Ashwin Rao, Tikhon Jelvis' \
+    --filter pandoc-crossref \
+    --lua-filter bin/remove-hyperref.lua \
+    --lua-filter bin/alon-style-quotes.lua \
+    --pdf-engine xelatex \
+    --template templates/latex.template \
+    --top-level-division part \
+    $( (( book == 1 )) && printf %s '--toc' ) \
+    "${names[@]}"

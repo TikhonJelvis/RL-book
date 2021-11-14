@@ -48,6 +48,7 @@ let
   fonts = with pkgs;
     [ eb-garamond
       tex-gyre.pagella
+      hack-font
     ];
 
   pythonWithPackages = python.withPackages python-packages;
