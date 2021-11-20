@@ -104,15 +104,7 @@
 % Page format:
 \pagestyle{plain}
 
-% Footnotes
-% if you have code in your footnotes, the million macro march
-% kind of bumps into itself.
-% Pandoc, having just rendered your text into LaTeX,
-% knows whether the 'variable' `verbatim-in-note` is True, and
-% If it is, it asks for a  LaTeX package that solves the dilemma:
 \usepackage{fancyvrb}
-\setmonofont[Mapping=tex-text,Scale=0.7]{DejaVu Sans Mono}
-
 % \baselineskip controls the height of blank lines in code blocks
 \DefineVerbatimEnvironment{Highlighting}{Verbatim}{
   commandchars=\\\{\},
