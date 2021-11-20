@@ -110,7 +110,6 @@
 % Pandoc, having just rendered your text into LaTeX,
 % knows whether the 'variable' `verbatim-in-note` is True, and
 % If it is, it asks for a  LaTeX package that solves the dilemma:
-$if(verbatim-in-note)$
 \usepackage{fancyvrb}
 \setmonofont[Mapping=tex-text,Scale=0.7]{DejaVu Sans Mono}
 
