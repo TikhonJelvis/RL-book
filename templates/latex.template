@@ -226,29 +226,6 @@ $if(subscript)$
 \newcommand{\textsubscr}[1]{\ensuremath{_{\scriptsize\textrm{#1}}}}
 $endif$
 
-% markdown inclines us to use links, since our texts can be made into html.
-% Why not have clickable blue links even in
-% learned, scientific, religious, juridical, poetical and other suchlike texts?
-% Never mind that they have been proven to destroy the nervous system!
-
-% First, what about the fact that links like http://example.com are
-% technically code and thus must not be broken across lines?
-% [breaklinks=true] to the rescue!
-
-% Nowadays LaTeX can handle all of this with another half million macros:
-
-\usepackage[breaklinks=true]{hyperref}
-\hypersetup{colorlinks,%
-citecolor=blue,%
-filecolor=blue,%
-linkcolor=blue,%
-urlcolor=blue}
-$if(url)$
-\usepackage{url}
-$endif$
-
-
-
 % Images.
 % In ye olde LaTeX one could only import a limited range of image
 % types, e.g. the forgotten .eps files.  Or else one simply drew the image with suitable
