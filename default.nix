@@ -67,4 +67,6 @@ pkgs.stdenv.mkDerivation {
   FONTCONFIG_FILE = pkgs.makeFontsConf {
     fontDirectories = fonts;
   };
+
+  DEJA_VU_DIRECTORY = "${pkgs.dejavu_fonts}/share/fonts/truetype/";
 }
