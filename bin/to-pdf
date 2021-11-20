@@ -2,6 +2,13 @@
 
 book=0
 
+if [[ -z "$DEJA_VU_DIRECTORY" ]]
+then
+    echo "DEJA_VU_DIRECTORY variable not set."
+    echo "Try restarting your Nix shell."
+    exit 1
+fi
+
 if [[ $# -eq 0 ]]
 then
     book=1
