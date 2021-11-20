@@ -69,4 +69,6 @@ pkgs.stdenv.mkDerivation {
   };
 
   DEJA_VU_DIRECTORY = "${pkgs.dejavu_fonts}/share/fonts/truetype/";
+
+  TEXINPUTS = "latex:";
 }
