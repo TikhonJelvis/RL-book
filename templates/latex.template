@@ -1,5 +1,9 @@
 %!TEX TS-program = xelatex
-\documentclass[12pt]{Alon}
+$if(tf-format)$
+\documentclass[10pt]{Alon}
+$else$
+\documentclass[10pt]{scrbook}
+$endif$
 
 % -- We are in swanky unicode, XeTeX land, and must now import these packages:
 \usepackage{fontspec,xltxtra,xunicode}
@@ -7,9 +11,18 @@
 % Because we are using XeTeX material,
 % this template needs to be called with the `--xetex` flag.
 
+\usepackage{url}
+$if(tf-format)$
 % Disable hyperref because it doesn't play well with Alon.cls
 \usepackage{nohyperref}
-\usepackage{url}
+$else$
+\usepackage[breaklinks=true]{hyperref}
+\hypersetup{colorlinks,%
+citecolor=blue,%
+filecolor=blue,%
+linkcolor=blue,%
+urlcolor=blue}
+$endif$
 
 % Symbols:
 % Pandoc imports the extensive `amsmath` collection of symbols

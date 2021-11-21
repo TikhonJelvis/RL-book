@@ -14,9 +14,15 @@ then
     book=1
 fi
 
+if [[ $TF_FORMAT == 1 ]]
+then
+    echo "Using T&F format."
+fi
+
 run_pandoc() {
     out=$1
     chapters="${@:2}"
+
     cd book
     pandoc --to pdf \
              --output "$out" \
@@ -24,19 +30,25 @@ run_pandoc() {
              --metadata title='Foundations of Reinforcement Learning with Applications in Finance' \
              --metadata author='Ashwin Rao, Tikhon Jelvis' \
              --filter pandoc-crossref \
-             --lua-filter ../bin/remove-hyperref.lua \
-             --lua-filter ../bin/alon-style-quotes.lua \
              --pdf-engine xelatex \
              --template ../templates/latex.template \
              --top-level-division part \
              $( (( book == 1 )) && printf %s '--toc' ) \
+             $(tf-format --variable tf-format) \
+             $(tf-format --lua-filter ../bin/remove-hyperref.lua) \
+             $(tf-format --lua-filter ../bin/alon-style-quotes.lua) \
              $chapters
+
     cd ..
+}
+
+tf-format() {
+    if [[ $TF_FORMAT == 1 ]]; then echo -n "${@}"; fi
 }
 
 if [[ $book == 1 ]]
 then
-    out="book.pdf"
+    out="$(pwd)/book.pdf"
 
     echo "Building $out from:"
     while read chapter
