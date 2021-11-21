@@ -70,5 +70,7 @@ pkgs.stdenv.mkDerivation {
 
   DEJA_VU_DIRECTORY = "${pkgs.dejavu_fonts}/share/fonts/truetype/";
 
-  TEXINPUTS = "latex:";
+  # Should be set to an absolute path to the latex directory that's in
+  # the same directory as *this file*
+  TEXINPUTS = "${toString ./latex}:";
 }

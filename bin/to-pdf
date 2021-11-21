@@ -14,43 +14,53 @@ then
     book=1
 fi
 
+run_pandoc() {
+    out=$1
+    chapters="${@:2}"
+    cd book
+    pandoc --to pdf \
+             --output "$out" \
+             --metadata chapters \
+             --metadata title='Foundations of Reinforcement Learning with Applications in Finance' \
+             --metadata author='Ashwin Rao, Tikhon Jelvis' \
+             --filter pandoc-crossref \
+             --lua-filter ../bin/remove-hyperref.lua \
+             --lua-filter ../bin/alon-style-quotes.lua \
+             --pdf-engine xelatex \
+             --template ../templates/latex.template \
+             --top-level-division part \
+             $( (( book == 1 )) && printf %s '--toc' ) \
+             $chapters
+    cd ..
+}
+
 if [[ $book == 1 ]]
 then
-    args=(chapter0/chapter0.md chapter1/chapter1.md chapter2/chapter2.md chapter3/chapter3.md chapter4/chapter4.md chapter5/chapter5.md chapter6/chapter6.md chapter7/chapter7.md chapter8/chapter8.md chapter9/chapter9.md chapter10/chapter10.md chapter11/chapter11.md chapter12/chapter12.md chapter13/chapter13.md chapter14/chapter14.md chapter15/chapter15.md chapter16/chapter16.md appendix1/appendix1.md appendix6/appendix6.md appendix2/appendix2.md appendix3/appendix3.md appendix4/appendix4.md appendix5/appendix5.md appendix7/appendix7.md)
     out="book.pdf"
-else
-    args="$@"
-    out="${1%.*}.pdf"
-fi
 
-for path in "${args[@]}"
-do
-    names+=("${path%.*}.md")
-done
-
-if [[ $book == 1 ]]
-then
-    echo "Combining"
-    for path in "${names[@]}"
+    echo "Building $out from:"
+    while read chapter
     do
-        echo $path
-    done
-    echo "into $out"
+        echo "book/$chapter/${chapter}.md"
+        names+=("$chapter/${chapter}.md")
+    done < <(grep -vxE -e '(^#.*$|^\s*$)' structure)
+    # Regexp matches blank lines and comments, which we filter out
+    # with grep
+
+    run_pandoc "$out" "${names[@]}"
 else
-    echo "Converting ${names[@]} to $out"
+    # Several equivalent options:
+    #
+    # bin/to-pdf chapter1
+    # bin/to-pdf chapter1/chapter1
+    # bin/to-pdf chapter1/chapter1.md
+    # bin/to-pdf book/chapter1/chapter1.md
+    file=$(basename $1)
+    name="${file%.*}"
+    target="$name/$name.md"
+    out="${target%.*}.pdf"
+
+    echo "Converting book/$target to book/$out."
+    run_pandoc "$out" "$target"
 fi
 
-pandoc \
-    --to pdf \
-    --output "$out" \
-    --metadata chapters \
-    --metadata title='Foundations of Reinforcement Learning with Applications in Finance' \
-    --metadata author='Ashwin Rao, Tikhon Jelvis' \
-    --filter pandoc-crossref \
-    --lua-filter bin/remove-hyperref.lua \
-    --lua-filter bin/alon-style-quotes.lua \
-    --pdf-engine xelatex \
-    --template templates/latex.template \
-    --top-level-division part \
-    $( (( book == 1 )) && printf %s '--toc' ) \
-    "${names[@]}"
