@@ -38,6 +38,8 @@ $endif$
 \usepackage{amsthm}
 \usepackage{pifont}
 
+\usepackage{longtable}
+
 \newtheorem{theorem}{Theorem}[section]
 \newtheorem{corollary}{Corollary}[theorem]
 \newtheorem{lemma}[theorem]{Lemma}

@@ -1,7 +1,6 @@
 # Summary of Notation
 
-\begin{table}
-\begin{tabular}{|p{0.2\linewidth}|p{0.7\linewidth}|}
+\begin{longtable}{|p{0.2\linewidth}|p{0.7\linewidth}|}
 \hline
 $\mathbb{Z}$ & Set of integers \\
 \hline
@@ -95,5 +94,4 @@ $sign(x)$ & +1 if $x > 0$, -1 if $x < 0$, 0 if $x=0$ \\
 \hline
 $x \leftarrow y$ & Variable $x$ is assigned (or updated to) the value of $y$ \\
 \hline
-\end{tabular}
-\end{table}
+\end{longtable}
