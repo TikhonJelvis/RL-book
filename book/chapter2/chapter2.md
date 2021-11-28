@@ -177,7 +177,7 @@ f(\frac {U_t} {U_t + D_t}; \alpha_3) & \text{if }U_{t+1} = U_t, D_{t+1} = D_t + 
 $$
 It is important to note that unlike Processes 1 and 2, the stock price $X_t$ is actually not part of the state $S_t$ in Process 3. This is because $U_t$ and $D_t$ together contain sufficient information to capture the stock price $X_t$ (since $X_t = X_0 + U_t - D_t$, and noting that $X_0$ is provided as a constant).
 
-The corresponding dataclass for Process 2 is shown below:
+The corresponding dataclass for Process 3 is shown below:
 
 ```python
 @dataclass

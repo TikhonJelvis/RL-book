@@ -16,7 +16,7 @@ class AMS(Generic[S, A]):
         state_distr_funcs: Sequence[Callable[[S, A], Distribution[S]]],
         expected_reward_funcs: Sequence[Callable[[S, A], float]],
         num_samples: Sequence[int],
-        gamma: float,
+        gamma: float
     ) -> None:
         self.num_steps: int = len(actions_funcs)
         self.actions_funcs: Sequence[Callable[[S], Set[A]]] = actions_funcs
