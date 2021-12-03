@@ -424,8 +424,11 @@ We leave it to you as an exercise to similarly implement Stock Price Processes 1
 
 Now let us consider Markov Processes with a finite state space. So we can represent the state space as $\mathcal{S} = \{s_1, s_2, \ldots, s_n\}$. Assume the set of non-terminal states $\mathcal{N}$ has $m\leq n$ states. Let us refer to Markov Processes with finite state spaces as Finite Markov Processes. Since Finite Markov Processes are a subclass of Markov Processes, it would make sense to create a concrete class `FiniteMarkovProcess` that implements the interface of the abstract class `MarkovProcess` (specifically implement the `@abstractmethod transition`). But first let's think about the data structure required to specify an instance of a `FiniteMarkovProcess` (i.e., the data structure we'd pass to the `__init__` method of `FiniteMarkovProcess`). One choice is a $m \times n$ 2D numpy array representation, i.e., matrix elements representing transition probabilities
 $$\mathcal{P} : \mathcal{N} \times \mathcal{S} \rightarrow [0, 1]$$
-However, we often find that this matrix can be sparse since one often transitions from a given state to just a few set of states. So we'd like a sparse representation and we can accomplish this by conceptualizing $\mathcal{P}$ in an [equivalent curried form](https://en.wikipedia.org/wiki/Currying) as follows:
+However, we often find that this matrix can be sparse since one often transitions from a given state to just a few set of states. So we'd like a sparse representation and we can accomplish this by conceptualizing $\mathcal{P}$ in an [equivalent curried form](https://en.wikipedia.org/wiki/Currying)[^currying] as follows:
 $$\mathcal{N} \rightarrow (\mathcal{S} \rightarrow [0, 1])$$
+
+[^currying]: Currying is the technique of converting a function that takes multiple arguments into a sequence of functions that each takes a single argument, as illustrated above for the $\mathcal{P}$ function.
+
 With this curried view, we can represent the outer $\rightarrow$ as a map (in Python, as a dictionary of type `Mapping`) whose keys are the non-terminal states $\mathcal{N}$, and each non-terminal-state key maps to a `FiniteDistribution[State[S]]` type that represents the inner $\rightarrow$, i.e. a finite probability distribution of the next states (terminal or non-terminal) transitioned to from the non-terminal state (note: `FiniteDistribution` type was covered in Chapter [-@sec:python]). Let us create an alias for this `Mapping` (called `Transition`) since we will use this data structure often:
 
 ```python
@@ -677,7 +680,7 @@ Let us summarize the 3 different representations we've covered:
 * Sparse Data Structure Representation: as given by `transition map: Transition`, which is convenient for compact storage and useful for visualization (eg: `__repr__` method display or as a directed graph figure). This is applicable only to Finite Markov Processes.
 * Dense Data Structure Representation: as given by the `get_transition_matrix` 2D numpy array, which is useful for performing linear algebra that is often required to calculate mathematical properties of the process (eg: to calculate the stationary distribution). This is applicable only to Finite Markov Processes.
 
-Now we are ready to move to our next topic of *Markov Reward Processes*. We'd like to finish this section by stating that the Markov Property owes its name to a mathematician from a century ago - [Andrey Markov](https://en.wikipedia.org/wiki/Andrey_Markov). Although the Markov Property seems like a simple enough concept, the concept has had profound implications on our ability to compute or reason with systems involving time-sequenced uncertainty in practice.
+Now we are ready to move to our next topic of *Markov Reward Processes*. We'd like to finish this section by stating that the Markov Property owes its name to a mathematician from a century ago - [Andrey Markov](https://en.wikipedia.org/wiki/Andrey_Markov). Although the Markov Property seems like a simple enough concept, the concept has had profound implications on our ability to compute or reason with systems involving time-sequenced uncertainty in practice. There are several good books to learn more about Markov Processes - we recommend [the book by Paul Gagniuc](https://www.amazon.com/Markov-Chains-Theory-Implementation-Experimentation/dp/1119387558) [@Gagniuc2017MarkovCF].
 
 ### Formalism of Markov Reward Processes
 
@@ -1013,7 +1016,7 @@ $$V(s) = \mathbb{E}[G_t|S_t=s] \text{ for all } s \in \mathcal{N}, \text{ for al
 
 For the rest of the book, we will assume that whenever we are talking about a Value Function, the discount factor $\gamma$ is appropriate to ensure that the Expected Return from each state is finite.
 
-Note that we are (as usual) assuming the fact that the Markov Reward Process is stationary (time-invariant probabilities of state transitions and rewards). Now we show a creative piece of mathematics due to [Richard Bellman](https://en.wikipedia.org/wiki/Richard_E._Bellman). Bellman noted that the Value Function has a recursive structure. Specifically, 
+Note that we are (as usual) assuming the fact that the Markov Reward Process is stationary (time-invariant probabilities of state transitions and rewards). Now we show a creative piece of mathematics due to [Richard Bellman](https://en.wikipedia.org/wiki/Richard_E._Bellman). [Bellman noted](https://press.princeton.edu/books/paperback/9780691146683/dynamic-programming) [@Bellman1957] that the Value Function has a recursive structure. Specifically, 
 
 \begin{equation}
 \begin{split}
@@ -1081,7 +1084,7 @@ The corresponding values of the attribute `reward_function_vec` (i.e., $\mathcal
 
 This tells us that On-Hand of 0 and On-Order of 2 has the highest expected reward. However, the Value Function is highest for On-Hand of 0 and On-Order of 1.
 
-This computation for the Value Function works if the state space is not too large (the size of the square linear system of equations is equal to number of non-terminal states). When the state space is large, this direct method of solving a linear system of equations won't scale and we have to resort to numerical methods to solve the recursive Bellman equation. This is the topic of Dynamic Programming and Reinforcement Learning algorithms that we shall learn in this book. 
+This computation for the Value Function works if the state space is not too large (the size of the square linear system of equations is equal to number of non-terminal states). When the state space is large, this direct method of solving a linear system of equations won't scale and we have to resort to numerical methods to solve the recursive Bellman Equation. This is the topic of Dynamic Programming and Reinforcement Learning algorithms that we shall learn in this book. 
 
 ### Summary of Key Learnings from this Chapter
 
