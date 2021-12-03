@@ -492,7 +492,7 @@ Now we are ready to cover Batch RL Control (specifically Least-Squares TD Contro
 Having seen Least-Squares Prediction, the natural question is whether we can extend the Least-Squares (batch with linear function approximation) methodology to solve the Control problem. For On-Policy MC and On-Policy TD Control, we take the usual route of Generalized Policy Iteration (GPI) with:
 
 1. Policy Evaluation as Least-Squares $Q$-Value Prediction. Specifically, the $Q$-Value for a policy $\pi$ is approximated as:
-$$Q^{\pi}(s,a) \approx Q(s,a;\bm{w}) = \bm{\phi}(s)^T \cdot \bm{w}$$
+$$Q^{\pi}(s,a) \approx Q(s,a;\bm{w}) = \bm{\phi}(s, a)^T \cdot \bm{w}$$
 with a direct linear-algebraic solve for the linear function approximation weights $\bm{w}$ using batch experiences data generated using policy $\pi$.
 2. $\epsilon$-Greedy Policy Improvement.
 
