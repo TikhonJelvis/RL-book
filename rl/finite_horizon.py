@@ -145,10 +145,9 @@ def finite_horizon_MDP(
     for time in range(0, limit):
         for s in process.non_terminal_states:
             s_time = WithTime(state=s.state, time=time)
-            actions_map = process.action_mapping(s)
             mapping[s_time] = {a: result.map(
                 lambda sr: (WithTime(state=sr[0].state, time=time + 1), sr[1])
-            ) for a, result in actions_map.items()}
+            ) for a, result in process.mapping[s].items()}
 
     return FiniteMarkovDecisionProcess(mapping)
 
@@ -182,7 +181,7 @@ def unwrap_finite_horizon_MDP(
                 for a, sr_distr in arg.items()}
 
     return [{NonTerminal(s.state): without_time(
-        process.action_mapping(NonTerminal(s))
+        process.mapping[NonTerminal(s)]
     ) for s in states} for _, states in groupby(
         sorted(
             (nt.state for nt in process.non_terminal_states),

@@ -299,7 +299,7 @@ def fitted_lspi_put_option(
 
     ident: np.ndarray = np.eye(num_laguerre)
     features: List[Callable[[Tuple[float, float]], float]] = [lambda _: 1.]
-    features += [(lambda t_s: np.exp(-t_s[1] / (2 * strike)) *
+    features += [(lambda t_s, i=i: np.exp(-t_s[1] / (2 * strike)) *
                   lagval(t_s[1] / strike, ident[i]))
                  for i in range(num_laguerre)]
     features += [

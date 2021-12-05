@@ -1038,7 +1038,7 @@ def unwrap_finite_horizon_MDP(
                 for a, sr_distr in arg.items()}
 
     return [{NonTerminal(s.state): without_time(
-        process.action_mapping(NonTerminal(s))
+        process.mapping[NonTerminal(s)]
     ) for s in states} for _, states in groupby(
         sorted(
             (nt.state for nt in process.non_terminal_states),
