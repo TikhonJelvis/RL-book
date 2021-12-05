@@ -1,6 +1,6 @@
 ## Black-Scholes Equation and it's Solution for Call/Put Options {#sec:black-scholes-appendix}
 
-In this Appendix, we sketch the derivation of the much-celebrated Black-Scholes equation and it's solution for Call and Put Options. As is the norm in the Appendices in this book, we will compromise on some of the rigor and emphasize the intuition to develop basic familiarity with concepts in continuous-time derivatives pricing and hedging.
+In this Appendix, we sketch the derivation of the [much-celebrated Black-Scholes equation and it's solution for Call and Put Options](https://www.cs.princeton.edu/courses/archive/fall09/cos323/papers/black_scholes73.pdf) [@BlackScholes1973]. As is the norm in the Appendices in this book, we will compromise on some of the rigor and emphasize the intuition to develop basic familiarity with concepts in continuous-time derivatives pricing and hedging.
 
 ### Assumptions
 The Black-Scholes Model is about pricing and hedging of a derivative on a single underlying asset (henceforth, simply known as "underlying"). The model makes several simplifying assumptions for analytical convenience. Here are the assumptions:

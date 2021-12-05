@@ -141,7 +141,7 @@ $$\text{Remember that } \sum_{S_0 \in \mathcal{N}} \sum_{t=0}^{\infty} \gamma^t 
 $$ \nabla_{\bm{\theta}} J(\bm{\theta}) = \sum_{s \in \mathcal{N}} \rho^{\pi}(s) \cdot \sum_{a \in \mathcal{A}} \nabla_{\bm{\theta}} \pi(s, a; \bm{\theta}) \cdot Q^{\pi}(s,a) $$
 $$\mathbb{Q.E.D.}$$
 
-This proof is borrowed from the Appendix of [the famous paper by Sutton, McAllester, Singh, Mansour on Policy Gradient Methods for Reinforcement Learning with Function Approximation](https://proceedings.neurips.cc/paper/1999/file/464d828b85b0bed98e80ade0a5c43b0f-Paper.pdf).
+This proof is borrowed from the Appendix of [the famous paper by Sutton, McAllester, Singh, Mansour on Policy Gradient Methods for Reinforcement Learning with Function Approximation](https://proceedings.neurips.cc/paper/1999/file/464d828b85b0bed98e80ade0a5c43b0f-Paper.pdf) [@sutton2001policy].
 
 Note that using the "Expected Value"" notation under the improper distribution implied by the Discounted-Aggregate State-Visitation Measure $\rho^{\pi}$, we can write the statement of PGT as:
 
@@ -189,7 +189,7 @@ For each of the above two examples (finite action spaces and continuous action s
 
 ### REINFORCE Algorithm (Monte-Carlo Policy Gradient)
 
-Now we are ready to write our first Policy Gradient algorithm. As ever, the simplest algorithm is a Monte-Carlo algorithm. In the case of Policy Gradient, a simple Monte-Carlo calculation provides us with an algorithm known as REINFORCE, which we cover in this section.
+Now we are ready to write our first Policy Gradient algorithm. As ever, the simplest algorithm is a Monte-Carlo algorithm. In the case of Policy Gradient, a simple Monte-Carlo calculation provides us with an [algorithm known as REINFORCE, due to R.J.Williams](https://people.cs.umass.edu/~barto/courses/cs687/williams92simple.pdf) [@Williams:92], which we cover in this section.
 
 We've already explained that we can calculate the Score function using an analytical derivative of a specified functional form for $\pi(S_t,A_t;\bm{\theta})$ for each atomic experience $(S_t, A_t, R_t, S'_t)$. What remains is to obtain an estimate of $Q^{\pi}(S_t,A_t)$ for each atomic experience $(S_t, A_t, R_t, S'_t)$. REINFORCE uses the trace experience return $G_t$ for $(S_t, A_t)$, while following policy $\pi$, as an unbiased sample of $Q^{\pi}(S_t,A_t)$. Thus, at every time step (i.e., at every atomic experience) in each episode, we estimate $\nabla_{\bm{\theta}} J(\bm{\theta})$ by calculating $\gamma^t \cdot (\nabla_{\bm{\theta}} \log{\pi(S_t, A_t; \bm{\theta})}) \cdot G_t$ (noting that the state occurrence probabilities and action occurrence probabilities are implicit in the trace experiences), and update the parameters $\bm{\theta}$ at the end of each episode (using each atomic experience's $\nabla_{\bm{\theta}} J(\bm{\theta})$ estimate) according to Stochastic Gradient Ascent as follows:
 
@@ -715,6 +715,8 @@ Now let's compare these methods on the `AssetAllocPG` instance we had created ea
 
 ![Progress of PG Algorithms \label{fig:pg_convergence}](./chapter13/pg_convergence.png "Progress of PG Algorithms")
 
+Actor-Critic methods were developed in the late 1970s and 1980s, but not paid attention to in the 1990s. In the past two decades, there has been a revival of Actor-Critic methods. For a more detailed coverage of Actor-Critic methods, see the [paper by Degris, White, Sutton](https://arxiv.org/abs/1205.4839) [@journals/corr/abs-1205-4839].
+
 
 ### Overcoming Bias with Compatible Function Approximation
 
@@ -758,7 +760,7 @@ $$\mbox{But } \nabla_{\bm{\theta}} J(\bm{\theta}) = \sum_{s \in \mathcal{N}} \rh
 $$\mathbb{Q.E.D.}$$
 \end{proof}
 
-This proof originally appeared in [the famous paper by Sutton, McAllester, Singh, Mansour on Policy Gradient Methods for Reinforcement Learning with Function Approximation](https://proceedings.neurips.cc/paper/1999/file/464d828b85b0bed98e80ade0a5c43b0f-Paper.pdf).
+This proof originally appeared in [the famous paper by Sutton, McAllester, Singh, Mansour on Policy Gradient Methods for Reinforcement Learning with Function Approximation](https://proceedings.neurips.cc/paper/1999/file/464d828b85b0bed98e80ade0a5c43b0f-Paper.pdf) [@sutton2001policy].
 
 This means with conditions (1) and (2) of Compatible Function Approximation Theorem, we can use the critic function approximation $Q(s,a;\bm{w})$ and still have exact Policy Gradient (i.e., no bias due to using a function approximation for the Q-Value Function).
 
@@ -815,7 +817,7 @@ This completes our coverage of the basic Policy Gradient Methods. Next, we cover
 
 #### Natural Policy Gradient
 
-Natural Policy Gradient (abbreviated NPG) is due to [a paper by Kakade](https://proceedings.neurips.cc/paper/2001/file/4b86abe48d358ecf194c56c69108433e-Paper.pdf) that utilizes the idea of [Natural Gradient first introduced by Amari](https://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.452.7280&rep=rep1&type=pdf). We won't cover the theory of Natural Gradient in detail here, and refer you to the above two papers instead. Here we give a high-level overview of the concepts, and describe the algorithm. 
+Natural Policy Gradient (abbreviated NPG) is due to [a paper by Kakade](https://proceedings.neurips.cc/paper/2001/file/4b86abe48d358ecf194c56c69108433e-Paper.pdf) [@conf/nips/Kakade01] that utilizes the idea of [Natural Gradient first introduced by Amari](https://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.452.7280&rep=rep1&type=pdf) [@amari_natural_1998]. We won't cover the theory of Natural Gradient in detail here, and refer you to the above two papers instead. Here we give a high-level overview of the concepts, and describe the algorithm. 
 
 The core motivation for Natural Gradient is that when the parameters space has a certain underlying structure (as is the case with the parameter space of $\bm{\theta}$ in the context of maximizing $J(\bm{\theta})$), the usual gradient does not represent it's steepest descent direction, but the Natural Gradient does. The steepest descent direction of an arbitrary function $f(\bm{\theta})$ to be minimized is defined as the vector $\Delta \bm{\theta}$ that minimizes $f(\bm{\theta} + \Delta \bm{\theta})$ under the constraint that the length $|\Delta \bm{\theta}|$ is a constant. In general, the length $|\Delta \bm{\theta}|$ is defined with respect to some positive-definite matrix $\bm{G}(\bm{\theta})$ governed by the underlying structure of the $\bm{\theta}$ parameters space, i.e.,
 $$|\Delta \bm{\theta}|^2 = (\Delta \bm{\theta})^T \cdot \bm{G}(\bm{\theta}) \cdot \Delta \bm{\theta}$$
@@ -852,7 +854,7 @@ $$\Delta \bm{\theta} = \alpha_{\bm{\theta}} \cdot \bm{w}$$
 
 #### Deterministic Policy Gradient
 
-Deterministic Policy Gradient (abbreviated DPG) is a creative adaptation of Policy Gradient wherein instead of a parameterized function approximation for a stochastic policy, we have a parameterized function approximation for a deterministic policy for the case of continuous action spaces. DPG is due to [a paper by Silver, Lever, Heess, Degris, Wiestra, Riedmiller](http://proceedings.mlr.press/v32/silver14.pdf). DPG is expressed in terms of the Expected Gradient of the Q-Value Function and can be estimated much more efficiently that the usual (stochastic) PG. (Stochastic) PG integrates over both the state and action spaces, whereas DPG integrates over only the state space. As a result, computing (stochastic) PG would require more samples if the action space has many dimensions. 
+Deterministic Policy Gradient (abbreviated DPG) is a creative adaptation of Policy Gradient wherein instead of a parameterized function approximation for a stochastic policy, we have a parameterized function approximation for a deterministic policy for the case of continuous action spaces. DPG is due to [a paper by Silver, Lever, Heess, Degris, Wiestra, Riedmiller](http://proceedings.mlr.press/v32/silver14.pdf) [@conf/icml/SilverLHDWR14]. DPG is expressed in terms of the Expected Gradient of the Q-Value Function and can be estimated much more efficiently that the usual (stochastic) PG. (Stochastic) PG integrates over both the state and action spaces, whereas DPG integrates over only the state space. As a result, computing (stochastic) PG would require more samples if the action space has many dimensions. 
 
 Since the policy approximated is Deterministic, we need to address the issue of exploration - this is typically done with Off-Policy Control wherein we employ an exploratory (stochastic) behavior policy, while the policy being approximated (and learnt with DPG) is the target (deterministic) policy. In Actor-Critic DPG, the Actor is the function approximation for the deterministic policy and the Critic is the function approximation for the Q-Value Function. The paper by Sutton et al. provides a Compatible Function Approximation Theorem for DPG to overcome Critic approximation bias. The paper also shows that DPG is the limiting case of (Stochastic) PG, as policy variance tends to 0. This means the usual machinery of PG (such as Actor-Critic, Compatible Function Approximation, Natural Policy Gradient etc.) is also applicable to DPG.
 
@@ -950,7 +952,7 @@ With these inputs, for each iteration $t = 0, 1, 2, \ldots$, the algorithm perfo
 On the surface, this NES algorithm looks like PG because it's not Value Function-based (it's Policy-based, like PG). Also, similar to PG, it uses a gradient to move the policy towards optimality. But, ES does not interact with the environment (like PG/RL does). ES operates at a high-level, ignoring the (state, action, reward) interplay. Specifically, it does not aim to assign credit to actions in specific states. Hence, ES doesn't have the core essence of RL: *Estimating the Q-Value Function of a Policy and using it to Improve the Policy*. Therefore, we don't classify ES as Reinforcement Learning. Rather, we consider ES to be an alternative approach to RL Algorithms.
 
 What is the effectiveness of ES compared to RL? The traditional view has been that ES won't work on high-dimensional problems. Specifically, ES has been shown to be data-inefficient relative to RL. This is because ES resembles simple hill-climbing based only on finite differences along a few random directions at each step. However, ES is very simple to implement (no Value Function approximation or back-propagation needed), and is highly parallelizable. ES has the benefits of being indifferent to distribution of rewards and to action frequency, and is tolerant of long horizons.
-[A paper from OpenAI Research](https://arxiv.org/pdf/1703.03864.pdf) shows techniques to make NES more robust and more data-efficient, and they demonstrate that NES has more exploratory behavior than advanced PG algorithms.
+[A paper from OpenAI Research](https://arxiv.org/pdf/1703.03864.pdf) [@salimans2017evolution] shows techniques to make NES more robust and more data-efficient, and they demonstrate that NES has more exploratory behavior than advanced PG algorithms.
 
 ### Key Takeaways from this Chapter
 

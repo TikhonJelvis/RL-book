@@ -29,14 +29,17 @@ run_pandoc() {
              --metadata chapters \
              --metadata title='Foundations of Reinforcement Learning with Applications in Finance' \
              --metadata author='Ashwin Rao, Tikhon Jelvis' \
+             --metadata reference-section-title='Bibliography' \
              --filter pandoc-crossref \
              --pdf-engine xelatex \
              --template ../templates/latex.template \
              --top-level-division part \
              $( (( book == 1 )) && printf %s '--toc' ) \
-             $(tf-format --variable tf-format) \
+             $(tf-format --metadata tf-format) \
+             --lua-filter ../bin/alon-style-quotes.lua \
+             --citeproc \
+             --bibliography bibliography.bib \
              $(tf-format --lua-filter ../bin/remove-hyperref.lua) \
-             $(tf-format --lua-filter ../bin/alon-style-quotes.lua) \
              $chapters
 
     cd ..
