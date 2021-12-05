@@ -189,7 +189,7 @@ For each of the above two examples (finite action spaces and continuous action s
 
 ### REINFORCE Algorithm (Monte-Carlo Policy Gradient)
 
-Now we are ready to write our first Policy Gradient algorithm. As ever, the simplest algorithm is a Monte-Carlo algorithm. In the case of Policy Gradient, a simple Monte-Carlo calculation provides us with an algorithm known as REINFORCE, which we cover in this section.
+Now we are ready to write our first Policy Gradient algorithm. As ever, the simplest algorithm is a Monte-Carlo algorithm. In the case of Policy Gradient, a simple Monte-Carlo calculation provides us with an [algorithm known as REINFORCE, due to R.J.Williams](https://people.cs.umass.edu/~barto/courses/cs687/williams92simple.pdf) [@Williams:92], which we cover in this section.
 
 We've already explained that we can calculate the Score function using an analytical derivative of a specified functional form for $\pi(S_t,A_t;\bm{\theta})$ for each atomic experience $(S_t, A_t, R_t, S'_t)$. What remains is to obtain an estimate of $Q^{\pi}(S_t,A_t)$ for each atomic experience $(S_t, A_t, R_t, S'_t)$. REINFORCE uses the trace experience return $G_t$ for $(S_t, A_t)$, while following policy $\pi$, as an unbiased sample of $Q^{\pi}(S_t,A_t)$. Thus, at every time step (i.e., at every atomic experience) in each episode, we estimate $\nabla_{\bm{\theta}} J(\bm{\theta})$ by calculating $\gamma^t \cdot (\nabla_{\bm{\theta}} \log{\pi(S_t, A_t; \bm{\theta})}) \cdot G_t$ (noting that the state occurrence probabilities and action occurrence probabilities are implicit in the trace experiences), and update the parameters $\bm{\theta}$ at the end of each episode (using each atomic experience's $\nabla_{\bm{\theta}} J(\bm{\theta})$ estimate) according to Stochastic Gradient Ascent as follows:
 
@@ -714,6 +714,8 @@ We encourage you to implement in code this Actor-Critic algorithm using Eligibil
 Now let's compare these methods on the `AssetAllocPG` instance we had created earlier to test REINFORCE, i.e., for time steps $T=5$, $\mu = 13\%, \sigma = 20\%, r = 7\%$, coefficient of CARA $a = 1.0$, probability distribution of wealth at the start of each trace experience as $\mathcal{N}(1.0, 0.1)$, and constant standard deviation $\sigma$ of the policy probability distribution of actions for a given state as $0.5$. The `__main__` code in [rl/chapter13/asset_alloc_pg.py](https://github.com/TikhonJelvis/RL-book/blob/master/chapter13/asset_alloc_pg.py) evaluates the mean action for the start state of $(t=0, W_0 = 1.0)$ after each episode (over 20,000 episodes) for each of the above-implemented PG algorithms' function approximation for the policy mean. It then plots the progress of the evaluated mean action for the start state over the 20,000 episodes, along with the benchmark of the optimal action for the start state from the known closed-form solution. Figure \ref{fig:pg_convergence} shows the graph, validating the points we have made above on bias and variance of these algorithms.
 
 ![Progress of PG Algorithms \label{fig:pg_convergence}](./chapter13/pg_convergence.png "Progress of PG Algorithms")
+
+Actor-Critic methods were developed in the late 1970s and 1980s, but not paid attention to in the 1990s. In the past two decades, there has been a revival of Actor-Critic methods. For a more detailed coverage of Actor-Critic methods, see the [paper by Degris, White, Sutton](https://arxiv.org/abs/1205.4839) [@journals/corr/abs-1205-4839].
 
 
 ### Overcoming Bias with Compatible Function Approximation
