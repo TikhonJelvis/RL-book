@@ -148,7 +148,7 @@ class TestFiniteMDP(unittest.TestCase):
             self.assertEqual(set(finite.actions(s)), {False, True})
 
         start = NonTerminal(WithTime(state=True, time=0))
-        result = finite.action_mapping(start)[False]
+        result = finite.mapping[start][False]
         expected_result = Categorical({
             (NonTerminal(WithTime(False, time=1)), 2.0): 0.7,
             (NonTerminal(WithTime(True, time=1)), 1.0): 0.3
@@ -186,7 +186,7 @@ class TestFiniteMDP(unittest.TestCase):
                 for a in True, False:
                     distribution.assert_almost_equal(
                         self,
-                        finite.action_mapping(NonTerminal(s_time))[a],
+                        finite.mapping[NonTerminal(s_time)][a],
                         action_mapping_for(s_time)[a]
                     )
 
@@ -211,7 +211,7 @@ class TestFiniteMDP(unittest.TestCase):
             for a in True, False:
                 distribution.assert_almost_equal(
                     self,
-                    finite.action_mapping(NonTerminal(s_time))[a],
+                    finite.mapping[NonTerminal(s_time)][a],
                     act_map[a]
                 )
 
