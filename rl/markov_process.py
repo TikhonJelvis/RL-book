@@ -291,10 +291,11 @@ class FiniteMarkovRewardProcess(FiniteMarkovProcess[S],
         return self.transition_reward_map[state]
 
     def get_value_function_vec(self, gamma: float) -> np.ndarray:
-        return np.linalg.inv(
+        return np.linalg.solve(
             np.eye(len(self.non_terminal_states)) -
-            gamma * self.get_transition_matrix()
-        ).dot(self.reward_function_vec)
+            gamma * self.get_transition_matrix(),
+            self.reward_function_vec
+        )
 
     def display_reward_function(self):
         pprint({

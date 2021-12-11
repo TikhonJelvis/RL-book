@@ -622,7 +622,7 @@ class LinearFunctionApprox(FunctionApprox[X]):
                 self,
                 weights=Weights.create(
                     adam_gradient=self.weights.adam_gradient,
-                    weights=np.dot(np.linalg.inv(left), right)
+                    weights=np.linalg.solve(left, right)
                 )
             )
         else:
@@ -706,7 +706,7 @@ class DNNApprox(FunctionApprox[X]):
         """
         :param x_values_seq: a n-length iterable of input points
         :return: list of length (L+2) where the first (L+1) values
-                 each represent the 2-D input arrays (of size n x |I_l|),
+                 each represent the 2-D input arrays (of size n x |i_l|),
                  for each of the (L+1) layers (L of which are hidden layers),
                  and the last value represents the output of the DNN (as a
                  1-D array of length n)
@@ -743,7 +743,7 @@ class DNNApprox(FunctionApprox[X]):
         : param obj_deriv_out represents the derivative of the objective
         function with respect to the linear predictor of the final layer.
 
-        :return: list (of length L+1) of |O_l| x |I_l| 2-D arrays,
+        :return: list (of length L+1) of |o_l| x |i_l| 2-D arrays,
                  i.e., same as the type of self.weights.weights
         This function computes the gradient (with respect to weights) of
         the objective where the output layer activation function
@@ -753,25 +753,25 @@ class DNNApprox(FunctionApprox[X]):
         back_prop: List[np.ndarray] = [np.dot(deriv, fwd_prop[-1]) /
                                        deriv.shape[1]]
         # L is the number of hidden layers, n is the number of points
-        # layer l deriv represents dObj/dS_l where S_l = I_l . weights_l
-        # (S_l is the result of applying layer l without the activation func)
+        # layer l deriv represents dObj/ds_l where s_l = i_l . weights_l
+        # (s_l is the result of applying layer l without the activation func)
         for i in reversed(range(len(self.weights) - 1)):
-            # deriv_l is a 2-D array of dimension |O_l| x n
+            # deriv_l is a 2-D array of dimension |o_l| x n
             # The recursive formulation of deriv is as follows:
-            # deriv_{l-1} = (weights_l^T inner deriv_l) haddamard g'(S_{l-1}),
-            # which is ((|I_l| x |O_l|) inner (|O_l| x n)) haddamard
-            # (|I_l| x n), which is (|I_l| x n) = (|O_{l-1}| x n)
-            # Note: g'(S_{l-1}) is expressed as hidden layer activation
-            # derivative as a function of O_{l-1} (=I_l).
+            # deriv_{l-1} = (weights_l^T inner deriv_l) haddamard g'(s_{l-1}),
+            # which is ((|i_l| x |o_l|) inner (|o_l| x n)) haddamard
+            # (|i_l| x n), which is (|i_l| x n) = (|o_{l-1}| x n)
+            # Note: g'(s_{l-1}) is expressed as hidden layer activation
+            # derivative as a function of o_{l-1} (=i_l).
             deriv = np.dot(self.weights[i + 1].weights.T, deriv) * \
                 self.dnn_spec.hidden_activation_deriv(fwd_prop[i + 1].T)
-            # If self.dnn_spec.bias is True, then I_l = O_{l-1} + 1, in which
+            # If self.dnn_spec.bias is True, then i_l = o_{l-1} + 1, in which
             # case # the first row of the calculated deriv is removed to yield
-            # a 2-D array of dimension |O_{l-1}| x n.
+            # a 2-D array of dimension |o_{l-1}| x n.
             if self.dnn_spec.bias:
                 deriv = deriv[1:]
             # layer l gradient is deriv_l inner fwd_prop[l], which is
-            # of dimension (|O_l| x n) inner (n x (|I_l|) = |O_l| x |I_l|
+            # of dimension (|o_l| x n) inner (n x (|i_l|) = |o_l| x |i_l|
             back_prop.append(np.dot(deriv, fwd_prop[i]) / deriv.shape[1])
         return back_prop[::-1]
 

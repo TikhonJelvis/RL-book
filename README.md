@@ -45,23 +45,25 @@ Once you have Nix installed, run `nix-shell` to get access to Pandoc, LaTeX and 
 
 ## Generating PDFs
 
-Once inside the Nix shell, you'll have access to Pandoc and you'll be able to generate PDFs with XeTeX. The `to-pdf` script does this for a single Markdown file:
+Once inside the Nix shell, you'll have access to Pandoc and you'll be able to generate PDFs with XeTeX. The `to-pdf` script can do this for a single chapter in the [`book`][book] directory:
 
 ```
-[nix-shell:~/Documents/RL-book]$ bin/to-pdf chapter0/chapter0.md
-Converting chapter0/chapter0.md to chapter0/chapter0.pdf
+[nix-shell:~/Documents/RL-book]$ bin/to-pdf chapter0
+Converting book/chapter0/chapter0.md to book/chapter0/chapter0.pdf
 ```
+
+[book]: ./book
 
 You can also generate the entire book to a file called `book.pdf`:
 
 ```
 [nix-shell:~/Documents/RL-book]$ bin/to-pdf
 Combining
-chapter0/chapter0.md
-chapter2/chapter2.md
-chapter3/chapter3.md
-chapter4/chapter4.md
-chapter5/chapter5.md
+book/chapter0/chapter0.md
+book/chapter2/chapter2.md
+book/chapter3/chapter3.md
+book/chapter4/chapter4.md
+book/chapter5/chapter5.md
 into book.pdf
 ```
 

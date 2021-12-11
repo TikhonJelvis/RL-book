@@ -3,14 +3,12 @@ import numpy as np
 VSML = 1e-8
 
 
-# noinspection PyShadowingNames,PyShadowingNames
 def get_logistic_func(alpha: float) -> Callable[[float], float]:
-    return lambda x, alpha=alpha: 1. / (1 + np.exp(-alpha * x))
+    return lambda x: 1. / (1 + np.exp(-alpha * x))
 
 
-# noinspection PyShadowingNames,PyShadowingNames
 def get_unit_sigmoid_func(alpha: float) -> Callable[[float], float]:
-    return lambda x, alpha=alpha: 1. / (1 + (1 / np.where(x == 0, VSML, x) - 1) ** alpha)
+    return lambda x: 1. / (1 + (1 / np.where(x == 0, VSML, x) - 1) ** alpha)
 
 
 if __name__ == '__main__':

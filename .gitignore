@@ -16,3 +16,6 @@ __pycache__
 *.dvi
 *.log
 *.out.ps
+latex/Alon.cls
+latex/epigrafica.sty
+lgrenc.def

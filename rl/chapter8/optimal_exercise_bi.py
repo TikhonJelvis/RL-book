@@ -197,7 +197,7 @@ if __name__ == '__main__':
 
     ident: np.ndarray = np.eye(num_laguerre)
     ffs: List[Callable[[NonTerminal[float]], float]] = [lambda _: 1.]
-    ffs += [(lambda s: np.log(1 + np.exp(-s.state / (2 * strike))) *
+    ffs += [(lambda s, i=i: np.log(1 + np.exp(-s.state / (2 * strike))) *
             lagval(s.state / strike, ident[i]))
             for i in range(num_laguerre)]
     it_vf = opt_ex_bi.backward_induction_vf_and_pi(

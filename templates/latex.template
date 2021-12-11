@@ -1,16 +1,32 @@
 %!TEX TS-program = xelatex
-\documentclass[12pt]{scrbook}
+$if(tf-format)$
+\documentclass[10pt]{Alon}
+$else$
+\documentclass[10pt]{scrbook}
+$endif$
 
 % -- We are in swanky unicode, XeTeX land, and must now import these packages:
 \usepackage{fontspec,xltxtra,xunicode}
 % fontspec means we can specify pretty much any font.
 % Because we are using XeTeX material,
-% this template needs to be called with the `--xetex` flag. 
+% this template needs to be called with the `--xetex` flag.
 
+\usepackage{url}
+$if(tf-format)$
+% Disable hyperref because it doesn't play well with Alon.cls
+\usepackage{nohyperref}
+$else$
+\usepackage[breaklinks=true]{hyperref}
+\hypersetup{colorlinks,%
+citecolor=blue,%
+filecolor=blue,%
+linkcolor=blue,%
+urlcolor=blue}
+$endif$
 
-% Symbols: 
-% Pandoc imports the extensive `amsmath` collection of symbols 
-% for typesetting ordinary math.  
+% Symbols:
+% Pandoc imports the extensive `amsmath` collection of symbols
+% for typesetting ordinary math.
 \usepackage{amsmath}
 \usepackage{amssymb}
 \usepackage{bm}
@@ -22,6 +38,8 @@
 \usepackage{amsthm}
 \usepackage{pifont}
 
+\usepackage{longtable}
+
 \newtheorem{theorem}{Theorem}[section]
 \newtheorem{corollary}{Corollary}[theorem]
 \newtheorem{lemma}[theorem]{Lemma}
@@ -30,22 +48,11 @@
 \theoremstyle{remark}
 \newtheorem*{remark}{Remark}
 
-% `babel`: 
-% The `babel` package, among other things, lets you determine what 
-% language you are using in a given stretch of text, so that typesetting 
+% `babel`:
+% The `babel` package, among other things, lets you determine what
+% language you are using in a given stretch of text, so that typesetting
 % will go well. Here we specify that mostly, we are speaking English:
 \usepackage[english]{babel}
-
-
-% Margins, etc:
-% the `geometry` package makes for convenient adjusting of margins, which is what
-% you asked about.  Of course it can do much more, even make coffee for you:
-\usepackage{geometry}
-\geometry{verbose,letterpaper,tmargin=2cm,bmargin=2.5cm,lmargin=3.25cm,rmargin=3.75cm}
-% so if you just keep a copy of this template in the directory you are working in, you
-% can adjust the margins by going into this file and messing with the margins.
-% the syntax is very unforgiving, but permits 3cm and 2.5in and some other things.
-
 
 \providecommand{\tightlist}{%
   \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
@@ -53,11 +60,40 @@
 % Font:
 \setmainfont{TeX Gyre Pagella}
 
+%% On macOS, we need to reference fonts installed by Nix via their
+%% path.
+%%
+%% The nix-shell for this project puts that path into the
+%% DEJA_VU_DIRECTORY environment variable, which we can read with
+%% \CatchFileDef
+%%
+%% See: https://tex.stackexchange.com/questions/62010/can-i-access-system-environment-variables-from-latex-for-instance-home
+\usepackage{xparse}
+\ExplSyntaxOn
+\NewDocumentCommand{\getenv}{om}
+ {
+  \sys_get_shell:nnN { kpsewhich ~ --var-value ~ #2 } { } \l_tmpa_tl
+  \tl_trim_spaces:N \l_tmpa_tl
+  \IfNoValueTF { #1 }
+   {
+    \tl_use:N \l_tmpa_tl
+   }
+   {
+    \tl_set_eq:NN #1 \l_tmpa_tl
+   }
+ }
+\ExplSyntaxOff
+
 % Properly one should specify a sanserif font and a monospace font
 % see e.g. the example of Kieran Healy:
-%% \setromanfont[Mapping=tex-text,Numbers=OldStyle]{Minion Pro} 
-%% \setsansfont[Mapping=tex-text]{Minion Pro} 
-\setmonofont[Mapping=tex-text,Scale=0.8]{DejaVu Sans Mono}
+%% \setromanfont[Mapping=tex-text,Numbers=OldStyle]{Minion Pro}
+%% \setsansfont[Mapping=tex-text]{Minion Pro}
+\getenv[\DEJAVU]{DEJA_VU_DIRECTORY}
+\setmonofont{DejaVuSansMono}[
+  Mapping=tex-text,
+  Path=\DEJAVU,
+  Extension=.ttf,
+  Scale=0.8]
 
 % Heading styles:
 % These commands keep the koma system from making stupid sans serif section headings
@@ -67,145 +103,66 @@
 
 
 
-% I'm puzzled why I have this foonote speciality, 
+% I'm puzzled why I have this foonote speciality,
 % I wonder if it's part of my problem I've been having, but wont look
-% into it now. 
-\usepackage[flushmargin]{footmisc} 
+% into it now.
+\usepackage[flushmargin]{footmisc}
 % \usepackage[hang,flushmargin]{footmisc}
 
 % Paragraph format:
 % Pandoc prefers unindented paragraphs in the European style:
 %% \setlength{\parindent}{0pt}
-%  ... with paragraph breaks marked by a slight lengthening of 
+%  ... with paragraph breaks marked by a slight lengthening of
 % the space between paragraphs:
 %% \setlength{\parskip}{6pt plus 2pt minus 1pt}
 
 % Page format:
 \pagestyle{plain}
 
-% Footnotes
-% if you have code in your footnotes, the million macro march 
-% kind of bumps into itself.
-% Pandoc, having just rendered your text into LaTeX, 
-% knows whether the 'variable' `verbatim-in-note` is True, and 
-% If it is, it asks for a  LaTeX package that solves the dilemma:
-$if(verbatim-in-note)$
 \usepackage{fancyvrb}
-$endif$
+% \baselineskip controls the height of blank lines in code blocks
+\DefineVerbatimEnvironment{Highlighting}{Verbatim}{
+  commandchars=\\\{\},
+  baselinestretch=0.75
+}
 
-% Lists formatting: 
-% note sure what 'fancy enums' are; something to do with lists, 
-% as the further comment suggests: 
-$if(fancy-enums)$
-% -- Redefine labelwidth for lists; otherwise, the enumerate package will cause
-% -- markers to extend beyond the left margin.
-\makeatletter\AtBeginDocument{%
-  \renewcommand{\@listi}
-    {\setlength{\labelwidth}{4em}}
-}\makeatother
-\usepackage{enumerate}
-$endif$
-
-
-% Table formatting: 
-% What if you make a table? -- Pandoc knows, of course, and 
-% then declares that its  variable `table` is True and 
-% imports a table package suitable to its pleasantly simple tables. 
-% Needless to say infinitely   complicated tables are possible in 
-% LaTeX with suitable packages. We are spared the temptation:
-
-$if(tables)$
-\usepackage{array}
-
-% Continuing on the topic of tables ... (we havent reached `endif`). 
-% The commented out line below is in the default pandoc  latex.template.
-% Some unpleasantness with table formatting must be corrected.
-
-% -- This is needed because raggedright in table elements redefines \\:
-\newcommand{\PreserveBackslash}[1]{\let\temp=\\#1\let\\=\temp}
-\let\PBS=\PreserveBackslash
-
-$endif$
-
-
-% Subscripts:
-% Pandoc remembers whether you used subscripts, assigning True to 
-% its `subscript` variable 
-% It then needs to adopt a default with an incantation like this:
-$if(subscript)$
-\newcommand{\textsubscr}[1]{\ensuremath{_{\scriptsize\textrm{#1}}}}
-$endif$
-
-
-% Web-style links:
-
-% markdown inclines us to use links, since our texts can be made into html. 
-% Why not have clickable blue links even in 
-% learned, scientific, religious, juridical, poetical and other suchlike texts? 
-% Never mind that they have been proven to destroy the nervous system!
-
-% First, what about the fact that links like http://example.com are 
-% technically code and thus must not be broken across lines? 
-% [breaklinks=true] to the rescue!
-
-% Nowadays LaTeX can handle all of this with another half million macros:
-
-\usepackage[breaklinks=true]{hyperref}
-\hypersetup{colorlinks,%
-citecolor=blue,%
-filecolor=blue,%
-linkcolor=blue,%
-urlcolor=blue}
-$if(url)$
-\usepackage{url}
-$endif$
-
-
-
-% Images. 
-% In ye olde LaTeX one could only import a limited range of image
-% types, e.g. the forgotten .eps files.  Or else one simply drew the image with suitable
-% commands and drawing packages.  Today we want to import .jpg files we make with 
-% our smart phones or whatever:
-
-$if(graphics)$
-\usepackage{graphicx}
-% -- We will generate all images so they have a width \maxwidth. This means
-% -- that they will get their normal width if they fit onto the page, but
-% -- are scaled down if they would overflow the margins.
+%% Make blank lines in verbatim blocks shorter—easier to read and code
+%% samples take up less space
+%%
+%% From: https://tex.stackexchange.com/questions/554656/display-blank-lines-at-half-height-in-fancyvrb-verbatim-environment 
 \makeatletter
-\def\maxwidth{\ifdim\Gin@nat@width>\linewidth\linewidth
-\else\Gin@nat@width\fi}
+\newif\if@FV@emptyline
+
+\begingroup
+\catcode`\^^M=\active%
+\gdef\FancyVerbGetLine#1^^M{%
+  \@nil%
+  \FV@CheckEnd{#1}%
+  %% modification begin
+  \if@FV@emptyline
+    \vskip-.5\baselineskip
+  \fi
+  %% modification end
+  \ifx\@tempa\FV@EnvironName%            % True if end is found
+    \ifx\@tempb\FV@@@CheckEnd\else\FV@BadEndError\fi%
+    \let\next\FV@EndScanning%
+  \else%
+    \def\FV@Line{#1}%
+    %% modification begin
+    \ifx\FV@Line\@empty
+      \global\@FV@emptylinetrue
+    \else
+      \global\@FV@emptylinefalse
+    \fi
+    %% modification end
+    \def\next{\FV@PreProcessLine\FV@GetLine}%
+  \fi%
+  \next}%
+\endgroup
 \makeatother
-\let\Oldincludegraphics\includegraphics
-\renewcommand{\includegraphics}[1]{\Oldincludegraphics[width=\maxwidth]{#1}}
-$endif$
 
-% Section numbering.
-% Here again is a variable you can specify on the commandline
-% `markdown2pdf my.txt --number-sections --xetex --template=/wherever/this/is -o my.pdf`
-$if(numbersections)$
-$else$
-\setcounter{secnumdepth}{0}
-$endif$
-
-% Footnotes: 
-% Wait, didn't we already discuss the crisis of code in footnotes?  
-% Evidently the order of unfolding of macros required that
-% we import a package to deal with them earlier
-% and issue a command it defines now. (Or maybe that's not the reason;
-% very often the order does matter as the insane system of macro expansion
-% must take place by stages.)
-$if(verbatim-in-note)$
-\VerbatimFootnotes % -- allows verbatim text in footnotes
-$endif$
-
-% A big blob of definitions from Pandoc's standard template.
+% Syntax highlighting
 \usepackage{color}
-\usepackage{fancyvrb}
-\newcommand{\VerbBar}{|}
-\newcommand{\VERB}{\Verb[commandchars=\\\{\}]}
-\DefineVerbatimEnvironment{Highlighting}{Verbatim}{commandchars=\\\{\}}
 \newenvironment{Shaded}{}{}
 \newcommand{\AlertTok}[1]{\textcolor[rgb]{1.00,0.00,0.00}{\textbf{#1}}}
 \newcommand{\AnnotationTok}[1]{\textcolor[rgb]{0.38,0.63,0.69}{\textbf{\textit{#1}}}}
@@ -238,15 +195,140 @@ $endif$
 \newcommand{\VariableTok}[1]{\textcolor[rgb]{0.10,0.09,0.49}{#1}}
 \newcommand{\VerbatimStringTok}[1]{\textcolor[rgb]{0.25,0.44,0.63}{#1}}
 \newcommand{\WarningTok}[1]{\textcolor[rgb]{0.38,0.63,0.69}{\textbf{\textit{#1}}}}
+
+\newcommand{\VerbBar}{|}
+\newcommand{\VERB}{\Verb[commandchars=\\\{\}]}
+
+
+% Lists formatting:
+% note sure what 'fancy enums' are; something to do with lists,
+% as the further comment suggests:
+$if(fancy-enums)$
+% -- Redefine labelwidth for lists; otherwise, the enumerate package will cause
+% -- markers to extend beyond the left margin.
+\makeatletter\AtBeginDocument{%
+  \renewcommand{\@listi}
+    {\setlength{\labelwidth}{4em}}
+}\makeatother
+\usepackage{enumerate}
+$endif$
+
+% Table formatting:
+% What if you make a table? -- Pandoc knows, of course, and
+% then declares that its  variable `table` is True and
+% imports a table package suitable to its pleasantly simple tables.
+% Needless to say infinitely   complicated tables are possible in
+% LaTeX with suitable packages. We are spared the temptation:
+
+$if(tables)$
+\usepackage{array}
+
+% Continuing on the topic of tables ... (we havent reached `endif`).
+% The commented out line below is in the default pandoc  latex.template.
+% Some unpleasantness with table formatting must be corrected.
+
+% -- This is needed because raggedright in table elements redefines \\:
+\newcommand{\PreserveBackslash}[1]{\let\temp=\\#1\let\\=\temp}
+\let\PBS=\PreserveBackslash
+$endif$
+
+$if(csl-refs)$
+\newlength{\cslhangindent}
+\setlength{\cslhangindent}{1.5em}
+\newlength{\csllabelwidth}
+\setlength{\csllabelwidth}{3em}
+\newlength{\cslentryspacingunit} % times entry-spacing
+\setlength{\cslentryspacingunit}{\parskip}
+\newenvironment{CSLReferences}[2] % #1 hanging-ident, #2 entry spacing
+ {% don't indent paragraphs
+  \setlength{\parindent}{0pt}
+  % turn on hanging indent if param 1 is 1
+  \ifodd #1
+  \let\oldpar\par
+  \def\par{\hangindent=\cslhangindent\oldpar}
+  \fi
+  % set entry spacing
+  \setlength{\parskip}{#2\cslentryspacingunit}
+ }%
+ {}
+\usepackage{calc}
+\newcommand{\CSLBlock}[1]{#1\hfill\break}
+\newcommand{\CSLLeftMargin}[1]{\parbox[t]{\csllabelwidth}{#1}}
+\newcommand{\CSLRightInline}[1]{\parbox[t]{\linewidth - \csllabelwidth}{#1}\break}
+\newcommand{\CSLIndent}[1]{\hspace{\cslhangindent}#1}
+$endif$
+$if(natbib)$
+\usepackage[$natbiboptions$]{natbib}
+\bibliographystyle{$if(biblio-style)$$biblio-style$$else$plainnat$endif$}
+$endif$
+$if(biblatex)$
+\usepackage[$if(biblio-style)$style=$biblio-style$,$endif$$for(biblatexoptions)$$biblatexoptions$$sep$,$endfor$]{biblatex}
+$for(bibliography)$
+\addbibresource{$bibliography$}
+$endfor$
+$endif$
+$if(nocite-ids)$
+\nocite{$for(nocite-ids)$$it$$sep$, $endfor$}
+$endif$
+$if(csquotes)$
+\usepackage{csquotes}
+$endif$
+
+
+% Subscripts:
+% Pandoc remembers whether you used subscripts, assigning True to
+% its `subscript` variable
+% It then needs to adopt a default with an incantation like this:
+$if(subscript)$
+\newcommand{\textsubscr}[1]{\ensuremath{_{\scriptsize\textrm{#1}}}}
+$endif$
+
+% Images.
+% In ye olde LaTeX one could only import a limited range of image
+% types, e.g. the forgotten .eps files.  Or else one simply drew the image with suitable
+% commands and drawing packages.  Today we want to import .jpg files we make with
+% our smart phones or whatever:
+
+\usepackage{graphicx}
+% -- We will generate all images so they have a width \maxwidth. This means
+% -- that they will get their normal width if they fit onto the page, but
+% -- are scaled down if they would overflow the margins.
+\makeatletter
+\def\maxwidth{\ifdim\Gin@nat@width>\linewidth\linewidth
+\else\Gin@nat@width\fi}
+\makeatother
+\let\Oldincludegraphics\includegraphics
+\renewcommand{\includegraphics}[1]{\Oldincludegraphics[width=\maxwidth]{#1}}
+
+% Section numbering.
+% Here again is a variable you can specify on the commandline
+% `markdown2pdf my.txt --number-sections --xetex --template=/wherever/this/is -o my.pdf`
+$if(numbersections)$
+$else$
+\setcounter{secnumdepth}{0}
+$endif$
+
+% Footnotes:
+% Wait, didn't we already discuss the crisis of code in footnotes?
+% Evidently the order of unfolding of macros required that
+% we import a package to deal with them earlier
+% and issue a command it defines now. (Or maybe that's not the reason;
+% very often the order does matter as the insane system of macro expansion
+% must take place by stages.)
+$if(verbatim-in-note)$
+\VerbatimFootnotes % -- allows verbatim text in footnotes
+$endif$
+
+% A big blob of definitions from Pandoc's standard template.
 \usepackage{graphicx}
 
 \usepackage{titling}
 
-\pretitle{\begin{flushright}\LARGE\sffamily\bfseries}
-\posttitle{\par\end{flushright}}
+%% \pretitle{\begin{flushright}\LARGE\sffamily\bfseries}
+%% \posttitle{\par\end{flushright}}
 
-\preauthor{\begin{flushright}\sffamily\bfseries}
-\postauthor{\end{flushright}}
+%% \preauthor{\begin{flushright}\sffamily\bfseries}
+%% \postauthor{\end{flushright}}
 
 \predate{}
 \postdate{}
@@ -294,25 +376,9 @@ $endif$
 \newcommand{\cmark}{\ding{51}}
 \newcommand{\xmark}{\ding{55}}
 
-% At last: 
-% The document itself!:
 
-% After filling in all these blanks above, or erasing them 
-% where they are not needed, Pandoc has finished writing the 
-% famous LaTeX *preamble* for your document.
-% Now comes the all-important command \begin{document}
-% which as you can see, will be paired with an \end{document} at the end.
-% Pandoc knows whether you have a title, and has already
-% specified what it is; if so, it demands that the title be rendered.  
-% Pandoc knows whether you want a table of contents, you
-% specify this on the command line.
-% Then, after fiddling with alignments, there comes the real
-% business: pandoc slaps its rendering of your text in the place of
-% the variable `body`
-% It then concludes the document it has been writing. 
-
+%% Document structure and body content
 \begin{document}
-
 
 $if(title)$
 \maketitle
@@ -320,9 +386,7 @@ $endif$
 
 $if(toc)$
 \tableofcontents
-
 $endif$
-
 
 $if(alignment)$
 \begin{$alignment$}
@@ -330,9 +394,16 @@ $endif$
 
 $body$
 
-%$if(alignment)$
+$if(alignment)$
 \end{$alignment$}
 $endif$
 
+$if(biblatex)$
+\printbibliography$if(biblio-title)$[title=$biblio-title$]$endif$
+$endif$
 
+$for(include-after)$
+$include-after$
+
+$endfor$
 \end{document}

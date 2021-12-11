@@ -172,9 +172,6 @@ class FiniteMarkovDecisionProcess(MarkovDecisionProcess[S, A]):
 
         return FiniteMarkovRewardProcess(transition_mapping)
 
-    def action_mapping(self, state: NonTerminal[S]) -> ActionMapping[A, S]:
-        return self.mapping[state]
-
     def actions(self, state: NonTerminal[S]) -> Iterable[A]:
         '''All the actions allowed for the given state.
 
