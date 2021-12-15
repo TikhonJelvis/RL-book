@@ -547,6 +547,10 @@ That's a 53× difference!
     [0, 2, 4, 6, 8]
     ```
 
-    Some combination of `for` and `if` clauses can let us build surprisingly complicated lists! Comprehensions will usually be easier to read than loops—a loop could be doing *anything*, a comprehension is always creating a list—but it's always a judgement call. A couple of nested for loops might be easier to read than a sufficiently convoluted comprehension with too many `for` and `if` clauses!
+    Some combination of `for` and `if` clauses can let us build surprisingly complicated lists! Comprehensions will often be easier to read than loops—a loop could be doing *anything*, a comprehension is always creating a list—but it's always a judgement call. A couple of nested for loops might be easier to read than a sufficiently convoluted comprehension!
+
+### Abstracting over Computation
+
+So far, we've seen how we can build up a programming model for our domain by defining interfaces like `Distribution` and writing classes like `Die` that implement these interfaces. Classes give us a way to talk about the "nouns" in our domain while methods and functions provide "verbs". However...
 
 [^timing]: This code uses the [`timeit`](https://docs.python.org/3/library/timeit.html) module from Python's standard library, which provides a simple way to benchmark small bits of Python code. By default, it measures how long it takes to execute 1,000,000 iterations of the function in seconds, so the two examples here took 0.293ms and 0.006ms respectively.
