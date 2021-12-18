@@ -2,7 +2,7 @@
 $if(tf-format)$
 \documentclass[10pt]{Alon}
 $else$
-\documentclass[10pt]{scrbook}
+\documentclass[11t]{scrbook}
 $endif$
 
 % -- We are in swanky unicode, XeTeX land, and must now import these packages:
@@ -11,9 +11,9 @@ $endif$
 % Because we are using XeTeX material,
 % this template needs to be called with the `--xetex` flag.
 
+%% disable hyperref and geometry, which interfere with Alon.cls
 \usepackage{url}
 $if(tf-format)$
-% Disable hyperref because it doesn't play well with Alon.cls
 \usepackage{nohyperref}
 $else$
 \usepackage[breaklinks=true]{hyperref}
@@ -22,6 +22,9 @@ citecolor=blue,%
 filecolor=blue,%
 linkcolor=blue,%
 urlcolor=blue}
+
+\usepackage{geometry}
+\geometry{verbose,letterpaper,tmargin=2cm,bmargin=2.5cm,lmargin=3.25cm,rmargin=3.75cm}
 $endif$
 
 % Symbols:
