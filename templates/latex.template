@@ -2,7 +2,7 @@
 $if(tf-format)$
 \documentclass[10pt]{Alon}
 $else$
-\documentclass[12pt]{scrbook}
+\documentclass[11t]{scrbook}
 $endif$
 
 % -- We are in swanky unicode, XeTeX land, and must now import these packages:
