@@ -715,7 +715,10 @@ For all $(s_r, s_c) \in \mathcal{N}$, for all $(a_r,a_c) \in \mathcal{A}((s_r,s_
 $$\mathcal{P}_R((s_r,s_c),(a_r,a_c),-1,(s_r + a_r,s_c + a_c)) = 1$$
 
 For all $(s_r, s_c) \in \mathcal{N}$, for all $(a_r,a_c) \in \mathcal{A}((s_r,s_c))$, if $(s_r + a_r, s_c + a_c) \in \mathcal{N}$, then:
-$$\mathcal{P}_R((s_r,s_c),(a_r,a_c),-1-b,(s_r + a_r,s_c + a_c)) = p_{1,s_c + a_c} \cdot \mathbb{I}_{(s_r + a_r - 1, s_c + a_c) \notin \mathcal{S}} + p_{2,s_c + a_c} \cdot \mathbb{I}_{(s_r + a_r + 1, s_c + a_c) \notin \mathcal{S}}$$
+\begin{multline*}
+\mathcal{P}_R((s_r,s_c),(a_r,a_c),-1-b,(s_r + a_r,s_c + a_c)) \\
+= p_{1,s_c + a_c} \cdot \mathbb{I}_{(s_r + a_r - 1, s_c + a_c) \notin \mathcal{S}} + p_{2,s_c + a_c} \cdot \mathbb{I}_{(s_r + a_r + 1, s_c + a_c) \notin \mathcal{S}}
+\end{multline*}
 $$\mathcal{P}_R((s_r,s_c),(a_r,a_c),-1,(s_r + a_r - 1,s_c + a_c)) = p_{1,s_c + a_c} \cdot \mathbb{I}_{(s_r + a_r - 1, s_c + a_c) \in \mathcal{S}}$$
 $$\mathcal{P}_R((s_r,s_c),(a_r,a_c),-1,(s_r + a_r + 1,s_c + a_c)) = p_{2,s_c + a_c} \cdot \mathbb{I}_{(s_r + a_r + 1, s_c + a_c) \in \mathcal{S}}$$
 $$\mathcal{P}_R((s_r,s_c),(a_r,a_c),-1,(s_r + a_r,s_c + a_c)) = 1 - p_{1,s_c + a_c} - p_{2,s_c + a_c}$$
