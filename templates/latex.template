@@ -24,7 +24,7 @@ linkcolor=blue,%
 urlcolor=blue}
 
 \usepackage{geometry}
-\geometry{verbose,letterpaper,tmargin=2cm,bmargin=2.5cm,lmargin=3.25cm,rmargin=3.75cm}
+\geometry{verbose,letterpaper,tmargin=2cm,bmargin=2.5cm,lmargin=3cm,rmargin=3.5cm}
 $endif$
 
 % Symbols:
