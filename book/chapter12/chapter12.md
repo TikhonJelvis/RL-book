@@ -892,7 +892,7 @@ $$\bpi = \bphi \cdot (\bphi^T \cdot \bd \cdot \bphi)^{-1} \cdot \bphi^T \cdot \b
 
 #### Vectors of interest in the $\bphi$ subspace
 
-In this section, we cover 4 Value Function vectors of interest in the $\bphi$ subspace, as candidate linear function approximations of the Value Function $\bvpi$. To lighten notation, we will refer to the $\bphi$-subspace Value Function vectors by their corresponding weights $\bw$. All 4 of these Value Function vectors are depicted in Figure \ref{fig:vf_geometry}. We spend the rest of this section, going over these 4 Value Function vectors in detail.
+In this section, we cover 4 Value Function vectors of interest in the $\bphi$ subspace, as candidate linear function approximations of the Value Function $\bvpi$. To lighten notation, we will refer to the $\bphi$-subspace Value Function vectors by their corresponding weights $\bw$. All 4 of these Value Function vectors are depicted in Figure \ref{fig:vf_geometry}, an image we are borrowing from [Sutton and Barto's RL book](http://incompleteideas.net/book/the-book-2nd.html) [@Sutton1998]. We spend the rest of this section, going over these 4 Value Function vectors in detail.
 
 ![Value Function Geometry \label{fig:vf_geometry}](./chapter12/vf_geometry.jpg "Value Function Geometry")
 
