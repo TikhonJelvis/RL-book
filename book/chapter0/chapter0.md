@@ -29,7 +29,7 @@ Here is what you will specifically learn and gain from the book:
  
 * We treat each of the above problems as MDPs (i.e., Optimal Decisioning formulations), first going over classical/analytical solutions to these problems, then introducing real-world frictions/considerations, and tackling with DP and/or RL.
 * As a bonus, we throw in a few applications beyond Finance, including a couple from Supply-Chain and Clearance Pricing in a Retail business. 
-* We implement a wide range of Algorithms and develop various models in [this git code base](https://github.com/TikhonJelvis/RL-book) that we refer to and explain in detail throughout the book. This code base not only provides detailed clarity on the algorithms/models, but also serves to educate on healthy programming patterns suitable not just for RL, but more generally for any Applied Mathematics work.
+* We implement a wide range of Algorithms and develop various models in [a git code base](https://github.com/TikhonJelvis/RL-book) that we refer to and explain in detail throughout the book. This code base not only provides detailed clarity on the algorithms/models, but also serves to educate on healthy programming patterns suitable not just for RL, but more generally for any Applied Mathematics work.
 * In summary, this book blends Theory/Mathematics, Programming/Algorithms and Real-World Financial Nuances while always keeping things simple and intuitive.
 
 ### Expected Background to read this Book
