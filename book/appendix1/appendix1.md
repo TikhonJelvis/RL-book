@@ -1,6 +1,6 @@
 \appendix
 
-# Appendix
+# Appendix {.unnumbered}
 
 ## Moment Generating Function and its Applications {#sec:mgf-appendix}
 

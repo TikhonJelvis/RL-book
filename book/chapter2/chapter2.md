@@ -707,9 +707,8 @@ Since we commonly assume Stationarity of Markov Processes, we shall also (by def
 With the default assumption of stationarity, the transition probabilities of a Markov Reward Process can be expressed as a transition probability function:
 $$\mathcal{P}_R: \mathcal{N} \times \mathcal{D} \times \mathcal{S} \rightarrow [0,1]$$
 defined as:
-$$\mathcal{P}_R(s,r,s') = \mathbb{P}[(R_{t+1}=r, S_{t+1}=s') | S_t=s] \text{ for time steps } t= 0, 1, 2, \ldots, \text{ for all } s \in \mathcal{N}, r \in \mathcal{D}, s' \in \mathcal{S}$$
-such that
-$$\sum_{s'\in \mathcal{S}} \sum_{r \in \mathcal{D}} \mathcal{P}_R(s,r,s') = 1 \text{ for all } s \in \mathcal{N}$$
+$$\mathcal{P}_R(s,r,s') = \mathbb{P}[(R_{t+1}=r, S_{t+1}=s') | S_t=s] \text{ for time steps } t= 0, 1, 2, \ldots,$$
+$$\text{for all } s \in \mathcal{N}, r \in \mathcal{D}, s' \in \mathcal{S}, \text{ such that } \sum_{s'\in \mathcal{S}} \sum_{r \in \mathcal{D}} \mathcal{P}_R(s,r,s') = 1 \text{ for all } s \in \mathcal{N}$$
 
 The subsection on *Start States* we had covered for Markov Processes naturally applies to Markov Reward Processes as well. So we won't repeat the section here, rather we simply highlight that when it comes to simulations, we need a separate specification of the probability distribution of start states. Also, by inheriting from our framework of Markov Processes, we model the notion of a "process termination" by explicitly specifying states as terminal states or non-terminal states. The sequence $S_0, R_1, S_1, R_2, S_2, \ldots$ terminates at time step $t=T$ if $S_T \in \mathcal{T}$, with $R_T$ being the final reward in the sequence.
 
