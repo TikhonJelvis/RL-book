@@ -441,7 +441,7 @@ This lets us write specialized functions that only work with certain kinds of di
 ``` python
 import statistics
 
-def expected_value(d: Distribution[float], n: int) -> float:
+def expected_value(d: Distribution[float], n: int = 100) -> float:
     return statistics.mean(d.sample() for _ in range(n))
 ```
 
@@ -551,6 +551,80 @@ That's a 53× difference!
 
 ### Abstracting over Computation
 
-So far, we've seen how we can build up a programming model for our domain by defining interfaces like `Distribution` and writing classes like `Die` that implement these interfaces. Classes give us a way to talk about the "nouns" in our domain while methods and functions provide "verbs". However...
+So far, we've seen how we can build up a programming model for our domain by defining interfaces (like `Distribution`) and writing classes (like `Die`) that implement these interfaces. Classes and interfaces give us a way to model the "things" in our domain, but, in an area like reinforcement learning, "things" aren't enough: we also want some way to abstract over the *actions* that we're taking or the computation that we're performing.
+
+Classes do give us one way to model behavior: methods. A common analogy is that objects act as "nouns" and methods act as "verbs"—methods are the actions we can take with an object. This is a useful capability that lets us abstract over doing the same kind of action on different sorts of objects. Our `sample_n` method, for example, can have a single implementation but works for different distributions that could implement sampling in totally different ways. Since `sample_n` itself is a method on `Distribution` we also have the option to provide more efficient implementations of `sample_n` if they make sense for specific types of distribution.
+
+So if methods are our "verbs", what else do we need? While methods abstract over actions, they do this *indirectly*—we can talk about objects as standalone values, but we can only use methods *on* objects, with no way to talk about computation itself. Stretching the metaphor with grammar, it's like having verbs without infinitives or gerunds—we'd be able to talk about "somebody skiing", but not about "skiing" itself or somebody "planning to ski"!
+
+In this world, "nouns" (objects) are **first-class citizens** but "verbs" (methods) aren't. What it takes to be a "first-class" value in a programming language is a fuzzy concept; a reasonable litmus test is whether we can pass a value to a function or store it in a data structure. We can do this with objects, but it's not clear what this would mean for methods.
+
+#### First-Class Functions
+
+If we didn't have a first-class way to talk about actions (as opposed to objects), one way we could work around this would be to represent functions *as* objects with a single method. We'd be able to pass them around just like normal values and, when we needed to actually perform the action or computation, we'd just call the object's method. This solution shows us that it makes sense to have a first-class way to work with actions, but it requires an extra layer of abstraction (an object just to have a single method) which doesn't add anything substantial on its own while making our intentions less clear.
+
+Luckily, we don't have to resort to a one-method object pattern in Python because Python has **first-class functions**: functions are already values that we can pass around and store, without needing a separate wrapper object.
+
+First-class functions give us a new way to abstract over computation. Methods let us talk about the same kind of behavior for different objects; first-class functions let us doing something *with* different actions. A simple example might be repeating the same action `n` times. Without an abstraction, we might do this with a `for` loop:
+
+``` python
+for _ in range(10):
+    do_something()
+```
+
+Instead of writing a loop each time, we could factor this logic into a function that took `n` *and* `do_something` as arguments:
+
+``` python
+def repeat(action: Callable, n: int):
+    for _ in range(n):
+        action()
+
+repeat(do_something, 10)
+```
+
+`repeat` takes `action`  and `n` as arguments, then calls `action` `n` times. `action` has the type `Callable` which, in Python, covers functions as well as any other objects you can call with the `f()` syntax. We can also specify the return type and arguments a `Callable` should have; if we wanted the type of a function that took an `int` and a `str` as input and returned a `bool`, we would write `Callable[[int, str], bool]`.
+
+The version with the `repeat` function makes our intentions clear in the code. A `for` loop can do many different things, while `repeat` will always just repeat. It's not a big difference in this case—the `for` loop version is sufficiently easy to read that it's not a big impediment—but it becomes more important with complex or domain-specific logic.
+
+Let's take a look at the `expected_value` function we defined earlier:
+
+``` python
+def expected_value(d: Distribution[float], n: int) -> float:
+    return statistics.mean(d.sample() for _ in range(n))
+```
+
+We had to restrict this function to `Distribution[float]` because taking it only makes sense to take an expectation of a numeric outcome. But what if we have something else like a coin flip? We would still like some way to understand the expectation of the distribution, but to make that meaningful we'd need to have some mapping from outcomes (`"heads"` or `"tails"`) to numbers. (For example, we could say `"heads"` is `1` and `"tails"` is `0`.) We could do this by taking our `Coin` distribution, converting it to a `Distribution[float]` and calling `expected_value` on that, but this might be inefficient and it's certainly awkward. An alternative would be to provide the mapping as an argument to the `expected_value` function:
+
+``` python
+def expected_value(d: Distribution[A], f: Callable[[A], float], n: int) -> float:
+    return statistics.mean(f(d.sample()) for _ in range(n))
+```
+
+The implementation of `expected_value` has barely changed—it's the same `mean` calculation as previously, except we apply `f` to each outcome. This small change, however, has made the function far more flexible: we can now call `expected_value` on *any* sort of `Distribution`, not just `Distribution[float]`.
+
+Going back to our coin example, we could use it like this:
+
+``` python
+def payoff(coin: Coin) -> float:
+    return 1.0 if coin == "heads" else 0.0
+
+expected_value(coin_flip, payoff)
+```
+
+The `payoff` function maps outcomes to numbers and then we calculate the expected value using that mapping.
+
+We'll see first-class functions used in a number of places throughout the book; the key idea to remember is that *functions are values* that we can pass around or store just like any other object.
+
+##### Lambdas
+
+`payoff` itself is a pretty reasonable function: it has a clear name and works as a standalone concept. Often, though, we want to use a first-class function in some specific context where giving the function a name is not needed or even distracting. Even in cases with reasonable names like `payoff`, it might not be worth introducing an extra named function if it will only be used in one place.
+
+Luckily, Python gives us an alternative: `lambda`. Lambdas are function literals. We can write `3.0` and get a number without giving it a name, and we can write a `lambda` expression to get a function without giving it a name. Here's the same example as with the `payoff` function but using a `lambda` instead:
+
+``` python
+expected_value(coin_flip, lambda coin: 1.0 if coin == "heads" else 0.0)
+```
+
+The `lambda` expression here behaves exactly the same as `def payoff` did in the earlier version. Note how the lambda as a single expression with no `return`—if you ever need multiple statements in a function, you'll have to use a `def` instead of a `lambda`. In practice, lambdas are great for functions whose bodies are *short* expressions, but anything that's too long or complicated will read better as a standalone function `def`.
 
 [^timing]: This code uses the [`timeit`](https://docs.python.org/3/library/timeit.html) module from Python's standard library, which provides a simple way to benchmark small bits of Python code. By default, it measures how long it takes to execute 1,000,000 iterations of the function in seconds, so the two examples here took 0.293ms and 0.006ms respectively.
