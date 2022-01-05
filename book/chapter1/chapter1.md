@@ -33,7 +33,7 @@ We want to organize code around abstractions for the same reason that we use abs
 
 The details may differ, but designing code around abstractions that correspond to a solid mental model of the domain works well in any area and with any programming language. It might take some extra up-front thought but, done well, this style of design pays dividends. Our goal is to write code that makes life easier *for ourselves*; this helps for everything from "one-off" experimental code through software engineering efforts with large teams.
 
-### Probability
+### Classes and Interfaces
 
 But what does designing clean abstractions actually entail? There are always two parts to answering this question:
 
@@ -427,7 +427,7 @@ class Distribution(ABC, Generic[A]):
         pass
 ```
 
-In this code, we've defined a type variable `A`[^type-variable-names] and used `Generic[A]` to specify that `Distribution` uses this variable. We can now write type annotations for distributions *with specific types of outcomes*: for example, `Die` would be an instance of `Distribution[int]` since the outcome of a die roll is always an `int`. We can make this explicit in the class definition:
+In this code, we've defined a type variable `A`[^type-variable-names] and specified that `Distribution` uses `A` by inheriting from `Generic[A]`. We can now write type annotations for distributions *with specific types of outcomes*: for example, `Die` would be an instance of `Distribution[int]` since the outcome of a die roll is always an `int`. We can make this explicit in the class definition:
 
 ``` python
 class Die(Distribution[int]):
@@ -450,7 +450,7 @@ With this function:
   * `expected_value(Die(6))` would be fine
   * `expected_value(Coin())` (where `Coin` is a `Distribution[str]`) would be a type error
 
-Using `expected_value` on a distribution with non-numeric outcomes would raise a `TypeError` at runtime. Having this highlighted in the editor can save us time—we see the mistake right away, rather than waiting for tests to run—and will catch the problem even if our test suite doesn't.
+Using `expected_value` on a distribution with non-numeric outcomes would raise a type error at runtime. Having this highlighted in the editor can save us time—we see the mistake right away, rather than waiting for tests to run—and will catch the problem even if our test suite doesn't.
 
 [^type-variable-names]: Traditionally, type variables have one-letter capitalized names—although it's perfectly fine to use full words if that would make the code clearer.
 
@@ -521,6 +521,8 @@ NumPy is optimized for array operations, which means that there is an up-front c
 ```
 
 That's a 53× difference!
+
+[^timing]: This code uses the [`timeit`](https://docs.python.org/3/library/timeit.html) module from Python's standard library, which provides a simple way to benchmark small bits of Python code. By default, it measures how long it takes to execute 1,000,000 iterations of the function in seconds, so the two examples here took 0.293ms and 0.006ms respectively.
 
 [^list-comprehension]: List comprehensions are a Python feature to build lists by looping over something. The simplest pattern is the same as writing a `for` loop:
 
@@ -596,7 +598,11 @@ def expected_value(d: Distribution[float], n: int) -> float:
 We had to restrict this function to `Distribution[float]` because taking it only makes sense to take an expectation of a numeric outcome. But what if we have something else like a coin flip? We would still like some way to understand the expectation of the distribution, but to make that meaningful we'd need to have some mapping from outcomes (`"heads"` or `"tails"`) to numbers. (For example, we could say `"heads"` is `1` and `"tails"` is `0`.) We could do this by taking our `Coin` distribution, converting it to a `Distribution[float]` and calling `expected_value` on that, but this might be inefficient and it's certainly awkward. An alternative would be to provide the mapping as an argument to the `expected_value` function:
 
 ``` python
-def expected_value(d: Distribution[A], f: Callable[[A], float], n: int) -> float:
+def expected_value(
+  d: Distribution[A],
+  f: Callable[[A], float],
+  n: int
+) -> float:
     return statistics.mean(f(d.sample()) for _ in range(n))
 ```
 
@@ -627,4 +633,152 @@ expected_value(coin_flip, lambda coin: 1.0 if coin == "heads" else 0.0)
 
 The `lambda` expression here behaves exactly the same as `def payoff` did in the earlier version. Note how the lambda as a single expression with no `return`—if you ever need multiple statements in a function, you'll have to use a `def` instead of a `lambda`. In practice, lambdas are great for functions whose bodies are *short* expressions, but anything that's too long or complicated will read better as a standalone function `def`.
 
-[^timing]: This code uses the [`timeit`](https://docs.python.org/3/library/timeit.html) module from Python's standard library, which provides a simple way to benchmark small bits of Python code. By default, it measures how long it takes to execute 1,000,000 iterations of the function in seconds, so the two examples here took 0.293ms and 0.006ms respectively.
+#### Iterative Algorithms
+
+First-class functions give us an abstraction over *individual* computations: we can pass functions around, give them inputs and get outputs, but the computation between the input and the output is a complete black box. The caller of the function has no control over what happens inside the function. This limitation can be a real problem!
+
+One common scenario in reinforcement learning—and other areas in numeric program\-ming—is algorithms that *iteratively converge* to the correct result. We can run the algorithm repeatedly to get more and more accurate results, but the improvements with each iteration get progressively smaller. For example, we can approximate the square root of $a$ by starting with some initial guess $x_0$ and repeatedly calculating $x_{n + 1}$:
+
+$$
+x_{n + 1} = \frac{x_n + \frac{a}{x_n}}{2}
+$$
+
+At each iteration, $x_{n + 1}$ gets closer to the right answer by smaller and smaller steps. At some point the change from $x_n$ to $x_{n + 1}$ becomes small enough that we decide to stop. In Python, this logic might look something like this:
+
+``` python
+def sqrt(a: float) -> float:
+    x = a / 2 # initial guess
+    while abs(x_n - x) > 0.01:
+        x_n = (x + (a / x)) / 2
+    return x_n
+```
+
+The hard coded `0.01` in the `while` loop should be suspicious. How do we know that `0.01` is the right stopping condition? How do we decide when to stop at all?
+
+The trick with this question is that we *can't* know when to stop when we're implementing a general-purpose function because the level of precision we need will depend on what the result is used for! It's the *caller* of the function that knows when to stop, not the *author*.
+
+The first improvement we can make is to turn the `0.01` into an extra parameter:
+
+``` python
+def sqrt(a: float, threshold: float) -> float:
+    x = a / 2 # initial guess
+    while abs(x_n - x) > threshold:
+        x_n = (x + (a / x)) / 2
+    return x_n
+```
+
+This is a definite improvement over a literal `0.01`, but it's still limited. We've provided an extra parameter for how the function behaves, but the control is still fundamentally with the function. The caller of the function might want to stop before the method converges if it's taking too many iterations or too much time, but there's no way to do that by changing the `threshold` parameter. We could provide additional parameters for all of these, but we'd quickly end up with the logic for how to stop iteration requiring a lot more code and complexity than the iterative algorithm itself! Even that wouldn't be enough; if the function isn't behaving as expected in some specific application, we might want to print out intermediate values or graph the convergence over time—so should we include additional control parameters *for that*?
+
+Then what do we do when we have $n$ other iterative algorithms? Do we copy-paste the same stopping logic and parameters into each one? We'd end up with a lot of redundant code!
+
+##### Iterators and Generators
+
+This friction points to a conceptual distinction that our code does not support: *what happens at each iteration* is logically separate from *how we do the iteration*, but the two are fully coupled in our implementation. We need some way to abstract over iteration in some way that lets us separate *producing* values iteratively from *consuming* them.
+
+Luckily, Python provides powerful facilities for doing exactly this: **iterators** and **generators**. Iterators give us a way of *consuming* values and generators give us a way of *producing* values.
+
+You might not realize it, but chances are your Python code uses iterators all the time. Python's `for` loop uses an iterator under the hood to get each value it's looping over—this is how `for` loops work for lists, dictionaries, sets, ranges and even custom types. Try it out:
+
+``` python
+for x in [3, 2, 1]: print(x)
+for x in {3, 2, 1}: print(x)
+for x in range(3): print(x)
+```
+
+Note how the iterator for the set (`{3, 2, 1}`) prints `1 2 3` rather than `3 2 1`—sets do not preserve the order in which elements are added, so they iterate over elements in some kind of internally defined order instead.
+
+When we iterate over a dictionary, we will print the *keys* rather than the *values* because that is the default iterator. To get values or key-value pairs we'd need to use the `values` and `items` methods respectively, each of which returns a different kind of iterator over the dictionary.
+
+``` python
+d = {'a': 1, 'b': 2, 'c': 3}
+for k in d: print(k)
+for v in d.values(): print(v)
+for k, v in d.items(): print(k, v)
+```
+
+In each of these three cases we're still looping over the same dictionary, we just get a different view each time—iterators give us the flexibility of iterating over the same structure in different ways.
+
+Iterators aren't just for loops: they give us a first-class abstraction for iteration. We can pass them into functions; for example, Python's `list` function can convert any iterator into a list. This is handy when we want to see the elements of specialized iterators if the iterator itself does not print out its values:
+
+``` python
+>>> range(5)
+range(0, 5)
+>>> list(range(5))
+[0, 1, 2, 3, 4]
+```
+
+Since iterators are first-class values, we can also write general-purpose iterator functions. The Python standard library has a set of operations like this in the `itertools` module; for example, `itertools.takewhile` lets us stop iterating as soon as some condition stops holding:
+
+``` python
+>>> elements = [1, 3, 2, 5, 3]
+>>> list(itertools.takewhile(lambda x: x < 5, elements))
+[1, 3, 2]
+```
+
+Note how we converted the result of `takewhile` into a list—without that, we'd see that `takewhile` returns some kind of opaque internal object that implements that iterator specifically. This works fine—we can use the `takewhile` object anywhere we could use any other iterator—but it looks a bit odd in the Python interpreter:
+
+``` python
+>>> itertools.takewhile(lambda x: x < 5, elements)
+<itertools.takewhile object at 0x7f8e3baefb00>
+```
+
+Now that we've seen a few examples of how we can *use* iterators, how do we define our own? In the most general sense, a Python `Iterator` is any object that implements a `__next__()` method, but implementing iterators this way is pretty awkward. Luckily, Python has a more convenient way to create an iterator by creating a *generator* using the `yield` keyword. `yield` acts similar to `return` from a function, except instead of stopping the function altogether, it outputs the yielded value to an iterator an pauses the function until the yielded element is consumed by the caller.
+
+This is a bit of an abstract description, so let's look at how this would apply to our `sqrt` function. Instead of looping and stopping based on some condition, we'll write a version of `sqrt` that returns an iterator with each iteration of the algorithm as a value:
+
+``` python
+def sqrt(a: float) -> Iterator[float]:
+    x = a / 2 # initial guess
+    while True:
+        x = (x + (a / x)) / 2
+        yield x
+```
+
+With this version, we update `x` at each iteration and then `yield` the updated value. Instead of getting a single value, the caller of the function gets an iterator that contains an infinite number of iterations; it is up to the caller to decide how many iterations to evaluate and when to stop. The `sqrt` function itself has an infinite loop, but this isn't a problem because execution of the function pauses at each `yield` which lets the caller of the function stop it whenever they want.
+
+To do 10 iterations of the `sqrt` algorithm, we could use `itertools.islice`:
+
+``` python
+>>> iterations = list(itertools.islice(sqrt(25), 10))
+>>> iterations[-1]
+5.0
+```
+
+A fixed number of iterations can be useful for exploration, but we probably want the threshold-based convergence logic we had earlier. Since we now have a first-class abstraction for iteration, we can write a general-purpose `converge` function that takes an iterator and returns a version of that same iterator that stops as soon as two values are sufficiently close. Python 3.10 and later provides `itertools.pairwise` which makes the code pretty simple:
+
+``` python
+def converge(values: Iterator[float], threshold: float) -> Iterator[float]:
+        for a, b in itertools.pairwise(values):
+        yield a
+
+        if abs(a - b) < threshold:
+            break
+```
+
+For older versions of Python, we'd have to implement our version of `pairwise` as well:
+
+``` python
+def pairwise(values: Iterator[A]) -> Iterator[Tuple[A, A]]:
+    a = next(values, None)
+    if a is None:
+        return
+
+    for b in values:
+        yield (a, b)
+        a = b
+```
+
+Both of these follow a common pattern with iterators: each function takes an iterator as an input *and returns an iterator as an output*. This doesn't always have to be the case, but we get a major advantage when it is: iterator → iterator operations *compose*. We can get relatively complex behavior by starting with an iterator (like our `sqrt` example) then applying *multiple* operations to it. For example, somebody calling `sqrt` might want to converge at some threshold but, just in case the algorithm gets stuck for some reason, also have a hard stop at 10,000 iterations. We don't need to write a new version of `sqrt` or even `converge` to do this; instead, we can use `converge` *with* `itertools.islice`:
+
+``` python
+results = converge(sqrt(n), 0.001)
+capped_results = itertools.islice(results, 10000)
+```
+
+This is a powerful programming style because we can write and test each operation—`sqrt`, `converge`, `islice`—in isolation and get complex behavior by combining them in the right way. If we were writing the same logic *without* iterators, we would need a single loop that calculated each step of `sqrt`, checked for convergence *and* kept a counter to stop after 10,000 steps—and we'd need to replicate this pattern for every single such algorithm!
+
+Iterators and generators will come up all throughout this book because they provide a programming abstraction for *processes*, making them a great foundation for the *mathematical* processes that underlie reinforcement learning.
+
+### Abstraction
+
+In this chapter, we've covered the high-level principles behind the code design in the rest of the book: how we design abstractions, how we design code *around* those abstractions and which Python facilities we use to do this. These are abstract ideas themselves! There's a real chance that many of these ideas won't make sense right away; the best way to learn is to look through more elaborated examples—like code snippets in the rest of the book—and to experiment yourself.
