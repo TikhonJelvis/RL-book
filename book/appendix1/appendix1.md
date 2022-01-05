@@ -28,7 +28,7 @@ f_x^{(n)}(0) = \mathbb{E}_x[x^n]  \label{eq:derivat0}
 f_x^{(n)}(1) = \mathbb{E}_x[x^n \cdot e^x]  \label{eq:derivat1}
 \end{equation}
 
-Equation \eqref{eq:derivat0} tells us that $f^{(n)}(0)$ gives us the $n^{th}$ moment of $x$. In particular, $f_x^{(1)}(0) = f'(0)$ gives us the mean and $f_x^{(2)}(0) - (f_x^{(1)}(0))^2 = f_x''(0) - (f_x'(0))^2$ gives us the variance. Note that this holds true for any distribution for $x$. This is rather convenient since all we need is the functional form for the distribution of $x$. This would lead us to the expression for the MGF (in terms of $t$). Then, we take derivatives of this MGF and evaluate those derivatives at 0 to obtain the moments of $x$.
+Equation \eqref{eq:derivat0} tells us that $f_x^{(n)}(0)$ gives us the $n^{th}$ moment of $x$. In particular, $f_x^{(1)}(0) = f_x'(0)$ gives us the mean and $f_x^{(2)}(0) - (f_x^{(1)}(0))^2 = f_x''(0) - (f_x'(0))^2$ gives us the variance. Note that this holds true for any distribution for $x$. This is rather convenient since all we need is the functional form for the distribution of $x$. This would lead us to the expression for the MGF (in terms of $t$). Then, we take derivatives of this MGF and evaluate those derivatives at 0 to obtain the moments of $x$.
 
 Equation \eqref{eq:derivat1} helps us calculate the often-appearing expectation $\mathbb{E}_x[x^n \cdot e^x]$. In fact, $\mathbb{E}_x[e^x]$ and $\mathbb{E}_x[x \cdot e^x]$ are very common in several areas of Applied Mathematics. Again, note that this holds true for any distribution for $x$.
 
