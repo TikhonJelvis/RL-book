@@ -22,13 +22,18 @@ There is no single easy answer to these questions. No two programming challenges
 
 We might have no easy answers, but we do have patterns and principles that—in our experience—consistently produce quality code. Taken together, these ideas form a philosophy of code design oriented around defining and combining **abstractions** that reflect how we think about our domain. Since code itself can point to specific design ideas and capabilities, there's a feedback loop: expanding the abstractions we've designed can help us find new algorithms and functionality, improving our understanding of the domain.
 
-Just what *is* an abstraction? An appropriately abstract question! An abstraction is a "compound idea": a single concept that combines multiple separate ideas into one. The human mind can only handle so many distinct ideas at a time—we have an inherently limited working memory. A rather simplified model is that we only have a handful of "slots" in working memory and we simply can't track more independent thoughts at the same time. The way we overcome this limitation is by coming up with *new* ideas—new *abstractions*—that combine multiple distinct concepts into one.
+Just what *is* an abstraction? An appropriately abstract question! An abstraction is a "compound idea": a single concept that combines multiple separate ideas into one. We can combine ideas along two axes:
+
+  * We can *compose* different concepts together, thinking about how they behave as one unit. A car engine has thousands of parts that interact in complex ways, but we can think about it as a single object for most purposes.
+  * We can *unify* different concepts by identifying how they are similar. Different breeds of dogs might look totally different, but we can think of all of them as dogs.
+
+The human mind can only handle so many distinct ideas at a time—we have an inherently limited working memory. A rather simplified model is that we only have a handful of "slots" in working memory and we simply can't track more independent thoughts at the same time. The way we overcome this limitation is by coming up with *new* ideas—new *abstractions*—that combine multiple concepts into one.
 
 We want to organize code around abstractions for the same reason that we use abstractions to understand more complex ideas. How do you understand code? Do you run the program in your head? That's a natural starting point and it works for simple programs but it quickly becomes difficult and then impossible. A computer doesn't have working-memory limitations and can run *billions* of instructions a second—we can't possibly keep up. The computer doesn't need structure or abstraction in the code it runs, but we need it to have any hope of writing or understanding anything beyond the simplest of programs. Abstractions in our code group information and logic so that we can think about rich concepts rather than tracking every single bit of information and every single instruction separately.
 
 The details may differ, but designing code around abstractions that correspond to a solid mental model of the domain works well in any area and with any programming language. It might take some extra up-front thought but, done well, this style of design pays dividends. Our goal is to write code that makes life easier *for ourselves*; this helps for everything from "one-off" experimental code through software engineering efforts with large teams.
 
-### Probability
+### Classes and Interfaces
 
 But what does designing clean abstractions actually entail? There are always two parts to answering this question:
 
@@ -391,7 +396,7 @@ Other kinds of concrete distributions would have other sorts of outcomes. A coin
 
 #### Type Variables
 
-Annotating `sample` for specific cases like `Die`—where outcomes are always `int`—is pretty straightforward. But what can we do about the abstract `Distribution` class itself? In general, a distribution can have any kind of outcomes. The abstract `Distribution` class we wrote earlier does not tell us anything about what `sample` returns:
+Annotating `sample` for the `Die` class was straightforward: the outcome of a die roll is always a number, so `sample` always returns `int`. But what type would `sample` in general have? The `Distribution` class defines an interface for *any* distribution, which means it needs to cover *any* type of outcomes. For our first version of the `Distribution` class, we didn't annotate anything for `sample`:
 
 ``` python
 class Distribution(ABC):
@@ -400,29 +405,29 @@ class Distribution(ABC):
         pass
 ```
 
-This works—annotations are optional, after all—but it can get confusing: some code we write will work for any kind of distribution, some code needs distributions that return numbers, other code will need something else... In every instance `sample` better return *something*, but even that isn't explicitly annotated.
+This works—annotations are optional—but it can get confusing: some code we write will work for any kind of distribution, some code needs distributions that return numbers, other code will need something else... In every instance `sample` better return *something*, but that isn't explicitly annotated. When we leave out annotations our code will still work, but our editor or IDE will not catch as many mistakes.
 
-While *specific* distributions will have a *specific* type of outcome, the type will vary depending on the distribution. To deal with this, we need **type variables**: variables that stand in for *some* type that might be different each time the code is used. Type variables are also known as "generics" because they let us write classes that generically work for any type.
+The difficulty here is that different kinds of distributions—different *implementations of the `Distribution` interface*—will return different types from `sample`. To deal with this, we need **type variables**: variables that stand in for *some* type that can be different in different contexts. Type variables are also known as "generics" because they let us write classes that generically work for any type.
 
 To add annotations to the abstract `Distribution` class, we will need to define a type variable for the outcomes of the distribution, then tell Python that `Distribution` is "generic" in that type:
 
 ``` python
 from typing import Generic, TypeVar
 
-# Defining a type variable named "A"
+# A type variable named "A"
 A = TypeVar("A")
 
 
 # Distribution is "generic in A"
 class Distribution(ABC, Generic[A]):
 
-    # Sampling must return a value of type A
+    # Sampling must produce a value of type A
     @abstractmethod
     def sample(self) -> A:
         pass
 ```
 
-In this code, we've defined a type variable `A`[^type-variable-names] and used `Generic[A]` to specify that `Distribution` uses this variable. We can now write type annotations for distributions *with specific types of outcomes*: for example, `Die` would be an instance of `Distribution[int]` since the outcome of a die roll is always an `int`. We can make this explicit in the class definition:
+In this code, we've defined a type variable `A`[^type-variable-names] and specified that `Distribution` uses `A` by inheriting from `Generic[A]`. We can now write type annotations for distributions *with specific types of outcomes*: for example, `Die` would be an instance of `Distribution[int]` since the outcome of a die roll is always an `int`. We can make this explicit in the class definition:
 
 ``` python
 class Die(Distribution[int]):
@@ -436,7 +441,7 @@ This lets us write specialized functions that only work with certain kinds of di
 ``` python
 import statistics
 
-def expected_value(d: Distribution[float], n: int) -> float:
+def expected_value(d: Distribution[float], n: int = 100) -> float:
     return statistics.mean(d.sample() for _ in range(n))
 ```
 
@@ -445,6 +450,335 @@ With this function:
   * `expected_value(Die(6))` would be fine
   * `expected_value(Coin())` (where `Coin` is a `Distribution[str]`) would be a type error
 
-Using `expected_value` on a distribution with non-numeric outcomes would raise a `TypeError` at runtime. Having this highlighted in the editor can save us time---we see the mistake right away, rather than waiting for tests to run---and will catch the problem even if our test suite doesn't.
+Using `expected_value` on a distribution with non-numeric outcomes would raise a type error at runtime. Having this highlighted in the editor can save us time—we see the mistake right away, rather than waiting for tests to run—and will catch the problem even if our test suite doesn't.
 
 [^type-variable-names]: Traditionally, type variables have one-letter capitalized names—although it's perfectly fine to use full words if that would make the code clearer.
+
+#### Functionality
+
+So far, we've covered two abstractions for working with probability distributions:
+
+  * `Distribution`: an abstract class that defines the *interface* for probability distributions
+  * `Die`: a distribution for rolling fair n-sided dice
+
+This is an illustrative example, but it doesn't let us do much. If all we needed were n-sided dice, a separate `Distribution` class would be overkill. Abstractions are a means for managing complexity, but any abstraction we define also adds some complexity to a codebase itself—it's one more concept for a programmer to learn and understand. It's always worth considering whether the added complexity from defining and using an abstraction is worth the benefit. How does the abstraction help us understand the code? What kind of mistakes does it prevent—and what kind of mistakes does it *encourage*? What kind of added functionality does it give us? If we don't have sufficiently solid answers to these questions, we should consider leaving the abstraction out.
+
+If all we cared about were dice, `Distribution` wouldn't carry its weight. Reinforcement learning, though, involves both a wide range of specific distributions—any given reinforcement learning problem can have domain-specific distributions—as well as algorithms that need to work for all of these problems. This gives us two reasons to define a `Distribution` abstraction: `Distribution` will *unify* different applications of reinforcement learning and will *generalize* our reinforcement learning code to work in different contexts. By programming against a general interface like `Distribution`, our algorithms will be able to work for the different applications we present in the book—and even work for applications we weren't thinking about when we designed the code.
+
+One of the practical advantages of defining general-purpose abstractions in our code is that it gives us a place to add functionality that will work for *any* instance of the abstraction. For example, one of the most common operations for a probability distribution that we can sample is drawing *n* samples. Of course, we could just write a loop every time we needed to do this:
+
+``` python
+samples = []
+for _ in range(100):
+    samples += [distribution.sample()]
+```
+
+This code is *fine*, but it's not *great*. A `for` loop in Python might be doing pretty much *anything*; it's used for repeating pretty much anything. It's hard to understand what a loop is doing at a glance, so we'd have to carefully read the code to see that it's putting 100 samples in a list. Since this is such a common operation, we can add a method for it instead:
+
+``` python
+class Distribution(ABC, Generic[A]):
+    ...
+
+    def sample_n(self, n: int) -> Sequence[A]:
+        return [self.sample() for _ in range(n)]
+```
+
+The implementation here is different—it's using a **list comprehension**[^list-comprehension] rather than a normal `for` loop—but it's accomplishing the same thing. The more important distinction happens when we *use* the method; instead of needing a `for` loop or list comprehension each time, we can just write:
+
+``` python
+samples = distribution.sample_n(100)
+```
+
+The meaning of this line of code—and the programmer's intention behind it—are immediately clear at a glance.
+
+Of course, this example is pretty limited. The list comprehension to build a list with 100 samples is a bit more complicated than just calling `sample_n(100)`, but not by much—it's still perfectly readable at a glance. This pattern of implementing general-purpose functions on our abstractions becomes a lot more useful as the functions themselves become more complicated.
+
+However, there is another advantage to defining methods like `sample_n`: some kinds of distributions might have more efficient or more accurate ways to implement the same logic. If that's the case, we would override `sample_n` to use the better implementation. Code that uses `sample_n` would automatically benefit; code that used a loop or comprehension instead would not. For example, this happens if we implement a distribution by wrapping a function from NumPy's `random` module:
+
+``` python
+import numpy as np
+
+@dataclass
+class Gaussian(Distribution[float]):
+    μ: float
+    σ: float
+
+    def sample(self) -> float:
+        return np.random.normal(loc=self.μ, scale=self.σ)
+
+    def sample_n(self, n: int) -> Sequence[float]:
+        return np.random.normal(loc=self.μ, scale=self.σ, size=n)
+```
+
+NumPy is optimized for array operations, which means that there is an up-front cost to calling `np.random.normal` *the first time*, but it can quickly generate additional samples after that. The performance impact is significant[^timing]:
+
+``` python
+>>> d = Gaussian(μ=0, σ=1)
+>>> timeit.timeit(lambda: [d.sample() for _ in range(100)])
+293.33819171399955
+>>> timeit.timeit(lambda: d.sample_n(100))
+5.566364272999635
+```
+
+That's a 53× difference!
+
+[^timing]: This code uses the [`timeit`](https://docs.python.org/3/library/timeit.html) module from Python's standard library, which provides a simple way to benchmark small bits of Python code. By default, it measures how long it takes to execute 1,000,000 iterations of the function in seconds, so the two examples here took 0.293ms and 0.006ms respectively.
+
+[^list-comprehension]: List comprehensions are a Python feature to build lists by looping over something. The simplest pattern is the same as writing a `for` loop:
+
+    ``` python
+    foo = [expr for x in xs]
+
+    # is the same as:
+    foo = []
+    for x in xs:
+        foo += [expr]
+    ```
+
+    List comprehensions can combine multiple lists, acting like nested `for` loops:
+
+    ``` python
+    >>> [(x, y) for x in range(3) for y in range(2)]
+    [(0, 0), (0, 1), (1, 0), (1, 1), (2, 0), (2, 1)]
+    ```
+
+    They can also have `if` clauses to only keep elements that match a condition:
+
+    ``` python
+    >>> [x for x in range(10) if x % 2 == 0]
+    [0, 2, 4, 6, 8]
+    ```
+
+    Some combination of `for` and `if` clauses can let us build surprisingly complicated lists! Comprehensions will often be easier to read than loops—a loop could be doing *anything*, a comprehension is always creating a list—but it's always a judgement call. A couple of nested for loops might be easier to read than a sufficiently convoluted comprehension!
+
+### Abstracting over Computation
+
+So far, we've seen how we can build up a programming model for our domain by defining interfaces (like `Distribution`) and writing classes (like `Die`) that implement these interfaces. Classes and interfaces give us a way to model the "things" in our domain, but, in an area like reinforcement learning, "things" aren't enough: we also want some way to abstract over the *actions* that we're taking or the computation that we're performing.
+
+Classes do give us one way to model behavior: methods. A common analogy is that objects act as "nouns" and methods act as "verbs"—methods are the actions we can take with an object. This is a useful capability that lets us abstract over doing the same kind of action on different sorts of objects. Our `sample_n` method, for example, can have a single implementation but works for different distributions that could implement sampling in totally different ways. Since `sample_n` itself is a method on `Distribution` we also have the option to provide more efficient implementations of `sample_n` if they make sense for specific types of distribution.
+
+So if methods are our "verbs", what else do we need? While methods abstract over actions, they do this *indirectly*—we can talk about objects as standalone values, but we can only use methods *on* objects, with no way to talk about computation itself. Stretching the metaphor with grammar, it's like having verbs without infinitives or gerunds—we'd be able to talk about "somebody skiing", but not about "skiing" itself or somebody "planning to ski"!
+
+In this world, "nouns" (objects) are **first-class citizens** but "verbs" (methods) aren't. What it takes to be a "first-class" value in a programming language is a fuzzy concept; a reasonable litmus test is whether we can pass a value to a function or store it in a data structure. We can do this with objects, but it's not clear what this would mean for methods.
+
+#### First-Class Functions
+
+If we didn't have a first-class way to talk about actions (as opposed to objects), one way we could work around this would be to represent functions *as* objects with a single method. We'd be able to pass them around just like normal values and, when we needed to actually perform the action or computation, we'd just call the object's method. This solution shows us that it makes sense to have a first-class way to work with actions, but it requires an extra layer of abstraction (an object just to have a single method) which doesn't add anything substantial on its own while making our intentions less clear.
+
+Luckily, we don't have to resort to a one-method object pattern in Python because Python has **first-class functions**: functions are already values that we can pass around and store, without needing a separate wrapper object.
+
+First-class functions give us a new way to abstract over computation. Methods let us talk about the same kind of behavior for different objects; first-class functions let us doing something *with* different actions. A simple example might be repeating the same action `n` times. Without an abstraction, we might do this with a `for` loop:
+
+``` python
+for _ in range(10):
+    do_something()
+```
+
+Instead of writing a loop each time, we could factor this logic into a function that took `n` *and* `do_something` as arguments:
+
+``` python
+def repeat(action: Callable, n: int):
+    for _ in range(n):
+        action()
+
+repeat(do_something, 10)
+```
+
+`repeat` takes `action`  and `n` as arguments, then calls `action` `n` times. `action` has the type `Callable` which, in Python, covers functions as well as any other objects you can call with the `f()` syntax. We can also specify the return type and arguments a `Callable` should have; if we wanted the type of a function that took an `int` and a `str` as input and returned a `bool`, we would write `Callable[[int, str], bool]`.
+
+The version with the `repeat` function makes our intentions clear in the code. A `for` loop can do many different things, while `repeat` will always just repeat. It's not a big difference in this case—the `for` loop version is sufficiently easy to read that it's not a big impediment—but it becomes more important with complex or domain-specific logic.
+
+Let's take a look at the `expected_value` function we defined earlier:
+
+``` python
+def expected_value(d: Distribution[float], n: int) -> float:
+    return statistics.mean(d.sample() for _ in range(n))
+```
+
+We had to restrict this function to `Distribution[float]` because taking it only makes sense to take an expectation of a numeric outcome. But what if we have something else like a coin flip? We would still like some way to understand the expectation of the distribution, but to make that meaningful we'd need to have some mapping from outcomes (`"heads"` or `"tails"`) to numbers. (For example, we could say `"heads"` is `1` and `"tails"` is `0`.) We could do this by taking our `Coin` distribution, converting it to a `Distribution[float]` and calling `expected_value` on that, but this might be inefficient and it's certainly awkward. An alternative would be to provide the mapping as an argument to the `expected_value` function:
+
+``` python
+def expected_value(
+  d: Distribution[A],
+  f: Callable[[A], float],
+  n: int
+) -> float:
+    return statistics.mean(f(d.sample()) for _ in range(n))
+```
+
+The implementation of `expected_value` has barely changed—it's the same `mean` calculation as previously, except we apply `f` to each outcome. This small change, however, has made the function far more flexible: we can now call `expected_value` on *any* sort of `Distribution`, not just `Distribution[float]`.
+
+Going back to our coin example, we could use it like this:
+
+``` python
+def payoff(coin: Coin) -> float:
+    return 1.0 if coin == "heads" else 0.0
+
+expected_value(coin_flip, payoff)
+```
+
+The `payoff` function maps outcomes to numbers and then we calculate the expected value using that mapping.
+
+We'll see first-class functions used in a number of places throughout the book; the key idea to remember is that *functions are values* that we can pass around or store just like any other object.
+
+##### Lambdas
+
+`payoff` itself is a pretty reasonable function: it has a clear name and works as a standalone concept. Often, though, we want to use a first-class function in some specific context where giving the function a name is not needed or even distracting. Even in cases with reasonable names like `payoff`, it might not be worth introducing an extra named function if it will only be used in one place.
+
+Luckily, Python gives us an alternative: `lambda`. Lambdas are function literals. We can write `3.0` and get a number without giving it a name, and we can write a `lambda` expression to get a function without giving it a name. Here's the same example as with the `payoff` function but using a `lambda` instead:
+
+``` python
+expected_value(coin_flip, lambda coin: 1.0 if coin == "heads" else 0.0)
+```
+
+The `lambda` expression here behaves exactly the same as `def payoff` did in the earlier version. Note how the lambda as a single expression with no `return`—if you ever need multiple statements in a function, you'll have to use a `def` instead of a `lambda`. In practice, lambdas are great for functions whose bodies are *short* expressions, but anything that's too long or complicated will read better as a standalone function `def`.
+
+#### Iterative Algorithms
+
+First-class functions give us an abstraction over *individual* computations: we can pass functions around, give them inputs and get outputs, but the computation between the input and the output is a complete black box. The caller of the function has no control over what happens inside the function. This limitation can be a real problem!
+
+One common scenario in reinforcement learning—and other areas in numeric program\-ming—is algorithms that *iteratively converge* to the correct result. We can run the algorithm repeatedly to get more and more accurate results, but the improvements with each iteration get progressively smaller. For example, we can approximate the square root of $a$ by starting with some initial guess $x_0$ and repeatedly calculating $x_{n + 1}$:
+
+$$
+x_{n + 1} = \frac{x_n + \frac{a}{x_n}}{2}
+$$
+
+At each iteration, $x_{n + 1}$ gets closer to the right answer by smaller and smaller steps. At some point the change from $x_n$ to $x_{n + 1}$ becomes small enough that we decide to stop. In Python, this logic might look something like this:
+
+``` python
+def sqrt(a: float) -> float:
+    x = a / 2 # initial guess
+    while abs(x_n - x) > 0.01:
+        x_n = (x + (a / x)) / 2
+    return x_n
+```
+
+The hard coded `0.01` in the `while` loop should be suspicious. How do we know that `0.01` is the right stopping condition? How do we decide when to stop at all?
+
+The trick with this question is that we *can't* know when to stop when we're implementing a general-purpose function because the level of precision we need will depend on what the result is used for! It's the *caller* of the function that knows when to stop, not the *author*.
+
+The first improvement we can make is to turn the `0.01` into an extra parameter:
+
+``` python
+def sqrt(a: float, threshold: float) -> float:
+    x = a / 2 # initial guess
+    while abs(x_n - x) > threshold:
+        x_n = (x + (a / x)) / 2
+    return x_n
+```
+
+This is a definite improvement over a literal `0.01`, but it's still limited. We've provided an extra parameter for how the function behaves, but the control is still fundamentally with the function. The caller of the function might want to stop before the method converges if it's taking too many iterations or too much time, but there's no way to do that by changing the `threshold` parameter. We could provide additional parameters for all of these, but we'd quickly end up with the logic for how to stop iteration requiring a lot more code and complexity than the iterative algorithm itself! Even that wouldn't be enough; if the function isn't behaving as expected in some specific application, we might want to print out intermediate values or graph the convergence over time—so should we include additional control parameters *for that*?
+
+Then what do we do when we have $n$ other iterative algorithms? Do we copy-paste the same stopping logic and parameters into each one? We'd end up with a lot of redundant code!
+
+##### Iterators and Generators
+
+This friction points to a conceptual distinction that our code does not support: *what happens at each iteration* is logically separate from *how we do the iteration*, but the two are fully coupled in our implementation. We need some way to abstract over iteration in some way that lets us separate *producing* values iteratively from *consuming* them.
+
+Luckily, Python provides powerful facilities for doing exactly this: **iterators** and **generators**. Iterators give us a way of *consuming* values and generators give us a way of *producing* values.
+
+You might not realize it, but chances are your Python code uses iterators all the time. Python's `for` loop uses an iterator under the hood to get each value it's looping over—this is how `for` loops work for lists, dictionaries, sets, ranges and even custom types. Try it out:
+
+``` python
+for x in [3, 2, 1]: print(x)
+for x in {3, 2, 1}: print(x)
+for x in range(3): print(x)
+```
+
+Note how the iterator for the set (`{3, 2, 1}`) prints `1 2 3` rather than `3 2 1`—sets do not preserve the order in which elements are added, so they iterate over elements in some kind of internally defined order instead.
+
+When we iterate over a dictionary, we will print the *keys* rather than the *values* because that is the default iterator. To get values or key-value pairs we'd need to use the `values` and `items` methods respectively, each of which returns a different kind of iterator over the dictionary.
+
+``` python
+d = {'a': 1, 'b': 2, 'c': 3}
+for k in d: print(k)
+for v in d.values(): print(v)
+for k, v in d.items(): print(k, v)
+```
+
+In each of these three cases we're still looping over the same dictionary, we just get a different view each time—iterators give us the flexibility of iterating over the same structure in different ways.
+
+Iterators aren't just for loops: they give us a first-class abstraction for iteration. We can pass them into functions; for example, Python's `list` function can convert any iterator into a list. This is handy when we want to see the elements of specialized iterators if the iterator itself does not print out its values:
+
+``` python
+>>> range(5)
+range(0, 5)
+>>> list(range(5))
+[0, 1, 2, 3, 4]
+```
+
+Since iterators are first-class values, we can also write general-purpose iterator functions. The Python standard library has a set of operations like this in the `itertools` module; for example, `itertools.takewhile` lets us stop iterating as soon as some condition stops holding:
+
+``` python
+>>> elements = [1, 3, 2, 5, 3]
+>>> list(itertools.takewhile(lambda x: x < 5, elements))
+[1, 3, 2]
+```
+
+Note how we converted the result of `takewhile` into a list—without that, we'd see that `takewhile` returns some kind of opaque internal object that implements that iterator specifically. This works fine—we can use the `takewhile` object anywhere we could use any other iterator—but it looks a bit odd in the Python interpreter:
+
+``` python
+>>> itertools.takewhile(lambda x: x < 5, elements)
+<itertools.takewhile object at 0x7f8e3baefb00>
+```
+
+Now that we've seen a few examples of how we can *use* iterators, how do we define our own? In the most general sense, a Python `Iterator` is any object that implements a `__next__()` method, but implementing iterators this way is pretty awkward. Luckily, Python has a more convenient way to create an iterator by creating a *generator* using the `yield` keyword. `yield` acts similar to `return` from a function, except instead of stopping the function altogether, it outputs the yielded value to an iterator an pauses the function until the yielded element is consumed by the caller.
+
+This is a bit of an abstract description, so let's look at how this would apply to our `sqrt` function. Instead of looping and stopping based on some condition, we'll write a version of `sqrt` that returns an iterator with each iteration of the algorithm as a value:
+
+``` python
+def sqrt(a: float) -> Iterator[float]:
+    x = a / 2 # initial guess
+    while True:
+        x = (x + (a / x)) / 2
+        yield x
+```
+
+With this version, we update `x` at each iteration and then `yield` the updated value. Instead of getting a single value, the caller of the function gets an iterator that contains an infinite number of iterations; it is up to the caller to decide how many iterations to evaluate and when to stop. The `sqrt` function itself has an infinite loop, but this isn't a problem because execution of the function pauses at each `yield` which lets the caller of the function stop it whenever they want.
+
+To do 10 iterations of the `sqrt` algorithm, we could use `itertools.islice`:
+
+``` python
+>>> iterations = list(itertools.islice(sqrt(25), 10))
+>>> iterations[-1]
+5.0
+```
+
+A fixed number of iterations can be useful for exploration, but we probably want the threshold-based convergence logic we had earlier. Since we now have a first-class abstraction for iteration, we can write a general-purpose `converge` function that takes an iterator and returns a version of that same iterator that stops as soon as two values are sufficiently close. Python 3.10 and later provides `itertools.pairwise` which makes the code pretty simple:
+
+``` python
+def converge(values: Iterator[float], threshold: float) -> Iterator[float]:
+        for a, b in itertools.pairwise(values):
+        yield a
+
+        if abs(a - b) < threshold:
+            break
+```
+
+For older versions of Python, we'd have to implement our version of `pairwise` as well:
+
+``` python
+def pairwise(values: Iterator[A]) -> Iterator[Tuple[A, A]]:
+    a = next(values, None)
+    if a is None:
+        return
+
+    for b in values:
+        yield (a, b)
+        a = b
+```
+
+Both of these follow a common pattern with iterators: each function takes an iterator as an input *and returns an iterator as an output*. This doesn't always have to be the case, but we get a major advantage when it is: iterator → iterator operations *compose*. We can get relatively complex behavior by starting with an iterator (like our `sqrt` example) then applying *multiple* operations to it. For example, somebody calling `sqrt` might want to converge at some threshold but, just in case the algorithm gets stuck for some reason, also have a hard stop at 10,000 iterations. We don't need to write a new version of `sqrt` or even `converge` to do this; instead, we can use `converge` *with* `itertools.islice`:
+
+``` python
+results = converge(sqrt(n), 0.001)
+capped_results = itertools.islice(results, 10000)
+```
+
+This is a powerful programming style because we can write and test each operation—`sqrt`, `converge`, `islice`—in isolation and get complex behavior by combining them in the right way. If we were writing the same logic *without* iterators, we would need a single loop that calculated each step of `sqrt`, checked for convergence *and* kept a counter to stop after 10,000 steps—and we'd need to replicate this pattern for every single such algorithm!
+
+Iterators and generators will come up all throughout this book because they provide a programming abstraction for *processes*, making them a great foundation for the *mathematical* processes that underlie reinforcement learning.
+
+### Abstraction
+
+In this chapter, we've covered the high-level principles behind the code design in the rest of the book: how we design abstractions, how we design code *around* those abstractions and which Python facilities we use to do this. These are abstract ideas themselves! There's a real chance that many of these ideas won't make sense right away; the best way to learn is to look through more elaborated examples—like code snippets in the rest of the book—and to experiment yourself.
