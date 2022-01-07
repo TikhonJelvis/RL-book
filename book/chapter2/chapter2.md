@@ -453,7 +453,7 @@ It is common to view this Markov Process representation as a directed graph, as 
 ![Weather Markov Process \label{fig:weather_mp}](./chapter2/weather_mp.png "Weather Markov Process")
 </div>
 
-Our goal now is to define a `FiniteMarkovProcess` class that is a concrete class implementation of the abstract class `MarkovProcess`. This requires us to wrap the states in the keys and values of the dictionary specifying a `FiniteMarkovProcess` with the appropriate `Terminal` or `NonTerminal' wrapping. Let's create an alias called `Transition` for this dictionary data structure since we will use this data structure often:
+Our goal now is to define a `FiniteMarkovProcess` class that is a concrete class implementation of the abstract class `MarkovProcess`. This requires us to wrap the states in the keys/values of the `FiniteMarkovProcess` dictionary with the appropriate `Terminal` or `NonTerminal` wrapping. Let's create an alias called `Transition` for this wrapped dictionary data structure since we will use this wrapped data structure often:
 
 ```python
 from typing import Mapping
