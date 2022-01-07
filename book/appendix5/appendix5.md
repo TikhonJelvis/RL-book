@@ -105,7 +105,7 @@ $$d_2 = d_1 - \sigma \sqrt{\tau}$$
 Substituting for $\tau, x, u(\tau, x)$ with $t, S_t, C(t,S_t)$, we get:
 
 \begin{equation}
-C(t, S_t) = S \cdot N(d_1) - K \cdot e^{-r\cdot (T-t)} \cdot N(d_2)
+C(t, S_t) = S_t \cdot N(d_1) - K \cdot e^{-r\cdot (T-t)} \cdot N(d_2)
 \label{eq:black-scholes-call-option-pricing}
 \end{equation}
 where
