@@ -434,7 +434,26 @@ $$\mathcal{N} \rightarrow (\mathcal{S} \rightarrow [0, 1])$$
 
 [^currying]: Currying is the technique of converting a function that takes multiple arguments into a sequence of functions that each takes a single argument, as illustrated above for the $\mathcal{P}$ function.
 
-With this curried view, we can represent the outer $\rightarrow$ as a map (in Python, as a dictionary of type `Mapping`) whose keys are the non-terminal states $\mathcal{N}$, and each non-terminal-state key maps to a `FiniteDistribution[State[S]]` type that represents the inner $\rightarrow$, i.e. a finite probability distribution of the next states (terminal or non-terminal) transitioned to from the non-terminal state (note: `FiniteDistribution` type was covered in Chapter [-@sec:python]). Let us create an alias for this `Mapping` (called `Transition`) since we will use this data structure often:
+With this curried view, we can represent the outer $\rightarrow$ as a map (in Python, as a dictionary of type `Mapping`) whose keys are the non-terminal states $\mathcal{N}$, and each non-terminal-state key maps to a `FiniteDistribution[S]` type that represents the inner $\rightarrow$, i.e. a finite probability distribution of the next states transitioned to from a given non-terminal state.
+
+Note that the `FiniteDistribution[S]` will only contain the set of states transitioned to with non-zero probability. To make things concrete, here's a toy Markov Process data structure example of a city with highly unpredictable weather outcomes from one day to the next (note: `Categorical` type inherits from `FiniteDistribution` type in the code at [rl/distribution.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/distribution.py)):
+
+```python
+from rl.distribution import Categorical
+{
+  "Rain": Categorical({"Rain": 0.3, "Nice": 0.7}),
+  "Snow": Categorical({"Rain": 0.4, "Snow": 0.6}),
+  "Nice": Categorical({"Rain": 0.2, "Snow": 0.3})
+}
+```
+
+It is common to view this Markov Process representation as a directed graph, as depicted in Figure \ref{fig:weather_mp}. The nodes are the states and the directed edges are the probabilistic state transitions, with the transition probabilities labeled on them.
+
+<div style="text-align:center" markdown="1">
+![Weather Markov Process \label{fig:weather_mp}](./chapter2/weather_mp.png "Weather Markov Process")
+</div>
+
+Our goal now is to define a `FiniteMarkovProcess` class that is a concrete class implementation of the abstract class `MarkovProcess`. This requires us to wrap the states in the keys and values of the dictionary specifying a `FiniteMarkovProcess` with the appropriate `Terminal` or `NonTerminal' wrapping. Let's create an alias called `Transition` for this dictionary data structure since we will use this data structure often:
 
 ```python
 from typing import Mapping
@@ -443,25 +462,10 @@ from rl.distribution import FiniteDistribution
 Transition = Mapping[NonTerminal[S], FiniteDistribution[State[S]]]
 ```
 
-Note that the `FiniteDistribution[S]` that a `NonTerminal[S]` maps to will only contain the set of states transitioned to from the non-terminal state with non-zero probability. To make things concrete, here's a toy Markov Process data structure example of a city with highly unpredictable weather outcomes from one day to the next (note: `Categorical` type inherits from `FiniteDistribution` type in the code at [rl/distribution.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/distribution.py)):
 
-```python
-{
-  "Rain": Categorical({"Rain": 0.3, "Nice": 0.7}),
-  "Snow": Categorical({"Rain": 0.4, "Snow": 0.6}),
-  "Nice": Categorical({"Rain": 0.2, "Snow": 0.3})
-}
-```
+To create a `Transition` data type from the above example of the weather Markov Process, we'd need to wrap each of the "Rain", "Snow" and "Nice" strings with `NonTerminal`. 
 
-To create a `Transition` data type from the above data structure, we'd need to wrap each of the "Rain", "Snow" and "Nice" strings with `NonTerminal`. 
-
-It is common to view this Markov Process representation as a directed graph, as depicted in Figure \ref{fig:weather_mp}. The nodes are the states and the directed edges are the probabilistic state transitions, with the transition probabilities labeled on them.
-
-<div style="text-align:center" markdown="1">
-![Weather Markov Process \label{fig:weather_mp}](./chapter2/weather_mp.png "Weather Markov Process")
-</div>
-
-Now we are ready to write the code for the `FiniteMarkovProcess` class. The `__init__` method (constructor) takes as argument a `transition_map` whose type is similar to `Transition[S]` except that we use the `S` type directly in the `Mapping` representation instead of `NonTerminal[S]` or `State[S]` (this is convenient for users to specify their Markov Process in a succinct `Mapping` representation without the burden of wrapping each `S` with a `NonTerminal[S]` or `Terminal[S]`). The dictionary we created above for the weather Markov Process can be used as the `transition_map` argument. However, this means the `__init__` method needs to wrap the specified `S` states as `NonTerminal[S]` or `Terminal[S]` when creating the attribute `self.transition_map`. We also have an attribute `self.non_terminal_states: Sequence[S]` that is an ordered sequence of the non-terminal states. We implement the `transition` method by simply returning the `FiniteDistribution[State[S]]` the given `state: NonTerminal[S]` maps to in the attribute `self.transition_map: Transition[S]`. Note that along with the `transition` method, we have implemented the `__repr__` method for a well-formatted display of `self.transition_map`.
+Now we are ready to write the code for the `FiniteMarkovProcess` class. The `__init__` method (constructor) takes as argument a `transition_map` whose type is similar to `Transition[S]` except that we use the `S` type directly in the `Mapping` representation instead of `NonTerminal[S]` or `State[S]` (this is convenient for users to specify their Markov Process in a succinct `Mapping` representation without the burden of wrapping each `S` with a `NonTerminal[S]` or `Terminal[S]`). The dictionary we created above for the weather Markov Process can be used as the `transition_map` argument. However, this means the `__init__` method needs to wrap the specified `S` states as `NonTerminal[S]` or `Terminal[S]` when creating the attribute `self.transition_map`. We also have an attribute `self.non_terminal_states: Sequence[NonTerminal[S]]` that is an ordered sequence of the non-terminal states. We implement the `transition` method by simply returning the `FiniteDistribution[State[S]]` the given `state: NonTerminal[S]` maps to in the attribute `self.transition_map: Transition[S]`. Note that along with the `transition` method, we have implemented the `__repr__` method for a well-formatted display of `self.transition_map`.
 
 ```python
 from typing import Sequence
@@ -623,7 +627,7 @@ There is a rich and interesting theory for Markov Processes. However, we won't g
 ### Stationary Distribution of a Markov Process
 \begin{definition} 
  The {\em Stationary Distribution} of a (Stationary) Markov Process with state space $\mathcal{S} = \mathcal{N}$ and transition probability function $\mathcal{P}: \mathcal{N} \times \mathcal{N} \rightarrow [0, 1]$ is a probability distribution function $\pi: \mathcal{N} \rightarrow [0, 1]$ such that:
-  $$\pi(s) = \sum_{s'\in \mathcal{N}} \pi(s) \cdot \mathcal{P}(s', s) \text{ for all } s \in \mathcal{N}$$
+  $$\pi(s) = \sum_{s'\in \mathcal{N}} \pi(s) \cdot \mathcal{P}(s, s') \text{ for all } s \in \mathcal{N}$$
 \end{definition}
 
 The intuitive view of the stationary distribution $\pi$ is that (under specific conditions we are not listing here) if we let the Markov Process run forever, then in the long run the states occur at specific time steps with relative frequencies (probabilities) given by a distribution $\pi$ that is independent of the time step. The probability of occurrence of a specific state $s$ at a time step (asymptotically far out in the future) should be equal to the sum-product of probabilities of occurrence of all the states at the previous time step and the transition probabilities from those states to $s$. But since the states' occurrence probabilities are invariant in time, the $\pi$ distribution for the previous time step is the same as the $\pi$ distribution for the time step we considered. This argument holds for all states $s$, and that is exactly the statement of the definition of *Stationary Distribution* formalized above.
@@ -714,9 +718,9 @@ The subsection on *Start States* we had covered for Markov Processes naturally a
 
 If all random sequences of states in a Markov Reward Process terminate, we refer to it as *episodic* sequences (otherwise, we refer to it as *continuing* sequences). 
 
-Let's write some code that captures this formalism. We create a derived `@abstractclass MarkovRewardProcess` that inherits from the `@abstractclass MarkovProcess`. Analogous to `MarkovProcess`'s `@abstractmethod transition` (that represents $\mathcal{P}$), `MarkovRewardProcess` has an `@abstractmethod transition_reward` that represents $\mathcal{P}_R$. Note that the return type of `transition_reward` is `Distribution[Tuple[S, float]]`, representing the probability distribution of (next state, reward) pairs transitioned to.
+Let's write some code that captures this formalism. We create a derived `@abstractclass MarkovRewardProcess` that inherits from the `@abstractclass MarkovProcess`. Analogous to `MarkovProcess`'s `@abstractmethod transition` (that represents $\mathcal{P}$), `MarkovRewardProcess` has an `@abstractmethod transition_reward` that represents $\mathcal{P}_R$. Note that the return type of `transition_reward` is `Distribution[Tuple[State[S], float]]`, representing the probability distribution of (next state, reward) pairs transitioned to.
 
-Also, analogous to `MarkovProcess`'s `simulate` method, `MarkovRewardProcess` has the method `simulate_reward` which generates a stream of `TransitionStep` objects. Each `TransitionStep` object consists of a 3-tuple: (state, next state, reward) representing the sampled transitions from the states visited in the generated sampling trace. Here's the actual code:
+Also, analogous to `MarkovProcess`'s `simulate` method, `MarkovRewardProcess` has the method `simulate_reward` which generates a stream of `TransitionStep[S]` objects. Each `TransitionStep[S]` object consists of a 3-tuple: (state, next state, reward) representing the sampled transitions within the generated sampling trace. Here's the actual code:
 
 ```python
 @dataclass(frozen=True)
