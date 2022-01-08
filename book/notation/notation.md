@@ -16,6 +16,10 @@ $\mathbb{R}_{\geq 0}$ & Set of non-negative real numbers \\
 \hline
 $[a,b]$ & Set of real numbers that are $\geq a$ and $\leq b$. The notation $x \in [a,b]$ is shorthand for $x \in \mathbb{R}$ and $a \leq x \leq b$ \\
 \hline
+$[a,b)$ & Set of real numbers that are $\geq a$ and $< b$. The notation $x \in [a,b)$ is shorthand for $x \in \mathbb{R}$ and $a \leq x < b$ \\
+\hline
+$(a,b]$ & Set of real numbers that are $> a$ and $leq b$. The notation $x \in (a,b]$ is shorthand for $x \in \mathbb{R}$ and $a < x \leq b$ \\
+\hline
 $\sum_{i=1}^n a_i$ & Sum of terms $a_1, a_2, \ldots, a_n$ \\
 \hline
 $\prod_{i=1}^n a_i$ & Product of terms $a_1, a_2, \ldots, a_n$ \\
