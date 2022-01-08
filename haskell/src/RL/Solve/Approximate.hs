@@ -9,6 +9,7 @@ import           Control.Monad.Bayes.Class                ( MonadSample )
 import qualified Data.Vector                             as V
 
 import           Numeric.LinearAlgebra                    ( (#>)
+                                                          , (<.>)
                                                           , R
                                                           , scale
                                                           )
@@ -33,6 +34,8 @@ import           RL.Process.Markov                        ( MarkovRewardProcess
                                                           , runWithReward
                                                           , step'
                                                           )
+import           Debug.Trace
+
 
 evaluateFiniteMRP :: (Approx v s, Fractional n, Scalar (Diff (v s)) ~ n)
                   => FiniteMarkovRewardProcess s
@@ -54,6 +57,9 @@ evaluateMRP :: ( Approx v s
                , MonadSample m
                , Fractional n
                , Scalar (Diff (v s)) ~ n
+               , Show s
+               , Show n
+               , Show (Diff (v s))
                )
             => MarkovRewardProcess m s
             -> m s
@@ -69,8 +75,14 @@ evaluateMRP process startStates γ n v₀ = Streaming.iterateM update (pure v₀
  where
   update v = do
     states <- replicateM n startStates
-    let return (s, r) = r + γ * Approx.eval v s
+    let return (s, r) =  r + γ * Approx.eval v s
     rewards <- mapM (expected return) states
-    pure $ Approx.update 1 v Batch { xs = V.fromList states, ys = Matrix.fromList rewards }
+    let xs  = V.fromList states
+    let ys  = Matrix.fromList rewards
+    
+    -- gives the prediction for each state
+    let errors = Approx.eval' v xs - ys
+    
+    pure $ Approx.update 0.2 v Batch { xs , ys  }
 
-  expected f = Probability.expected n f . step' process
+  expected f = Probability.expected 11 f . step' process

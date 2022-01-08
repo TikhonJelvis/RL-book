@@ -44,6 +44,8 @@ import           RL.Approx.Weights                        ( Weights
                                                           )
 import qualified RL.Approx.Weights                       as Weights
 
+import Debug.Trace
+
 -- | An approximation that uses a linear combination of /features/
 -- ('ϕ') and an extra regularization term ('λ') to model a function.
 data Linear a = Linear
@@ -95,13 +97,12 @@ instance Affine (Linear a) where
 instance Approx Linear a where
   eval Linear { ϕ, w } a = ϕ a <.> w
 
-  direction Linear { ϕ, λ } Batch { xs, ys } = inv left #> right
-   where
-    left  = (tr' ϕₓ <> ϕₓ) + scalar (n * λ)
-    right = tr' ϕₓ #> ys
 
+  direction Linear { ϕ, λ, w } Batch { xs, ys } =  (tr' ϕₓ) #> (( ys - (ϕₓ #> w) ) / len)
+   where
+    len   = fromIntegral (V.length xs )
     ϕₓ    = ϕ <$$> xs
-    n     = fromIntegral (snd $ size ϕₓ)
+
 
 
 instance Within (Linear a) where
@@ -121,9 +122,11 @@ instance Within (Linear a) where
 b :: Vector Double
 b = Matrix.fromList [ 1, 3, 5]
 
+-- x vector (features)
 x :: [Vector Double]
 x =  fmap Matrix.fromList [[2, 4, 6], [2, 8, 7], [1, 9, 5], [2, 2, 6], [3, 5, 8]]
 
+-- we want to introduce random noise
 eps :: IO [Double]
 -- fmap for IO is done implicitly! since it can't be passed as an argument
 eps = (Monad.replicateM 5) (Probability.sampleIO (Probability.normal 0 0.05) )
@@ -136,6 +139,7 @@ y = do eps' <- eps
 
 -- Now let's create feature functions to setup the linear
 linTest :: Linear (Vector Double)
+-- create takes two arguments, first one is regularization parameter, which is zero
 linTest = create 0 [ \x -> Matrix.atIndex x 0,
                      \x -> Matrix.atIndex x 1,
                      \x -> Matrix.atIndex x 2
@@ -143,5 +147,6 @@ linTest = create 0 [ \x -> Matrix.atIndex x 0,
 
 -- X is a list of Vector Double, i.e. [Vector Double]
 -- V.fromList turns it into the vector, but we need asRow to make a list for each row
+-- pure will extract y from the IO
 testDirection = do y' <- y
                    pure (direction linTest Batch {xs = V.fromList x, ys = y'})

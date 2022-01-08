@@ -15,7 +15,10 @@ tests = testGroup
   [ Iterate.tests
   , Matrix.tests
   , Probability.tests
-  , testGroup "Solve" [Approximate.tests, Dynamic.tests]
+  , testGroup "Solve" [
+      Approximate.tests
+      , Dynamic.tests
+      ]
   ]
 
 main :: IO ()

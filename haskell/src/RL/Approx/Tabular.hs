@@ -33,6 +33,8 @@ import qualified RL.Matrix                               as Matrix
 import           RL.Vector                                ( Affine(..) )
 import           RL.Within                                ( Within(..) )
 
+import           Debug.Trace                             
+
 -- | An 'Approx' that models a function as a map.
 data Tabular a = Tabular
   { mapping :: !(HashMap a R)
@@ -65,10 +67,11 @@ instance (Eq a, Hashable a) => Affine (Tabular a) where
 instance (Eq a, Hashable a) => Approx Tabular a where
   eval Tabular { mapping } x = mapping ! x
 
-  direction Tabular { domain } Batch { xs, ys } = toVector $ Tabular { mapping = xy <> zeros, domain }
+  direction old@(Tabular {mapping, domain }) Batch { xs, ys } =
+    Tabular { mapping = xy <> mapping , domain } .-. old
    where
-    zeros = mapping $ create domain
-    xy = HashMap.fromList [ (x, y) | x <- V.toList xs | y <- Matrix.toList ys ]
+    -- zeros = mapping $ create domain
+    xy = HashMap.fromList [ (x, y) | x <- V.toList xs | y <- Matrix.toList ys ]  
 
 instance (Eq a, Hashable a) => Within (Tabular a) where
   within ϵ d₁ d₂ =

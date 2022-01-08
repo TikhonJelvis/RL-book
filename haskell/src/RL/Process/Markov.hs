@@ -32,6 +32,8 @@ import           Streaming                                ( Of
 import           Streaming.Prelude                        ( yield )
 import qualified Streaming.Prelude                       as Streaming
 
+import           Debug.Trace
+
 -- * Markov Processes
 
 -- ** Processes
@@ -87,6 +89,7 @@ instance MonadSample m => MonadSample (WithReward m) where
 type MarkovRewardProcess m s = MarkovProcess (WithReward m) s
 
 -- | Step a 'MarkovRewardProcess', returning the new state and reward.
+-- | gets the Double value from inside the wrapper
 step' :: Monad m => MarkovRewardProcess m s -> s -> m (s, Double)
 step' MarkovProcess { step } s = do
   (s', r) <- runWithReward (step s)
@@ -105,7 +108,7 @@ data Step s = Step
 
 -- | Run a simulation trace of the given reward process, yielding the
 -- state transition and *instantaneous* reward for each step.
-simulateReward :: Monad m
+simulateReward :: (Monad m)
                => MarkovRewardProcess m s
                -- ^ The reward process to simulate.
                -> m s

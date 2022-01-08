@@ -10,9 +10,14 @@ import           Control.Monad.Bayes.Sampler              ( SamplerIO
 
 import           Data.Bool                                ( bool )
 
+import qualified Data.HashMap.Strict                     as HashMap
+import           Data.Hashable                            ( Hashable )
+import qualified Data.Vector                             as V
+
 import           Numeric.LinearAlgebra                    ( Container
                                                           , R
                                                           , scalar
+                                                          , (|>)  
                                                           )
 
 import qualified Streaming
@@ -63,15 +68,31 @@ tests = testGroup
   , testGroup
     "evaluateMRP"
     [ testCase "flipFlop + Tabular" $ do
-        let v₀      = Tabular.create @[] [True, False]
+        let xs = [True, False]
+            v₀ = Tabular.Tabular
+                 { Tabular.mapping = HashMap.fromList [ (x, 5) | x <- xs ]
+                   , Tabular.domain  = V.fromList xs
+                 }
+            states  = bernoulli 0.5
+            process = toRewardProcess $ flipFlop 0.7
+            vs      = evaluateMRP process states 0.99 2 v₀
+
+        Just v <- sampleIO $ Iterate.converge' (within 1e-4) vs
+        assertWithin (0.05 * 170) (Approx.eval' v [True, False]) (scalar 170)
+   
+  , testCase "flipFlop + Linear" $ do
+        let v₀   = Linear.Linear { Linear.λ = 0, Linear.ϕ = Linear.features [f1, f2], Linear.w = 2 |> [690, (-160) ] }
+            f1 True = 1.0
+            f1 False = 0.3
+            f2 True = 0
+            f2 False = 1.0
             states  = bernoulli 0.5
             process = toRewardProcess $ flipFlop 0.7
             vs      = evaluateMRP process states 0.99 5 v₀
 
-        Streaming.print $ Streaming.take 20 $ nth 10 $ runIO vs
-
+    
         Just v <- sampleIO $ Iterate.converge' (within 1e-4) vs
-        assertWithin 0.1 (Approx.eval' v [True, False]) (scalar 170)
+        assertWithin (0.05 * 170) (Approx.eval' v [True, False]) (scalar 170)
     ]
   ]
 

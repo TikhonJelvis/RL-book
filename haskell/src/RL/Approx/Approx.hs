@@ -26,7 +26,7 @@ data Batch a = Batch
     -- ^ X values, same length as ys
   , ys :: !(Vector R)
     -- ^ Corresponding Y values, same length as xs
-  }
+  } deriving (Show)
 
 
 -- | Updatable approximations for functions of the type @a → ℝ@.
