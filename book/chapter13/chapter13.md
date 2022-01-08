@@ -26,7 +26,7 @@ In this section, we start by setting up some notation, and then state and prove 
 
 #### Notation and Definitions
 
-Denoting the discount factor as $\gamma$, we shall assume either episodic sequences with $0 \leq \gamma \leq 1$ or non-episodic (continuing) sequences  with $0 \leq \gamma < 1$. We shall use our usual notation of discrete-time, countable-spaces, stationary MDPs although we can indeed extend PGT and PG Algorithms to more general settings as well. We lighten $\mathcal{P}(s,a,s')$ notation to $\mathcal{P}_{s,s'}^a$ and $\mathcal{R}(s,a)$ notation to $\mathcal{R}_s^a$ because we want to save some space in the very long equations in the derivation of PGT. 
+Denoting the discount factor as $\gamma$, we shall assume either episodic sequences with $0 \leq \gamma \leq 1$ or non-episodic (continuing) sequences  with $0 \leq \gamma < 1$. We shall use our usual notation of discrete-time, countable-spaces, time-homogeneous MDPs although we can indeed extend PGT and PG Algorithms to more general settings as well. We lighten $\mathcal{P}(s,a,s')$ notation to $\mathcal{P}_{s,s'}^a$ and $\mathcal{R}(s,a)$ notation to $\mathcal{R}_s^a$ because we want to save some space in the very long equations in the derivation of PGT. 
 
 We denote the probability distribution of the starting state as $p_0 : \mathcal{N} \rightarrow [0,1]$. The policy function approximation is denoted as $\pi(s,a;\bm{\theta}) = \mathbb{P}[A_t=a | S_t=s; \bm{\theta}]$.
 

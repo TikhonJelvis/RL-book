@@ -400,7 +400,7 @@ In this section, we cover Off-Policy Incremental TD Control with Experience-Repl
 1) The sequences of states made available to deep learning through trace experiences are highly correlated, whereas deep learning algorithms are premised on data samples being independent.
 2) The data distribution changes as the RL algorithm learns new behaviors, whereas deep learning algorithms are premised on a fixed underlying distribution (i.e., stationary).
 
-Experience-Replay serves to smooth the training data distribution over many past behaviors, effectively resolving the correlation issue as well as the non-stationarity issue. Hence, Experience-Replay is a powerful idea for Off-Policy TD Control. The idea of using Experience-Replay for Off-Policy TD Control is due to the [Ph.D. thesis of Long Lin](https://isl.anthropomatik.kit.edu/pdf/Lin1993.pdf) [@lin:phd].
+Experience-Replay serves to smooth the training data distribution over many past behaviors, effectively resolving the correlation issue as well as the non-stationary issue. Hence, Experience-Replay is a powerful idea for Off-Policy TD Control. The idea of using Experience-Replay for Off-Policy TD Control is due to the [Ph.D. thesis of Long Lin](https://isl.anthropomatik.kit.edu/pdf/Lin1993.pdf) [@lin:phd].
 
 To make this idea of Q-Learning with Experience-Replay clear, we make a few changes to the `q_learning` function we had written in Chapter [-@sec:rl-control-chapter] with the following function `q_learning_experience_replay`.
 
