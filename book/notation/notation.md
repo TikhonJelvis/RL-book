@@ -1,4 +1,4 @@
-# Summary of Notation {.unnumbered}
+## Summary of Notation {.unnumbered}
 
 \begin{longtable}{|p{0.2\linewidth}|p{0.7\linewidth}|}
 \hline
@@ -19,6 +19,8 @@ $[a,b]$ & Set of real numbers that are $\geq a$ and $\leq b$. The notation $x \i
 $[a,b)$ & Set of real numbers that are $\geq a$ and $< b$. The notation $x \in [a,b)$ is shorthand for $x \in \mathbb{R}$ and $a \leq x < b$ \\
 \hline
 $(a,b]$ & Set of real numbers that are $> a$ and $leq b$. The notation $x \in (a,b]$ is shorthand for $x \in \mathbb{R}$ and $a < x \leq b$ \\
+\hline
+$\emptyset$ & The Empty Set (Null Set) \\
 \hline
 $\sum_{i=1}^n a_i$ & Sum of terms $a_1, a_2, \ldots, a_n$ \\
 \hline

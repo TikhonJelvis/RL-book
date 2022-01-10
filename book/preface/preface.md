@@ -1,4 +1,4 @@
-# Preface {.unnumbered}
+## Preface {.unnumbered}
 
 We (Ashwin and Tikhon) have spent all of our educational and professional lives operating in the intersection of Mathematics and Computer Science - Ashwin for more than 3 decades and Tikhon for more than a decade. During these periods, we’ve commonly held two obsessions. The first is to bring together the (strangely) disparate worlds of Mathematics and Computer Science. The second is to focus on the pedagogy of various topics across Mathematics and Computer Science. Fundamentally, this book was born out of a deep desire to release our twin obsessions so as to not just educate the next generation of scientists and engineers, but to also present some new and creative ways of teaching technically challenging topics in ways that are easy to absorb and retain.
 
