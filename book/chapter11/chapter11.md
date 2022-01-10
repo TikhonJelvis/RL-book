@@ -70,7 +70,7 @@ We've previously learnt that for any policy $\pi'$, if we apply the Bellman Poli
 $$\lim_{i\rightarrow \infty} (\bm{B}^{\pi'})^i(\bvpi) = \bm{V}^{\pi'}$$
 So the proof is complete if we prove that:
 $$(\bm{B}^{\pi'})^{i+1}(\bvpi) \geq (\bm{B}^{\pi'})^i(\bvpi) \text{ for all } i = 0, 1, 2, \ldots$$
-In plain English, this says we need to prove that repeated application of $\bm{B}^{\pi'}$ produces an increasing tower of Value Functions $[(\bm{B}^{\pi'})^i(\bvpi)|i = 0, 1, 2, \ldots]$.
+In plain English, this says we need to prove that repeated application of $\bm{B}^{\pi'}$ produces a non-decreasing tower of Value Functions $[(\bm{B}^{\pi'})^i(\bvpi)|i = 0, 1, 2, \ldots]$.
 
 We prove this by induction. The base case of the proof by induction is to show that $\bm{B}^{\pi'}(\bvpi)  \geq  \bm{V}^{\pi}$
 
