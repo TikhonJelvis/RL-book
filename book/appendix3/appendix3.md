@@ -4,7 +4,7 @@ In this Appendix, we provide a quick introduction to the *Basics of Stochastic C
 
 ### Simple Random Walk
 
-The best way to get started with Stochastic Calculus is to first get familiar with key properties of a *simple random walk* viewed as a discrete-time, countable state-space, stationary Markov Process. The state space is the set of integers $\mathbb{Z}$. Denoting the random state at time $t$ as $Z_t$, the state transitions are defined in terms of the independent and identically distributed (i.i.d.) random variables $Y_t$ for all $t = 0, 1, \ldots$
+The best way to get started with Stochastic Calculus is to first get familiar with key properties of a *simple random walk* viewed as a discrete-time, countable state-space, time-homogeneous Markov Process. The state space is the set of integers $\mathbb{Z}$. Denoting the random state at time $t$ as $Z_t$, the state transitions are defined in terms of the independent and identically distributed (i.i.d.) random variables $Y_t$ for all $t = 0, 1, \ldots$
 
 $$Z_{t+1} = Z_t + Y_t \mbox{ and } \mathbb{P}[Y_t = 1] = \mathbb{P}[Y_t = -1] = 0.5 \mbox{ for all } t = 0, 1, \ldots$$
 
