@@ -749,10 +749,10 @@ A fixed number of iterations can be useful for exploration, but we probably want
 ``` python
 def converge(values: Iterator[float], threshold: float) -> Iterator[float]:
         for a, b in itertools.pairwise(values):
-        yield a
+            yield a
 
-        if abs(a - b) < threshold:
-            break
+            if abs(a - b) < threshold:
+                break
 ```
 
 For older versions of Python, we'd have to implement our version of `pairwise` as well:
