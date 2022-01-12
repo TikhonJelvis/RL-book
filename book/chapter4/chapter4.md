@@ -175,7 +175,7 @@ Our first Dynamic Programming algorithm is called *Policy Evaluation*. The Polic
 Let the states of the MDP (and hence, of the $\pi$-implied MRP) be $\mathcal{S} = \{s_1, s_2, \ldots, s_n\}$, and without loss of generality, let $\mathcal{N} = \{s_1, s_2, \ldots, s_m \}$ be the non-terminal states. We are given a fixed policy $\pi: \mathcal{N} \times \mathcal{A} \rightarrow [0, 1]$. We are also given the $\pi$-implied MRP's transition probability function:
 
 $$\mathcal{P}_R^{\pi}: \mathcal{N} \times \mathcal{D} \times \mathcal{S} \rightarrow [0, 1]$$
-in the form of a data structure (since the states are finite, and the pairs of next state and reward transitions from each non-terminal state are also finite).
+in the form of a data structure (since the states are finite, and the pairs of next state and reward transitions from each non-terminal state are also finite). The Prediction problem is to compute the Value Function of the MDP when evaluated with the policy $\pi$ (equivalently, the Value Function of the $\pi$-implied MRP), which we denote as $V^{\pi}: \mathcal{N} \rightarrow \mathbb{R}$.
 
 We know from Chapters [-@sec:mrp-chapter] and [-@sec:mdp-chapter] that by extracting (from $\mathcal{P}_R^{\pi}$) the transition probability function $\mathcal{P}^{\pi}: \mathcal{N} \times \mathcal{S} \rightarrow [0, 1]$ of the implicit Markov Process and the reward function $\mathcal{R}^{\pi}: \mathcal{N} \rightarrow \mathbb{R}$, we can perform the following calculation for the Value Function $V^{\pi}: \mathcal{N} \rightarrow \mathbb{R}$ (expressed as a column vector $\bvpi \in \mathbb{R}^m$) to solve this Prediction problem:
 
@@ -265,6 +265,13 @@ def evaluate_mrp_result(
 
 The code should be fairly self-explanatory. Since the Policy Evaluation problem applies to Finite MRPs, the function `evaluate_mrp` above takes as input `mrp: FiniteMarkovDecisionProcess[S]` and a `gamma: float` to produce an `Iterator` on Value Functions represented as `np.ndarray` (for fast vector/matrix calculations). The function `update` in `evaluate_mrp` represents the application of the Bellman Policy Operator $\bbpi$. The function `evaluate_mrp_result` produces the Value Function for the given `mrp` and the given `gamma`, returning the last value function on the `Iterator` (which terminates based on the `almost_equal_np_arrays` function, considering the maximum of the absolute value differences across all states). Note that the return type of `evaluate_mrp_result` is `V[S]` which is an alias for `Mapping[NonTerminal[S], float]`, capturing the semantic of $\mathcal{N} \rightarrow \mathbb{R}$. Note that `evaluate_mrp` is useful for debugging (by looking at the trace of value functions in the execution of the Policy Evaluation algorithm) while `evaluate_mrp_result` produces the desired output Value Function.
 
+Note that although we defined the Bellman Policy Operator $\bbpi$ as operating on Value Functions of the $\pi$-implied MRP, we can also view the Bellman Policy Operator $\bbpi$ as operating on Value Functions of an MDP. To support this MDP view, we express Equation \eqref{eq:bellman_policy_operator} in terms of the MDP transitions/rewards specification, as follows:
+
+\begin{equation}
+\bbpi(\bv)(s) = \sum_{a\in \mathcal{A}} \pi(s,a) \cdot \mathcal{R}(s,a) + \gamma \sum_{a \in \mathcal{A}} \pi(s,a) \sum_{s' \in \mathcal{N}} \mathcal{P}(s,a,s') \cdot \bv(s') \text{ for all } s \in \mathcal{N}
+\label{eq:bellman_policy_operator_mdp_view}
+\end{equation}
+
 If the number of non-terminal states of a given MRP is $m$, then the running time of each iteration is $O(m^2)$. Note though that to construct an MRP from a given MDP and a given policy, we have to perform $O(m^2\cdot k)$ operations, where $k = |\mathcal{A}|$.
 
 ### Greedy Policy
@@ -353,7 +360,7 @@ $$\bm{V}^{\pi_D'} = \bm{V}^{G(\bvpi)} \geq \bvpi$$
 \end{theorem}
 
 \begin{proof}
-We start by noting that applying the Bellman Policy Operator $\bm{B}^{\pi_D'}$ repeatedly, starting with the Value Function $\bvpi$, will converge to the Value Function $\bm{V}^{\pi_D'}$. Formally,
+This proof is based on application of the Bellman Policy Operator on Value Functions of the given MDP (note: this MDP view of the Bellman Policy Operator is expressed in Equation \eqref{eq:bellman_policy_operator_mdp_view}). We start by noting that applying the Bellman Policy Operator $\bm{B}^{\pi_D'}$ repeatedly, starting with the Value Function $\bvpi$, will converge to the Value Function $\bm{V}^{\pi_D'}$. Formally,
 
 $$\lim_{i\rightarrow \infty} (\bm{B}^{\pi_D'})^i(\bvpi) = \bm{V}^{\pi_D'}$$
 
@@ -367,7 +374,7 @@ Let us prove this by induction. The base case (for $i=0$) of the induction is to
 
 $$\bm{B}^{\pi_D'}(\bvpi) \geq \bvpi$$
 
-Note that:
+Note that for the case of the deterministic policy $\pi_D'$ and Value Function $\bvpi$, Equation \eqref{eq:bellman_policy_operator_mdp_view} simplifies to:
 
 $$\bm{B}^{\pi_D'}(\bvpi)(s) = \mathcal{R}(s,\pi_D'(s)) + \gamma \sum_{s'\in \mathcal{N}} \mathcal{P}(s,\pi_D'(s),s') \cdot \bvpi(s') \text{ for all } s \in \mathcal{N}$$
 
