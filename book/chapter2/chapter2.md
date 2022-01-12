@@ -469,7 +469,7 @@ Now we are ready to write the code for the `FiniteMarkovProcess` class. The `__i
 
 ```python
 from typing import Sequence
-from typing import FiniteDistribution, Categorical
+from rl.distribution import FiniteDistribution, Categorical
 
 class FiniteMarkovProcess(MarkovProcess[S]):
     non_terminal_states: Sequence[NonTerminal[S]]
