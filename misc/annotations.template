@@ -1,0 +1,226 @@
+\documentclass{article}
+
+\usepackage{fontspec,xltxtra,xunicode}
+\usepackage{geometry}
+\geometry{verbose,letterpaper,tmargin=2cm,bmargin=2.5cm,lmargin=3cm,rmargin=3.5cm}
+
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{bm}
+\usepackage{physics}
+
+\usepackage{amsthm}
+\usepackage{pifont}
+
+\usepackage{longtable}
+
+%% Packages for equation annotations specifically
+\usepackage[dvipsnames]{xcolor}
+\usepackage{tikz}
+\usetikzlibrary{backgrounds}
+\usetikzlibrary{arrows,shapes}
+\usetikzlibrary{tikzmark}
+\usetikzlibrary{calc}
+
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{corollary}{Corollary}[theorem]
+\newtheorem{lemma}[theorem]{Lemma}
+\theoremstyle{definition}
+\newtheorem{definition}{Definition}[section]
+\theoremstyle{remark}
+\newtheorem*{remark}{Remark}
+
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+
+%% On macOS, we need to reference fonts installed by Nix via their
+%% path.
+%%
+%% The nix-shell for this project puts that path into the
+%% DEJA_VU_DIRECTORY environment variable, which we can read with
+%% \CatchFileDef
+%%
+%% See: https://tex.stackexchange.com/questions/62010/can-i-access-system-environment-variables-from-latex-for-instance-home
+\usepackage{xparse}
+\ExplSyntaxOn
+\NewDocumentCommand{\getenv}{om}
+ {
+  \sys_get_shell:nnN { kpsewhich ~ --var-value ~ #2 } { } \l_tmpa_tl
+  \tl_trim_spaces:N \l_tmpa_tl
+  \IfNoValueTF { #1 }
+   {
+    \tl_use:N \l_tmpa_tl
+   }
+   {
+    \tl_set_eq:NN #1 \l_tmpa_tl
+   }
+ }
+\ExplSyntaxOff
+
+\getenv[\DEJAVU]{DEJA_VU_DIRECTORY}
+\setmonofont{DejaVuSansMono}[
+  Mapping=tex-text,
+  Path=\DEJAVU,
+  Extension=.ttf,
+  Scale=0.8]
+
+\usepackage[flushmargin]{footmisc}
+
+\pagestyle{plain}
+
+\usepackage{fancyvrb}
+\DefineVerbatimEnvironment{Highlighting}{Verbatim}{
+  commandchars=\\\{\},
+  baselinestretch=0.75
+}
+
+\usepackage{color}
+\newenvironment{Shaded}{}{}
+\newcommand{\AlertTok}[1]{\textcolor[rgb]{1.00,0.00,0.00}{\textbf{#1}}}
+\newcommand{\AnnotationTok}[1]{\textcolor[rgb]{0.38,0.63,0.69}{\textbf{\textit{#1}}}}
+\newcommand{\AttributeTok}[1]{\textcolor[rgb]{0.49,0.56,0.16}{#1}}
+\newcommand{\BaseNTok}[1]{\textcolor[rgb]{0.25,0.63,0.44}{#1}}
+\newcommand{\BuiltInTok}[1]{#1}
+\newcommand{\CharTok}[1]{\textcolor[rgb]{0.25,0.44,0.63}{#1}}
+\newcommand{\CommentTok}[1]{\textcolor[rgb]{0.38,0.63,0.69}{\textit{#1}}}
+\newcommand{\CommentVarTok}[1]{\textcolor[rgb]{0.38,0.63,0.69}{\textbf{\textit{#1}}}}
+\newcommand{\ConstantTok}[1]{\textcolor[rgb]{0.53,0.00,0.00}{#1}}
+\newcommand{\ControlFlowTok}[1]{\textcolor[rgb]{0.00,0.44,0.13}{\textbf{#1}}}
+\newcommand{\DataTypeTok}[1]{\textcolor[rgb]{0.56,0.13,0.00}{#1}}
+\newcommand{\DecValTok}[1]{\textcolor[rgb]{0.25,0.63,0.44}{#1}}
+\newcommand{\DocumentationTok}[1]{\textcolor[rgb]{0.73,0.13,0.13}{\textit{#1}}}
+\newcommand{\ErrorTok}[1]{\textcolor[rgb]{1.00,0.00,0.00}{\textbf{#1}}}
+\newcommand{\ExtensionTok}[1]{#1}
+\newcommand{\FloatTok}[1]{\textcolor[rgb]{0.25,0.63,0.44}{#1}}
+\newcommand{\FunctionTok}[1]{\textcolor[rgb]{0.02,0.16,0.49}{#1}}
+\newcommand{\ImportTok}[1]{#1}
+\newcommand{\InformationTok}[1]{\textcolor[rgb]{0.38,0.63,0.69}{\textbf{\textit{#1}}}}
+\newcommand{\KeywordTok}[1]{\textcolor[rgb]{0.00,0.44,0.13}{\textbf{#1}}}
+\newcommand{\NormalTok}[1]{#1}
+\newcommand{\OperatorTok}[1]{\textcolor[rgb]{0.40,0.40,0.40}{#1}}
+\newcommand{\OtherTok}[1]{\textcolor[rgb]{0.00,0.44,0.13}{#1}}
+\newcommand{\PreprocessorTok}[1]{\textcolor[rgb]{0.74,0.48,0.00}{#1}}
+\newcommand{\RegionMarkerTok}[1]{#1}
+\newcommand{\SpecialCharTok}[1]{\textcolor[rgb]{0.25,0.44,0.63}{#1}}
+\newcommand{\SpecialStringTok}[1]{\textcolor[rgb]{0.73,0.40,0.53}{#1}}
+\newcommand{\StringTok}[1]{\textcolor[rgb]{0.25,0.44,0.63}{#1}}
+\newcommand{\VariableTok}[1]{\textcolor[rgb]{0.10,0.09,0.49}{#1}}
+\newcommand{\VerbatimStringTok}[1]{\textcolor[rgb]{0.25,0.44,0.63}{#1}}
+\newcommand{\WarningTok}[1]{\textcolor[rgb]{0.38,0.63,0.69}{\textbf{\textit{#1}}}}
+
+\newcommand{\VerbBar}{|}
+\newcommand{\VERB}{\Verb[commandchars=\\\{\}]}
+
+$if(subscript)$
+\newcommand{\textsubscr}[1]{\ensuremath{_{\scriptsize\textrm{#1}}}}
+$endif$
+
+\usepackage{graphicx}
+% -- We will generate all images so they have a width \maxwidth. This means
+% -- that they will get their normal width if they fit onto the page, but
+% -- are scaled down if they would overflow the margins.
+\makeatletter
+\def\maxwidth{\ifdim\Gin@nat@width>\linewidth\linewidth
+\else\Gin@nat@width\fi}
+\makeatother
+\let\Oldincludegraphics\includegraphics
+\renewcommand{\includegraphics}[1]{\Oldincludegraphics[width=\maxwidth]{#1}}
+
+% Section numbering.
+% Here again is a variable you can specify on the commandline
+% `markdown2pdf my.txt --number-sections --xetex --template=/wherever/this/is -o my.pdf`
+$if(numbersections)$
+$else$
+\setcounter{secnumdepth}{0}
+$endif$
+
+$if(verbatim-in-note)$
+\VerbatimFootnotes % -- allows verbatim text in footnotes
+$endif$
+
+% A big blob of definitions from Pandoc's standard template.
+\usepackage{graphicx}
+
+\usepackage{titling}
+
+%% \pretitle{\begin{flushright}\LARGE\sffamily\bfseries}
+%% \posttitle{\par\end{flushright}}
+
+%% \preauthor{\begin{flushright}\sffamily\bfseries}
+%% \postauthor{\end{flushright}}
+
+\predate{}
+\postdate{}
+
+$if(title)$
+\title{$title$}
+$endif$
+
+$if(author)$
+\author{$author$}
+$endif$
+
+$if(date)$
+\date{$date$}
+$else$
+\date{}
+$endif$
+
+% define some shorthands for common math notation to be used in the book
+\newcommand{\prob}{\mathcal{P}}
+\newcommand{\rew}{\mathcal{R}}
+\newcommand{\states}{\mathcal{S}}
+\newcommand{\actions}{\mathcal{S}}
+
+\DeclareMathOperator*{\argmin}{arg\,min}
+\DeclareMathOperator*{\argmax}{arg\,max}
+
+\newcommand{\bvpi}{\bm{V}^{\pi}}
+\newcommand{\bvs}{\bm{V}^*}
+\newcommand{\bbpi}{\bm{B}^{\pi}}
+\newcommand{\bbs}{\bm{B}^*}
+\newcommand{\bv}{\bm{V}}
+\newcommand{\bvw}{\bm{V_w}}
+\newcommand{\bphi}{\bm{\Phi}}
+\newcommand{\bb}{\bm{B}^{\pi}}
+\newcommand{\bpi}{\bm{\Pi_{\Phi}}}
+\newcommand{\bmu}{\bm{\mu_{\pi}}}
+\newcommand{\bd}{\bm{D}}
+\newcommand{\bw}{\bm{w}}
+\newcommand{\btheta}{\bm{\theta}}
+\newcommand{\bdel}{\bm{\delta_w}}
+\newcommand{\brew}{\bm{\mathcal{R}}^{\pi}}
+\newcommand{\bprob}{\bm{\mathcal{P}}^{\pi}}
+
+\newcommand{\cmark}{\ding{51}}
+\newcommand{\xmark}{\ding{55}}
+
+%% Helper commands for annotating equations:
+\newcommand{\node}[3]{\tikzmarknode{#1}{\highlight{#2}{#3}}}
+\newcommand{\annotate}{}
+\def\annotate[#1](#2,#3,#4)[#5]#6{
+  \path (#1.#2) ++ (0,2em) node[anchor=#3,color=#5!67] (#1_label){#6};
+  \draw [color=#5!87](#1.#2) |- ([xshift=-0.3ex,color=#5]#1_label.#4);
+}
+
+% Commands for Highlighting text -- non tikz method
+\newcommand{\highlight}[2]{\colorbox{#1!17}{\(\displaystyle #2\)}}
+\newcommand{\highlightdark}[2]{\colorbox{#1!47}{\(\displaystyle #2\)}}
+
+\begin{document}
+
+$if(alignment)$
+\begin{$alignment$}
+$endif$
+
+$body$
+
+$if(alignment)$
+\end{$alignment$}
+$endif$
+
+$for(include-after)$
+$include-after$
+
+$endfor$
+\end{document}

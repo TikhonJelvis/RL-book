@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+file=$(basename $1)
+name="${file%.*}"
+out="$name.pdf"
+echo "$1 → $out"
+
+pandoc --to pdf \
+       --output "$out" \
+       --pdf-engine xelatex \
+       --template annotations.template \
+       $1

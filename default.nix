@@ -10,7 +10,9 @@ let
       footmisc
       titling
       xpatch
-      noto;
+      noto
+      tikzmark
+    ;
   };
 
   python-packages = ps: with ps;
