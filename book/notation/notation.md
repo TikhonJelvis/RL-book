@@ -14,6 +14,12 @@ $\mathbb{R}^+$ & Set of positive real numbers \\
 \hline
 $\mathbb{R}_{\geq 0}$ & Set of non-negative real numbers \\
 \hline
+$\log(x)$ & {\em Natural Logarithm} (to the base $e$) of $x$ \\
+\hline
+$|x|$ & {\em Absolute Value} of $x$ \\
+\hline
+$sign(x)$ & +1 if $x > 0$, -1 if $x < 0$, 0 if $x=0$ \\
+\hline
 $[a,b]$ & Set of real numbers that are $\geq a$ and $\leq b$. The notation $x \in [a,b]$ is shorthand for $x \in \mathbb{R}$ and $a \leq x \leq b$ \\
 \hline
 $[a,b)$ & Set of real numbers that are $\geq a$ and $< b$. The notation $x \in [a,b)$ is shorthand for $x \in \mathbb{R}$ and $a \leq x < b$ \\
@@ -72,9 +78,11 @@ $x \sim Poisson(\lambda)$ & Random variable $x$ follows a {\em Poisson Distribut
 \hline
 $f(x;\bm{w})$ & Here $f$ refers to a parameterized function with domain $\mathcal{X}$ ($x \in \mathcal{X}$), $\bm{w}$ refers to the parameters controlling the definition of the function $f$ \\
 \hline
+$\bm{v}^T$ & {\em Row-vector} with components equal to the components of the {\em Column-vector} $\bm{v}$, i.e., {\em Transpose} of the {\em Column-vector} $\bm{v}$ (by default, we assume vectors are expressed as {\em Column-vectors}) \\
+\hline
 $\bm{A}^T$ & {\em Transpose} of the {\em matrix} $\bm{A}$ \\
 \hline
-$\bm{v}^T$ & {\em Row-vector} with components equal to the components of the {\em Column-vector} $\bm{v}$, i.e., {\em Transpose} of the {\em Column-vector} $\bm{v}$ (by default, we assume vectors are expressed as {\em Column-vectors}) \\
+$|\bm{v}|$ & $L^2$ norm of vector $\bm{v} \in \mathbb{R}^m$, i.e., if $\bm{v} = (v_1, v_2, \ldots, v_m)$, then $|\bm{v}| = \sqrt{v_1^2 + v_2^2 + \ldots + v_m^2}$ \\
 \hline
 $\bm{A}^{-1}$ & {\em Matrix-Inverse} of the {\em square matrix} $\bm{A}$ \\
 \hline
@@ -82,7 +90,7 @@ $\bm{A} \cdot \bm{B}$ & {\em Matrix-Multiplication} of matrices $\bm{A}$ and $\b
 \hline
 $\bm{I}_m$ & $m \times m$ {\em Identity Matrix} \\
 \hline
-$\bm{Diagonal}(\bm{A})$ & Vector of dimension $m$ consisting of the diagonal elements of the $m \times m$ matrix $\bm{A}$ \\
+$\bm{Diagonal}(\bm{v})$ & $m \times m$ Diagonal Matrix whose elements are the same (also in same order) as the elements of the $m$-dimensional Vector $\bm{v}$ \\
 \hline
 $dim(\bm{v})$ & Dimension of a vector $\bm{v}$ \\
 \hline
@@ -91,12 +99,6 @@ $\mathbb{I}_c$ & $\mathbb{I}$ represents the {\em Indicator function} and $\math
 $\argmax_{x \in \mathcal{X}} f(x)$ & This refers to the value of $x \in \mathcal{X}$ that maximizes $f(x)$, i.e., $\max_{x \in \mathcal{X}} f(x) = f(\argmax_{x \in \mathcal{X}} f(x))$ \\
 \hline
 $\nabla_{\bm{w}} f(\bm{w})$ & Gradient of the function $f$ with respect to $\bm{w}$ (note: $\bm{w}$ could be an arbitrary data structure and this gradient is of the same data type as the data type of $\bm{w}$) \\
-\hline
-$\log(x)$ & {\em Natural Logarithm} (to the base $e$) of $x$ \\
-\hline
-$|x|$ & {\em Absolute Value} of $x$ \\
-\hline
-$sign(x)$ & +1 if $x > 0$, -1 if $x < 0$, 0 if $x=0$ \\
 \hline
 $x \leftarrow y$ & Variable $x$ is assigned (or updated to) the value of $y$ \\
 \hline
