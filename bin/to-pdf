@@ -30,6 +30,9 @@ run_pandoc() {
              --metadata title='Foundations of Reinforcement Learning with Applications in Finance' \
              --metadata author='Ashwin Rao, Tikhon Jelvis' \
              --metadata reference-section-title='Bibliography' \
+             --metadata biblatex \
+             --metadata biblio-style='apa' \
+             --metadata biblatexoptions='backend=biber' \
              --filter pandoc-crossref \
              --pdf-engine xelatex \
              --template ../templates/latex.template \

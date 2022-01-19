@@ -7,10 +7,13 @@ let
   tex-packages = {
     inherit (pkgs.texlive)
       scheme-medium
+      biber
+      biblatex
+      biblatex-apa
       footmisc
+      noto
       titling
-      xpatch
-      noto;
+      xpatch;
   };
 
   python-packages = ps: with ps;
