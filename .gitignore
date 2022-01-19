@@ -13,6 +13,7 @@ __pycache__
 
 # LaTeX files
 book/*/*.tex
+book.tex
 *.aux
 *.dvi
 *.log
