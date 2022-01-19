@@ -21,10 +21,11 @@ fi
 
 run_pandoc() {
     out=$1
-    chapters="${@:2}"
+    format=$2
+    chapters="${@:3}"
 
     cd book
-    pandoc --to pdf \
+    pandoc --to "$format" \
              --output "$out" \
              --metadata chapters \
              --metadata title='Foundations of Reinforcement Learning with Applications in Finance' \
@@ -49,9 +50,17 @@ tf-format() {
     if [[ $TF_FORMAT == 1 ]]; then echo -n "${@}"; fi
 }
 
+
+format="pdf"
+if [[ $TO_TEX == 1 ]]; then format="latex"; fi
+
+extension="$format"
+if [ "$format" = "latex" ]; then extension="tex"; fi
+
+
 if [[ $book == 1 ]]
 then
-    out="$(pwd)/book.pdf"
+    out="$(pwd)/book.$extension"
 
     echo "Building $out from:"
     while read chapter
@@ -62,7 +71,7 @@ then
     # Regexp matches blank lines and comments, which we filter out
     # with grep
 
-    run_pandoc "$out" "${names[@]}"
+    run_pandoc "$out" "$format" "${names[@]}"
 else
     # Several equivalent options:
     #
@@ -73,9 +82,9 @@ else
     file=$(basename $1)
     name="${file%.*}"
     target="$name/$name.md"
-    out="${target%.*}.pdf"
+    out="${target%.*}.$extension"
 
-    echo "Converting book/$target to book/$out."
-    run_pandoc "$out" "$target"
+    echo "Converting book/$target to book/$out"
+    run_pandoc "$out" "$format" "$target"
 fi
 
