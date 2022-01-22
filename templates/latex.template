@@ -2,7 +2,7 @@
 $if(tf-format)$
 \documentclass[10pt]{Alon}
 $else$
-\documentclass[11t]{scrbook}
+\documentclass[11pt]{scrbook}
 $endif$
 
 % -- We are in swanky unicode, XeTeX land, and must now import these packages:
@@ -321,9 +321,6 @@ $endif$
 $if(verbatim-in-note)$
 \VerbatimFootnotes % -- allows verbatim text in footnotes
 $endif$
-
-% A big blob of definitions from Pandoc's standard template.
-\usepackage{graphicx}
 
 \usepackage{titling}
 
