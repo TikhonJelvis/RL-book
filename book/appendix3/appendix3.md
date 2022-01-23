@@ -10,12 +10,14 @@ $$Z_{t+1} = Z_t + Y_t \mbox{ and } \mathbb{P}[Y_t = 1] = \mathbb{P}[Y_t = -1] = 
 
 A quick point on notation: We refer to the random state at time $t$ as $Z_t$ (i.e., as a random variable at time $t$), whereas we refer to the Markov Process for this simple random walk as $Z$ (i.e., without any subscript).
 
-Since the random variables $\{Y_t|t = 0, 1, \ldots\}$ are i.i.d, the *increments* $Z_{t_{i+1}} - Z_{t_i}, i = 0, 1, \ldots n-1$ in the random walk states for any set of time steps $t_0 < t_1 < \ldots < t_n$ have the following properties:
+Since the random variables $\{Y_t|t = 0, 1, \ldots\}$ are i.i.d, the *increments* $Z_{t_{i+1}} - Z_{t_i}$ (for $i = 0, 1, \ldots n-1$) in the random walk states for any set of time steps $t_0 < t_1 < \ldots < t_n$ have the following properties:
 
-* **Independent Increments**: Increments $Z_{t_1} - Z_{t_0}, Z_{t_2} - Z_{t_1}, \ldots, Z_{t_n} - Z_{t_{n-1}}$ are independent of each other
-* **Martingale (i.e., Zero-Drift) Property**: Expected Value of Increment $\mathbb{E}[(Z_{t_{i+1}} - Z_{t_i})] = 0$ for all $i = 0, 1, \ldots, n-1$
-* **Variance of Increment equals Time Steps**: Variance of Increment
-$$\mathbb{E}[(Z_{t_{i+1}} - Z_{t_i})^2] = \sum_{j=t_i}^{t_{i+1} - 1} \mathbb{E}[(Z_{j+1} - Z_j)^2] = t_{i+1} - t_i \mbox{ for all } i = 0, 1, \ldots, n-1$$
+* **Independent Increments**: Increments $Z_{t_1} - Z_{t_0}, Z_{t_2} - Z_{t_1}, \ldots, Z_{t_n} - Z_{t_{n-1}}$ are independent of each other.
+* **Martingale (i.e., Zero-Drift) Property**: Expected Value of any Increment is 0.
+$$\mathbb{E}[Z_{t_{i+1}} - Z_{t_i}] = \sum_{j=t_i}^{t_{i+1} - 1} \mathbb{E}[Z_{j+1} - Z_j] = 0 \text{ for all } i = 0, 1, \ldots, n-1$$
+* **Variance of any Increment equals Time Steps of the Increment**:
+$$\mathbb{E}[(Z_{t_{i+1}} - Z_{t_i})^2] = \mathbb{E}[(\sum_{j=t_i}^{t_{i+1} - 1} Y_j)^2] = \sum_{j=t_i}^{t_{i+1} - 1} \mathbb{E}[Y_j^2] + 2 \sum_{j=t_i}^{t_{i+1} - 1} \sum_{k=j+1}^{t_{i+1}} \mathbb{E}[Y_j] \cdot \mathbb{E}[Y_k] = t_{i+1} - t_i$$
+for all $i = 0, 1, \ldots, n-1$.
 
 Moreover, we have an important property that **Quadratic Variation equals Time Steps**. Quadratic Variation over the time interval $[t_i, t_{i+1}]$ for all $i = 0, 1, \ldots, n-1$ is defined as:
 
@@ -25,7 +27,7 @@ Since $(Z_{j+1} - Z_j)^2 = Y_j^2 = 1$ for all $j = t_i, t_i + 1, \ldots, t_{i+1}
 
 $$\sum_{j=t_i}^{t_{i+1} - 1} (Z_{j+1} - Z_j)^2 = t_{i+1} - t_i \mbox{ for all } i = 0, 1, \ldots n-1$$
 
-It pays to emphasize the important conceptual difference between the Variance of Increment property and Quadratic Variation property: Variance of Increment property is a statement about *expectation* of the square of the $Z_{t_{i+1}} - Z_{t_i}$ increment whereas Quadratic Variation property is a statement of certainty (note: there is no $\mathbb{E}[\cdots]$ in this statement) about the sum of squares of *atomic* increments $Y_j$ over the discrete-steps time-interval $[t_i, t_{i+1}]$. The Quadratic Variation property owes to the fact that $\mathbb{P}[Y_t^2 = 1] = 1$ for all $t = 0, 1, \ldots$.
+It pays to emphasize the important conceptual difference between the Variance of Increment property and the Quadratic Variation property. The Variance of Increment property is a statement about the *expectation* of the square of the $Z_{t_{i+1}} - Z_{t_i}$ increment whereas the Quadratic Variation property is a statement of certainty (note: there is no $\mathbb{E}[\cdots]$ in this statement) about the sum of squares of *atomic* increments $Y_j$ over the discrete-steps time-interval $[t_i, t_{i+1}]$. The Quadratic Variation property owes to the fact that $\mathbb{P}[Y_t^2 = 1] = 1$ for all $t = 0, 1, \ldots$.
 
 We can view the Quadratic Variations of a Process $X$ over all discrete-step time intervals $[0, t]$ as a Process denoted $[X]$, defined as:
 
@@ -37,13 +39,13 @@ Thus, for the simple random walk Markov Process $Z$, we have the succinct formul
 
 Now let us take our simple random walk process $Z$, and simultaneously A) speed up time and B) scale down the size of the atomic increments $Y_t$. Specifically, define for any fixed positive integer $n$:
 
-$$z^{(n)}_t = \frac 1 {\sqrt{n}} \cdot Z_{nt} \mbox{ for all } t \in \frac {\mathbb{Z}_{\geq 0}} n$$
+$$z^{(n)}_t = \frac 1 {\sqrt{n}} \cdot Z_{nt} \mbox{ for all } t = 0, \frac 1 n, \frac 2 n, \ldots$$
 
-It's easy to show that the above properties of the simple random walk process holds for the $z^{(n)}$ process as well. Now consider the continuous-time process $z$ defined as:
+It's easy to show that the above properties of the simple random walk process hold for the $z^{(n)}$ process as well. Now consider the continuous-time process $z$ defined as:
 
 $$z_t = \lim_{n\rightarrow \infty} z^{(n)}_t \mbox{ for all } t \in \mathbb{R}_{\geq 0}$$
 
-This continuous-time process $z$ with $z_0 = 0$ is known as standard Brownian Motion. $z$ retains the same properties as those of the simple random walk process that we have listed above (independent increments, martingale, increment variance equal to time interval, and quadratic variation equal to the time interval). Also, by Central Limit Theorem,
+This continuous-time process $z$ with $z_0 = 0$ is known as standard Brownian Motion. $z$ retains the same properties as those of the simple random walk process that we have listed above (independent increments, martingale, increment variance equal to time interval, and quadratic variation equal to time interval). Also, by Central Limit Theorem,
 
 $$z_t | z_s \sim \mathcal{N}(z_s, t-s) \mbox{ for any } 0 \leq s < t$$
 
@@ -53,7 +55,7 @@ $$dz_t \sim \mathcal{N}(0, dt)$$
 
 ### Continuous-Time Stochastic Processes
 
-Brownian motion $z$ was our first example of a continuous-time stochastic process. Now let us define a general continuous-time stochastic process, although for the sake of simplicity, we shall restrict ourselves to one-dimensional real-valued continuous-time stochastic processes.
+Brownian motion $z$ is our first example of a Continuous-Time Stochastic Process. Now let us define a general continuous-time stochastic process, although for the sake of simplicity, we shall restrict ourselves to one-dimensional real-valued continuous-time stochastic processes.
 
 \begin{definition}
 A {\em One-dimensional Real-Valued Continuous-Time Stochastic Process} denoted $X$ is defined as a collection of real-valued random variables $\{X_t|t \in [0, T]\}$ (for some fixed $T \in \mathbb{R}$, with index $t$ interpreted as continuous-time) defined on a common probability space $(\Omega, \mathcal{F}, \mathbb{P})$, where $\Omega$ is a sample space, $\mathcal{F}$ is a $\sigma$-algebra and $\mathbb{P}$ is a probability measure (so, $X_t: \Omega \rightarrow \mathbb{R}$ for each $t \in [0, T])$.
@@ -64,24 +66,24 @@ We can view a stochastic process $X$ as an $\mathbb{R}$-valued function of two v
 * $t \in [0, T]$
 * $\omega \in \Omega$
 
-As a two-variable function, if we fix $t$, then we get the random variable $X_t: \Omega \rightarrow \mathbb{R}$ for time $t$ and if we fix $\omega$, then we get a single $\mathbb{R}$-valued outcome for each random variable across time (giving us a *sample path* in time, denoted $X(\omega)$).
+As a two-variable function, if we fix $t$, then we get the random variable $X_t: \Omega \rightarrow \mathbb{R}$ for time $t$ and if we fix $\omega$, then we get a single $\mathbb{R}$-valued outcome for each random variable across time (giving us a *sample trace* across time, denoted $X(\omega)$).
 
-Now let us come back to Brownian motion, viewed as a Stochastic Process.
+Now let us come back to Brownian motion, viewed as a Continuous-Time Stochastic Process.
 
-### Properties of Brownian Motion sample paths
+### Properties of Brownian Motion sample traces
 
-* Sample paths $z(\omega)$ of Brownian motion $z$ are continuous
-* Sample paths $z(\omega)$ are almost always non-differentiable, meaning:
+* Sample traces $z(\omega)$ of Brownian motion $z$ are continuous.
+* Sample traces $z(\omega)$ are almost always non-differentiable, meaning:
 $$\mbox{Random variable } \lim_{h \rightarrow 0} \frac {z_{t+h} - z_t} {h} \mbox{ is almost always infinite}$$
-The intuition is that $\frac {dz_t} {dt}$ has standard deviation of $\frac 1 {\sqrt{dt}}$, which goes to $\infty$ as $dt$ goes to 0
-* Sample paths $z(\omega)$ have infinite total variation, meaning:
+The intuition is that $\frac {z_{t+h} - z_t} {h}$ has standard deviation of $\frac 1 {\sqrt{h}}$, which goes to $\infty$ as $h$ goes to 0.
+* Sample traces $z(\omega)$ have infinite total variation, meaning:
 $$\mbox{Random variable } \int_S^T |dz_t| = \infty \mbox{ (almost always)}$$
 
 The quadratic variation property can be expressed as:
 
 $$\int_S^T (dz_t)^2 = T-S$$
 
-This means each sample random path of brownian motion has quadratic variation equal to the time interval of the path. The quadratic variation of $z$ expressed as a process $[z]$ has the deterministic value of $t$ at time $t$. Expressed in infinitesimal terms, we say that:
+This means each sample random trace of brownian motion has quadratic variation equal to the time interval of the trace. The quadratic variation of $z$ expressed as a process $[z]$ has the deterministic value of $t$ at time $t$. Expressed in infinitesimal terms, we say that:
 
 $$(dz_t)^2 = dt$$
 
@@ -106,9 +108,11 @@ $$dY_t = X_t \cdot dz_t$$
 
 We state without proof the following properties of the Ito Integral stochastic process $Y$:
 
-* $Y$ is a martingale, i.e., $\mathbb{E}[Y_t|Y_s] = 0$ for all $0 \leq s < t$
+* $Y$ is a martingale, i.e., $\mathbb{E}[(Y_t - Y_s)|Y_s] = 0$ (i.e., $\mathbb{E}[Y_t|Y_s] = Y_s$) for all $0 \leq s < t$
 * **Ito Isometry**: $\mathbb{E}[Y_t^2] = \int_0^t \mathbb{E}[X_s^2] \cdot ds$. 
 * Quadratic Variance formula: $[Y]_t = \int_0^t X_s^2 \cdot ds$
+
+Note that we have generalized the notation $[X]$ for discrete-time processes to continuous-time processes, defined as $[X]_t = \int_0^t (dX_s)^2$ for any continuous-time stochastic process.
 
 Ito Isometry generalizes to:
 
@@ -147,7 +151,7 @@ df(t, Y_t) = (\pdv{f}{t} + \mu_t \cdot \pdv{f}{Y_t} + \frac {\sigma_t^2} 2 \cdot
 
 Ito's Lemma describes the stochastic process of a function ($f$) of an Ito Process ($Y$) in terms of the partial derivatives of $f$, and in terms of the drift ($\mu$) and dispersion ($\sigma$) processes that define $Y$.
 
-If we generalize $\bm{Y}$ to be an $n$-dimensional stochastic process (as a column vector) with $\bm{\mu}_t$ as an $n$-dimensional (stochastic) column vector, $\bm{\sigma}_t$ as an $n \times m$ (stochastic) matrix, and $\bm{z}_t$ as an $m$-dimensional vector of $m$ independent standard brownian motions (as follows)
+If we generalize $\bm{Y}$ to be an $n$-dimensional stochastic process (as a column vector) with $\bm{\mu}_t$ as an $n$-dimensional (stochastic) column vector, $\bm{\sigma}_t$ as an $n \times m$ (stochastic) matrix, and $\bm{z}_t$ as an $m$-dimensional vector of $m$ independent standard brownian motions (as follows):
 
 $$d\bm{Y}_t = \bm{\mu}_t \cdot dt + \bm{\sigma}_t \cdot d\bm{z}_t$$
 
