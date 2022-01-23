@@ -100,7 +100,6 @@ This is a powerful theorem. All we need to do is identify the appropriate set $\
 We leave it to you as an exercise to verify that $f(x) = \cos(x)$ is a contraction function in the domain $\mathcal{X} = \mathbb{R}$ with metric $d$ defined as $d(x_1, x_2) = |x_1 - x_2|$. Now let's write some code to implement the fixed-point algorithm we described above. Note that we implement this for any generic type `X` to represent an arbitrary domain $\mathcal{X}$.
 
 ```python
-from typing import Iterator
 X = TypeVar('X')
 
 def iterate(step: Callable[[X], X], start: X) -> Iterator[X]:
