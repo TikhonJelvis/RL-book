@@ -305,7 +305,7 @@ The concrete class `Terminal` represents $\mathcal{T}$ and the concrete class `N
 ```python
 from abc import ABC
 from dataclasses import dataclass
-from typing import Generic, Callable
+from typing import Generic, Callable, TypeVar
 
 S = TypeVar('S')
 X = TypeVar('X')
