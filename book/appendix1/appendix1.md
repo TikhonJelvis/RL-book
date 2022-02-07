@@ -32,12 +32,12 @@ Equation \eqref{eq:derivat0} tells us that $f_x^{(n)}(0)$ gives us the $n^{th}$ 
 
 Equation \eqref{eq:derivat1} helps us calculate the often-appearing expectation $\mathbb{E}_x[x^n \cdot e^x]$. In fact, $\mathbb{E}_x[e^x]$ and $\mathbb{E}_x[x \cdot e^x]$ are very common in several areas of Applied Mathematics. Again, note that this holds true for any distribution for $x$.
 
-MGF should be thought of as an alternative specification of a random variable (alternative to specifying it's Probability Distribution). This alternative specification is very valuable because it can sometimes provide better analytical tractability than working with the Probability Density Function or Cumulative Distribution Function (as an example, see the below section on MGF for linear functions of independent random variables).
+The MGF should be thought of as an alternative specification of a random variable (alternative to specifying it's Probability Distribution). This alternative specification is very valuable because it can sometimes provide better analytical tractability than working with the Probability Density Function or Cumulative Distribution Function (as an example, see the below section on the MGF for linear functions of independent random variables).
 
 ### MGF for Linear Functions of Random Variables
 
 Consider $m$ independent random variables $x_1, x_2, \ldots, x_m$. Let $\alpha_0, \alpha_1, \ldots, \alpha_m \in \mathbb{R}$. Now consider the random variable
-$$x = x_0 + \sum_{i=1}^m \alpha_i x_i$$
+$$x = \alpha_0 + \sum_{i=1}^m \alpha_i x_i$$
 
 The Probability Density Function of $x$ is complicated to calculate as it involves convolutions. However, observe that the MGF $f_x$ of $x$ is given by:
 \begin{equation*}

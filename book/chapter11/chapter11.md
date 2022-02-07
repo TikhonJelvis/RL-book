@@ -70,7 +70,7 @@ We've previously learnt that for any policy $\pi'$, if we apply the Bellman Poli
 $$\lim_{i\rightarrow \infty} (\bm{B}^{\pi'})^i(\bvpi) = \bm{V}^{\pi'}$$
 So the proof is complete if we prove that:
 $$(\bm{B}^{\pi'})^{i+1}(\bvpi) \geq (\bm{B}^{\pi'})^i(\bvpi) \text{ for all } i = 0, 1, 2, \ldots$$
-In plain English, this says we need to prove that repeated application of $\bm{B}^{\pi'}$ produces a non-decreasing tower of Value Functions $[(\bm{B}^{\pi'})^i(\bvpi)|i = 0, 1, 2, \ldots]$.
+In plain English, this says we need to prove that repeated application of $\bm{B}^{\pi'}$ produces a non-decreasing sequence of Value Functions $[(\bm{B}^{\pi'})^i(\bvpi)|i = 0, 1, 2, \ldots]$.
 
 We prove this by induction. The base case of the proof by induction is to show that $\bm{B}^{\pi'}(\bvpi)  \geq  \bm{V}^{\pi}$
 
@@ -385,7 +385,7 @@ Just like in the case of RL Prediction, the natural idea is to replace MC Contro
 
 Unlike MC Control where updates are made at the end of each trace experience (i.e., episode), a TD control algorithm can update at the end of each atomic experience. This means the Q-Value Function Approximation is updated after each atomic experience (*continuous learning*), which in turn means that the $\epsilon$-greedy policy will be (automatically) updated at the end of each atomic experience. At each time step $t$ in a trace experience, the current $\epsilon$-greedy policy is used to sample $A_t$ from $S_t$ and is also used to sample $A_{t+1}$ from $S_{t+1}$. Note that in MC Control, the same $\epsilon$-greedy policy is used to sample all the actions from their corresponding states in the trace experience, and so in MC Control, we were able to generate the entire trace experience with the currently available $\epsilon$-greedy policy. However, here in TD Control, we need to generate a trace experience incrementally since the action to be taken from a state depends on the just-updated $\epsilon$-greedy policy (that is derived from the just-updated Q-Value Function).
 
-Just like in the case of RL Prediction, the disadvantage of the TD Target being a biased estimate of the return is compensated by a reduction in the variance of the return estimate. Also, TD Control offers a better speed of convergence (as we shall soon illustrate). Most importantly, TD Control offers the ability to use in situations where we have incomplete trace experiences (happens often in real-world situations where experiments gets curtailed/disrupted) and also, we can use it in situations where there are no terminal states (*continuing traces*). 
+Just like in the case of RL Prediction, the disadvantage of the TD Target being a biased estimate of the return is compensated by a reduction in the variance of the return estimate. Also, TD Control offers a better speed of convergence (as we shall soon illustrate). Most importantly, TD Control offers the ability to use in situations where we have incomplete trace experiences (happens often in real-world situations where experiments gets curtailed/disrupted) and also, we can use it in situations where we never reach a terminal state (*continuing trace*). 
 
 Note that Equation \eqref{eq:td-control-funcapprox-params-adj} has the entities
 

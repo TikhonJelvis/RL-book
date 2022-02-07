@@ -18,10 +18,10 @@ We shall drop the subscript $p$ in $X_p$ whenever the reference to portfolio $p$
 
 ### Portfolio Returns
 
-* A single portfolio's mean return is $X^T \cdot R \in \mathbb{R}$
-* A single portfolio's variance of return is the quadratic form $X^T \cdot V \cdot X \in \mathbb{R}$
-* Covariance between portfolios $p$ and $q$ is the bilinear form $X_p^T \cdot V \cdot X_q \in \mathbb{R}$
-* Covariance of the $n$ assets with a single portfolio is the vector $V \cdot X \in\mathbb{R}^n$
+* A single portfolio's mean return is $X^T \cdot R \in \mathbb{R}$.
+* A single portfolio's variance of return is the quadratic form $X^T \cdot V \cdot X \in \mathbb{R}$.
+* Covariance between portfolios $p$ and $q$ is the bilinear form $X_p^T \cdot V \cdot X_q \in \mathbb{R}$.
+* Covariance of the $n$ assets with a single portfolio is the vector $V \cdot X \in\mathbb{R}^n$.
 
 ### Derivation of Efficient Frontier Curve
 
@@ -42,9 +42,9 @@ where
 
 The global minimum variance portfolio (GMVP) is the portfolio at the tip of the efficient frontier parabola, i.e., the portfolio with the lowest possible variance among all portfolios on the Efficient Frontier. Here are the relevant characteristics for the GMVP:
 
-* It has mean $r_0 = \frac b c$
-* It has variance $\sigma_0^2 = \frac 1 c$
-* It has investment proportions $X_0 = \frac {V^{-1} \cdot 1_n} c$
+* It has mean $r_0 = \frac b c$.
+* It has variance $\sigma_0^2 = \frac 1 c$.
+* It has investment proportions $X_0 = \frac {V^{-1} \cdot 1_n} c$.
 
 GMVP is positively correlated with all portfolios and with all assets. GMVP's covariance with all portfolios and with all assets is a constant value equal to $\sigma_0^2 = \frac 1 c$ (which is also equal to its own variance).
 
@@ -61,9 +61,9 @@ The $X$ vector (normalized investment quantities in assets) of any efficient por
 $$X_p = \alpha X_{p_1} + (1-\alpha) X_{p_2} \mbox{ for some scalar } \alpha$$
 Varying $\alpha$ from $-\infty$ to $+\infty$ basically traces the entire efficient frontier. So to construct all efficient portfolios, we just need to identify two canonical efficient portfolios. One of them is GMVP. The other is a portfolio we call Special Efficient Portfolio (SEP) with:
 
-* Mean $r_1  = \frac a b$
-* Variance $\sigma_1^2 = \frac a {b^2}$
-* Investment proportions $X_1 = \frac {V^{-1} \cdot R} {b}$
+* Mean $r_1  = \frac a b$.
+* Variance $\sigma_1^2 = \frac a {b^2}$.
+* Investment proportions $X_1 = \frac {V^{-1} \cdot R} {b}$.
 
 The orthogonal portfolio to SEP has mean $r_z = \frac {a - b \frac a b} {b - c \frac a b} = 0$
 
@@ -97,16 +97,16 @@ $$R = r_p \beta_p = \frac {r_p} {\sigma_p^2} \cdot V \cdot X_p$$
 ### Cross-Sectional Variance
 
 * The cross-sectional variance in $\beta$s (variance in $\beta$s across assets for a fixed efficient portfolio) is zero when the efficient portfolio is GMVP and is also zero when the efficient portfolio has infinite mean.
-* The cross-sectional variance in $\beta$s is maximum for the two efficient portfolios with means: $r_0 + \sigma_0^2 \sqrt{|A|}$ and $r_0 - \sigma_0^2 \sqrt{|A|}$ where $A$ is the 2 $\times$ 2 matrix consisting of $a,b,b,c$
-* These two portfolios lie symmetrically on opposite sides of the efficient frontier (their $\beta$s are equal and of opposite signs), and are the only two orthogonal efficient portfolios with the same variance ( $= 2 \sigma_0^2$)
+* The cross-sectional variance in $\beta$s is maximum for the two efficient portfolios with means: $r_0 + \sigma_0^2 \sqrt{|A|}$ and $r_0 - \sigma_0^2 \sqrt{|A|}$ where $A$ is the 2 $\times$ 2 symmetric matrix consisting of $a,b,b,c$.
+* These two portfolios lie symmetrically on opposite sides of the efficient frontier (their $\beta$s are equal and of opposite signs), and are the only two orthogonal efficient portfolios with the same variance ( $= 2 \sigma_0^2$).
 
 ### Efficient Set with a Risk-Free Asset
 
 If we have a risk-free asset with return $r_F$, then $V$ is singular. So we first form the Efficient Frontier without the risk-free asset. The Efficient Set (including the risk-free asset) is defined as the tangent to this Efficient Frontier (without the risk-free asset) from the point $(0, r_F)$ when the Efficient Frontier is considered to be a curve of mean returns (y-axis) against standard deviation of returns (x-axis).
 
-Let's say the tangent touches the Efficient Portfolio at the point (Portfolio) $T$ and let it's return be $r_T$. Then:
+Let's say the tangent touches the Efficient Frontier at the point (Portfolio) $T$ and let it's return be $r_T$. Then:
 
-* If $r_F < r_0, r_T > r_F$
-* If $r_F > r_0, r_T < r_F$
-* All portfolios on this efficient set are perfectly correlated
+* If $r_F < r_0, r_T > r_F$.
+* If $r_F > r_0, r_T < r_F$.
+* All portfolios on this efficient set are perfectly correlated.
 

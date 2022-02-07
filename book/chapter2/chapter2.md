@@ -305,7 +305,7 @@ The concrete class `Terminal` represents $\mathcal{T}$ and the concrete class `N
 ```python
 from abc import ABC
 from dataclasses import dataclass
-from typing import Generic, Callable
+from typing import Generic, Callable, TypeVar
 
 S = TypeVar('S')
 X = TypeVar('X')
@@ -855,7 +855,7 @@ class SimpleInventoryMRP(MarkovRewardProcess[InventoryState]):
                 max(ip - demand_sample, 0),
                 max(self.capacity - ip, 0)
             )
-            reward: float = - self.holding_cost * state.on_hand\
+            reward: float = - self.holding_cost * state.state.on_hand\
                 - self.stockout_cost * max(demand_sample - ip, 0)
             return NonTerminal(next_state), reward
 
