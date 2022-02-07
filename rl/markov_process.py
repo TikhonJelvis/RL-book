@@ -38,6 +38,12 @@ class Terminal(State[S]):
 @dataclass(frozen=True)
 class NonTerminal(State[S]):
     state: S
+        
+    def __eq__(self, other):
+        return self.state == other.state
+
+    def __lt__(self, other):
+        return self.state < other.state
 
 
 class MarkovProcess(ABC, Generic[S]):
