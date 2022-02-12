@@ -18,7 +18,10 @@ import           Numeric.LinearAlgebra                    ( (#>)
                                                           , R
                                                           , Vector
                                                           , cmap
+                                                          , fromRows
                                                           , inv
+                                                          , rows
+                                                          , scale
                                                           , scalar
                                                           , size
                                                           , tr'
@@ -106,3 +109,41 @@ layers3x3a3x2 :: [Layer]
 layers3x3a3x2 = [layer, layer3x2]
 
 score3x2a = scoreNeuralNetwork sampleInput layers3x3a3x2
+
+-- Now work on backpropagation
+--                       Inputs  -> Output labels -> returnNet
+--                         ↓             ↓
+backprop :: NeuralNet n -> Vector R -> Vector R -> NeuralNet n
+
+backprop nn inputs outputs stepLength = _
+--  updateLayer layer (layerDerivative layer) stepLength
+-- we want to apply single pass for updating each layer
+--  but, we may need forward pass output to compute it
+-- then we want to apply the single pass until convergence
+
+
+--                  layerDerivative -> stepLength
+--                         ↓             ↓
+updateLayer :: Layer ->  Matrix R       -> Double -> Layer 
+updateLayer layer derivative stepLength =
+  -- we only need to update a single record so we are using a
+  -- Haskell syntax for doing this
+  layer {weights = weights layer - scale stepLength derivative
+        }
+
+
+-- backprop: treat the last layer separately than the intermediate
+-- layers
+--                          Inputs   -> Outputs  -> derivative
+--                            ↓            ↓          ↓
+layerDerivative :: Layer -> Vector R -> Vector R -> Matrix R
+layerDerivative nn inputs outputs =
+  fromRows (replicate  (rows (weights nn)) inputs)
+                   
+                   
+
+
+
+
+
+   
