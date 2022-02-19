@@ -877,7 +877,7 @@ $$\brew(s) = \sum_{a \in \mathcal{A}} \pi(s, a) \cdot \mathcal{R}(s,a) \text{ fo
 $$\bprob(s,s') = \sum_{a \in \mathcal{A}} \pi(s, a) \cdot \mathcal{P}(s,a,s') \text{ for all } s, s' in \mathcal{S}$$
 to denote the Expected Reward and state transition probabilities respectively of the $\pi$-implied MRP.
 
-$\brew$ refers to vector $[\brew(s_1), \brew(s_2), \ldots, \brew(s_n)]$ and $\bprob$ refers to matrix $[\bprob(s_i, s_{i'})], 1 \leq i, i' \leq n$. Denote $\gamma \in [0, 1]$ as the MDP discount factor.
+$\brew$ refers to vector $[\brew(s_1), \brew(s_2), \ldots, \brew(s_n)]$ and $\bprob$ refers to matrix $[\bprob(s_i, s_{i'})], 1 \leq i, i' \leq n$. Denote $\gamma < 1$ (since there are no terminal states) as the MDP discount factor.
 
 #### Bellman Policy Operator and Projection Operator
 
