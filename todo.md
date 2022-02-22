@@ -1,6 +1,4 @@
-* Rewrite function space appendix to include gradient as affine space
 * Implement American Options with LSPI and DQL
+* Rework FunctionApprox, all code using it, and Chapter 4 explanations of it
 * Figures
-* References and Credits
-* Revisit intro Chapter
-* Programming Chapter
+* Programming Chapter review
