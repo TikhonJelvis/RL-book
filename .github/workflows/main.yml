@@ -1,8 +1,9 @@
 name: Build RL Book PDF
 
 on:
-  pull_request:
   push:
+    branches:
+      - 'master'
   workflow_dispatch:
 
 jobs:
