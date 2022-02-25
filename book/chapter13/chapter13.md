@@ -851,39 +851,39 @@ Deterministic Policy Gradient (abbreviated DPG) is  a creative adaptation of Pol
 
 Since the policy approximated is Deterministic, we need to address the issue of exploration - this is typically done with Off-Policy Control wherein we employ an exploratory (stochastic) behavior policy, while the policy being approximated (and learnt with DPG) is the target (deterministic) policy. In Actor-Critic DPG, the Actor is the function approximation for the deterministic policy and the Critic is the function approximation for the Q-Value Function. The paper by Silver et al. provides a Compatible Function Approximation Theorem for DPG to overcome Critic approximation bias. The paper also shows that DPG is the limiting case of (Stochastic) PG, as policy variance tends to 0. This means the usual machinery of PG (such as Actor-Critic, Compatible Function Approximation, Natural Policy Gradient etc.) is also applicable to DPG.
 
-To avoid confusion with the notation $\pi(s,a;\bm{\theta})$ that we used for the stochastic policy function approximation in PG, here we use the notation $a = \mu(s; \bm{\theta})$ that represents (a potentially multi-dimensional) continuous-valued action $a$ equal to the value of policy function approximation $\mu$ (parameterized by $\bm{\theta}$), when evaluated for a state $s$. So we use the notation $\mu$ for the deterministic target policy approximation and we use the notation $\beta$ for the exploratory behavior policy.
+We use the notation $a = \pi_D(s; \bm{\theta})$ to represent (a potentially multi-dimensional) continuous-valued action $a$ equal to the value of a deterministic policy function approximation $\pi_D$ (parameterized by $\bm{\theta}$), when evaluated for a state $s$. So we use the notation $\pi_D$ for the deterministic target policy approximation and we use the notation $\mu$ for the exploratory behavior policy.
 
-The core idea of DPG is well-understood by orienting on the basics of GPI and specifically, on Policy Improvement in GPI. For continuous action spaces, greedy policy improvement (with an argmax over actions, for each state) is problematic. So a simple and attractive alternative is to move the policy in the direction of the gradient of the Q-Value Function (rather than globally maximizing the Q-Value Function, at each step). Specifically, for each state $s$ that is encountered, the policy approximation parameters $\bm{\theta}$ are updated in proportion to $\nabla_{\bm{\theta}} Q(s, \mu(s; \bm{\theta}))$. Note that the direction of policy improvement is different for each state, and so the average direction of policy improvements is given by:
+The core idea of DPG is well-understood by orienting on the basics of GPI and specifically, on Policy Improvement in GPI. For continuous action spaces, greedy policy improvement (with an argmax over actions, for each state) is problematic. So a simple and attractive alternative is to move the policy in the direction of the gradient of the Q-Value Function (rather than globally maximizing the Q-Value Function, at each step). Specifically, for each state $s$ that is encountered, the policy approximation parameters $\bm{\theta}$ are updated in proportion to $\nabla_{\bm{\theta}} Q(s, \pi_D(s; \bm{\theta}))$. Note that the direction of policy improvement is different for each state, and so the average direction of policy improvements is given by:
 
-$$\mathbb{E}_{s \sim \rho^{\mu}}[\nabla_{\bm{\theta}} Q(s,\mu(s; \bm{\theta}))]$$
-where $\rho^{\mu}$ is the same Discounted-Aggregate State-Visitation Measure we had defined for PG (now for deterministic policy $\mu$).
+$$\mathbb{E}_{s \sim \rho^{\pi_D}}[\nabla_{\bm{\theta}} Q(s,\pi_D(s; \bm{\theta}))]$$
+where $\rho^{\pi_D}$ is the same Discounted-Aggregate State-Visitation Measure we had defined for PG (now for deterministic policy $\pi_D$).
 
 Using chain-rule, the above expression can be written as:
-$$\mathbb{E}_{s \sim \rho^{\mu}}[\nabla_{\bm{\theta}} \mu(s; \bm{\theta}) \cdot \nabla_a Q^{\mu}(s,a) \Bigr\rvert_{a=\mu(s;\bm{\theta})}]$$
+$$\mathbb{E}_{s \sim \rho^{\pi_D}}[\nabla_{\bm{\theta}} \pi_D(s; \bm{\theta}) \cdot \nabla_a Q^{\pi_D}(s,a) \Bigr\rvert_{a=\pi_D(s;\bm{\theta})}]$$
 
-Note that $\nabla_{\bm{\theta}} \mu(s;\bm{\theta})$ is a Jacobian matrix as it takes the partial derivatives of a potentially multi-dimensional action $a = \mu(s; \bm{\theta})$ with respect to each parameter in $\bm{\theta}$. As we've pointed out during the coverage of (stochastic) PG, when $\bm{\theta}$ changes, policy $\mu$ changes, which changes the state distribution $\rho^{\mu}$. So it's not clear that this calculation indeed guarantees improvement - it doesn't take into account the effect of changing $\bm{\theta}$ on $\rho^{\mu}$. However, as was the case in PGT, Deterministic Policy Gradient (abbreviated DPGT) ensures that there is no need to compute the gradient of $\rho^{\mu}$ with respect to $\bm{\theta}$, and that the update described above indeed follows the gradient of the Expected Return objective function. We formalize this now by stating the DPGT.
+Note that $\nabla_{\bm{\theta}} \pi_D(s;\bm{\theta})$ is a Jacobian matrix as it takes the partial derivatives of a potentially multi-dimensional action $a = \pi_D(s; \bm{\theta})$ with respect to each parameter in $\bm{\theta}$. As we've pointed out during the coverage of (stochastic) PG, when $\bm{\theta}$ changes, policy $\pi_D$ changes, which changes the state distribution $\rho^{\pi_D}$. So it's not clear that this calculation indeed guarantees improvement - it doesn't take into account the effect of changing $\bm{\theta}$ on $\rho^{\pi_D}$. However, as was the case in PGT, Deterministic Policy Gradient (abbreviated DPGT) ensures that there is no need to compute the gradient of $\rho^{\pi_D}$ with respect to $\bm{\theta}$, and that the update described above indeed follows the gradient of the Expected Return objective function. We formalize this now by stating the DPGT.
 
 Analogous to the Expected Returns Objective defined for (stochastic) PG, we define the Expected Returns Objective $J(\bm{\theta})$ for DPG as:
 
 \begin{align*}
-J(\bm{\theta}) & = \mathbb{E}_{\mu}[\sum_{t=0}^\infty \gamma^t \cdot R_{t+1}]\\
-& = \sum_{s \in \mathcal{N}} \rho^{\mu}(s) \cdot \mathcal{R}_s^{\mu(s;\bm{\theta})} \\
-& = \mathbb{E}_{s \sim \rho^{\mu}}[\mathcal{R}_s^{\mu(s;\bm{\theta})}]
+J(\bm{\theta}) & = \mathbb{E}_{\pi_D}[\sum_{t=0}^\infty \gamma^t \cdot R_{t+1}]\\
+& = \sum_{s \in \mathcal{N}} \rho^{\pi_D}(s) \cdot \mathcal{R}_s^{\pi_D(s;\bm{\theta})} \\
+& = \mathbb{E}_{s \sim \rho^{\pi_D}}[\mathcal{R}_s^{\pi_D(s;\bm{\theta})}]
 \end{align*}
 
 where
 
-$$\rho^{\mu}(s) = \sum_{S_0 \in \mathcal{N}}  \sum_{t=0}^\infty \gamma^t \cdot p_0(S_0) \cdot p(S_0 \rightarrow s, t, \mu)$$
+$$\rho^{\pi_D}(s) = \sum_{S_0 \in \mathcal{N}}  \sum_{t=0}^\infty \gamma^t \cdot p_0(S_0) \cdot p(S_0 \rightarrow s, t, \pi_D)$$
 
-is the Discounted-Aggregate State-Visitation Measure when following deterministic policy $\mu(s; \bm{\theta})$.
+is the Discounted-Aggregate State-Visitation Measure when following deterministic policy $\pi_D(s; \bm{\theta})$.
 
 With a derivation similar to the proof of the PGT, we have the DPGT, as follows:
 
 \begin{theorem}[Deterministic Policy Gradient Theorem]
 Given an MDP with action space $\mathbb{R}^k$, 
 \begin{align*}
-\nabla_{\bm{\theta}} J(\bm{\theta}) & = \sum_{s \in \mathcal{N}} \rho^{\mu}(s) \cdot \nabla_{\bm{\theta}} \mu(s; \bm{\theta}) \cdot \nabla_a Q^{\mu}(s,a) \Bigr\rvert_{a=\mu(s;\bm{\theta})}\\
-& = \mathbb{E}_{s \sim \rho^{\mu}}[\nabla_{\bm{\theta}} \mu(s; \bm{\theta}) \cdot \nabla_a Q^{\mu}(s,a) \Bigr\rvert_{a=\mu(s;\bm{\theta})}]
+\nabla_{\bm{\theta}} J(\bm{\theta}) & = \sum_{s \in \mathcal{N}} \rho^{\pi_D}(s) \cdot \nabla_{\bm{\theta}} \pi_D(s; \bm{\theta}) \cdot \nabla_a Q^{\pi_D}(s,a) \Bigr\rvert_{a=\pi_D(s;\bm{\theta})}\\
+& = \mathbb{E}_{s \sim \rho^{\pi_D}}[\nabla_{\bm{\theta}} \pi_D(s; \bm{\theta}) \cdot \nabla_a Q^{\pi_D}(s,a) \Bigr\rvert_{a=\pi_D(s;\bm{\theta})}]
 \end{align*}
 \label{th:deterministic-policy-gradient-theorem}
 \end{theorem}
@@ -891,10 +891,10 @@ Given an MDP with action space $\mathbb{R}^k$,
 In practice, we use an Actor-Critic algorithm with a function approximation $Q(s,a;\bm{w})$ for the Q-Value Function as the Critic. To ensure exploration, we employ an exploratory behavior policy so we can do an Off-Policy DPG algorithm. We avoid importance sampling in the Actor because DPG doesn't involve an integral over actions, and we avoid importance sampling in the Critic by employing Q-Learning. 
 
 The Critic parameters $\bm{w}$ are updated after each atomic experience as:
-$$\Delta \bm{w} = \alpha_{\bm{w}} \cdot (R_{t+1} + \gamma \cdot Q(S_{t+1}, \mu(S_{t+1}; \bm{\theta}); \bm{w}) - Q(S_t,A_t;\bm{w})) \cdot \nabla_{\bm{w}} Q(S_t,A_t; \bm{w})$$
+$$\Delta \bm{w} = \alpha_{\bm{w}} \cdot (R_{t+1} + \gamma \cdot Q(S_{t+1}, \pi_D(S_{t+1}; \bm{\theta}); \bm{w}) - Q(S_t,A_t;\bm{w})) \cdot \nabla_{\bm{w}} Q(S_t,A_t; \bm{w})$$
 
 The Actor parameters $\bm{\theta}$ are updated after each atomic experience as:
-$$\Delta \bm{\theta} = \alpha_{\bm{\theta}} \cdot \gamma^t \cdot \nabla_{\bm{\theta}} \mu(S_t; \bm{\theta}) \cdot \nabla_a Q(S_t,A_t;\bm{w}) \Bigr\rvert_{a=\mu(S_t;\bm{\theta})}$$
+$$\Delta \bm{\theta} = \alpha_{\bm{\theta}} \cdot \gamma^t \cdot \nabla_{\bm{\theta}} \pi_D(S_t; \bm{\theta}) \cdot \nabla_a Q(S_t,A_t;\bm{w}) \Bigr\rvert_{a=\pi_D(S_t;\bm{\theta})}$$
 
 Critic Bias can be resolved with a Compatible Function Approximation Theorem for DPG (see Silver et al. paper for details). Instabilities caused by Bootstrapped Off-Policy Learning with Function Approximation can be resolved with Gradient Temporal Difference (GTD).
 
