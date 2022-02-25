@@ -832,11 +832,11 @@ where $\bm{FIM}_{\rho_{\pi}, \pi}$ denotes the Fisher Information Matrix with re
 
 We've noted in the previous section that if we enable Compatible Function Approximation with a linear function approximation for $Q^{\pi}(s,a)$, then we have Equation \eqref{eq:pgt-fisher-information}, i.e.,
 
-$$\nabla_{\bm{\theta}} J(\bm{\theta}) = \bm{FIM}_{\rho^{\pi}, \pi}(\bm{\theta}) \cdot \bm{w}$$
+$$\nabla_{\bm{\theta}} J(\bm{\theta}) = \bm{FIM}_{\rho^{\pi}, \pi}(\bm{\theta}) \cdot \bm{w_{\theta}^*}$$
 
 This means:
 
-$$\nabla_{\bm{\theta}}^{nat} J(\bm{\theta}) = \bm{w}$$
+$$\nabla_{\bm{\theta}}^{nat} J(\bm{\theta}) = \bm{w_{\theta}^*}$$
 
 This compact result enables a simple algorithm for Natural Policy Gradient (NPG):
 
