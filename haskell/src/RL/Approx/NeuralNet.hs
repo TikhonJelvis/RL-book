@@ -37,12 +37,17 @@ data NeuralNet n = NeuralNet
     -- ^ Describes the underlying neural net for scoring the input
   }
 
+-- Denotes a logical layer in a FF neural network
+-- activation function is applied after multiplying with Matrix
+-- activation ∘ W ∘ Inputs, which is a vector of dim m(l) at layer l
 data Layer = Layer
   {
     weights :: Matrix R,
-    activation :: (R -> R) 
+    activation :: (R -> R),
+    activationD ::(R -> R)
   }
 
+-- scoring means:  activation (W inputs)
 scoreLayer :: Layer -> Vector R -> Vector R
 scoreLayer Layer { weights, activation } input = cmap activation ( tr' weights #> input )
 
@@ -69,8 +74,12 @@ layer = Layer{ weights = (3><3) [1, 0, 0,
                                   0, 1, 0,
                                   0, 0, 1
                                 ],
-                  activation = max 0 
+                  activation = max 0,
+                  activationD = reluD
                 }
+
+reluD :: R -> R
+reluD x = if x <= 0 then 0 else 1
 
 llayers :: [Layer]
 llayers = [ layer 
@@ -89,7 +98,8 @@ layer2a = Layer{ weights = (3><3) [1, 0, 0,
                                      0, 1, 0,
                                      0, 0, 1
                                     ],
-                  activation = (2 *)
+                  activation = (2 *),
+                  activationD = const 2
                 }
 layers2a = [layer2a, layer2a]
 score2a = scoreNeuralNetwork sampleInput layers2a
@@ -102,7 +112,8 @@ layer3x2 = Layer{ weights = (3><2) [1, 0,
                                     0, 1,
                                     1, 1
                                    ],
-                  activation = id
+                  activation = id,
+                  activationD = const 1 
                 }
 
 layers3x3a3x2 :: [Layer]
@@ -132,18 +143,20 @@ updateLayer layer derivative stepLength =
         }
 
 
--- backprop: treat the last layer separately than the intermediate
--- layers
---                          Inputs   -> Outputs  -> derivative
---                            ↓            ↓          ↓
-layerDerivative :: Layer -> Vector R -> Vector R -> Matrix R
-layerDerivative nn inputs outputs =
-  fromRows (replicate  (rows (weights nn)) inputs)
+--  derivate(n-1) = derivative(n) * activationD * I(n)
+--    dE/dW_L = dE/dW_L+1 * dW_L+1/dW_L
+--
+--    dE/dW_L = dE/dW_L+1 * activationD * I(L)
+--            = layerDeriv(L+1) *   activationD * I(L)
+--
+--                Layer ->  Inputs    ->  derivative
+--                            ↓             ↓       
+layerDerivative :: Layer -> Vector R  ->  Matrix R
+layerDerivative Layer { weights, activationD } inputs =
+  cmap activationD (fromRows (replicate  (rows weights) inputs))
                    
-                   
 
 
 
-
-
+ld1 =  layerDerivative layer [1, -0.5, 0]
    
