@@ -4,6 +4,7 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE OverloadedLists #-}
+{-# LANGUAGE DuplicateRecordFields #-}
 
 -- | Use Neural Network to approximate the value function
 
@@ -37,6 +38,15 @@ data NeuralNet n = NeuralNet
     -- ^ Describes the underlying neural net for scoring the input
   }
 
+-- We want to encapsulate network derivative as its own object in terms of a function
+-- 
+data NeuralNetD = NeuralNetD
+  { ϕ :: !(n -> Vector R)
+    -- ^ Get the inputs to score using a neural network in the required format
+  , layersD :: [ LayerD ]
+    -- ^ Describes the derivative object, which is a list of layerDerivatives
+  }
+
 -- Denotes a logical layer in a FF neural network
 -- activation function is applied after multiplying with Matrix
 -- activation ∘ W ∘ Inputs, which is a vector of dim m(l) at layer l
@@ -46,6 +56,15 @@ data Layer = Layer
     activation :: (R -> R),
     activationD ::(R -> R)
   }
+
+-- We are going represent layerDerivative as its own object, allowing us to
+-- represent as a separate object with its own properties (vs. using a Matrix)
+data LayerD = LayerD
+  {
+    weights :: Matrix R,
+    activationD :: (R -> R)
+  }
+
 
 -- scoring means:  activation (W inputs)
 scoreLayer :: Layer -> Vector R -> Vector R
@@ -77,6 +96,7 @@ layer = Layer{ weights = (3><3) [1, 0, 0,
                   activation = max 0,
                   activationD = reluD
                 }
+
 
 reluD :: R -> R
 reluD x = if x <= 0 then 0 else 1
@@ -136,10 +156,10 @@ backprop nn inputs outputs stepLength = _
 --                  layerDerivative -> stepLength
 --                         ↓             ↓
 updateLayer :: Layer ->  Matrix R       -> Double -> Layer 
-updateLayer layer derivative stepLength =
+updateLayer layer@(Layer{weights}) derivative stepLength =
   -- we only need to update a single record so we are using a
   -- Haskell syntax for doing this
-  layer {weights = weights layer - scale stepLength derivative
+  layer {weights = weights - scale stepLength derivative
         }
 
 
@@ -151,11 +171,23 @@ updateLayer layer derivative stepLength =
 --
 --                Layer ->  Inputs    ->  derivative
 --                            ↓             ↓       
-layerDerivative :: Layer -> Vector R  ->  Matrix R
+layerDerivative :: Layer -> Vector R  ->  LayerD
 layerDerivative Layer { weights, activationD } inputs =
-  cmap activationD (fromRows (replicate  (rows weights) inputs))
-                   
+  LayerD{ weights = cmap activationD (fromRows (replicate  (rows weights) inputs)),
+          activationD = activationD
+        }
 
+
+-- aims to capture the derivative of a neural network. Note that like
+-- in regular function and their derivatives, f(x) yields derivative f'(x),
+-- where it can only be evaluated for a specific x
+-- we intend to compute   d (yhat)/d w(L) * d w(L)/d w(L-1) * ...
+--                     NueralNet.    Input point
+--                       ↓             ↓
+networkDerivative :: NeuralNet n -> Vector R -> NetworkD
+networkDerivative nn inputs =  foldR (layerDerivative layer inputs)
+
+--        input(L) * layerD(L) * futureDerivatives(L+)
 
 
 ld1 =  layerDerivative layer [1, -0.5, 0]
