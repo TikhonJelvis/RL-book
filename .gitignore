@@ -4,6 +4,9 @@
 # Emacs files
 *~
 
+# macOS
+.DS_Store
+
 # Python
 .venv
 .mypy_cache
@@ -12,6 +15,8 @@ __pycache__
 *.egg-info
 
 # LaTeX files
+book/*/*.tex
+book.tex
 *.aux
 *.dvi
 *.log

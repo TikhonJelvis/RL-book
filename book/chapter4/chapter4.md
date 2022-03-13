@@ -100,7 +100,6 @@ This is a powerful theorem. All we need to do is identify the appropriate set $\
 We leave it to you as an exercise to verify that $f(x) = \cos(x)$ is a contraction function in the domain $\mathcal{X} = \mathbb{R}$ with metric $d$ defined as $d(x_1, x_2) = |x_1 - x_2|$. Now let's write some code to implement the fixed-point algorithm we described above. Note that we implement this for any generic type `X` to represent an arbitrary domain $\mathcal{X}$.
 
 ```python
-from typing import Iterator
 X = TypeVar('X')
 
 def iterate(step: Callable[[X], X], start: X) -> Iterator[X]:
@@ -368,7 +367,7 @@ So the proof is complete if we prove that:
 
 $$(\bm{B}^{\pi_D'})^{i+1}(\bvpi) \geq (\bm{B}^{\pi_D'})^i(\bvpi) \text{ for all } i = 0, 1, 2, \ldots$$
 
-which means we get a non-decreasing tower of Value Functions $[(\bm{B}^{\pi_D'})^i(\bvpi)|i = 0, 1, 2, \ldots]$ with repeated applications of $\bm{B}^{\pi_D'}$ starting with the Value Function $\bvpi$. 
+which means we get a non-decreasing sequence of Value Functions $[(\bm{B}^{\pi_D'})^i(\bvpi)|i = 0, 1, 2, \ldots]$ with repeated applications of $\bm{B}^{\pi_D'}$ starting with the Value Function $\bvpi$. 
 
 Let us prove this by induction. The base case (for $i=0$) of the induction is to prove that:
 
@@ -405,7 +404,7 @@ $$(\bm{B}^{\pi_D'})^{i+2}(\bvpi)(s) \geq (\bm{B}^{\pi_D'})^{i+1}(\bvpi)(s) \text
 This completes the proof by induction.
 \end{proof}
 
-The way to understand the above proof is to think in terms of how each stage of further application of $\bm{B}^{\pi_D'}$ improves the Value Function. Stage 0 is when you have the Value Function $\bvpi$ where we execute the policy $\pi$ throughout the MDP. Stage 1 is when you have the Value Function $\bm{B}^{\pi_D'}(\bvpi)$ where from each state $s$, we execute the policy $\pi_D'$ for the first time step following $s$ and then execute the policy $\pi$ for all further time steps. This has the effect of improving the Value Function from Stage 0 ($\bvpi$) to Stage 1 ($\bm{B}^{\pi_D'}(\bvpi)$). Stage 2 is when you have the Value Function $(\bm{B}^{\pi_D'})^2(\bvpi)$ where from each state $s$, we execute the policy $\pi_D'$ for the first two time steps following $s$ and then execute the policy $\pi$ for all further time steps. This has the effect of improving the Value Function from Stage 1 ($\bm{B}^{\pi_D'}(\bvpi)$) to Stage 2 ($(\bm{B}^{\pi_D'})^2(\bvpi)$). And so on … each stage applies policy $\pi_D'$ instead of policy $\pi$ for one extra time step, which has the effect of improving the Value Function. Note that "improve" means $\geq$ (really means that the Value Function doesn't get worse for *any* of the states). These stages are simply the iterations of the Policy Evaluation algorithm (using policy $\pi_D'$) with starting Value Function $\bvpi$, building a non-decreasing tower of Value Functions $[(\bm{B}^{\pi_D'})^i(\bvpi)|i = 0, 1, 2, \ldots]$ that get closer and closer until they converge to the Value Function $\bm{V}^{\pi_D'}$ that is $\geq \bvpi$ (hence, the term *Policy Improvement*).
+The way to understand the above proof is to think in terms of how each stage of further application of $\bm{B}^{\pi_D'}$ improves the Value Function. Stage 0 is when you have the Value Function $\bvpi$ where we execute the policy $\pi$ throughout the MDP. Stage 1 is when you have the Value Function $\bm{B}^{\pi_D'}(\bvpi)$ where from each state $s$, we execute the policy $\pi_D'$ for the first time step following $s$ and then execute the policy $\pi$ for all further time steps. This has the effect of improving the Value Function from Stage 0 ($\bvpi$) to Stage 1 ($\bm{B}^{\pi_D'}(\bvpi)$). Stage 2 is when you have the Value Function $(\bm{B}^{\pi_D'})^2(\bvpi)$ where from each state $s$, we execute the policy $\pi_D'$ for the first two time steps following $s$ and then execute the policy $\pi$ for all further time steps. This has the effect of improving the Value Function from Stage 1 ($\bm{B}^{\pi_D'}(\bvpi)$) to Stage 2 ($(\bm{B}^{\pi_D'})^2(\bvpi)$). And so on … each stage applies policy $\pi_D'$ instead of policy $\pi$ for one extra time step, which has the effect of improving the Value Function. Note that "improve" means $\geq$ (really means that the Value Function doesn't get worse for *any* of the states). These stages are simply the iterations of the Policy Evaluation algorithm (using policy $\pi_D'$) with starting Value Function $\bvpi$, building a non-decreasing sequence of Value Functions $[(\bm{B}^{\pi_D'})^i(\bvpi)|i = 0, 1, 2, \ldots]$ that get closer and closer until they converge to the Value Function $\bm{V}^{\pi_D'}$ that is $\geq \bvpi$ (hence, the term *Policy Improvement*).
 
 The Policy Improvement Theorem yields our first Dynamic Programming algorithm (called *Policy Iteration*) to solve the MDP Control problem. The Policy Iteration algorithm is [due to Ronald Howard](https://www.tandfonline.com/doi/abs/10.1080/00401706.1961.10489934?journalCode=utch20) [@howard:dp].
 
