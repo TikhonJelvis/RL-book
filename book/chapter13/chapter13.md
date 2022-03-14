@@ -1,8 +1,8 @@
 ## Policy Gradient Algorithms {#sec:policy-gradient-chapter}
 
-It's time to take stock of what we have learnt so far to set up context for this chapter. So far, we have covered a range of RL Control algorithms, all of which are based on Generalized Policy Iteration (GPI). All of these algorithms perform GPI by learning the Q-Value Function and improving the policy by identifying the action that fetches the best Q-Value (i.e., action value) for each state. Notice that the way we implemented this *best action identification* is by sweeping through all the actions for each state. This works well only if the set of actions for each state is reasonably small. But if the action space is large/continuous, we have to resort to some sort of optimization method to identify the best action for each state.
+It's time to take stock of what we have learnt so far to set up context for this chapter. So far, we have covered a range of RL Control algorithms, all of which are based on Generalized Policy Iteration (GPI). All of these algorithms perform GPI by learning the Q-Value Function and improving the policy by identifying the action that fetches the best Q-Value (i.e., action value) for each state. Notice that the way we implemented this *best action identification* is by sweeping through all the actions for each state. This works well only if the set of actions for each state is reasonably small. But if the action space is large/continuous, we have to resort to some sort of optimization method to identify the best action for each state, which is potentially complicated and expensive.
 
-In this chapter, we cover RL Control algorithms that take a vastly different approach. These Control algorithms are still based on GPI, but the Policy Improvement of their GPI is not based on consulting the Q-Value Function, as has been the case with Control algorithms we covered in the previous two chapters. Rather, the approach in the class of algorithms we cover in this chapter is to directly find the Policy that fetches the "Best Expected Returns". Specifically, the algorithms of this chapter perform a Gradient Ascent on "Expected Returns" with the gradient defined with respect to the parameters of a Policy function approximation. We shall work with a stochastic policy of the form $\pi(s,a; \bm{\theta})$, with $\bm{\theta}$ denoting the parameters of the policy function approximation $\pi$. So we are basically learning this parameterized policy that selects actions without consulting a Value Function. Note that we might still engage a Value Function approximation (call it $Q(s;a; \bm{w})$) in our algorithm, but it's role is to only help learn the policy parameters $\bm{\theta}$ and not to identify the action with the best action-value for each state. So the two function approximations $\pi(s,a;\bm{\theta})$ and $Q(s,a;\bm{w})$ are collaborating to improve the policy using gradient ascent (based on gradient of "expected returns" with respect to $\bm{\theta}$). $\pi(s,a;\bm{\theta})$ is the primary worker here (known as *Actor*) and $Q(s,a;\bm{w})$ is the support worker (known as *Critic*). The Critic parameters $\bm{w}$ are optimized by minimizing a suitable loss function defined in terms of $Q(s, a; \bm{w})$ while the Actor parameters $\bm{\theta}$ are optimized by maximizing a suitable "Expected Returns" function". Note that we still haven't defined what this "Expected Returns" function is (we will do so shortly), but we already see that this idea is appealing for large/continuous action spaces where sweeping through actions is infeasible. We will soon dig into the details of this new approach to RL Control (known as *Policy Gradient*, abbreviated as PG) - for now, it's important to recognize the big picture that PG is basically GPI with Policy Improvement done as a *Policy Gradient Ascent*.
+In this chapter, we cover RL Control algorithms that take a vastly different approach. These Control algorithms are still based on GPI, but the Policy Improvement of their GPI is not based on consulting the Q-Value Function, as has been the case with Control algorithms we covered in the previous two chapters. Rather, the approach in the class of algorithms we cover in this chapter is to directly find the Policy that fetches the "Best Expected Returns". Specifically, the algorithms of this chapter perform a Gradient Ascent on "Expected Returns" with the gradient defined with respect to the parameters of a Policy function approximation. We shall work with a stochastic policy of the form $\pi(s,a; \bm{\theta})$, with $\bm{\theta}$ denoting the parameters of the policy function approximation $\pi$. So we are basically learning this parameterized policy that selects actions without consulting a Value Function. Note that we might still engage a Value Function approximation (call it $Q(s;a; \bm{w})$) in our algorithm, but it's role is to only help learn the policy parameters $\bm{\theta}$ and not to identify the action with the best action-value for each state. So the two function approximations $\pi(s,a;\bm{\theta})$ and $Q(s,a;\bm{w})$ collaborate to improve the policy using gradient ascent (based on gradient of "expected returns" with respect to $\bm{\theta}$). $\pi(s,a;\bm{\theta})$ is the primary worker here (known as *Actor*) and $Q(s,a;\bm{w})$ is the support worker (known as *Critic*). The Critic parameters $\bm{w}$ are optimized by minimizing a suitable loss function defined in terms of $Q(s, a; \bm{w})$ while the Actor parameters $\bm{\theta}$ are optimized by maximizing a suitable "Expected Returns" function". Note that we still haven't defined what this "Expected Returns" function is (we will do so shortly), but we already see that this idea is appealing for large/continuous action spaces where sweeping through actions is infeasible. We will soon dig into the details of this new approach to RL Control (known as *Policy Gradient*, abbreviated as PG) - for now, it's important to recognize the big picture that PG is basically GPI with Policy Improvement done as a *Policy Gradient Ascent*.
 
 The contrast between the RL Control algorithms covered in the previous two chapters and the algorithms of this chapter actually is part of the following bigger-picture classification of learning algorithms for Control:
 
@@ -12,11 +12,11 @@ The contrast between the RL Control algorithms covered in the previous two chapt
 
 PG Algorithms can be Policy-based or Actor-Critic, whereas the Control algorithms we covered in the previous two chapters are Value Function-based.
 
-In this chapter, we start by enumerating the advantages and disadvantages of Policy Gradient Algorithms, state and prove the Policy Gradient Theorem (which provides the fundamental calculation underpinning Policy Gradient Algorithms), then go on to address how to lower the bias and variance in these algorithms, give an overview of special cases of Policy Gradient algorithms that have found success in practical applications, and finish with a description of Evolutionary Strategies (that although technically not RL) resemble Policy Gradient algorithms and are quite effective in solving certain Control problems.
+In this chapter, we start by enumerating the advantages and disadvantages of Policy Gradient Algorithms, state and prove the Policy Gradient Theorem (which provides the fundamental calculation underpinning Policy Gradient Algorithms), then go on to address how to lower the bias and variance in these algorithms, give an overview of special cases of Policy Gradient algorithms that have found success in practical applications, and finish with a description of Evolutionary Strategies that although technically not RL, resemble Policy Gradient algorithms and are quite effective in solving certain Control problems.
 
 ### Advantages and Disadvantages of Policy Gradient Algorithms
 
-Let us start by enumerating the advantages of PG algorithms. We've already said that PG algorithms are effective in large action spaces, high-dimensional or continuous action spaces because in such spaces selecting an action by deriving an improved policy from an updating Q-Value function is intractable. A key advantage of PG is that it naturally *explores* because the policy function approximation is configured as a stochastic policy. Moreover, PG finds the best Stochastic Policy. This is not a factor for MDPs since we know that there exists an optimal Deterministic Policy for any MDP but we often deal with Partially-Observable MDPs (POMDPs) in the real-world, for which the set of optimal policies might all be stochastic policies. We have an advantage in the case of MDPs as well since PG algorithms naturally converge to the deterministic policy (the variance in the policy distribution will automatically converge to 0) whereas in Value Function-based algorithms, we have to reduce the $\epsilon$ of the $\epsilon$-greedy policy by-hand and the appropriate declining trajectory of $\epsilon$ is typically hard to figure out by manual tuning. In situations where the policy function is a simpler function compared to the Value Function, we naturally benefit from pursuing Policy-based algorithms than Value Function-based algorithms. Perhaps the biggest advantage of PG algorithms is that prior knowledge of the functional form of the Optimal Policy enables us to structure the known functional form in the function approximation for the policy. Lastly, PG offers numerical benefits as small changes in $\bm{\theta}$ yield small changes in $\pi$, and consequently small changes in the distribution of occurrences of states. This results in stronger convergence guarantees for PG algorithms relative to Value Function-based algorithms.
+Let us start by enumerating the advantages of PG algorithms. We've already said that PG algorithms are effective in large action spaces, especially high-dimensional or continuous action spaces, because in such spaces selecting an action by deriving an improved policy from an updating Q-Value function is intractable. A key advantage of PG is that it naturally *explores* because the policy function approximation is configured as a stochastic policy. Moreover, PG finds the best Stochastic Policy. This is not a factor for MDPs since we know that there exists an optimal Deterministic Policy for any MDP but we often deal with Partially-Observable MDPs (POMDPs) in the real-world, for which the set of optimal policies might all be stochastic policies. We have an advantage in the case of MDPs as well since PG algorithms naturally converge to the deterministic policy (the variance in the policy distribution will automatically converge to 0) whereas in Value Function-based algorithms, we have to reduce the $\epsilon$ of the $\epsilon$-greedy policy by-hand and the appropriate declining trajectory of $\epsilon$ is typically hard to figure out by manual tuning. In situations where the policy function is a simpler function compared to the Value Function, we naturally benefit from pursuing Policy-based algorithms than Value Function-based algorithms. Perhaps the biggest advantage of PG algorithms is that prior knowledge of the functional form of the Optimal Policy enables us to structure the known functional form in the function approximation for the policy. Lastly, PG offers numerical benefits as small changes in $\bm{\theta}$ yield small changes in $\pi$, and consequently small changes in the distribution of occurrences of states. This results in stronger convergence guarantees for PG algorithms relative to Value Function-based algorithms.
 
 Now let's understand the disadvantages of PG Algorithms. The main disadvantage of PG Algorithms is that because they are based on gradient ascent, they typically converge to a local optimum whereas Value Function-based algorithms converge to a global optimum. Furthermore, the Policy Evaluation of PG is typically inefficient and can have high variance. Lastly, the Policy Improvements of PG happen in small steps and so, PG algorithms are slow to converge.
 
@@ -40,7 +40,7 @@ Value Function $V^{\pi}(s)$ and Action Value function $Q^{\pi}(s,a)$ are defined
 $$V^{\pi}(s) = \mathbb{E}_{\pi}[\sum_{k=t}^\infty \gamma^{k-t} \cdot R_{k+1} | S_t=s] \text{ for all } t = 0, 1, 2, \ldots$$
 $$Q^{\pi}(s,a) = \mathbb{E}_{\pi}[\sum_{k=t}^\infty \gamma^{k-t} \cdot R_{k+1} | S_t=s, A_t=a] \text{ for all } t = 0, 1, 2, \ldots$$
 
-$J(\bm{\theta}), V^{\pi}, Q^{\pi}$ are all measures of Expected Returns, so it pays to specify exactly how they differ. $J(\bm{\theta})$ is the Expected Return when following policy $\pi$ (that is parameterized by $\theta$), *averaged over all states $s \in \mathcal{N}$ and all actions $a \in \mathcal{A}$*. The idea is to perform a gradient ascent with $J(\theta)$ as the objective function, with each step in the gradient ascent essentially pushing $\bm{\theta}$ (and hence, $\pi$) in a desirable direction, until $J(\bm{\theta})$ is maximized. $V^{\pi}(s)$ is the Expected Return for a specific state $s \in \mathcal{N}$ when following policy $\pi$ $Q^{\pi}(s,a)$ is the Expected Return for a specific state $s \in \mathcal{N}$ and specific action $a \in \mathcal{A}$ when following policy $\pi$.
+$J(\bm{\theta}), V^{\pi}, Q^{\pi}$ are all measures of Expected Returns, so it pays to specify exactly how they differ. $J(\bm{\theta})$ is the Expected Return when following policy $\pi$ (that is parameterized by $\theta$), *averaged over all states $s \in \mathcal{N}$ and all actions $a \in \mathcal{A}$*. The idea is to perform a gradient ascent with $J(\theta)$ as the objective function, with each step in the gradient ascent essentially pushing $\bm{\theta}$ (and hence, $\pi$) in a desirable direction, until $J(\bm{\theta})$ is maximized. $V^{\pi}(s)$ is the Expected Return for a specific state $s \in \mathcal{N}$ when following policy $\pi$. $Q^{\pi}(s,a)$ is the Expected Return for a specific state $s \in \mathcal{N}$ and specific action $a \in \mathcal{A}$ when following policy $\pi$.
 
 We define the *Advantage Function* as:
 
@@ -61,7 +61,7 @@ $$J(\bm{\theta}) =  \sum_{s \in \mathcal{N}} \rho^{\pi}(s) \cdot \sum_{a \in \ma
 \end{definition}
 where
 $$\rho^{\pi}(s) = \sum_{S_0 \in \mathcal{N}}  \sum_{t=0}^\infty \gamma^t \cdot p_0(S_0) \cdot p(S_0 \rightarrow s, t, \pi)$$
-is the key function (for PG) that we shall refer to as *Discounted-Aggregate State-Visitation Measure*. Note that $\rho^{\pi}(s)$ is a [measure](https://en.wikipedia.org/wiki/Measure_(mathematics)) over the set of non-terminal states, but is not a [probability measure](https://en.wikipedia.org/wiki/Probability_measure). Think of $\rho^{\pi}(s)$ as weights reflecting the relative likelihood of occurrence of states on a trace experience (adjusted for discounting, i.e, lesser importance to reaching a state later on a trace experience). We can still talk about the distribution of states under the measure $\rho^{\pi}$, but we say that this distribution is *improper* to convey the fact that $\sum_{s \in \mathcal{N}} \rho^{\pi}(s) \neq 1$ (i.e., the distribution is not normalized). We talk about this improper distribution of states under the measure $\rho^{\pi}$ so we can use (as a convenience) the "expected value" notation for any random variable $f: \mathcal{N} \rightarrow \mathbb{R}$ under the improper distribution, i.e., we use the notation:
+is the key function (for PG) that we shall refer to as *Discounted-Aggregate State-Visitation Measure*. Note that $\rho^{\pi}(s)$ is a [measure](https://en.wikipedia.org/wiki/Measure_(mathematics)) over the set of non-terminal states, but is not a [probability measure](https://en.wikipedia.org/wiki/Probability_measure). Think of $\rho^{\pi}(s)$ as weights reflecting the relative likelihood of occurrence of states on a trace experience (adjusted for discounting, i.e, lesser importance to reaching a state later on a trace experience). We can still talk about the distribution of states under the measure $\rho^{\pi}$, but we say that this distribution is *improper* to convey the fact that $\sum_{s \in \mathcal{N}} \rho^{\pi}(s) \neq 1$ (i.e., the distribution is not normalized). We talk about this improper distribution of states under the measure $\rho^{\pi}$ so we can use (as a convenience) the "expected value" notation for any random variable $f: \mathcal{N} \rightarrow \mathbb{R}$ under this improper distribution, i.e., we use the notation:
 $$\mathbb{E}_{s \sim \rho^{\pi}} [f(s)] = \sum_{s \in \mathcal{N}} \rho^{\pi}(s) \cdot f(s)$$
 Using this notation, we can re-write the above definition of $J(\bm{\theta})$ as:
 $$J(\bm{\theta}) =  \mathbb{E}_{s \sim \rho^{\pi}, a \sim \pi} [\mathcal{R}_s^a]$$
@@ -82,7 +82,7 @@ Also note that:
 $$\nabla_{\bm{\theta}} \pi(s,a; \bm{\theta}) = \pi(s,a;\bm{\theta}) \cdot \nabla_{\bm{\theta}} \log{\pi(s,a; \bm{\theta})}$$
 $\nabla_{\bm{\theta}} \log{\pi(s,a; \bm{\theta})}$ is the [Score function](https://en.wikipedia.org/wiki/Score_(statistics)) (Gradient of log-likelihood) that is commonly used in Statistics.
 
-Since $\rho^{\pi}$ is the *Discounted-Aggregate State-Visitation Measure*, we can estimate $\nabla_{\bm{\theta}} J(\bm{\theta})$ by calculating $\gamma^t \cdot (\nabla_{\bm{\theta}} \log{\pi(S_t,A_t; \bm{\theta})}) \cdot Q^{\pi}(S_t,A_t)$ at each time step in each trace experience (noting that the state occurrence probabilities and action occurrence probabilities are implicit in the trace experiences, and ignoring the probability measure-normalizing factor), and update the parameters $\bm{\theta}$ (according to Stochastic Gradient Ascent) using each atomic experience's $\nabla_{\bm{\theta}} J(\bm{\theta})$ estimate.
+Since $\rho^{\pi}$ is the *Discounted-Aggregate State-Visitation Measure*, we can sample-estimate $\nabla_{\bm{\theta}} J(\bm{\theta})$ by calculating $\gamma^t \cdot (\nabla_{\bm{\theta}} \log{\pi(S_t,A_t; \bm{\theta})}) \cdot Q^{\pi}(S_t,A_t)$ at each time step in each trace experience (noting that the state occurrence probabilities and action occurrence probabilities are implicit in the trace experiences, and ignoring the probability measure-normalizing factor), and update the parameters $\bm{\theta}$ (according to Stochastic Gradient Ascent) using each atomic experience's $\nabla_{\bm{\theta}} J(\bm{\theta})$ estimate.
 
 We typically calculate the Score $\nabla_{\bm{\theta}} \log{\pi(s,a; \bm{\theta})}$ using an analytically-convenient functional form for the conditional probability distribution $a|s$ (in terms of $\bm{\theta}$) so that the derivative of the logarithm of this functional form is analytically tractable (this will be clear in the next section when we consider a couple of examples of canonical functional forms for $a|s$). In many PG Algorithms, we estimate $Q^{\pi}(s,a)$ with a function approximation $Q(s,a;\bm{w})$. We will later show how to avoid the estimate bias of $Q(s,a;\bm{w})$.
 
@@ -128,7 +128,7 @@ $$\text{Now expand } V^{\pi}(S_1) \text{ to } \sum_{A_1 \in \mathcal{A}} \pi(S_1
 \nabla_{\bm{\theta}} J(\bm{\theta}) & = \sum_{S_0 \in \mathcal{N}} p_0(S_0) \cdot \sum_{A_0 \in \mathcal{A}} \nabla_{\bm{\theta}} \pi(S_0, A_0; \bm{\theta}) \cdot Q^{\pi}(S_0, A_0) \\
 & + \sum_{S_1 \in \mathcal{N}}  \sum_{S_0 \in \mathcal{N}} \gamma \cdot p_0(S_0) \cdot p(S_0 \rightarrow S_1, 1, \pi) \cdot \nabla_{\bm{\theta}} (\sum_{A_1 \in \mathcal{A}} \pi(S_1, A_1; \bm{\theta}) \cdot Q^{\pi}(S_1,A_1))
 \end{align*}
-We are now back to when we started calculating gradient of $\sum_a \pi \cdot Q^{\pi}$. Follow the same process of splitting $\pi \cdot Q^{\pi}$, then Bellman-expanding $Q^{\pi}$ (to calculate its gradient), and iterate.
+We are now back to when we started calculating gradient of $\sum_a \pi \cdot Q^{\pi}$. Follow the same process of calculating the gradient of $\pi \cdot Q^{\pi}$ by parts, then Bellman-expanding $Q^{\pi}$ (to calculate its gradient), and iterate.
 $$\nabla_{\bm{\theta}} J(\bm{\theta}) = \sum_{S_0 \in \mathcal{N}} p_0(S_0) \cdot \sum_{A_0 \in \mathcal{A}} \nabla_{\bm{\theta}} \pi(S_0, A_0; \bm{\theta}) \cdot Q^{\pi}(S_0, A_0) + $$
 $$\sum_{S_1 \in \mathcal{N}} \sum_{S_0 \in \mathcal{N}} \gamma \cdot p_0(S_0) \cdot p(S_0 \rightarrow S_1, 1, \pi) \cdot  (\sum_{A_1 \in \mathcal{A}} \nabla_{\bm{\theta}} \pi(S_1, A_1; \bm{\theta}) \cdot Q^{\pi}(S_1,A_1) + \ldots)$$
 This iterative process leads us to:
@@ -143,7 +143,7 @@ $$\mathbb{Q.E.D.}$$
 
 This proof is borrowed from the Appendix of [the famous paper by Sutton, McAllester, Singh, Mansour on Policy Gradient Methods for Reinforcement Learning with Function Approximation](https://proceedings.neurips.cc/paper/1999/file/464d828b85b0bed98e80ade0a5c43b0f-Paper.pdf) [@sutton2001policy].
 
-Note that using the "Expected Value"" notation under the improper distribution implied by the Discounted-Aggregate State-Visitation Measure $\rho^{\pi}$, we can write the statement of PGT as:
+Note that using the "Expected Value" notation under the improper distribution implied by the Discounted-Aggregate State-Visitation Measure $\rho^{\pi}$, we can write the statement of PGT as:
 
 
 \begin{align*}
@@ -151,22 +151,22 @@ Note that using the "Expected Value"" notation under the improper distribution i
 & =  \mathbb{E}_{s \sim \rho^{\pi}, a \sim \pi} [(\nabla_{\bm{\theta}} \log \pi(s,a; \bm{\theta})) \cdot Q^{\pi}(s,a)]
 \end{align*}
 
-As explained earlier, since the state occurrence probabilities and action occurrence probabilities are implicit in the trace experiences, we can estimate $\nabla_{\bm{\theta}} J(\bm{\theta})$ by calculating $\gamma^t \cdot (\nabla_{\bm{\theta}} \log{\pi(S_t,A_t; \bm{\theta})}) \cdot Q^{\pi}(S_t,A_t)$ at each time step in each trace experience, and update the parameters $\bm{\theta}$ (according to Stochastic Gradient Ascent) with this calculation.
+As explained earlier, since the state occurrence probabilities and action occurrence probabilities are implicit in the trace experiences, we can sample-estimate $\nabla_{\bm{\theta}} J(\bm{\theta})$ by calculating $\gamma^t \cdot (\nabla_{\bm{\theta}} \log{\pi(S_t,A_t; \bm{\theta})}) \cdot Q^{\pi}(S_t,A_t)$ at each time step in each trace experience, and update the parameters $\bm{\theta}$ (according to Stochastic Gradient Ascent) with this calculation.
 
 ### Score function for Canonical Policy Functions {#sec:canonical-policy-functions}
 
-Now we illustrate how the Score function $\nabla_{\bm{\theta}} \pi(s,a;\bm{\theta})$ is calculated using an analytically-convenient functional form for the conditional probability distribution $a|s$ (in terms of $\bm{\theta}$) so that the derivative of the logarithm of this functional form is analytically tractable. We do this with a couple of canonical functional forms for $a|s$, one for finite action spaces and one for single-dimensional continuous action spaces.
+Now we illustrate how the Score function $\nabla_{\bm{\theta}} \pi(s,a;\bm{\theta})$ is calculated using an analytically-convenient functional form for the conditional probability distribution $a|s$ (in terms of $\bm{\theta}$) so that the derivative of the logarithm of this functional form is analytically tractable. We do this for a couple of canonical functional forms for $a|s$, one for finite action spaces and one for single-dimensional continuous action spaces.
 
 #### Canonical $\pi(s,a; \bm{\theta})$ for Finite Action Spaces
 
-For finite action spaces, we often use the Softmax Policy. Assume $\bm{\theta}$ is an $m$-vector $(\theta_1, \ldots, \theta_m)$ and assume features vector $\bm{\phi}(s,a)$ is given by: $(\phi_1(s,a), \ldots, \phi_m(s,a))$ for all $s \in \mathcal{N}, a \in \mathcal{A}$.
+For finite action spaces, we often use the Softmax Policy. Assume $\bm{\theta}$ is an $m$-vector $(\theta_1, \ldots, \theta_m)$ and assume feature vector $\bm{\phi}(s,a)$ is given by: $(\phi_1(s,a), \ldots, \phi_m(s,a))$ for all $s \in \mathcal{N}, a \in \mathcal{A}$.
 
-We weight actions using a linear combinations of features, i.e., $\bm{\phi}(s,a)^T \cdot \bm{\theta}$ and we set the action probabilities to be proportional to exponentiated weights, as follows:
+We weight actions using linear combinations of features, i.e., $\bm{\phi}(s,a)^T \cdot \bm{\theta}$, and we set the action probabilities to be proportional to exponentiated weights, as follows:
 $$\pi(s,a; \bm{\theta}) = \frac {e^{\bm{\phi}(s,a)^T \cdot \bm{\theta}}} {\sum_{b \in \mathcal{A}} e^{\bm{\phi}(s,b)^T \cdot \bm{\theta}}} \mbox{ for all } s \in \mathcal{N}, a \in \mathcal{A}$$
 Then the score function is given by:
 $$\nabla_{\bm{\theta}} \log \pi(s,a; \bm{\theta}) = \bm{\phi}(s,a) - \sum_{b \in \mathcal{A}} \pi(s,b; \bm{\theta}) \cdot \bm{\phi}(s,b) = \bm{\phi}(s,a) - \mathbb{E}_{\pi}[\bm{\phi}(s,\cdot)]$$
 
-The intuitive interpretation is that the score function for an action $a$ represents the "advantage" of the feature value for action $a$ over the mean feature value (across all actions), for a given state $s$.
+The intuitive interpretation is that the score function for an action $a$ represents the "advantage" of the feature vector for action $a$ over the mean feature vector (across all actions), for a given state $s$.
 
 #### Canonical $\pi(s,a; \bm{\theta})$ for Single-Dimensional Continuous Action Spaces
 
@@ -176,22 +176,22 @@ We set the mean of the gaussian distribution for the Policy as a linear combinat
 
 The Gaussian policy selects an action $a$ as follows:
 
-$$a \sim \mathcal{N}(\bm{\phi}(s)^T \cdot \bm{\theta}, \sigma^2) \mbox{ for all } s \in \mathcal{N}$$
+$$a \sim \mathcal{N}(\bm{\phi}(s)^T \cdot \bm{\theta}, \sigma^2) \mbox{ for a given } s \in \mathcal{N}$$
 
 Then the score function is given by:
 $$\nabla_{\bm{\theta}} \log \pi(s,a; \bm{\theta}) = \frac {(a - \bm{\phi}(s)^T \cdot \bm{\theta}) \cdot \bm{\phi}(s)} {\sigma^2}$$
 
 This is easily extensible to multi-dimensional continuous action spaces by considering a multi-dimensional gaussian distribution for the Policy.
 
-The intuitive interpretation is that the score function for an action $a$ is proportional to the "advantage" of the action $a$ over the mean action (note: each $a \in \mathbb{R}$), for a given state $s$.
+The intuitive interpretation is that the score function for an action $a$ is proportional to the feature vector for given state $s$ scaled by the "advantage" of the action $a$ over the mean action (note: each $a \in \mathbb{R}$).
 
-For each of the above two examples (finite action spaces and continuous action spaces), think of the "advantage" of an action as the compass for the Gradient Ascent. The gradient estimate for an encountered action is proportional to the action's "advantage" scaled by the action's Value Function. The intuition is that the Gradient Ascent encourages picking actions that are yielding more favorable outcomes (*Policy Improvement*) so as to ultimately get to a point where the optimal action is selected for each state.
+For each of the above two examples (finite action spaces and continuous action spaces), think of the "features advantage" of an action as the compass for the Gradient Ascent. The gradient estimate for an encountered action is proportional to the action's "features advantage" scaled by the action's Value Function. The intuition is that the Gradient Ascent encourages picking actions that are yielding more favorable outcomes (*Policy Improvement*) so as to ultimately get to a point where the optimal action is selected for each state.
 
 ### REINFORCE Algorithm (Monte-Carlo Policy Gradient)
 
 Now we are ready to write our first Policy Gradient algorithm. As ever, the simplest algorithm is a Monte-Carlo algorithm. In the case of Policy Gradient, a simple Monte-Carlo calculation provides us with an [algorithm known as REINFORCE, due to R.J.Williams](https://people.cs.umass.edu/~barto/courses/cs687/williams92simple.pdf) [@Williams:92], which we cover in this section.
 
-We've already explained that we can calculate the Score function using an analytical derivative of a specified functional form for $\pi(S_t,A_t;\bm{\theta})$ for each atomic experience $(S_t, A_t, R_t, S'_t)$. What remains is to obtain an estimate of $Q^{\pi}(S_t,A_t)$ for each atomic experience $(S_t, A_t, R_t, S'_t)$. REINFORCE uses the trace experience return $G_t$ for $(S_t, A_t)$, while following policy $\pi$, as an unbiased sample of $Q^{\pi}(S_t,A_t)$. Thus, at every time step (i.e., at every atomic experience) in each episode, we estimate $\nabla_{\bm{\theta}} J(\bm{\theta})$ by calculating $\gamma^t \cdot (\nabla_{\bm{\theta}} \log{\pi(S_t, A_t; \bm{\theta})}) \cdot G_t$ (noting that the state occurrence probabilities and action occurrence probabilities are implicit in the trace experiences), and update the parameters $\bm{\theta}$ at the end of each episode (using each atomic experience's $\nabla_{\bm{\theta}} J(\bm{\theta})$ estimate) according to Stochastic Gradient Ascent as follows:
+We've already explained that we can calculate the Score function using an analytical derivative of a specified functional form for $\pi(S_t,A_t;\bm{\theta})$ for each atomic experience $(S_t, A_t, R_t, S_{t+1})$. What remains is to obtain an estimate of $Q^{\pi}(S_t,A_t)$ for each atomic experience $(S_t, A_t, R_t, S_{t+1})$. REINFORCE uses the trace experience return $G_t$ for $(S_t, A_t)$, while following policy $\pi$, as an unbiased sample of $Q^{\pi}(S_t,A_t)$. Thus, at every time step (i.e., at every atomic experience) in each episode, we estimate $\nabla_{\bm{\theta}} J(\bm{\theta})$ by calculating $\gamma^t \cdot (\nabla_{\bm{\theta}} \log{\pi(S_t, A_t; \bm{\theta})}) \cdot G_t$ (noting that the state occurrence probabilities and action occurrence probabilities are implicit in the trace experiences), and update the parameters $\bm{\theta}$ at the end of each episode (using each atomic experience's $\nabla_{\bm{\theta}} J(\bm{\theta})$ estimate) according to Stochastic Gradient Ascent as follows:
 
 $$\Delta \bm{\theta} = \alpha \cdot \gamma^t \cdot (\nabla_{\bm{\theta}} \log{\pi(S_t,A_t;\bm{\theta})}) \cdot G_t$$
 
@@ -200,7 +200,7 @@ where $\alpha$ is the learning rate.
 
 This Policy Gradient algorithm is Monte-Carlo because it is not bootstrapped (complete returns are used as an unbiased sample of $Q^{\pi}$, rather than a bootstrapped estimate). In terms of our previously-described classification of RL algorithms as Value Function-based or Policy-based or Actor-Critic, REINFORCE is a Policy-based algorithm since REINFORCE does not involve learning a Value Function.
 
-Now let's write some code to implement the REINFORCE algorithm. In this chapter, we will focus our Python code implementation of Policy Gradient algorithms to continuous action spaces, although it should be clear based on the discussion so far that the Policy Gradient approach applies to arbitrary action spaces (we've already seen an example of the policy function parameterization for discrete action spaces). To keep things simple, the function `reinforce_gaussian` below implements REINFORCE for the simple case of single-dimensional continuous action spaces (i.e. $\mathcal{A} = \mathbb{R}$), although this can be easily extended to multi-dimensional continuous action spaces. So in the code below, we work with a generic state space given by `TypeVar('S')` and the action space is specialized to `float` (representing $\mathbb{R}$).
+Now let's write some code to implement the REINFORCE algorithm. In this chapter, we will focus our Python code implementation of Policy Gradient algorithms to continuous action spaces, although it should be clear based on the discussion so far that the Policy Gradient approach applies to arbitrary action spaces (we've already seen an example of the policy function parameterization for discrete action spaces). To keep things simple, the function `reinforce_gaussian` below implements REINFORCE for the simple case of single-dimensional continuous action space (i.e. $\mathcal{A} = \mathbb{R}$), although this can be easily extended to multi-dimensional continuous action spaces. So in the code below, we work with a generic state space given by `TypeVar('S')` and the action space is specialized to `float` (representing $\mathbb{R}$).
 
 As seen earlier in the canonical example for single-dimensional continuous action space, we assume a Gaussian distribution for the policy. Specifically, the policy is represented by an arbitrary parameterized function approximation using the class `FunctionApprox`. As a reminder, an instance of `FunctionApprox` represents a probability distribution function $f$ of the conditional random variable variable $y|x$ where $x$ belongs to an arbitrary domain $\mathcal{X}$ and $y \in \mathbb{R}$ (probability of $y$ conditional on $x$ denoted as $f(x; \bm{\theta})(y)$ where $\bm{\theta}$ denotes the parameters of the `FunctionApprox`). Note that the `evaluate` method of `FunctionApprox` takes as input an `Iterable` of $x$ values and calculates $g(x; \bm{\theta}) = \mathbb{E}_{f(x;\bm{\theta})}[y]$ for each of the $x$ values. In our case here, $x$ represents non-terminal states in $\mathcal{N}$ and $y$ represents actions in $\mathbb{R}$, so $f(s;\bm{\theta})$ denotes the probability distribution of actions, conditional on state $s \in \mathcal{N}$, and $g(s; \bm{\theta})$ represents the *Expected Value* of (real-numbered) actions, conditional on state $s \in \mathcal{N}$. Since we have assumed the policy to be Gaussian, 
 
@@ -215,7 +215,7 @@ The Gaussian policy (of the type `GaussianPolicyFromApprox`) selects an action $
 The score function is given by:
 $$\nabla_{\bm{\theta}} \log \pi(s,a; \bm{\theta}) = \frac {(a - g(s;\bm{\theta})) \cdot \nabla_{\bm{\theta}} g(s;\bm{\theta})} {\sigma^2}$$
 
-The outer loop of `while True:` loops over trace experiences produced by the method `simulate_actions` of the input `mdp` for a given input `start_states_distribution` (specifying the initial states distribution $p_0: \mathcal{N} \rightarrow [0, 1]$), and the current policy $\pi$ (that is parameterized by $\bm{\theta}$, which update after each trace experience). The inner loop loops over an `Iterator` of `step: ReturnStep[S, float]` objects produced by the `returns` method for each trace experience. 
+The outer loop of `while True:` loops over trace experiences produced by the method `simulate_actions` of the input `mdp` for a given input `start_states_distribution` (specifying the initial states distribution $p_0: \mathcal{N} \rightarrow [0, 1]$), and the current policy $\pi$ (that is parameterized by $\bm{\theta}$, which updates after each trace experience). The inner loop loops over an `Iterator` of `step: ReturnStep[S, float]` objects produced by the `returns` method for each trace experience. 
 
 The variable `grad` is assigned the value of the negative score for an encountered $(S_t, A_t)$ in a trace experience, i.e., it is assigned the value:
 
@@ -292,7 +292,7 @@ The above code is in the file [rl/policy_gradient.py](https://github.com/TikhonJ
 
 In this chapter, we will test the PG algorithms we implement on the Optimal Asset Allocation problem of Chapter [-@sec:portfolio-chapter], specifically the setting of the class `AssetAllocDiscrete` covered in Section [-@sec:asset-alloc-discrete-code]. As a reminder, in this setting, we have a single risky asset and at each of a fixed finite number of time steps, one has to make a choice of the quantity of current wealth to invest in the risky asset (remainder in the riskless asset) with the goal of maximizing the expected utility of wealth at the end of the finite horizon. Thus, this finite-horizon MDP's state at any time $t$ is the pair $(t, W_t)$ where $W_t \in \mathbb{R}$ denotes the wealth at time $t$, and the action at time $t$ is the investment $x_t \in \mathbb{R}$ in the risky asset.
 
-We provided an approximate DP backward-induction solution to this problem in Chapter [-@sec:funcapprox-chapter], implemented with `AssetAllocDiscrete` (code in [rl/chapter7/asset_alloc_discrete.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/policy_gradient.py)). Now we want to solve it with PG algorithms, starting with REINFORCE. So we require a new interface and hence, we implement a new class `AssetAllocPG` with appropriate tweaks to `AssetAllocDiscrete`. The key change in the interface is that we have inputs `policy_feature_funcs`, `policy_mean_dnn_spec` and `policy_stdev` (see code below). `policy_feature_funcs` represents the sequence of feature functions for the `FunctionApprox` representing the mean action for a given state (i.e., $g(s;\bm{\theta}) = \mathbb{E}_{f(s;\bm{\theta})}[a]$ where $f$ represents the policy probability distribution of actions for a given state). `policy_mean_dnn_spec` specifies the architecture of a deep neural network a user would like to use for the `FunctionApprox`. `policy_stdev` represents the fixed standard deviation $\sigma$ of the policy probability distribution of actions for any state. `AssetAllocState = Tuple[float, int]` is the data type for the state $(t, W_t)$. 
+We provided an ADP backward-induction solution to this problem in Chapter [-@sec:funcapprox-chapter], implemented with `AssetAllocDiscrete` (code in [rl/chapter7/asset_alloc_discrete.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/policy_gradient.py)). Now we want to solve it with PG algorithms, starting with REINFORCE. So we require a new interface and hence, we implement a new class `AssetAllocPG` with appropriate tweaks to `AssetAllocDiscrete`. The key change in the interface is that we have inputs `policy_feature_funcs`, `policy_mean_dnn_spec` and `policy_stdev` (see code below). `policy_feature_funcs` represents the sequence of feature functions for the `FunctionApprox` representing the mean action for a given state (i.e., $g(s;\bm{\theta}) = \mathbb{E}_{f(s;\bm{\theta})}[a]$ where $f$ represents the policy probability distribution of actions for a given state). `policy_mean_dnn_spec` specifies the architecture of a deep neural network a user would like to use for the `FunctionApprox`. `policy_stdev` represents the fixed standard deviation $\sigma$ of the policy probability distribution of actions for any state. Unlike the backward-induction solution of `AssetAllocDiscrete` where we had to model a separate MDP for each time step in the finite horizon (where the state for each time step's MDP is the wealth), here we model a single MDP across all time steps with the state as the pair of time step index $t$ and the wealth $W_t$. `AssetAllocState = Tuple[int, float]` is the data type for the state $(t, W_t)$. 
 
 ```python
 from rl.function_approx import DNNSpec
@@ -311,7 +311,7 @@ class AssetAllocPG:
     initial_wealth_distribution: Distribution[float]
 ```
 
-Unlike the backward-induction solution of `AssetAllocDiscrete` where we had to model a separate MDP for each time step in the finite horizon (where the state for each time step's MDP is the wealth), here we model a single MDP across all time steps with the state as the pair of time step index $t$ and the wealth $W_t$. The method `get_mdp` below sets up this MDP (should be self-explanatory as the constructions is very similar to the construction of the single-step MDPs in `AssetAllocDiscrete`).
+The method `get_mdp` below sets up this MDP (should be self-explanatory as the construction is very similar to the construction of the single-step MDPs in `AssetAllocDiscrete`).
 
 
 ```python
@@ -358,7 +358,7 @@ from rl.distribution import SampledDistribution
         return AssetAllocMDP()
 ```
 
-The methods `start_states_distribution` and `policy_mean_approx` below create the `SampledDistribution` of start states and the `DNNApprox` representing the mean action for a given state respectively. Finally, the `reinforce` method below simply collects all the ingredients and passes along to the `reinforce_gaussian` to solve this asset allocation problem.
+The methods `start_states_distribution` and `policy_mean_approx` below create the `SampledDistribution` of start states and the `DNNApprox` representing the mean action for a given state respectively. Finally, the `reinforce` method below simply collects all the ingredients and passes along to `reinforce_gaussian` to solve this asset allocation problem.
 
 ```python
 from rl.function_approx import AdamGradient, DNNApprox
@@ -404,7 +404,7 @@ from rl.function_approx import AdamGradient, DNNApprox
 
 The above code is in the file [rl/chapter13/asset_alloc_pg.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/chapter13/asset_alloc_pg.py).
 
-Let's now test this out on an instance of the problem for which we have a closed-form solution (so we can verify the REINFORCE solution against the closed-form solution). The special instance is the setting covered in Section [-@sec:discrete-asset-alloc] of Chapter [-@sec:portfolio-chapter]. From Equation \eqref{eq:pi-star-solution-discrete}, we know that the optimal action in state $(t, W_t)$ is linear in a single feature defined as $(1+r)^t$ where $r$ is the constant risk-free rate across time steps. So we should set up the function approximation as `LinearFunctionApprox` with this single feature and check if the solved coefficient of this single feature matches up with the close form solution of Equation \eqref{eq:pi-star-solution-discrete}. 
+Let's now test this out on an instance of the problem for which we have a closed-form solution (so we can verify the REINFORCE solution against the closed-form solution). The special instance is the setting covered in Section [-@sec:discrete-asset-alloc] of Chapter [-@sec:portfolio-chapter]. From Equation \eqref{eq:pi-star-solution-discrete}, we know that the optimal action in state $(t, W_t)$ is linear in a single feature defined as $(1+r)^t$ where $r$ is the constant risk-free rate across time steps. So we need to set up the function approximation `policy_mean_dnn_spec: DNNSpec` as linear in this single feature (no hidden layers and identity function as the output layer activation function), and check if the optimized weight (coefficient of this single feature) matches up with the closed-form solution of Equation \eqref{eq:pi-star-solution-discrete}. 
 
 Let us use similar settings that we had used in Chapter [-@sec:portfolio-chapter] to test `AssetAllocDiscrete`. In the code below, we create an instance of `AssetAllocPG` with time steps $T=5$, $\mu = 13\%, \sigma = 20\%, r = 7\%$, coefficient of CARA $a = 1.0$. We set up `risky_return_distributions` as a sequence of identical `Gaussian` distributions, `riskless_returns` as a sequence of identical riskless rate of returns, and `utility_func` as a `lambda` parameterized by the coefficient of CARA $a$.  We set the probability distribution of wealth at time $t=0$ (start of each trace experience) as $\mathcal{N}(1.0, 0.1)$, and we set the constant standard deviation $\sigma$ of the policy probability distribution of actions for a given state as $0.5$.
 
@@ -419,7 +419,7 @@ init_wealth_stdev: float = 0.1
 policy_stdev: float = 0.5
 ```
 
-Next, we print the analytical solution of the optimal action for states at each time step (note: analytical solution for optimal action is independent of wealth $W_t$, and is only dependent on $t$).
+Next, we print the closed-form solution of the optimal action for states at each time step (note: the closed-form solution for optimal action is independent of wealth $W_t$, and is only dependent on $t$).
 
 ```python
 base_alloc: float = (mu - r) / (a * sigma * sigma)
@@ -514,7 +514,7 @@ As an exercise, we encourage you to implement an extension of this problem. Alon
 
 As we've mentioned in the previous section, REINFORCE has high variance since it's a Monte-Carlo method. So it can take quite long for REINFORCE to converge. A simple way to reduce the variance is to use a function approximation for the Q-Value Function instead of using the trace experience return as an unbiased sample of the Q-Value Function. Variance reduction happens from the simple fact that a function approximation of the Q-Value Function updates gradually (using gradient descent) and so, does not vary enormously like the trace experience returns would. Let us denote the function approximation of the Q-Value Function as $Q(s,a;\bm{w})$ where $\bm{w}$ denotes the parameters of the function approximation. We refer to $Q(s,a;\bm{w})$ as the *Critic* and we refer to the $\pi(s,a;\bm{\theta})$ function approximation as the *Actor*. The two function approximations $\pi(s,a;\bm{\theta})$ and $Q(s,a;\bm{w})$ collaborate to improve the policy using gradient ascent (guided by the PGT, using $Q(s,a;\bm{w})$ in place of the true Q-Value Function $Q^{\pi}(s,a)$). $\pi(s,a;\bm{\theta})$ is called *Actor* because it is the primary worker and $Q(s,a;\bm{w})$ is called *Critic* because it is the support worker. The intuitive way to think about this is that the Actor updates policy parameters in a direction that is suggested by the Critic.
 
-After each atomic experience, both $\bm{\theta}$ and $\bm{w}$ are updated. $\bm{w}$ is updated such that a suitable loss function is minimized. This can be done using any of the usual Value Function approximation methods we have covered previously, including:
+Bear in mind though that the efficient way to use the Critic is in the spirit of GPI, i.e., we don't take $Q(s,a;\bm{w})$ for the current policy (current $\bm{\theta}$) all the way to convergence (thinking about updates of $\bm{w}$ for a given Policy as Policy Evaluation phase of GPI). Instead, we switch between Policy Evaluation (updates of $\bm{w}$) and Policy Improvement (updates of $\bm{\theta}$) quite frequently. In fact, with a bootstrapped (TD) approach, we would update both $\bm{w}$ and $\bm{\theta}$ after each atomic experience. $\bm{w}$ is updated such that a suitable loss function is minimized. This can be done using any of the usual Value Function approximation methods we have covered previously, including:
 
 * Monte-Carlo, i.e., $\bm{w}$ updated using trace experience returns $G_t$.
 * Temporal-Difference, i.e., $\bm{w}$ updated using TD Targets.
@@ -525,7 +525,7 @@ This method of calculating the gradient of $J(\bm{\theta})$ can be thought of as
 
 $$\nabla_{\bm{\theta}} J(\bm{\theta}) \approx \sum_{s \in \mathcal{N}} \rho^{\pi}(s) \cdot \sum_{a \in \mathcal{A}} \nabla_{\bm{\theta}} \pi(s,a; \bm{\theta}) \cdot Q(s,a; \bm{w})$$
 
-Now let's implement some code to perform Policy Gradient with the Critic updated using Temporal-Difference (again, for the simple case of single-dimensional continuous action spaces). In the function `actor_critic_gaussian` below, the key changes (from the code in `reinforce_gaussian`) are:
+Now let's implement some code to perform Policy Gradient with the Critic updated using Temporal-Difference (again, for the simple case of single-dimensional continuous action space). In the function `actor_critic_gaussian` below, the key changes (from the code in `reinforce_gaussian`) are:
 
 * The Q-Value function approximation parameters $\bm{w}$ are updated after each atomic experience as:
 $$\Delta \bm{w} = \beta \cdot (R_{t+1} + \gamma \cdot Q(S_{t+1}, A_{t+1}; \bm{w}) - Q(S_t,A_t;\bm{w})) \cdot \nabla_{\bm{w}} Q(S_t,A_t; \bm{w})$$
@@ -612,9 +612,9 @@ Note that the Baseline Function $B(s)$ is only a function of state $s$ (and not 
 A good Baseline Function $B(s)$ is a function approximation $V(s; \bm{v})$ of the State-Value Function $V^{\pi}(s)$. So then we can rewrite the Actor-Critic Policy Gradient algorithm using an estimate of the Advantage Function, as follows:
 $$A(s,a;\bm{w},\bm{v}) = Q(s,a;\bm{w}) - V(s; \bm{v})$$
 With this, the approximation for $\nabla_{\bm{\theta}} J(\bm{\theta})$ is given by:
-$$J(\bm{\theta}) \approx \sum_{s \in \mathcal{N}} \rho^{\pi}(s) \cdot \sum_{a \in \mathcal{A}} \nabla_{\bm{\theta}} \pi(s, a; \bm{\theta}) \cdot A(s,a; \bm{w}, \bm{v})$$
+$$\nabla_{\bm{\theta}} J(\bm{\theta}) \approx \sum_{s \in \mathcal{N}} \rho^{\pi}(s) \cdot \sum_{a \in \mathcal{A}} \nabla_{\bm{\theta}} \pi(s, a; \bm{\theta}) \cdot A(s,a; \bm{w}, \bm{v})$$
 
-The function `actor_critic_advantage_gaussian` in the file [rl/policy_gradient.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/policy_gradient.py) implements this algorithm, i.e., Policy Gradient with two Critics $Q(s,a;\bm{w})$ and $V(s;\bm{v})$, each updated using Temporal-Difference (again, for the simple case of single-dimensional continuous action spaces). Specifically, in the code of `actor_critic_advantage_gaussian`:
+The function `actor_critic_advantage_gaussian` in the file [rl/policy_gradient.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/policy_gradient.py) implements this algorithm, i.e., Policy Gradient with two Critics $Q(s,a;\bm{w})$ and $V(s;\bm{v})$, each updated using Temporal-Difference (again, for the simple case of single-dimensional continuous action space). Specifically, in the code of `actor_critic_advantage_gaussian`:
 
 * The Q-Value function approximation parameters $\bm{w}$ are updated after each atomic experience as:
 $$\Delta \bm{w} = \beta_{\bm{w}} \cdot (R_{t+1} + \gamma \cdot Q(S_{t+1}, A_{t+1}; \bm{w}) - Q(S_t,A_t;\bm{w})) \cdot \nabla_{\bm{w}} Q(S_t,A_t; \bm{w})$$
@@ -635,7 +635,7 @@ In practice, we use a function approximation for the TD error, and sample:
 $$\delta(s,r,s';\bm{v}) = r + \gamma \cdot V(s';\bm{v}) - V(s;\bm{v})$$
 This approach requires only one set of critic parameters $\bm{v}$, and we don't have to worry about the Action-Value Function $Q$.
 
-Now let's implement some code for this TD Error-based PG Algorithm (again, for the simple case of single-dimensional continuous action spaces). In the function `actor_critic_td_error_gaussian` below:
+Now let's implement some code for this TD Error-based PG Algorithm (again, for the simple case of single-dimensional continuous action space). In the function `actor_critic_td_error_gaussian` below:
 
 * The State-Value function approximation parameters $\bm{v}$ are updated after each atomic experience as:
 $$\Delta \bm{v} = \alpha_{\bm{v}} \cdot (R_{t+1} + \gamma \cdot V(S_{t+1}; \bm{v}) - V(S_t;\bm{v})) \cdot \nabla_{\bm{v}} V(S_t; \bm{v})$$
@@ -730,82 +730,75 @@ However, each of the above proxies for $Q^{\pi}(s,a)$ in PG algorithms have a bi
 
 
 \begin{theorem}[Compatible Function Approximation Theorem]
-If the following two conditions are satisfied:
-\begin{enumerate}
-\item Critic gradient is {\em compatible} with the Actor score function
-$$\nabla_{\bm{w}} Q(s,a;\bm{w}) = \nabla_{\bm{\theta}} \log \pi(s,a; \bm{\theta})$$ 
-\item Critic parameters $\bm{w}$ minimize the following mean-squared error:
-$$\epsilon = \sum_{s \in \mathcal{N}} \rho^{\pi}(s) \cdot \sum_{a \in \mathcal{A}} \pi(s,a; \bm{\theta}) \cdot (Q^{\pi}(s,a) - Q(s,a;\bm{w}))^2$$
-\end{enumerate}
-Then the Policy Gradient using critic $Q(s,a;\bm{w})$ is exact:
-$$\nabla_{\bm{\theta}} J(\bm{\theta}) = \sum_{s \in \mathcal{N}} \rho^{\pi}(s) \cdot \sum_{a \in \mathcal{A}} \nabla_{\bm{\theta}} \pi(s, a; \bm{\theta}) \cdot Q(s,a; \bm{w})$$
+Let $\bm{w_{\theta}^*}$ denote the Critic parameters $\bm{w}$ that minimize the following mean-squared-error for given policy parameters $\bm{\theta}$:
+$$\sum_{s \in \mathcal{N}} \rho^{\pi}(s) \cdot \sum_{a \in \mathcal{A}} \pi(s,a; \bm{\theta}) \cdot (Q^{\pi}(s,a) - Q(s,a;\bm{w}))^2$$
+Assume that the data type of $\bm{\theta}$ is the same as the data type of $\bm{w}$ and furthermore, assume that for any policy parameters $\bm{\theta}$, the Critic gradient at $\bm{w_{\theta}^*}$ is {\em compatible} with the Actor score function, i.e., 
+$$\nabla_{\bm{w}} Q(s,a;\bm{w_{\theta}^*}) = \nabla_{\bm{\theta}} \log \pi(s,a;\bm{\theta}) \text{ for all } s \in \mathcal{N}, \text{ for all } a \in \mathcal{A}$$ 
+Then the Policy Gradient using critic $Q(s,a;\bm{w_{\theta}^*})$ is exact:
+$$\nabla_{\bm{\theta}} J(\bm{\theta}) = \sum_{s \in \mathcal{N}} \rho^{\pi}(s) \cdot \sum_{a \in \mathcal{A}} \nabla_{\bm{\theta}} \pi(s, a; \bm{\theta}) \cdot Q(s,a; \bm{w_{\theta}^*})$$
 \label{th:cfa-theorem}
 \end{theorem}
 
 \begin{proof}
-For $\bm{w}$ that minimizes
-$$\epsilon = \sum_{s \in \mathcal{N}} \rho^{\pi}(s) \cdot \sum_{a \in \mathcal{A}} \pi(s,a; \bm{\theta}) \cdot (Q^{\pi}(s,a) - Q(s,a;\bm{w}))^2,$$
-$$\sum_{s \in \mathcal{N}} \rho^{\pi}(s) \cdot \sum_{a \in \mathcal{A}} \pi(s,a; \bm{\theta}) \cdot (Q^{\pi}(s,a) - Q(s,a;\bm{w})) \cdot \nabla_{\bm{w}} Q(s,a;\bm{w}) = 0$$
-But since $\nabla_{\bm{w}} Q(s,a;\bm{w}) = \nabla_{\bm{\theta}} \log \pi(s,a; \bm{\theta})$, we have:
-$$\sum_{s \in \mathcal{N}} \rho^{\pi}(s) \cdot \sum_{a \in \mathcal{A}} \pi(s,a; \bm{\theta}) \cdot (Q^{\pi}(s,a) - Q(s,a;\bm{w})) \cdot \nabla_{\bm{\theta}} \log \pi(s,a; \bm{\theta}) = 0$$
+For a given $\bm{\theta}$, since $\bm{w_{\theta}^*}$ minimizes the mean-squared-error as defined above, we have:
+$$\sum_{s \in \mathcal{N}} \rho^{\pi}(s) \cdot \sum_{a \in \mathcal{A}} \pi(s,a; \bm{\theta}) \cdot (Q^{\pi}(s,a) - Q(s,a;\bm{w_{\theta}^*})) \cdot \nabla_{\bm{w}} Q(s,a;\bm{w_{\theta}^*}) = 0$$
+But since $\nabla_{\bm{w}} Q(s,a;\bm{w_{\theta}^*}) = \nabla_{\bm{\theta}} \log \pi(s,a; \bm{\theta})$, we have:
+$$\sum_{s \in \mathcal{N}} \rho^{\pi}(s) \cdot \sum_{a \in \mathcal{A}} \pi(s,a; \bm{\theta}) \cdot (Q^{\pi}(s,a) - Q(s,a;\bm{w_{\theta}^*})) \cdot \nabla_{\bm{\theta}} \log \pi(s,a; \bm{\theta}) = 0$$
+Therefore,
 \begin{align*}
-\mbox{Therefore, } & \sum_{s \in \mathcal{N}} \rho^{\pi}(s) \cdot \sum_{a \in \mathcal{A}} \pi(s,a; \bm{\theta}) \cdot Q^{\pi}(s,a) \cdot \nabla_{\bm{\theta}} \log \pi(s,a; \bm{\theta}) \\
-= & \sum_{s \in \mathcal{N}} \rho^{\pi}(s) \cdot \sum_{a \in \mathcal{A}} \pi(s,a; \bm{\theta}) \cdot Q(s,a; \bm{w}) \cdot \nabla_{\bm{\theta}} \log \pi(s,a; \bm{\theta})\\
+& \sum_{s \in \mathcal{N}} \rho^{\pi}(s) \cdot \sum_{a \in \mathcal{A}} \pi(s,a; \bm{\theta}) \cdot Q^{\pi}(s,a) \cdot \nabla_{\bm{\theta}} \log \pi(s,a; \bm{\theta}) \\
+= & \sum_{s \in \mathcal{N}} \rho^{\pi}(s) \cdot \sum_{a \in \mathcal{A}} \pi(s,a; \bm{\theta}) \cdot Q(s,a; \bm{w_{\theta}^*}) \cdot \nabla_{\bm{\theta}} \log \pi(s,a; \bm{\theta})\\
 \end{align*}
 $$\mbox{But } \nabla_{\bm{\theta}} J(\bm{\theta}) = \sum_{s \in \mathcal{N}} \rho^{\pi}(s) \cdot  \sum_{a \in \mathcal{A}} \pi(s,a; \bm{\theta}) \cdot Q^{\pi}(s,a) \cdot \nabla_{\bm{\theta}} \log \pi(s,a; \bm{\theta})$$
 \begin{align*}
-\mbox{So, } \nabla_{\bm{\theta}} J(\bm{\theta}) & = \sum_{s \in \mathcal{N}} \rho^{\pi}(s) \cdot \sum_{a \in \mathcal{A}} \pi(s,a; \bm{\theta}) \cdot Q(s,a; \bm{w}) \cdot \nabla_{\bm{\theta}} \log \pi(s,a; \bm{\theta}) \\
-& = \sum_{s \in \mathcal{N}} \rho^{\pi}(s) \cdot \sum_{a \in \mathcal{A}} \nabla_{\bm{\theta}} \pi(s,a; \bm{\theta}) \cdot Q(s,a; \bm{w})\\
+\mbox{So, } \nabla_{\bm{\theta}} J(\bm{\theta}) & = \sum_{s \in \mathcal{N}} \rho^{\pi}(s) \cdot \sum_{a \in \mathcal{A}} \pi(s,a; \bm{\theta}) \cdot Q(s,a; \bm{w_{\theta}^*}) \cdot \nabla_{\bm{\theta}} \log \pi(s,a; \bm{\theta}) \\
+& = \sum_{s \in \mathcal{N}} \rho^{\pi}(s) \cdot \sum_{a \in \mathcal{A}} \nabla_{\bm{\theta}} \pi(s,a; \bm{\theta}) \cdot Q(s,a; \bm{w_{\theta}^*})\\
 \end{align*}
 $$\mathbb{Q.E.D.}$$
 \end{proof}
 
 This proof originally appeared in [the famous paper by Sutton, McAllester, Singh, Mansour on Policy Gradient Methods for Reinforcement Learning with Function Approximation](https://proceedings.neurips.cc/paper/1999/file/464d828b85b0bed98e80ade0a5c43b0f-Paper.pdf) [@sutton2001policy].
 
-This means with conditions (1) and (2) of Compatible Function Approximation Theorem, we can use the critic function approximation $Q(s,a;\bm{w})$ and still have exact Policy Gradient (i.e., no bias due to using a function approximation for the Q-Value Function).
+This means if the compatibility assumption of the Theorem is satisfied, we can use the critic function approximation $Q(s,a;\bm{w_{\theta}^*})$ and still have exact Policy Gradient (i.e., no bias due to using a function approximation for the Q-Value Function). However, note that in practice, we invoke the spirit of GPI and don't take $Q(s,a;\bm{w})$ to convergence for the current $\bm{\theta}$. Rather, we update both $\bm{w}$ and $\bm{\theta}$ frequently, and this turns out to be good enough in terms of lowering the bias.
 
-A simple way to enable Compatible Function Approximation is to make $Q(s,a;\bm{w})$ a linear function approximation, with the features of the linear function approximation equal to the Score of the policy function approximation. Let us write the linear function approximation $Q(s,a;\bm{w})$ as:
-$$Q(s,a;\bm{w}) = \sum_{i=1}^m \eta_i(s,a) \cdot w_i$$
-Compatible Function Approximation Theorem requires
-$$\pdv{Q(s,a;\bm{w})}{w_i} = \eta_i(s,a) = \pdv{\log \pi(s,a; \bm{\theta})}{\theta_i} \text{ for all } i = 1, \ldots, m$$
-Therefore, to ensure Compatible Function Approximation Theorem, we must have:
-$$Q(s,a;\bm{w}) = \sum_{i=1}^m \pdv{\log \pi(s,a;\bm{\theta})}{\theta_i} \cdot w_i$$
-which means:
-$$\eta_i(s,a) = \pdv{\log \pi(s,a;\bm{\theta})}{\theta_i} \text{ for all } i = 1, \ldots, m$$
+A simple way to enable Compatible Function Approximation is to make $Q(s,a;\bm{w})$ a linear function approximation, with the features of the linear function approximation equal to the Score of the policy function approximation, as follows:
+$$Q(s,a;\bm{w}) = \sum_{i=1}^m \pdv{\log \pi(s,a;\bm{\theta})}{\theta_i} \cdot w_i \text{ for all } s \in \mathcal{N}, \text{ for all } a \in \mathcal{A}$$
+which means the feature functions $\bm{\eta}(s, a) = (\eta_1(s,a), \eta_2(s,a), \ldots, \eta_m(s,a))$ of the linear function approximation are given by:
+$$\eta_i(s,a) = \pdv{\log \pi(s,a;\bm{\theta})}{\theta_i} \text{ for all } s \in \mathcal{N}, \text{ for all } a \in \mathcal{A}, \text{ for all } i = 1, \ldots, m$$
 
-Note that although here we assume $Q(s,a;\bm{w})$ to be a linear function approximation, the policy function approximation $\pi(s,a;\bm{\theta})$ doesn't need to be linear. All that is required is that $\bm{\theta}$ consists of exactly $m$ parameters (matching the number of number of parameters $m$ of $\bm{w}$) and that each of the partial derivatives $\pdv{\log \pi(s,a;\bm{\theta})} {\theta_i}$ lines up with a corresponding feature $\eta_i(s,a)$ of the linear function approximation $Q(s,a;\bm{w})$. This means that as $\bm{\theta}$ updates (as a consequence of Stochastic Gradient Ascent), $\pi(s,a;\bm{\theta})$ updates, and consequently the features $\eta_i(s,a) = \pdv{\log \pi(s,a;\bm{\theta})} {\theta_i}$ update. This means the feature vector $[\eta_i(s,a)|i = 1, \ldots, m]$ is not constant for a given $(s,a)$ pair. Rather, the feature vector $[\eta_i(s,a)|i = 1, \ldots, m]$ for a given $(s,a)$ pair varies in accordance with $\bm{\theta}$ varying.
+This means the feature functions $\bm{\eta}$ is identically equal to the *Score*. Note that although here we assume $Q(s,a;\bm{w})$ to be a linear function approximation, the policy function approximation $\pi(s,a;\bm{\theta})$ can be more flexible. All that is required is that $\bm{\theta}$ consists of exactly $m$ parameters (matching the number of number of parameters $m$ of $\bm{w}$) and that each of the partial derivatives $\pdv{\log \pi(s,a;\bm{\theta})} {\theta_i}$ lines up with a corresponding feature $\eta_i(s,a)$ of the linear function approximation $Q(s,a;\bm{w})$. This means that as $\bm{\theta}$ updates (as a consequence of Stochastic Gradient Ascent), $\pi(s,a;\bm{\theta})$ updates, and consequently the feature functions $\bm{\eta}(s,a) = \nabla_{\theta} \log \pi(s,a;\bm{\theta})$ update. This means the feature vector $\bm{\eta}(s,a)$ is not constant for a given $(s,a)$ pair. Rather, the feature vector $\bm{\eta}(s,a)$ for a given $(s,a)$ pair varies in accordance with $\bm{\theta}$ varying.
 
-If we assume the canonical function approximation for $\pi(s,a;\theta)$ for finite action spaces that we had described in Section [-@sec:canonical-policy-functions], then:
+If we assume the canonical function approximation for $\pi(s,a;\bm{\theta})$ for finite action spaces that we had described in Section [-@sec:canonical-policy-functions], then:
 
-$$\eta_i(s,a) = \bm{\phi}(s,a) - \sum_{b \in \mathcal{A}} \pi(s,b; \bm{\theta}) \cdot \bm{\phi}(s,b) \text{ for all } s \in \mathcal{N} \text{ for all } a \in \mathcal{A}$$
+$$\bm{\eta}(s,a) = \bm{\phi}(s,a) - \sum_{b \in \mathcal{A}} \pi(s,b; \bm{\theta}) \cdot \bm{\phi}(s,b) \text{ for all } s \in \mathcal{N} \text{ for all } a \in \mathcal{A}$$
 
-Note the dependency of $\eta_i(s,a)$ on $\bm{\theta}$.
+Note the dependency of feature vector $\bm{\eta(s,a)}$ on $\bm{\theta}$.
 
-If we assume the canonical function approximation for $\pi(s,a;\theta)$ for single-dimensional continuous action spaces that we had described in Section [-@sec:canonical-policy-functions], then:
+If we assume the canonical function approximation for $\pi(s,a;\bm{\theta})$ for single-dimensional continuous action spaces that we had described in Section [-@sec:canonical-policy-functions], then:
 
-$$\eta_i(s,a) = \frac {(a - \bm{\phi}(s)^T \cdot \bm{\theta}) \cdot \bm{\phi}(s)} {\sigma^2} \text{ for all } s \in \mathcal{N} \text{ for all } a \in \mathcal{A}$$
+$$\bm{\eta}(s,a) = \frac {(a - \bm{\phi}(s)^T \cdot \bm{\theta}) \cdot \bm{\phi}(s)} {\sigma^2} \text{ for all } s \in \mathcal{N} \text{ for all } a \in \mathcal{A}$$
 
-Note the dependency of $\eta_i(s,a)$ on $\bm{\theta}$.
+Note the dependency of feature vector $\bm{\eta}(s,a)$ on $\bm{\theta}$.
 
 We note that any compatible linear function approximation $Q(s,a;\bm{w})$ serves as an approximation of the advantage function because:
 $$\sum_{a \in \mathcal{A}} \pi(s,a;\bm{\theta}) \cdot Q(s,a;\bm{w}) = \sum_{a \in \mathcal{A}} \pi(s,a;\bm{\theta}) \cdot (\sum_{i=1}^m \pdv{\log \pi(s,a;\bm{\theta})}{\theta_i} \cdot w_i)$$
 $$=\sum_{a \in \mathcal{A}} (\sum_{i=1}^m \pdv{\pi(s,a;\bm{\theta})}{\theta_i} \cdot w_i) = \sum_{i=1}^m (\sum_{a \in \mathcal{A}} \pdv{\pi(s,a;\bm{\theta})}{\theta_i})\cdot w_i$$
 $$=\sum_{i=1}^m \frac {\partial} {\partial \theta_i} (\sum_{a \in \mathcal{A}} \pi(s,a; \bm{\theta}))\cdot w_i = \sum_{i=1}^m \pdv{1}{\theta_i} \cdot w_i = 0$$
 
-Denoting $[\pdv{\log \pi(s,a;\bm{\theta})}{\theta_i}|i = 1, \ldots, m]$ as the score column vector $\bm{SC}(s,a;\bm{\theta})$ and assuming compatible linear-approximation critic:
+Denoting $\nabla_{\bm{\theta}} \log \pi(s,a;\bm{\theta})$ as the score column vector $\bm{SC}(s,a;\bm{\theta})$ and assuming compatible linear-approximation critic:
 \begin{align*}
-\nabla_{\bm{\theta}} J(\bm{\theta}) & = \sum_{s \in \mathcal{N}} \rho^{\pi}(s) \cdot \sum_{a \in \mathcal{A}} \pi(s,a;  \bm{\theta}) \cdot \bm{SC}(s, a; \bm{\theta}) \cdot (\bm{SC}(s,a;\bm{\theta})^T \cdot \bm{w})\\
- & = \sum_{s \in \mathcal{N}} \rho^{\pi}(s) \cdot \sum_{a \in \mathcal{A}} \pi(s,a;  \bm{\theta}) \cdot (\bm{SC}(s, a; \bm{\theta}) \cdot \bm{SC}(s,a;\bm{\theta})^T) \cdot \bm{w} \\
- & = \mathbb{E}_{s \sim \rho^{\pi}, a \sim \pi}[\bm{SC}(s, a; \bm{\theta}) \cdot \bm{SC}(s,a;\bm{\theta})^T] \cdot \bm{w}
+\nabla_{\bm{\theta}} J(\bm{\theta}) & = \sum_{s \in \mathcal{N}} \rho^{\pi}(s) \cdot \sum_{a \in \mathcal{A}} \pi(s,a;  \bm{\theta}) \cdot \bm{SC}(s, a; \bm{\theta}) \cdot (\bm{SC}(s,a;\bm{\theta})^T \cdot \bm{w_{\theta}^*})\\
+ & = \sum_{s \in \mathcal{N}} \rho^{\pi}(s) \cdot \sum_{a \in \mathcal{A}} \pi(s,a;  \bm{\theta}) \cdot (\bm{SC}(s, a; \bm{\theta}) \cdot \bm{SC}(s,a;\bm{\theta})^T) \cdot \bm{w_{\theta}^*} \\
+ & = \mathbb{E}_{s \sim \rho^{\pi}, a \sim \pi}[\bm{SC}(s, a; \bm{\theta}) \cdot \bm{SC}(s,a;\bm{\theta})^T] \cdot \bm{w_{\theta}^*}
 \end{align*}
 
 Note that $\mathbb{E}_{s \sim \rho^{\pi}, a \sim \pi}[\bm{SC}(s, a; \bm{\theta}) \cdot \bm{SC}(s,a;\bm{\theta})^T]$ is the [Fisher Information Matrix](https://en.wikipedia.org/wiki/Fisher_information) $\bm{FIM}_{\rho^{\pi}, \pi}(\bm{\theta})$ with respect to $s \sim \rho^{\pi}, a \sim \pi$. Therefore, we can write $\nabla_{\bm{\theta}} J(\bm{\theta})$ more succinctly as:
 \begin{equation}
-\nabla_{\bm{\theta}} J(\bm{\theta}) = \bm{FIM}_{\rho^{\pi}, \pi}(\bm{\theta}) \cdot \bm{w}
+\nabla_{\bm{\theta}} J(\bm{\theta}) = \bm{FIM}_{\rho^{\pi}, \pi}(\bm{\theta}) \cdot \bm{w_{\theta}^*}
 \label{eq:pgt-fisher-information}
 \end{equation}
 
-Thus, we can update $\bm{\theta}$ after each atomic experience by calculating the gradient of $J(\bm{\theta})$ for the atomic experience as the outer product of $\bm{SC}(S_t,A_t;\bm{\theta})$ with itself (which gives a $m \times m$ matrix), then multiply this matrix with the vector $\bm{w}$, and then scale by $\gamma^t$, i.e.
+Thus, we can update $\bm{\theta}$ after each atomic experience at time step $t$ by calculating the gradient of $J(\bm{\theta})$ for the atomic experience as the outer product of $\bm{SC}(S_t,A_t;\bm{\theta})$ with itself (which gives a $m \times m$ matrix), then multiply this matrix with the vector $\bm{w}$, and then scale by $\gamma^t$, i.e.
 $$\Delta \bm{\theta} = \alpha_{\bm{\theta}} \cdot \gamma^t \cdot \bm{SC}(S_t,A_t;\bm{w}) \cdot \bm{SC}(S_t,A_t;\bm{w})^T \cdot \bm{w}$$
 
 The update for $\bm{w}$ after each atomic experience is the usual Q-Value Function Approximation update with Q-Value loss function gradient for the atomic experience calculated as:
@@ -819,7 +812,7 @@ This completes our coverage of the basic Policy Gradient Methods. Next, we cover
 
 Natural Policy Gradient (abbreviated NPG) is due to [a paper by Kakade](https://proceedings.neurips.cc/paper/2001/file/4b86abe48d358ecf194c56c69108433e-Paper.pdf) [@conf/nips/Kakade01] that utilizes the idea of [Natural Gradient first introduced by Amari](https://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.452.7280&rep=rep1&type=pdf) [@amari_natural_1998]. We won't cover the theory of Natural Gradient in detail here, and refer you to the above two papers instead. Here we give a high-level overview of the concepts, and describe the algorithm. 
 
-The core motivation for Natural Gradient is that when the parameters space has a certain underlying structure (as is the case with the parameter space of $\bm{\theta}$ in the context of maximizing $J(\bm{\theta})$), the usual gradient does not represent it's steepest descent direction, but the Natural Gradient does. The steepest descent direction of an arbitrary function $f(\bm{\theta})$ to be minimized is defined as the vector $\Delta \bm{\theta}$ that minimizes $f(\bm{\theta} + \Delta \bm{\theta})$ under the constraint that the length $|\Delta \bm{\theta}|$ is a constant. In general, the length $|\Delta \bm{\theta}|$ is defined with respect to some positive-definite matrix $\bm{G}(\bm{\theta})$ governed by the underlying structure of the $\bm{\theta}$ parameters space, i.e.,
+The core motivation for Natural Gradient is that when the parameters space has a certain underlying structure (as is the case with the parameters space of $\bm{\theta}$ in the context of maximizing $J(\bm{\theta})$), the usual gradient does not represent it's steepest descent direction, but the Natural Gradient does. The steepest descent direction of an arbitrary function $f(\bm{\theta})$ to be minimized is defined as the vector $\Delta \bm{\theta}$ that minimizes $f(\bm{\theta} + \Delta \bm{\theta})$ under the constraint that the length $|\Delta \bm{\theta}|$ is a constant. In general, the length $|\Delta \bm{\theta}|$ is defined with respect to some positive-definite matrix $\bm{G}(\bm{\theta})$ governed by the underlying structure of the $\bm{\theta}$ parameters space, i.e.,
 $$|\Delta \bm{\theta}|^2 = (\Delta \bm{\theta})^T \cdot \bm{G}(\bm{\theta}) \cdot \Delta \bm{\theta}$$
 We can show that under the length metric defined by the matrix $\bm{G}$, the steepest descent direction is:
 
@@ -827,11 +820,11 @@ $$\nabla_{\bm{\theta}}^{nat} f(\bm{\theta}) = \bm{G}^{-1}(\bm{\theta}) \cdot \na
 
 We refer to this steepest descent direction $\nabla_{\bm{\theta}}^{nat} f(\bm{\theta})$ as the Natural Gradient. We can update the parameters $\bm{\theta}$ in this Natural Gradient direction in order to achieve steepest descent (according to the matrix $\bm{G}$), as follows:
 
-$$\Delta \bm{\theta} = \alpha \cdot \nabla_{\bm{\theta}}^{nat} f(\bm{\theta})$$
+$$\Delta \bm{\theta} = - \alpha \cdot \nabla_{\bm{\theta}}^{nat} f(\bm{\theta})$$
 
 Amari showed that for a supervised learning problem of estimating the conditional probability distribution of $y|x$ with a function approximation (i.e., where the loss function is defined as the KL divergence between the data distribution and the model distribution), the matrix $\bm{G}$ is the Fisher Information Matrix for $y|x$.
 
-Kakade specialized this idea of Natural Gradient to the case of Policy Gradient (naming it Natural Policy Gradient) with the objective function $f(\bm{\theta})$ equal to the negative of the Expected Returns $J(\bm{\theta})$. This gives the NPG $\nabla_{\bm{\theta}}^{nat} J(\bm{\theta})$ defined as:
+Kakade specialized this idea of Natural Gradient to the case of Policy Gradient (naming it Natural Policy Gradient) with the objective function $f(\bm{\theta})$ equal to the negative of the Expected Returns $J(\bm{\theta})$. This gives the Natural Policy Gradient $\nabla_{\bm{\theta}}^{nat} J(\bm{\theta})$ defined as:
 
 $$\nabla_{\bm{\theta}}^{nat} J(\bm{\theta}) = \bm{FIM}_{\rho^{\pi}, \pi}^{-1}(\bm{\theta}) \cdot \nabla_{\bm{\theta}} J({\bm{\theta}})$$
 
@@ -839,13 +832,13 @@ where $\bm{FIM}_{\rho_{\pi}, \pi}$ denotes the Fisher Information Matrix with re
 
 We've noted in the previous section that if we enable Compatible Function Approximation with a linear function approximation for $Q^{\pi}(s,a)$, then we have Equation \eqref{eq:pgt-fisher-information}, i.e.,
 
-$$\nabla_{\bm{\theta}} J(\bm{\theta}) = \bm{FIM}_{\rho^{\pi}, \pi}(\bm{\theta}) \cdot \bm{w}$$
+$$\nabla_{\bm{\theta}} J(\bm{\theta}) = \bm{FIM}_{\rho^{\pi}, \pi}(\bm{\theta}) \cdot \bm{w_{\theta}^*}$$
 
 This means:
 
-$$\nabla_{\bm{\theta}}^{nat} J(\bm{\theta}) = \bm{w}$$
+$$\nabla_{\bm{\theta}}^{nat} J(\bm{\theta}) = \bm{w_{\theta}^*}$$
 
-This compact result enables a simple algorithm for NPG:
+This compact result enables a simple algorithm for Natural Policy Gradient (NPG):
 
 * After each atomic experience, update Critic parameters $\bm{w}$ with the critic loss gradient as:
 $$\Delta \bm{w} = \alpha_{\bm{w}} \cdot (R_{t+1} + \gamma \cdot \bm{SC}(S_{t+1}, A_{t+1}; \bm{\theta})^T \cdot \bm{w} - \bm{SC}(S_t,A_t; \bm{\theta})^T \cdot \bm{w}) \cdot \bm{SC}(S_t,A_t; \bm{\theta})$$
@@ -854,54 +847,51 @@ $$\Delta \bm{\theta} = \alpha_{\bm{\theta}} \cdot \bm{w}$$
 
 #### Deterministic Policy Gradient
 
-Deterministic Policy Gradient (abbreviated DPG) is a creative adaptation of Policy Gradient wherein instead of a parameterized function approximation for a stochastic policy, we have a parameterized function approximation for a deterministic policy for the case of continuous action spaces. DPG is due to [a paper by Silver, Lever, Heess, Degris, Wiestra, Riedmiller](http://proceedings.mlr.press/v32/silver14.pdf) [@conf/icml/SilverLHDWR14]. DPG is expressed in terms of the Expected Gradient of the Q-Value Function and can be estimated much more efficiently that the usual (stochastic) PG. (Stochastic) PG integrates over both the state and action spaces, whereas DPG integrates over only the state space. As a result, computing (stochastic) PG would require more samples if the action space has many dimensions. 
+Deterministic Policy Gradient (abbreviated DPG) is  a creative adaptation of Policy Gradient wherein instead of a parameterized function approximation for a stochastic policy, we have a parameterized function approximation for a deterministic policy for the case of continuous action spaces. DPG is due to [a paper by Silver, Lever, Heess, Degris, Wiestra, Riedmiller](http://proceedings.mlr.press/v32/silver14.pdf) [@conf/icml/SilverLHDWR14]. DPG is expressed in terms of the Expected Gradient of the Q-Value Function and can be estimated much more efficiently than the usual (stochastic) PG. (Stochastic) PG integrates over both the state and action spaces, whereas DPG integrates over only the state space. As a result, computing (stochastic) PG would require more samples if the action space has many dimensions. 
 
-Since the policy approximated is Deterministic, we need to address the issue of exploration - this is typically done with Off-Policy Control wherein we employ an exploratory (stochastic) behavior policy, while the policy being approximated (and learnt with DPG) is the target (deterministic) policy. In Actor-Critic DPG, the Actor is the function approximation for the deterministic policy and the Critic is the function approximation for the Q-Value Function. The paper by Sutton et al. provides a Compatible Function Approximation Theorem for DPG to overcome Critic approximation bias. The paper also shows that DPG is the limiting case of (Stochastic) PG, as policy variance tends to 0. This means the usual machinery of PG (such as Actor-Critic, Compatible Function Approximation, Natural Policy Gradient etc.) is also applicable to DPG.
+In Actor-Critic DPG, the Actor is the function approximation for the deterministic policy and the Critic is the function approximation for the Q-Value Function. The paper by Silver et al. provides a Compatible Function Approximation Theorem for DPG to overcome Critic approximation bias. The paper also shows that DPG is the limiting case of (Stochastic) PG, as policy variance tends to 0. This means the usual machinery of PG (such as Actor-Critic, Compatible Function Approximation, Natural Policy Gradient etc.) is also applicable to DPG.
 
-To avoid confusion with the notation $\pi(s,a;\bm{\theta})$ that we used for the stochastic policy function approximation in PG, here we use the notation $a = \mu(s; \bm{\theta})$ that represents (a potentially multi-dimensional) continuous-valued action $a$ equal to the value of policy function approximation $\mu$ (parameterized by $\bm{\theta}$), when evaluated for a state $s$. So we use the notation $\mu$ for the deterministic target policy approximation and we use the notation $\beta$ for the exploratory behavior policy.
+We use the notation $a = \pi_D(s; \bm{\theta})$ to represent (a potentially multi-dimensional) continuous-valued action $a$ equal to the value of a deterministic policy function approximation $\pi_D$ (parameterized by $\bm{\theta}$), when evaluated for a state $s$.
 
-The core idea of DPG is well-understood by orienting on the basics of GPI and specifically, on Policy Improvement in GPI. For continuous action spaces, greedy policy improvement (with an argmax over actions, for each state) is problematic. So a simple and attractive alternative is to move the policy in the direction of the gradient of the Q-Value Function (rather than globally maximizing the Q-Value Function, at each step). Specifically, for each state $s$ that is encountered, the policy approximation parameters $\bm{\theta}$ are updated in proportion to $\nabla_{\bm{\theta}} Q(s, \mu(s; \bm{\theta}))$. Note that the direction of policy improvement is different for each state, and so the average direction of policy improvements is given by:
+The core idea of DPG can be understood intuitively by orienting on the basics of GPI and specifically, on Policy Improvement in GPI. For continuous action spaces, greedy policy improvement (with an argmax over actions, for each state) is problematic. So a simple and attractive alternative is to move the policy in the direction of the gradient of the Q-Value Function (rather than globally maximizing the Q-Value Function, at each step). Specifically, for each state $s$ that is encountered, the policy approximation parameters $\bm{\theta}$ are updated in proportion to $\nabla_{\bm{\theta}} Q(s, \pi_D(s; \bm{\theta}))$. Note that the direction of policy improvement is different for each state, and so the average direction of policy improvements is given by:
 
-$$\mathbb{E}_{s \sim \rho^{\mu}}[\nabla_{\bm{\theta}} Q(s,\mu(s; \bm{\theta}))]$$
-where $\rho^{\mu}$ is the same Discounted-Aggregate State-Visitation Measure we had defined for PG (now for deterministic policy $\mu$).
+$$\mathbb{E}_{s \sim \rho^{\mu}}[\nabla_{\bm{\theta}} Q(s,\pi_D(s; \bm{\theta}))]$$
+where $\rho^{\mu}$ is the same Discounted-Aggregate State-Visitation Measure we had defined for PG (now for exploratory behavior policy $\mu$).
 
 Using chain-rule, the above expression can be written as:
-$$\mathbb{E}_{s \sim \rho^{\mu}}[\nabla_{\bm{\theta}} \mu(s; \bm{\theta}) \cdot \nabla_a Q^{\mu}(s,a) \Bigr\rvert_{a=\mu(s;\bm{\theta})}]$$
+$$\mathbb{E}_{s \sim \rho^{\mu}}[\nabla_{\bm{\theta}} \pi_D(s; \bm{\theta}) \cdot \nabla_a Q^{\pi_D}(s,a) \Bigr\rvert_{a=\pi_D(s;\bm{\theta})}]$$
 
-Note that $\nabla_{\bm{\theta}} \mu(s;\bm{\theta})$ is a Jacobian matrix as it takes the partial derivatives of a potentially multi-dimensional action $a = \mu(s; \bm{\theta})$ with respect to each parameter in $\bm{\theta}$. As we've pointed out during the coverage of (stochastic) PG, when $\bm{\theta}$ changes, policy $\mu$ changes, which changes the state distribution $\rho^{\mu}$. So it's not clear that this calculation indeed guarantees improvement - it doesn't take into account the effect of changing $\bm{\theta}$ on $\rho^{\mu}$. However, as was the case in PGT, Deterministic Policy Gradient (abbreviated DPGT) ensures that there is no need to compute the gradient of $\rho^{\mu}$ with respect to $\bm{\theta}$, and that the update described above indeed follows the gradient of the Expected Return objective function. We formalize this now by stating the DPGT.
+Note that $\nabla_{\bm{\theta}} \pi_D(s;\bm{\theta})$ is a Jacobian matrix as it takes the partial derivatives of a potentially multi-dimensional action $a = \pi_D(s; \bm{\theta})$ with respect to each parameter in $\bm{\theta}$. As we've pointed out during the coverage of (stochastic) PG, when $\bm{\theta}$ changes, policy $\pi_D$ changes, which changes the state distribution $\rho^{\pi_D}$. So it's not clear that this calculation indeed guarantees improvement - it doesn't take into account the effect of changing $\bm{\theta}$ on $\rho^{\pi_D}$. However, as was the case in PGT, Deterministic Policy Gradient Theorem (abbreviated DPGT) ensures that there is no need to compute the gradient of $\rho^{\pi_D}$ with respect to $\bm{\theta}$, and that the update described above indeed follows the gradient of the Expected Return objective function. We formalize this now by stating the DPGT.
 
 Analogous to the Expected Returns Objective defined for (stochastic) PG, we define the Expected Returns Objective $J(\bm{\theta})$ for DPG as:
 
 \begin{align*}
-J(\bm{\theta}) & = \mathbb{E}_{\mu}[\sum_{t=0}^\infty \gamma^t \cdot R_{t+1}]\\
-& = \sum_{s \in \mathcal{N}} \rho^{\mu}(s) \cdot \mathcal{R}_s^{\mu(s;\bm{\theta})} \\
-& = \mathbb{E}_{s \sim \rho^{\mu}}[\mathcal{R}_s^{\mu(s;\bm{\theta})}]
+J(\bm{\theta}) & = \mathbb{E}_{\pi_D}[\sum_{t=0}^\infty \gamma^t \cdot R_{t+1}]\\
+& = \sum_{s \in \mathcal{N}} \rho^{\pi_D}(s) \cdot \mathcal{R}_s^{\pi_D(s;\bm{\theta})} \\
+& = \mathbb{E}_{s \sim \rho^{\pi_D}}[\mathcal{R}_s^{\pi_D(s;\bm{\theta})}]
 \end{align*}
 
 where
 
-$$\rho^{\mu}(s) = \sum_{S_0 \in \mathcal{N}}  \sum_{t=0}^\infty \gamma^t \cdot p_0(S_0) \cdot p(S_0 \rightarrow s, t, \mu)$$
+$$\rho^{\pi_D}(s) = \sum_{S_0 \in \mathcal{N}}  \sum_{t=0}^\infty \gamma^t \cdot p_0(S_0) \cdot p(S_0 \rightarrow s, t, \pi_D)$$
 
-is the Discounted-Aggregate State-Visitation Measure when following deterministic policy $\mu(s; \bm{\theta})$.
+is the Discounted-Aggregate State-Visitation Measure when following deterministic policy $\pi_D(s; \bm{\theta})$.
 
 With a derivation similar to the proof of the PGT, we have the DPGT, as follows:
 
 \begin{theorem}[Deterministic Policy Gradient Theorem]
-Given an MDP with action space $\mathbb{R}^k$, 
+Given an MDP with action space $\mathbb{R}^k$, with appropriate gradient existence conditions,
 \begin{align*}
-\nabla_{\bm{\theta}} J(\bm{\theta}) & = \sum_{s \in \mathcal{N}} \rho^{\mu}(s) \cdot \nabla_{\bm{\theta}} \mu(s; \bm{\theta}) \cdot \nabla_a Q^{\mu}(s,a) \Bigr\rvert_{a=\mu(s;\bm{\theta})}\\
-& = \mathbb{E}_{s \sim \rho^{\mu}}[\nabla_{\bm{\theta}} \mu(s; \bm{\theta}) \cdot \nabla_a Q^{\mu}(s,a) \Bigr\rvert_{a=\mu(s;\bm{\theta})}]
+\nabla_{\bm{\theta}} J(\bm{\theta}) & = \sum_{s \in \mathcal{N}} \rho^{\pi_D}(s) \cdot \nabla_{\bm{\theta}} \pi_D(s; \bm{\theta}) \cdot \nabla_a Q^{\pi_D}(s,a) \Bigr\rvert_{a=\pi_D(s;\bm{\theta})}\\
+& = \mathbb{E}_{s \sim \rho^{\pi_D}}[\nabla_{\bm{\theta}} \pi_D(s; \bm{\theta}) \cdot \nabla_a Q^{\pi_D}(s,a) \Bigr\rvert_{a=\pi_D(s;\bm{\theta})}]
 \end{align*}
 \label{th:deterministic-policy-gradient-theorem}
 \end{theorem}
 
-In practice, we use an Actor-Critic algorithm with a function approximation $Q(s,a;\bm{w})$ for the Q-Value Function as the Critic. To ensure exploration, we employ an exploratory behavior policy so we can do an Off-Policy DPG algorithm. We avoid importance sampling in the Actor because DPG doesn't involve an integral over actions, and we avoid importance sampling in the Critic by employing Q-Learning. 
+In practice, we use an Actor-Critic algorithm with a function approximation $Q(s,a;\bm{w})$ for the Q-Value Function as the Critic. Since the policy approximated is Deterministic, we need to address the issue of exploration - this is typically done with Off-Policy Control wherein we employ an exploratory (stochastic) behavior policy, while the policy being approximated (and learnt with DPG) is the target (deterministic) policy. The Expected Return Objective is a bit different in the case of Off-Policy - it is the Expected Q-Value for the target policy under state-occurrence probabilities while following the behavior policy, and the Off-Policy Deterministic Policy Gradient is an approximate (not exact) formula. We avoid importance sampling in the Actor because DPG doesn't involve an integral over actions, and we avoid importance sampling in the Critic by employing Q-Learning. As a result, for Off-Policy Actor-Critic DPG, we update the Critic parameters $\bm{w}$ and the Actor parameters $\bm{\theta}$ after each atomic experience in a trace experience generated by the behavior policy.
 
-The Critic parameters $\bm{w}$ are updated after each atomic experience as:
-$$\Delta \bm{w} = \alpha_{\bm{w}} \cdot (R_{t+1} + \gamma \cdot Q(S_{t+1}, \mu(S_{t+1}; \bm{\theta}); \bm{w}) - Q(S_t,A_t;\bm{w})) \cdot \nabla_{\bm{w}} Q(S_t,A_t; \bm{w})$$
-
-The Actor parameters $\bm{\theta}$ are updated after each atomic experience as:
-$$\Delta \bm{\theta} = \alpha_{\bm{\theta}} \cdot \gamma^t \cdot \nabla_{\bm{\theta}} \mu(S_t; \bm{\theta}) \cdot \nabla_a Q(S_t,A_t;\bm{w}) \Bigr\rvert_{a=\mu(S_t;\bm{\theta})}$$
+$$\Delta \bm{w} = \alpha_{\bm{w}} \cdot (R_{t+1} + \gamma \cdot Q(S_{t+1}, \pi_D(S_{t+1}; \bm{\theta}); \bm{w}) - Q(S_t,A_t;\bm{w})) \cdot \nabla_{\bm{w}} Q(S_t,A_t; \bm{w})$$
+$$\Delta \bm{\theta} = \alpha_{\bm{\theta}} \cdot \nabla_{\bm{\theta}} \pi_D(S_t; \bm{\theta}) \cdot \nabla_a Q(S_t,a;\bm{w}) \Bigr\rvert_{a=\pi_D(S_t;\bm{\theta})}$$
 
 Critic Bias can be resolved with a Compatible Function Approximation Theorem for DPG (see Silver et al. paper for details). Instabilities caused by Bootstrapped Off-Policy Learning with Function Approximation can be resolved with Gradient Temporal Difference (GTD).
 
@@ -937,7 +927,7 @@ Note that evaluating $F(\bm{\theta} + \sigma \cdot \bm{\epsilon})$ involves play
 
 Given the gradient estimate, we update $\bm{\theta}$ in this gradient direction, which in turn leads to new samples of $\bm{\epsilon}$ (new set of *Policies* $\pi_{\bm{\theta} + \sigma \cdot \bm{\epsilon}}$), and the process repeats until $\mathbb{E}_{\bm{\epsilon} \sim \mathcal{N}(0,\bm{I_m})}[F(\bm{\theta} + \sigma \cdot \bm{\epsilon})]$ is maximized.
 
-The key inputs to the algorithm will be:
+The key inputs to the algorithm are:
 
 * Learning rate (SGD Step Size) $\alpha$
 * Standard Deviation $\sigma$
@@ -949,16 +939,16 @@ With these inputs, for each iteration $t = 0, 1, 2, \ldots$, the algorithm perfo
 * Compute Returns $F_i \leftarrow F(\bm{\theta_t} + \sigma \cdot \bm{\epsilon_i})$ for $i = 1,2, \ldots, n$.
 * $\bm{\theta_{t+1}} \leftarrow \bm{\theta_t} + \frac {\alpha} {n \sigma} \sum_{i=1}^n \bm{\epsilon_i} \cdot F_i$
 
-On the surface, this NES algorithm looks like PG because it's not Value Function-based (it's Policy-based, like PG). Also, similar to PG, it uses a gradient to move the policy towards optimality. But, ES does not interact with the environment (like PG/RL does). ES operates at a high-level, ignoring the (state, action, reward) interplay. Specifically, it does not aim to assign credit to actions in specific states. Hence, ES doesn't have the core essence of RL: *Estimating the Q-Value Function of a Policy and using it to Improve the Policy*. Therefore, we don't classify ES as Reinforcement Learning. Rather, we consider ES to be an alternative approach to RL Algorithms.
+On the surface, this NES algorithm looks like PG because it's not Value Function-based (it's Policy-based, like PG). Also, similar to PG, it uses a gradient to move the policy towards optimality. But, ES does not interact with the environment (like PG/RL does). ES operates at a high-level, ignoring the (state, action, reward) interplay. Specifically, it does not aim to assign credit to actions in specific states. Hence, ES doesn't have the core essence of RL: *Estimating the Q-Value Function for a Policy and using it to Improve the Policy*. Therefore, we don't classify ES as Reinforcement Learning. Rather, we consider ES to be an alternative approach to RL Algorithms.
 
 What is the effectiveness of ES compared to RL? The traditional view has been that ES won't work on high-dimensional problems. Specifically, ES has been shown to be data-inefficient relative to RL. This is because ES resembles simple hill-climbing based only on finite differences along a few random directions at each step. However, ES is very simple to implement (no Value Function approximation or back-propagation needed), and is highly parallelizable. ES has the benefits of being indifferent to distribution of rewards and to action frequency, and is tolerant of long horizons.
 [A paper from OpenAI Research](https://arxiv.org/pdf/1703.03864.pdf) [@salimans2017evolution] shows techniques to make NES more robust and more data-efficient, and they demonstrate that NES has more exploratory behavior than advanced PG algorithms.
 
 ### Key Takeaways from this Chapter
 
-* Policy Gradient Algorithms are based on GPI with Policy Improvement as a Stochastic Gradient Ascent for "Expected Returns" Objective $J(\bm{\theta})$ where $\bm{\theta}$ are the parameters of the function approximation for the Policy,
-* Policy Gradient Theorem gives us a simple formula for $\nabla_{\bm{\theta}} J(\bm{\theta})$ in terms of the gradient/score of the policy function approximation with respect to the parameters $\bm{\theta}$ of the function approximation.
-* We can reduce variance in PG algorithms by using a critic and using an estimate of the advantage function for the Q-Value Function.
+* Policy Gradient Algorithms are based on GPI with Policy Improvement as a Stochastic Gradient Ascent for "Expected Returns" Objective $J(\bm{\theta})$ where $\bm{\theta}$ are the parameters of the function approximation for the Policy.
+* Policy Gradient Theorem gives us a simple formula for $\nabla_{\bm{\theta}} J(\bm{\theta})$ in terms of the score of the policy function approximation (i.e., gradient of the log of the policy with respect to the policy parameters $\bm{\theta}$).
+* We can reduce variance in PG algorithms by using a critic and by using an estimate of the advantage function for the Q-Value Function.
 * Compatible Function Approximation Theorem enables us to overcome bias in PG Algorithms.
 * Natural Policy Gradient and Deterministic Policy Gradient are specialized PG algorithms that have worked well in practice.
 * Evolutionary Strategies are technically not RL, but they resemble PG Algorithms and can sometimes be quite effective in solving MDP Control problems.
