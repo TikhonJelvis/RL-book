@@ -50,8 +50,7 @@ class TabularQValueFunctionApprox(Generic[S, A]):
 def double_q_learning(
     mdp: MarkovDecisionProcess[S, A],
     states: NTStateDistribution[S],
-    γ: float,
-    max_episode_length: int
+    γ: float
 ) -> Iterator[TabularQValueFunctionApprox[S, A]]:
     '''
     Implement the double q-learning algorithm as outlined in the question
@@ -64,8 +63,7 @@ def double_q_learning(
 def q_learning(
     mdp: MarkovDecisionProcess[S, A],
     states: NTStateDistribution[S],
-    γ: float,
-    max_episode_length: int
+    γ: float
 ) -> Iterator[TabularQValueFunctionApprox[S, A]]:
     '''
     Implement the standard q-learning algorithm as outlined in the question
