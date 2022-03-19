@@ -40,11 +40,14 @@ data NeuralNet n = NeuralNet
 
 -- We want to encapsulate network derivative as its own object in terms of a function
 -- 
-data NeuralNetD = NeuralNetD
+data NeuralNetD n = NeuralNetD
   { ϕ :: !(n -> Vector R)
     -- ^ Get the inputs to score using a neural network in the required format
-  , layersD :: [ LayerD ]
-    -- ^ Describes the derivative object, which is a list of layerDerivatives
+    
+  , layersD :: [ (Vector R, LayerD) ]
+    -- ^ Describes the derivative object, which is a list of layerDerivatives, preceeded by
+    -- the input to the given layer (which is the ouptut of the previous layer)
+    
   }
 
 -- Denotes a logical layer in a FF neural network
@@ -75,8 +78,12 @@ scoreNeuralNetwork :: Vector R -> [Layer] -> Vector R
 -- scoreNeuralNetwork input lls = foldr (.) id (map (flip scoreLayer lls) input
 -- we need to flip, since the natural composition order is R to L, but the
 -- composition we want for matrix-multiplication, it needs to be L to R
-scoreNeuralNetwork input lls = foldr (flip (.)) id (map scoreLayer lls) input 
+scoreNeuralNetwork input lls = foldr scoreLayer input lls 
+                                               
 
+-- Trying to use the scanR function to also capture the outputs from each layer
+scoreNNwIntermediaries :: Vector R -> NeuralNet n -> [Vector R]
+scoreNNwIntermediaries input NeuralNet{layers = lls} = scanr scoreLayer input lls
 
 -- Create a simple test
 -- input x = [1, 1, 1]
@@ -184,8 +191,14 @@ layerDerivative Layer { weights, activationD } inputs =
 -- we intend to compute   d (yhat)/d w(L) * d w(L)/d w(L-1) * ...
 --                     NueralNet.    Input point
 --                       ↓             ↓
-networkDerivative :: NeuralNet n -> Vector R -> NetworkD
-networkDerivative nn inputs =  foldR (layerDerivative layer inputs)
+networkDerivative :: NeuralNet n -> Vector R -> NeuralNetD n
+networkDerivative nn@(NeuralNet{ϕ, layers})  inputs = NeuralNetD{ϕ, layersD}
+  where
+    inter = scoreNNwIntermediaries inputs nn
+    ldlist = map layerDerivative layers  
+    layersD =  (zipWith comp ldlist inter)
+    comp ld input = (input, ld input)
+  
 
 --        input(L) * layerD(L) * futureDerivatives(L+)
 
