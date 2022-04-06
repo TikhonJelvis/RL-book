@@ -60,7 +60,7 @@ if [ "$format" = "latex" ]; then extension="tex"; fi
 
 if [[ $book == 1 ]]
 then
-    out="$(pwd)/book.$extension"
+    out="$(pwd)/Foundations of Reinforcement Learning.$extension"
 
     echo "Building $out from:"
     while read chapter
