@@ -38,7 +38,7 @@ But what does designing clean abstractions actually entail? There are always two
 
 Let's jump into an extended example to see exactly what this means. One of the key building blocks for Reinforcement Learning — all of statistics and machine learning, really — is Probability. How are we going to handle uncertainty and randomness in our code?
 
-One approach would be to keep Probability implicit. Whenever we have a random variable, we could call a function and get a random result (technically refered to as a *sample*). If we were writing a Monopoly game with two six-sided dice, we would define it like this:
+One approach would be to keep Probability implicit. Whenever we have a random variable, we could call a function and get a random result (technically referred to as a *sample*). If we were writing a Monopoly game with two six-sided dice, we would define it like this:
 
 ``` python
 from random import randint
@@ -50,7 +50,7 @@ def roll_dice():
     return six_sided() + six_sided()
 ```
 
-This works, but it's pretty limited. We can't do anything except get one outcome at a time. More importantly, this only captures a slice of how we *think* about Probability: there's *randomness* but we never even mentioned probability distributions (refered to as simply *distribution*s for the rest of this chapter). We have outcomes and we have a function we can call repeatedly, but there's no way to tell that function apart from a function that has nothing to do with Probability but just happens to return an integer.
+This works, but it's pretty limited. We can't do anything except get one outcome at a time. More importantly, this only captures a slice of how we *think* about Probability: there's *randomness* but we never even mentioned probability distributions (referred to as simply *distribution*s for the rest of this chapter). We have outcomes and we have a function we can call repeatedly, but there's no way to tell that function apart from a function that has nothing to do with Probability but just happens to return an integer.
 
 How can we write code to get the expected value of a distribution? If we have a parametric distribution (eg: a distribution like Poisson or Gaussian, characterized by parameters), can we get the parameters out if we need them?
 
@@ -783,6 +783,11 @@ This is a powerful programming style because we can write and test each operatio
 
 Iterators and generators will come up all throughout this book because they provide a programming abstraction for *processes*, making them a great foundation for the *mathematical* processes that underlie Reinforcement Learning.
 
-### Abstraction
+### Key Takeaways
 
-In this chapter, we've covered the high-level principles behind the code design in the rest of the book: how we design abstractions, how we design code *around* those abstractions and which Python facilities we use to do this. These are abstract ideas themselves! There's a real chance that many of these ideas won't make sense right away; the best way to learn is to look through more elaborated examples — like code snippets in the rest of the book — and to experiment yourself.
+  * The code in this book is designed not only to illustrate the topics and algorithms covered in each chapter, but also to demonstrate some general principles of code design. Paying attention to code design gives us a codebase that's easier to understand, debug and extend.
+  * Code design is centered around abstractions. An abstraction is a code construct that combines separate pieces of information or unifies distinct concepts into one. Programming languages like Python provide different tools for expressing abstractions, but the goal is always the same: make the code easier to understand.
+  * Classes and interfaces (abstract classes in Python) define abstractions over data. Multiple implementations of the same concept can have the same interface (like `Distribution`), and code written using that interface will work for objects of *any* compatible class. Traditional Python classes have some inconvenient limitations which can be avoided by using dataclasses (classes with the `@dataclass` annotation).
+  * Python has type annotations which are required for dataclasses but are also useful for describing interfaces in functions and methods. Additional tools like `mypy` or PyCharm can use these type annotations to catch errors without needing to run the code.
+  * Functions are first-class values in Python, meaning that they can be stored in variables and passed to other functions as arguments. Classes abstract over data; functions abstract over computation.
+  * Iterators abstract over *iteration*: computations that happen in sequence, producing a value after each iteration. Reinforcement learning focuses primarily on iterative algorithms, so iterators become one of the key abstractions for working with different reinforcement learning algorithms.
