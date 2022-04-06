@@ -29,9 +29,54 @@ We want to organize code around abstractions for the same reason that we use abs
 
 The details may differ, but designing code around abstractions that correspond to a solid mental model of the domain works well in any area and with any programming language. It might take some extra up-front thought but, done well, this style of design pays dividends. Our goal is to write code that makes life easier *for ourselves*; this helps for everything from "one-off" experimental code through software engineering efforts with large teams.
 
+### Environment Setup
+
+You can follow along with all of the examples in this book by getting a copy of the RL framework from GitHub[^github] and setting up a dedicated Python 3 environment for the code.
+
+The Python code depends on several Python libraries. Once you have a copy of the code repository, you can create an environment with the right libraries by running a few shell commands.
+
+First, move to the directory with the codebase:
+
+``` shell
+cd rl-book
+```
+
+Then, create and activate a Python virtual environment[^venv]:
+
+``` shell
+python3 -m venv .venv
+source .venv/bin/activate
+```
+
+You only need to create the environment once, but you will need to activate it every time that you want to work on the code from a new shell. Once the environment is activated, you can install the right versions of each Python dependency:
+
+``` shell
+pip install -r requirements.txt
+```
+
+To access the framework itself, you need to install it in editable mode (`-e`):
+
+``` shell
+pip install -e .
+```
+
+Once the environment is set up, you can confirm that it works by running the frameworks automated tests:
+
+``` shell
+python -m unittest discover
+```
+
+If everything installed correctly, you should see an "OK" message on the last line of the output after running this command.
+
+[^github]: If you are not familiar with Git and GitHub, look through GitHub's [Getting Started][github-getting-started] documentation.
+
+[github-getting-started]: https://docs.github.com/en/get-started
+
+[^venv]: A Python "virtual environment" is a way to manage Python dependencies on a per-project basis. Having a different environment for different Python projects lets each project have its own version of Python libraries, which avoids problems when one project needs an older version of a library and another project needs a newer version.
+
 ### Classes and Interfaces
 
-But what does designing clean abstractions actually entail? There are always two parts to answering this question:
+What does designing clean abstractions actually entail? There are always two parts to answering this question:
 
   1. Understanding the domain concept that you are modeling.
   2. Figuring out how to express that concept with features and patterns provided by your programming language.
