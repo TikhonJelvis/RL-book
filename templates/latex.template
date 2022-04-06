@@ -1,6 +1,6 @@
 %!TEX TS-program = xelatex
 $if(tf-format)$
-\documentclass[10pt]{Alon}
+\documentclass[10pt]{Alon_8_11}
 $else$
 \documentclass[11t]{scrbook}
 $endif$
