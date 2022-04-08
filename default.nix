@@ -20,6 +20,7 @@ let
       numpy
       pandas
       scipy
+      fire
 
       # Tools
       ipython
