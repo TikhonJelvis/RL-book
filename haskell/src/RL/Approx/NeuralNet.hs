@@ -82,6 +82,7 @@ scoreNeuralNetwork input lls = foldr scoreLayer input lls
                                                
 
 -- Trying to use the scanR function to also capture the outputs from each layer
+-- This stores the scores at each layer in the network for a forward pass
 scoreNNwIntermediaries :: Vector R -> NeuralNet n -> [Vector R]
 scoreNNwIntermediaries input NeuralNet{layers = lls} = scanr scoreLayer input lls
 
@@ -169,8 +170,10 @@ updateLayer layer@(Layer{weights}) derivative stepLength =
   layer {weights = weights - scale stepLength derivative
         }
 
-
---  derivate(n-1) = derivative(n) * activationD * I(n)
+-- Computes the derivative-operator for layer n-1 given
+-- the operator for nth layer, incorporating the activation function and
+-- the inputs to the layer
+--  derivate(n-1) = derivative(n) * activationD * I(n-1)
 --    dE/dW_L = dE/dW_L+1 * dW_L+1/dW_L
 --
 --    dE/dW_L = dE/dW_L+1 * activationD * I(L)
@@ -195,8 +198,21 @@ networkDerivative :: NeuralNet n -> Vector R -> NeuralNetD n
 networkDerivative nn@(NeuralNet{ϕ, layers})  inputs = NeuralNetD{ϕ, layersD}
   where
     inter = scoreNNwIntermediaries inputs nn
-    ldlist = map layerDerivative layers  
+    -- since map :: (a->b) -> [a] -> [b]
+    -- and layerDerivative has two arguments, thanks to currying
+    -- b is a function in this case due to partial application
+    -- b = (vectorR -> layerD)
+    ldlist :: [(Vector R -> LayerD)]
+    ldlist = map layerDerivative layers
+    -- zipWith combines elements of two lists
+    -- in this case the first list is a list of functions
+    -- and the second list is the list of inputs for those functions
+    -- output hence is a list of derivative values, by applying the function to input
     layersD =  (zipWith comp ldlist inter)
+    -- following line helps with the previous one, in where block
+    -- so no qualifier is needed
+    -- rhs is a Pair of (Vector R, LayerD)
+    comp :: (Vector R -> LayerD) -> Vector R -> (Vector R, LayerD)
     comp ld input = (input, ld input)
   
 
