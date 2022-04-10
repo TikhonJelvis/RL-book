@@ -69,7 +69,7 @@ The orthogonal portfolio to SEP has mean $r_z = \frac {a - b \frac a b} {b - c \
 
 ### An example of the Efficient Frontier for 16 assets
 
-Figure \ref{fig:efficient_frontier} shows a plot of the mean daily returns versus the standard deviation of daily returns collected over a 3-year period for 16 assets. The blue curve is the Efficient Frontier for these 16 assets. Note the special portfolios GMVP and SEP on the Efficient Frontier. This curve was generated from the code at [rl/appendix2/efficient_frontier.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/appendix2/efficient_frontier.py). We encourage you to play with different choices (and count) of assets, and to also experiment with different time ranges as well as to try weekly and monthly returns.
+Figure \ref{fig:efficient_frontier} shows a plot of the mean daily returns versus the standard deviation of daily returns collected over a 3-year period for 16 assets. The curve is the Efficient Frontier for these 16 assets. Note the special portfolios GMVP and SEP on the Efficient Frontier. This curve was generated from the code at [rl/appendix2/efficient_frontier.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/appendix2/efficient_frontier.py). We encourage you to play with different choices (and count) of assets, and to also experiment with different time ranges as well as to try weekly and monthly returns.
 
 <div style="text-align:center" markdown="1">
 ![Efficient Frontier for 16 Assets \label{fig:efficient_frontier}](./appendix2/EffFront.png "Efficient Frontier for 16 Assets")
