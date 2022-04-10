@@ -388,7 +388,7 @@ class FiniteMarkovDecisionProcess(MarkovDecisionProcess[S, A]):
         non_terminals: Set[S] = set(mapping.keys())
         self.mapping = {NonTerminal(s): {a: Categorical(
             {(NonTerminal(s1) if s1 in non_terminals else Terminal(s1), r): p
-             for (s1, r), p in v.table().items()}
+             for (s1, r), p in v}
         ) for a, v in d.items()} for s, d in mapping.items()}
         self.non_terminal_states = list(self.mapping.keys())
 
@@ -469,7 +469,7 @@ from rl.distribution import FiniteDistribution, Categorical
                 = defaultdict(float)
             actions = policy.act(state)
             for action, p_action in actions:
-                for (s1, r), p in action_map[action].table().items():
+                for (s1, r), p in action_map[action]:
                     outcomes[(s1.state, r)] += p_action * p
 
             transition_mapping[state.state] = Categorical(outcomes)
