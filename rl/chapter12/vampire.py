@@ -76,7 +76,7 @@ class VampireMDP(FiniteMarkovDecisionProcess[int, int]):
             Tuple[V[int], FiniteDeterministicPolicy[int, int]]:
         transitions: Iterable[TransitionStep[int, int]] = itertools.islice(
             self.lspi_transitions(),
-            50000
+            20000
         )
         qvf_iter: Iterator[LinearFunctionApprox[Tuple[
             NonTerminal[int], int]]] = least_squares_policy_iteration(
@@ -93,7 +93,7 @@ class VampireMDP(FiniteMarkovDecisionProcess[int, int]):
             iterate.last(
                 itertools.islice(
                     qvf_iter,
-                    100
+                    20
                 )
             )
         return get_vf_and_policy_from_qvf(self, qvf)
@@ -122,7 +122,7 @@ if __name__ == '__main__':
     plot_list_of_curves(
         [states, states],
         [true_vf_vals, lspi_vf_vals],
-        ["r", "b"],
+        ["r-", "b--"],
         ["True Optimal VF", "LSPI-Estimated Optimal VF"],
         x_label="States",
         y_label="Optimal Values",
@@ -131,7 +131,7 @@ if __name__ == '__main__':
     plot_list_of_curves(
         [states, states],
         [true_policy_actions, lspi_policy_actions],
-        ["r", "b"],
+        ["r-", "b--"],
         ["True Optimal Policy", "LSPI-Estimated Optimal Policy"],
         x_label="States",
         y_label="Optimal Actions",

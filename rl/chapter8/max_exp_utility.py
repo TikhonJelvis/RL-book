@@ -146,7 +146,7 @@ if __name__ == '__main__':
     riskless_rate_val: float = 0.05
     risky_mean_val: float = 110.0
     risky_stdev_val: float = 25.0
-    payoff_function: Callable[[float], float] = lambda x: max(x - 105.0, 0)
+    payoff_function: Callable[[float], float] = lambda x: - min(x - 105.0, 0)
 
     b1 = riskless_rate_val >= 0.
     b2 = risky_stdev_val > 0.
@@ -162,18 +162,18 @@ if __name__ == '__main__':
         payoff_func=payoff_function
     )
 
-    plt.xlabel("Risky Asset Price")
-    plt.ylabel("Derivative Payoff and Hedges")
-    plt.title("Hedging in Incomplete Market")
+    plt.xlabel("Risky Asset Price", size=20)
+    plt.ylabel("Derivative Payoff and Hedges", size=20)
+    plt.title("Hedging in Incomplete Market", size=30)
     lb = meu.risky_mean - meu.risky_stdev * 1.5
     ub = meu.risky_mean + meu.risky_stdev * 1.5
-    x_plot_pts = np.linspace(lb, ub, 1001)
+    x_plot_pts = np.linspace(lb, ub, 101)
     payoff_plot_pts = np.array([meu.payoff_func(x) for x in x_plot_pts])
     plt.plot(
         x_plot_pts,
         payoff_plot_pts,
         "r",
-        linewidth=3,
+        linewidth=5,
         label="Derivative Payoff"
     )
     cm_ph = meu.complete_mkt_price_and_hedges()
@@ -182,13 +182,12 @@ if __name__ == '__main__':
         x_plot_pts,
         cm_plot_pts,
         "b",
-        linestyle="dashed",
         label="Complete Market Hedge"
     )
     print("Complete Market Price = %.3f" % cm_ph["price"])
     print("Complete Market Alpha = %.3f" % cm_ph["alpha"])
     print("Complete Market Beta = %.3f" % cm_ph["beta"])
-    for risk_aversion_param, color in [(0.3, "g"), (0.6, "y"), (0.9, "m")]:
+    for risk_aversion_param, color in [(0.3, "g--"), (0.6, "y.-"), (0.9, "m+-")]:
         print("--- Risk Aversion Param = %.2f ---" % risk_aversion_param)
         meu_for_zero = meu.max_exp_util_for_zero(0., risk_aversion_param)
         print("MEU for Zero Alpha = %.3f" % meu_for_zero["alpha"])

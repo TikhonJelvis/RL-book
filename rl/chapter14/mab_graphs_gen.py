@@ -31,8 +31,8 @@ def get_pdf(x: float, mu: float, sigma: float) -> float:
 def graph_qestimate_pdfs() -> None:
     import matplotlib.pyplot as plt
     x_vals = np.arange(-2., 6., 0.01)
-    mu_b = 1.0
-    sigma_b = 1.0
+    mu_b = 1.5
+    sigma_b = 2.0
     mu_r = 2.0
     sigma_r = 0.8
     mu_g = 2.5
@@ -40,19 +40,19 @@ def graph_qestimate_pdfs() -> None:
     plt.plot(
         x_vals,
         [get_pdf(x, mu_b, sigma_b) for x in x_vals],
-        "b",
+        "b-",
         label="$Q(a_1)$"
     )
     plt.plot(
         x_vals,
         [get_pdf(x, mu_r, sigma_r) for x in x_vals],
-        "r",
+        "r--",
         label="$Q(a_2)$"
     )
     plt.plot(
         x_vals,
         [get_pdf(x, mu_g, sigma_g) for x in x_vals],
-        "g",
+        "g-.",
         label="$Q(a_3)$"
     )
     plt.xlabel("Q", fontsize=25)

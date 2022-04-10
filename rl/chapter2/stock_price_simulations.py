@@ -132,12 +132,12 @@ def plot_single_trace_all_processes(
 
     from rl.gen_utils.plot_funcs import plot_list_of_curves
 
-    traces_len = len(process1_trace)
+    traces_len: int = len(process1_trace)
 
     plot_list_of_curves(
         [range(traces_len)] * 3,
         [process1_trace, process2_trace, process3_trace],
-        ["r", "b", "g"],
+        ["r-", "b--", "g-."],
         [
             r"Process 1 ($\alpha_1=0.25$)",
             r"Process 2 ($\alpha_2=0.75$)",
@@ -152,7 +152,7 @@ def plot_single_trace_all_processes(
 def get_terminal_histogram(
     price_traces: np.ndarray
 ) -> Tuple[Sequence[int], Sequence[int]]:
-    pairs = sorted(
+    pairs: Sequence[Tuple[int, int]] = sorted(
         list(Counter(price_traces[:, -1]).items()),
         key=itemgetter(0)
     )
@@ -167,8 +167,8 @@ def plot_distribution_at_time_all_processes(
 
     from rl.gen_utils.plot_funcs import plot_list_of_curves
 
-    num_traces = len(process1_traces)
-    time_steps = len(process1_traces[0]) - 1
+    num_traces: int = len(process1_traces)
+    time_steps: int = len(process1_traces[0]) - 1
 
     x1, y1 = get_terminal_histogram(process1_traces)
     x2, y2 = get_terminal_histogram(process2_traces)
@@ -177,7 +177,7 @@ def plot_distribution_at_time_all_processes(
     plot_list_of_curves(
         [x1, x2, x3],
         [y1, y2, y3],
-        ["r", "b", "g"],
+        ["r-", "b--", "g-."],
         [
             r"Process 1 ($\alpha_1=0.25$)",
             r"Process 2 ($\alpha_2=0.75$)",

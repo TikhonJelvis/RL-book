@@ -92,7 +92,7 @@ def get_dnn_model() -> DNNApprox[Triple]:
 if __name__ == '__main__':
     training_num_pts: int = 1000
     test_num_pts: int = 10000
-    training_iterations: int = 300
+    training_iterations: int = 200
     data_gen: Iterator[Tuple[Triple, float]] = example_model_data_generator()
     training_data_gen: Iterator[DataSeq] = data_seq_generator(
         data_gen,
@@ -134,7 +134,7 @@ if __name__ == '__main__':
     plot_list_of_curves(
         list_of_x_vals=[x_vals, x_vals],
         list_of_y_vals=[linear_model_rmse_seq, dnn_model_rmse_seq],
-        list_of_colors=["b", "r"],
+        list_of_colors=["b-", "r--"],
         list_of_curve_labels=["Linear Model", "Deep Neural Network Model"],
         x_label="Iterations of Gradient Descent",
         y_label="Root Mean Square Error",
