@@ -78,7 +78,7 @@ x_vals: Sequence[int] = [s.state for s in nt_states]
 plot_list_of_curves(
     [x_vals, x_vals, x_vals],
     [true_vf, td_vf, lstd_vf],
-    ["b", "g", "r"],
+    ["b-", "g.-", "r--"],
     ["True Value Function", "Tabular TD Value Function", "LSTD Value Function"],
     x_label="States",
     y_label="Value Function",

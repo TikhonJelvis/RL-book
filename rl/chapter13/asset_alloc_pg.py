@@ -325,7 +325,7 @@ if __name__ == '__main__':
             q_value_dnn_spec=dnn_vf_spec
         )
 
-    num_episodes: int = 20000
+    num_episodes: int = 50000
 
     x: Sequence[int] = range(num_episodes)
     y0: Sequence[float] = [base_alloc * (1 + r) ** (1 - steps)] * num_episodes
@@ -352,22 +352,21 @@ if __name__ == '__main__':
                                num_episodes * steps,
                                steps
                             )]
-
-#     plot_list_of_curves(
-#         [x, x, x, x, x],
-#         [y0, y1, y2, y3, y4],
-#         ["r", "b", "g", "k", "y"],
-#         ["True", "REINFORCE", "Actor-Critic", "Actor-Critic with Advantage",
-#          "Actor-Critic with TD Error"],
-#         "Iteration",
-#         "Action",
-#         "Action for Initial Wealth at Time 0"
-#     )
+    plot_period: int = 200
+    start: int = 50
+    x_vals = [[i * plot_period for i in
+               range(start, int(num_episodes / plot_period))]] * 4
+    y_vals = []
+    for y in [y0, y1, y2, y4]:
+        y_vals.append([np.mean(y[i * plot_period:(i + 1) * plot_period])
+                       for i in range(start, int(num_episodes / plot_period))])
+    print(x_vals)
+    print(y_vals)
 
     plot_list_of_curves(
-        [x, x, x, x],
-        [y0, y1, y2, y4],
-        ["r", "b", "g", "k", "y"],
+        x_vals,
+        y_vals,
+        ["k--", "r-x", "g-.", "b-"],
         ["True", "REINFORCE", "Actor-Critic", "Actor-Critic with TD Error"],
         "Iteration",
         "Action",

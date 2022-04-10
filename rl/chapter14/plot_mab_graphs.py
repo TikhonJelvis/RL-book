@@ -79,7 +79,7 @@ def plot_gaussian_algorithms() -> None:
         learning_rate_decay=lr_decay
     )
 
-    plot_colors = ['r', 'b', 'g', 'k', 'y']
+    plot_colors = ['k', 'y', 'k--', 'y--', 'b-.']
     labels = [
         'Greedy, Optimistic Initialization',
         '$\epsilon$-Greedy',
@@ -98,7 +98,7 @@ def plot_gaussian_algorithms() -> None:
 
     x_vals = range(1, steps + 1)
     for i in range(len(exp_cum_regrets)):
-        plt.plot(exp_cum_regrets[i], color=plot_colors[i], label=labels[i])
+        plt.plot(x_vals, exp_cum_regrets[i], plot_colors[i], label=labels[i])
     plt.xlabel("Time Steps", fontsize=20)
     plt.ylabel("Expected Total Regret", fontsize=20)
     plt.title("Total Regret Curves", fontsize=25)
@@ -119,12 +119,13 @@ def plot_gaussian_algorithms() -> None:
     spacing = 0.4
     width = (1 - spacing) / len(exp_act_counts)
 
+    hist_plot_colors = ['r', 'b', 'g', 'k', 'y']
     for i in range(len(exp_act_counts)):
         plt.bar(
             index - (1 - spacing) / 2 + (i - 1.5) * width,
             exp_act_counts[i],
             width,
-            color=plot_colors[i],
+            color=hist_plot_colors[i],
             label=labels[i]
         )
     plt.xlabel("Arms", fontsize=20)
@@ -206,7 +207,7 @@ def plot_bernoulli_algorithms() -> None:
         learning_rate_decay=lr_decay
     )
 
-    plot_colors = ['r', 'b', 'g', 'y', 'k', 'c']
+    plot_colors = ['k', 'y', 'k--', 'y--', 'r-.', 'c-.']
     labels = [
         'Greedy, Optimistic Initialization',
         '$\epsilon$-Greedy',
@@ -227,7 +228,7 @@ def plot_bernoulli_algorithms() -> None:
 
     x_vals = range(1, steps + 1)
     for i in range(len(exp_cum_regrets)):
-        plt.plot(exp_cum_regrets[i], color=plot_colors[i], label=labels[i])
+        plt.plot(x_vals, exp_cum_regrets[i], plot_colors[i], label=labels[i])
     plt.xlabel("Time Steps", fontsize=20)
     plt.ylabel("Expected Total Regret", fontsize=20)
     plt.title("Total Regret Curves", fontsize=25)
@@ -249,12 +250,13 @@ def plot_bernoulli_algorithms() -> None:
     spacing = 0.4
     width = (1 - spacing) / len(exp_act_counts)
 
+    hist_plot_colors = ['r', 'b', 'g', 'k', 'y', "c"]
     for i in range(len(exp_act_counts)):
         plt.bar(
             index - (1 - spacing) / 2 + (i - 1.5) * width,
             exp_act_counts[i],
             width,
-            color=plot_colors[i],
+            color=hist_plot_colors[i],
             label=labels[i]
         )
     plt.xlabel("Arms", fontsize=20)
