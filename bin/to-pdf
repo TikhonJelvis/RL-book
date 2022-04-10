@@ -1,90 +1,149 @@
-#!/usr/bin/env bash
+#!/usr/bin/env python3
+import os
+from os.path import basename, splitext
+import subprocess
+import sys
 
-book=0
+import fire
 
-if [[ -z "$DEJA_VU_DIRECTORY" ]]
-then
-    echo "DEJA_VU_DIRECTORY variable not set."
-    echo "Try restarting your Nix shell."
-    exit 1
-fi
+def all_chapters():
+    """
+    Parse the structure file (in the top level of the repo) to get a
+    list of chapters in the order they appear in the book.
 
-if [[ $# -eq 0 ]]
-then
-    book=1
-fi
-
-if [[ $TF_FORMAT == 1 ]]
-then
-    echo "Using T&F format."
-fi
-
-run_pandoc() {
-    out=$1
-    format=$2
-    chapters="${@:3}"
-
-    cd book
-    pandoc --to "$format" \
-             --output "$out" \
-             --metadata chapters \
-             --metadata title='Foundations of Reinforcement Learning with Applications in Finance' \
-             --metadata author='Ashwin Rao, Tikhon Jelvis' \
-             --metadata reference-section-title='Bibliography' \
-             --filter pandoc-crossref \
-             --pdf-engine xelatex \
-             --template ../templates/latex.template \
-             --top-level-division part \
-             $( (( book == 1 )) && printf %s '--toc' ) \
-             $(tf-format --metadata tf-format) \
-             --lua-filter ../bin/alon-style-quotes.lua \
-             --citeproc \
-             --bibliography bibliography.bib \
-             $(tf-format --lua-filter ../bin/remove-hyperref.lua) \
-             $chapters
-
-    cd ..
-}
-
-tf-format() {
-    if [[ $TF_FORMAT == 1 ]]; then echo -n "${@}"; fi
-}
+    Empty lines and lines starting from # in the structure file are
+    ignored.
+    """
+    with open("structure", "r") as structure:
+        return [
+            chapter.strip() for chapter in structure
+            if len(chapter) > 0
+            if chapter[0] != "#"
+            if not chapter.isspace()
+        ]
 
 
-format="pdf"
-if [[ $TO_TEX == 1 ]]; then format="latex"; fi
+def chapter_name(chapter):
+    """
+    We want accept several different formats to specify the chpater:
 
-extension="$format"
-if [ "$format" = "latex" ]; then extension="tex"; fi
+      • chapter1
+      • chapter1/chapter1
+      • chapter1/chapter1.md
+      • book/chapter1/chapter1.md
 
+    This function takes an input formatted like above and normalizes
+    to just the name of the chapter (ie chapter1 in the above example).
+    """
+    name, _ = splitext(basename(chapter))
+    return name
+    
 
-if [[ $book == 1 ]]
-then
-    out="$(pwd)/Foundations of Reinforcement Learning.$extension"
+def run_pandoc(out, to, tf_format, chapter):
+    """
+    Run pandoc to compile either the entire book or just a single
+    chapter.
 
-    echo "Building $out from:"
-    while read chapter
-    do
-        echo "book/$chapter/${chapter}.md"
-        names+=("$chapter/${chapter}.md")
-    done < <(grep -vxE -e '(^#.*$|^\s*$)' structure)
-    # Regexp matches blank lines and comments, which we filter out
-    # with grep
+    Returns a relative path to the generated document (pdf/tex/etc
+    file).
+    """
+    book = chapter is None
+    toc = ["--toc"] if book else []
 
-    run_pandoc "$out" "$format" "${names[@]}"
-else
-    # Several equivalent options:
-    #
-    # bin/to-pdf chapter1
-    # bin/to-pdf chapter1/chapter1
-    # bin/to-pdf chapter1/chapter1.md
-    # bin/to-pdf book/chapter1/chapter1.md
-    file=$(basename $1)
-    name="${file%.*}"
-    target="$name/$name.md"
-    out="${target%.*}.$extension"
+    extension = "tex" if to == "latex" else to
 
-    echo "Converting book/$target to book/$out"
-    run_pandoc "$out" "$format" "$target"
-fi
+    if tf_format:
+        print("Using T&F format.")
 
+    if book:
+        chapters = [f"{name}/{name}.md" for name in all_chapters()]
+
+        if out is None:
+            out = f"Foundations of Reinforcement Learning.{extension}"
+
+        chapter_list = "\n".join(chapters)
+        print(f"Building {out} from:\n{chapter_list}")
+    else:
+        name = chapter_name(chapter)
+        chapters = [f"{name}/{name}.md"]
+
+        if out is None:
+            out = f"{name}.{extension}"
+
+        print(f"Converting book/{chapters[0]} to {out}")
+
+    tf_settings = [
+        "--metadata", "tf-format",
+        "--lua-filter", "../bin/remove-hyperref.lua"
+    ] if tf_format else []
+
+    os.chdir("book")
+    subprocess.run([
+        "pandoc",
+        "--to", to,
+        "--output", f"../{out}",
+        "--metadata", "chapters",
+        "--metadata", "title='Foundations of Reinforcement Learning with Applications in Finance'",
+        "--metadata", "author='Ashwin Rao, Tikhon Jelvis'",
+        "--metadata", "reference-section-title='Bibliography'",
+        "--filter", "pandoc-crossref",
+        "--pdf-engine", "xelatex",
+        "--template", "../templates/latex.template",
+        "--top-level-division", "part",
+        "--lua-filter", "../bin/alon-style-quotes.lua",
+        "--citeproc",
+        "--bibliography", "bibliography.bib",
+    ] + toc + tf_settings + chapters)
+    os.chdir("..")
+
+    return out
+
+def pdf_to_grayscale(pdf, out=None):
+    """
+    Use the gs command to convert a PDF at the given path to
+    grayscale.
+    """
+    if out is None:
+        out = pdf
+
+    subprocess.run([
+        "gs",
+        f"-sOutputFile={out}",
+        "-sDEVICE=pdfwrite",
+        "-sColorConversionStrategy=Gray",
+        "-dProcessColorModel=/DeviceGray",
+        "-dCompatibilityLevel=1.4",
+        "-dNOPAUSE",
+        "-dBATCH",
+        pdf
+    ], check=True, capture_output=True)
+
+def main(chapter=None, *, tf_format=False, out=None, to="pdf", gray=False):
+    """
+    Usage: bin/to-pdf [chapter] [--tf-format] [--out|-o=<out-path>] [--to=pdf|tex]
+
+    Compile either the entire book or a single chapter.  Needs to run
+    in a Nix shell and from the top-level directory fo the repo.
+    """
+    if "DEJA_VU_DIRECTORY" not in os.environ:
+        print("DEJA_VU_DIRECTORY variable not set.")
+        print("Try restarting your Nix shell.")
+        sys.exit(1)
+
+    out = run_pandoc(out, to, tf_format, chapter)
+
+    if gray:
+        if to != "pdf":
+            print(f"Can only generate grayscale version for --to=pdf, not --to={to}")
+            sys.exit(1)
+
+        try:
+            pdf_to_grayscale(out, f"gray-{out}")
+            print(f"Grayscale version of {out} at gray-{out}")
+        except subprocess.CalledProcessError as e:
+            print("Failed to generate grayscale version of PDF")
+            print(e.stderr)
+            sys.exit(1)
+
+if __name__ == "__main__":
+    fire.Fire(main)
