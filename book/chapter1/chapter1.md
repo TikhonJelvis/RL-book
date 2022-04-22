@@ -11,6 +11,7 @@ In this book, we take a third approach. Starting *from scratch*, we build a Pyth
 Unlike the pseudocode approach, we do not implement algorithms in a vacuum; rather, each algorithm builds on abstractions introduced earlier in the book. By starting from scratch (rather than using an existing ML framework) we keep the code reasonably simple, without needing to worry about specific examples going out of date. We can focus on the concepts important to this book while teaching programming and design *in situ*, demonstrating an intentional approach to code design.
 
 ### Code Design
+ \index{code design}
 
 How can we take a complex domain like reinforcement learning and turn it into code that is easy to understand, debug and extend? How can we split this problem into manageable pieces? How do those pieces interact?
 
@@ -18,7 +19,7 @@ There is no simple single answer to these questions. No two programming challeng
 
 We might have no easy answers, but we do have patterns and principles that — in our experience — consistently produce quality code. Taken together, these ideas form a philosophy of code design oriented around defining and combining *abstractions** that reflect how we think about our domain. Since code itself can point to specific design ideas and capabilities, there's a feedback loop: expanding the programming abstractions we've designed can help us find new algorithms and functionality, improving our understanding of the domain.
 
-Just what *is* an abstraction? An appropriately abstract question! An abstraction is a "compound idea": a single concept that combines multiple separate ideas into one. We can combine ideas along two axes:
+Just what *is* an abstraction\index{abstraction}? An appropriately abstract question! An abstraction is a "compound idea": a single concept that combines multiple separate ideas into one. We can combine ideas along two axes:
 
   * We can *compose* different concepts together, thinking about how they behave as one unit. A car engine has thousands of parts that interact in complex ways, but we can think about it as a single object for most purposes.
   * We can *unify* different concepts by identifying how they are similar. Different breeds of dogs might look totally different, but we can think of all of them as dogs.
@@ -75,6 +76,7 @@ If everything installed correctly, you should see an "OK" message on the last li
 [^venv]: A Python "virtual environment" is a way to manage Python dependencies on a per-project basis. Having a different environment for different Python projects lets each project have its own version of Python libraries, which avoids problems when one project needs an older version of a library and another project needs a newer version.
 
 ### Classes and Interfaces
+\index{classes}\index{interfaces|seealso{classes}}
 
 What does designing clean abstractions actually entail? There are always two parts to answering this question:
 
@@ -102,6 +104,7 @@ How can we write code to get the expected value of a distribution? If we have a 
 Since distributions are implicit in the code, the *intentions* of the code aren't clear and it is hard to write code that generalizes over distributions. Distributions are absolutely crucial for machine learning, so this is not a great starting point.
 
 #### A Distribution Interface
+\index{interfaces}
 
 To address these problems, let's define an abstraction for probability distributions.
 
@@ -110,6 +113,7 @@ How do we represent a distribution in code? What can we *do* with distributions?
 Sampling is the least common denominator. We can sample distributions where we don't know enough to do anything else, and we can sample distributions where we know the exact form and parameters. Any abstraction we start with for a probability distribution needs to cover sampling, and any abstraction that requires more than just sampling will not let us handle all the distributions we care about.
 
 In Python, we can express this idea with a class:
+\index{classes!abstract classes}
 
 ``` python
 from abc import ABC, abstractmethod
@@ -119,6 +123,8 @@ class Distribution(ABC):
     def sample(self):
         pass
 ```
+\index{Distribution@\texttt{Distribution}}
+\index{ABC@\texttt{ABC}|see{abstract classes}}
 
 This class defines an **interface**: a definition of what we require for something to qualify as a distribution. Any kind of distribution we implement in the future will be able to, at minimum, generate samples; when we write functions that sample distributions, they can require their inputs to inherit from `Distribution`.
 
@@ -192,6 +198,7 @@ This seems small but makes debugging *much* easier, especially as the codebase g
 [^f-strings]: Our definition of `__repr__` used a Python feature called an "f-string". Introduced in Python 3.6, f-strings make it easier to inject Python values into strings. By putting an `f` in front of a string literal, we can include a Python value in a string: `f"{1 + 1}"` gives us the string `"2"`.
 
 ##### Dataclasses
+\index{classes!dataclasses}
 
 The `Die` class we wrote is intentionally simple. Our die is defined by a single property: the number of sides it has. The `__init__` method takes the number of sides as an input and puts it into an *attribute* of the class; once a `Die` object is created, there is no reason to change this value — if we need a die with a different number of sides, we can just create a new object. Abstractions do not have to be complex to be useful.
 
@@ -320,7 +327,7 @@ Traceback (most recent call last):
 dataclasses.FrozenInstanceError: cannot assign to field 'sides'
 ```
 
-An object that we cannot change is called **immutable**. Instead of changing the object *in place*, we can return a fresh copy with the attribute changed; `dataclasses` provides a `replace` function that makes this easy:
+An object that we cannot change is called **immutable**\index{immutability|textbf}\index{immutable|see{immutability}}. Instead of changing the object *in place*, we can return a fresh copy with the attribute changed; `dataclasses` provides a `replace` function that makes this easy:
 
 ``` python
 >>> import dataclasses
@@ -378,7 +385,7 @@ Traceback (most recent call last):
 TypeError: can only concatenate str (not "int") to str
 ```
 
-The types of an object's attributes are a useful indicator of how the object should be used. Python's dataclasses let us use **type annotations** to specify the type of each attribute:
+The types of an object's attributes are a useful indicator of how the object should be used. Python's dataclasses let us use **type annotations** \index{type annotations}(also known as "type hints"\index{type hints|see{type annotations}}) to specify the type of each attribute:
 
 ``` python
 @dataclass(frozen=True)
