@@ -5,11 +5,9 @@ $else$
 \documentclass[11t]{scrbook}
 $endif$
 
-% -- We are in swanky unicode, XeTeX land, and must now import these packages:
 \usepackage{fontspec,xltxtra,xunicode}
-% fontspec means we can specify pretty much any font.
-% Because we are using XeTeX material,
-% this template needs to be called with the `--xetex` flag.
+% Because we are using XeTeX material, this template needs to be
+% called with the `--xetex` flag.
 
 %% disable hyperref and geometry, which interfere with Alon.cls
 \usepackage{url}
@@ -34,9 +32,6 @@ $endif$
 \usepackage{amssymb}
 \usepackage{bm}
 \usepackage{physics}
-% if you use exotic symbols you need to import specific packages, eg. for
-% electrical engineering diagrams, musical notation, exotic currency symbols,
-% the unspeakable rites of freemasonry etc.
 
 \usepackage{amsthm}
 \usepackage{pifont}
@@ -51,10 +46,6 @@ $endif$
 \theoremstyle{remark}
 \newtheorem*{remark}{Remark}
 
-% `babel`:
-% The `babel` package, among other things, lets you determine what
-% language you are using in a given stretch of text, so that typesetting
-% will go well. Here we specify that mostly, we are speaking English:
 \usepackage[english]{babel}
 
 \providecommand{\tightlist}{%
@@ -87,10 +78,6 @@ $endif$
  }
 \ExplSyntaxOff
 
-% Properly one should specify a sanserif font and a monospace font
-% see e.g. the example of Kieran Healy:
-%% \setromanfont[Mapping=tex-text,Numbers=OldStyle]{Minion Pro}
-%% \setsansfont[Mapping=tex-text]{Minion Pro}
 \getenv[\DEJAVU]{DEJA_VU_DIRECTORY}
 \setmonofont{DejaVuSansMono}[
   Mapping=tex-text,
@@ -98,32 +85,11 @@ $endif$
   Extension=.ttf,
   Scale=0.8]
 
-% Heading styles:
-% These commands keep the koma system from making stupid sans serif section headings
-%% \setkomafont{title}{\rmfamily\mdseries\upshape\normalsize}
-%% \setkomafont{sectioning}{\rmfamily\mdseries\upshape\normalsize}
-%% \setkomafont{descriptionlabel}{\rmfamily\mdseries\upshape\normalsize}
-
-
-
-% I'm puzzled why I have this foonote speciality,
-% I wonder if it's part of my problem I've been having, but wont look
-% into it now.
 \usepackage[flushmargin]{footmisc}
-% \usepackage[hang,flushmargin]{footmisc}
 
-% Paragraph format:
-% Pandoc prefers unindented paragraphs in the European style:
-%% \setlength{\parindent}{0pt}
-%  ... with paragraph breaks marked by a slight lengthening of
-% the space between paragraphs:
-%% \setlength{\parskip}{6pt plus 2pt minus 1pt}
-
-% Page format:
 \pagestyle{plain}
 
 \usepackage{fancyvrb}
-% \baselineskip controls the height of blank lines in code blocks
 \DefineVerbatimEnvironment{Highlighting}{Verbatim}{
   commandchars=\\\{\},
   baselinestretch=0.75
@@ -203,12 +169,9 @@ $endif$
 \newcommand{\VERB}{\Verb[commandchars=\\\{\}]}
 
 
-% Lists formatting:
-% note sure what 'fancy enums' are; something to do with lists,
-% as the further comment suggests:
 $if(fancy-enums)$
-% -- Redefine labelwidth for lists; otherwise, the enumerate package will cause
-% -- markers to extend beyond the left margin.
+% Redefine labelwidth for lists; otherwise, the enumerate package will
+% cause markers to extend beyond the left margin.
 \makeatletter\AtBeginDocument{%
   \renewcommand{\@listi}
     {\setlength{\labelwidth}{4em}}
@@ -216,21 +179,9 @@ $if(fancy-enums)$
 \usepackage{enumerate}
 $endif$
 
-% Table formatting:
-% What if you make a table? -- Pandoc knows, of course, and
-% then declares that its  variable `table` is True and
-% imports a table package suitable to its pleasantly simple tables.
-% Needless to say infinitely   complicated tables are possible in
-% LaTeX with suitable packages. We are spared the temptation:
-
 $if(tables)$
 \usepackage{array}
-
-% Continuing on the topic of tables ... (we havent reached `endif`).
-% The commented out line below is in the default pandoc  latex.template.
-% Some unpleasantness with table formatting must be corrected.
-
-% -- This is needed because raggedright in table elements redefines \\:
+% This is needed because raggedright in table elements redefines \\:
 \newcommand{\PreserveBackslash}[1]{\let\temp=\\#1\let\\=\temp}
 \let\PBS=\PreserveBackslash
 $endif$
@@ -277,25 +228,14 @@ $if(csquotes)$
 \usepackage{csquotes}
 $endif$
 
-
-% Subscripts:
-% Pandoc remembers whether you used subscripts, assigning True to
-% its `subscript` variable
-% It then needs to adopt a default with an incantation like this:
 $if(subscript)$
 \newcommand{\textsubscr}[1]{\ensuremath{_{\scriptsize\textrm{#1}}}}
 $endif$
 
-% Images.
-% In ye olde LaTeX one could only import a limited range of image
-% types, e.g. the forgotten .eps files.  Or else one simply drew the image with suitable
-% commands and drawing packages.  Today we want to import .jpg files we make with
-% our smart phones or whatever:
-
 \usepackage{graphicx}
-% -- We will generate all images so they have a width \maxwidth. This means
-% -- that they will get their normal width if they fit onto the page, but
-% -- are scaled down if they would overflow the margins.
+% We will generate all images so they have a width \maxwidth. This
+% means that they will get their normal width if they fit onto the
+% page, but are scaled down if they would overflow the margins.
 \makeatletter
 \def\maxwidth{\ifdim\Gin@nat@width>\linewidth\linewidth
 \else\Gin@nat@width\fi}
@@ -312,26 +252,11 @@ $else$
 $endif$
 
 % Footnotes:
-% Wait, didn't we already discuss the crisis of code in footnotes?
-% Evidently the order of unfolding of macros required that
-% we import a package to deal with them earlier
-% and issue a command it defines now. (Or maybe that's not the reason;
-% very often the order does matter as the insane system of macro expansion
-% must take place by stages.)
 $if(verbatim-in-note)$
 \VerbatimFootnotes % -- allows verbatim text in footnotes
 $endif$
 
-% A big blob of definitions from Pandoc's standard template.
-\usepackage{graphicx}
-
 \usepackage{titling}
-
-%% \pretitle{\begin{flushright}\LARGE\sffamily\bfseries}
-%% \posttitle{\par\end{flushright}}
-
-%% \preauthor{\begin{flushright}\sffamily\bfseries}
-%% \postauthor{\end{flushright}}
 
 \predate{}
 \postdate{}
