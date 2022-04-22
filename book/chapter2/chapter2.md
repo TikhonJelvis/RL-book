@@ -1,4 +1,5 @@
 # Processes and Planning Algorithms
+\index{Markov processes|(}
 
 ## Markov Processes {#sec:mrp-chapter}
 \index{processes}
@@ -15,7 +16,7 @@ This book is about "Sequential Decisioning under Sequential Uncertainty". In thi
 For a gentle introduction to the concept of *State*, we start with an informal notion of the terms *Process* and *State* (this will be formalized later in this chapter). Informally, think of a Process as producing a sequence of random outcomes at discrete time steps that we'll index by a time variable $t = 0, 1, 2, \ldots$. The random outcomes produced by a process might be key financial/trading/business metrics one cares about, such as prices of financial derivatives or the value of a portfolio held by an investor. To understand and reason about the evolution of these random outcomes of a process, it is beneficial to focus on the internal representation of the process at each point in time $t$, that is fundamentally responsible for driving the outcomes produced by the process. We refer to this internal representation of the process at time $t$ as the (random) *state* of the process at time $t$ and denote it as $S_t$. Specifically, we are interested in the probability of the next state $S_{t+1}$, given the present state $S_t$ and the past states $S_0, S_1, \ldots, S_{t-1}$, i.e., $\mathbb{P}[S_{t+1}|S_t, S_{t-1}, \ldots, S_0]$. So to clarify, we distinguish between the internal representation (*state*) and the output (outcomes) of the Process. The *state* could be any data type - it could be something as simple as the daily closing price of a single stock, or it could be something quite elaborate like the number of shares of each publicly traded stock held by each bank in the U.S., as noted at the end of each week. 
 
 ### Understanding Markov Property from Stock Price Examples
-\index{Markov processes!Markov property|textbf}
+\index{Markov property|(}
 
 We will be learning about Markov Processes in this chapter and these processes have *States* that possess a property known as the *Markov Property*. So we will now learn about the *Markov Property of States*. Let us develop some intuition for this property with some examples of random evolution of stock prices over time. 
 
@@ -247,6 +248,7 @@ As suggested for Process 1, you can plot graphs of sampling traces of the stock 
 
 Having developed the intuition for the Markov Property of States, we are now ready to formalize the notion of Markov Processes (some of the literature refers to Markov Processes as Markov Chains, but we will stick with the term Markov Processes).
 
+
 ### Formal Definitions for Markov Processes
 \index{Markov processes|textbf}
 
@@ -295,6 +297,8 @@ Note that the arguments to $\mathcal{P}$ in the above specification are devoid o
 
 The classical definitions and theory of Markov Processes model "termination" with the idea of *Absorbing States*. A state $s$ is called an absorbing state if $\mathcal{P}(s,s) = 1$. This means, once we reach an absorbing state, we are "trapped" there, hence capturing the notion of "termination". So the classical definitions and theory of Markov Processes typically don't include an explicit specification of states as terminal and non-terminal. However, when we get to Markov Reward Processes and Markov Decision Processes (frameworks that are extensions of Markov Processes), we will need to explicitly specify states as terminal and non-terminal states, rather than model the notion of termination with absorbing states. So, for consistency in definitions and in the development of the theory, we are going with a framework where states in a Markov Process are explicitly specified as terminal or non-terminal states. We won't consider an absorbing state as a terminal state as the Markov Process keeps moving forward in time forever when it gets to an absorbing state. We will refer to $\mathcal{S} - \mathcal{T}$ as the set of Non-Terminal States $\mathcal{N}$ (and we will refer to a state in $\mathcal{N}$ as a non-terminal state). The sequence $S_0, S_1, S_2, \ldots$ terminates at time step $t=T$ if $S_T \in \mathcal{T}$.
 
+\index{Markov property|)}
+
 #### Starting States
 \index{Markov processes!starting states|textbf}
 
@@ -324,9 +328,9 @@ The first thing we do is to create separate classes for non-terminal states $\ma
 
 The concrete class `Terminal` represents $\mathcal{T}$ and the concrete class `NonTerminal` represents $\mathcal{N}$. The method `on_non_terminal` will prove to be very beneficial in the implementation of various algorithms we shall be writing for Markov Processes and also for Markov Reward Processes and Markov Decision Processes (which are extensions of Markov Processes). The method `on_non_terminal` enables us to calculate a value for all states in $\mathcal{S}$ even though the calculation is defined only for all non-terminal states $\mathcal{N}$. The argument `f` to `on_non_terminal` defines this value through a function from $\mathcal{N}$ to an arbitrary value-type `X`. The argument `default` provides the default value for terminal states $T$ so that `on_non_terminal` can be used on any object in `State` (i.e. for any state in $\mathcal{S}$, terminal or non-terminal). As an example, let's say you want to calculate the expected number of states one would traverse after a certain state and before hitting a terminal state. Clearly, this calculation is well-defined for non-terminal states and the function `f` would implement this by either some kind of analytical method or by sampling state-transition sequences and averaging the counts of non-terminal states traversed across those sequences. By defining (`default`ing) this value to be 0 for terminal states, we can then invoke such a calculation for all states $\mathcal{S}$, terminal or non-terminal, and embed this calculation in an algorithm without worrying about special handing in the code for the edge case of being a terminal state.
 
-\index{Markov processes!State@\texttt{State}}
-\index{Markov processes!Terminal@\texttt{Terminal}}
-\index{Markov processes!NonTerminal@\texttt{NonTerminal}}
+\index{State@\texttt{State}}
+\index{Terminal@\texttt{Terminal}}
+\index{NonTerminal@\texttt{NonTerminal}}
 
 ```python
 from abc import ABC
@@ -359,7 +363,7 @@ class NonTerminal(State[S]):
 ```
 
 Now we are ready to write a class to represent Markov Processes. We create an abstract class `MarkovProcess` parameterized by a generic type (`TypeVar('S')`) representing a generic state space `Generic[S]`. The abstract class has an `@abstractmethod` called `transition` that is meant to specify the transition probability distribution of next states, given a current non-terminal state. We know that `transition` is well-defined only for non-terminal states and hence, it's argument is clearly type-annotated as `NonTerminal[S]`. The return type of `transition` is `Distribution[State[S]]`, which as we know from the Chapter on *Programming and Design*, represents the probability distribution of next states. We also have a method `simulate` that enables us to generate an `Iterable` (generator) of sampled states, given as input a `start_state_distribution: Distribution[NonTerminal[S]]` (from which we sample the starting state). The sampling of next states relies on the implementation of the `sample` method for  the `Distribution[State[S]]` object produced by the `transition` method. 
-\index{Markov processes!MarkovProcess@\texttt{MarkovProcess}}
+\index{MarkovProcess@\texttt{MarkovProcess}}
 
 Here's the full body of the abstract class `MarkovProcess`:
 
@@ -456,7 +460,7 @@ We leave it to you as an exercise to similarly implement Stock Price Processes 1
 
 ### Finite Markov Processes
 \index{Markov processes!finite}
-\index{Markov processes!FiniteMarkovProcess@\texttt{FiniteMarkovProcess}}
+\index{FiniteMarkovProcess@\texttt{FiniteMarkovProcess}}
 
 Now let us consider Markov Processes with a finite state space. So we can represent the state space as $\mathcal{S} = \{s_1, s_2, \ldots, s_n\}$. Assume the set of non-terminal states $\mathcal{N}$ has $m\leq n$ states. Let us refer to Markov Processes with finite state spaces as Finite Markov Processes. Since Finite Markov Processes are a subclass of Markov Processes, it would make sense to create a concrete class `FiniteMarkovProcess` that implements the interface of the abstract class `MarkovProcess` (specifically implement the `@abstractmethod transition`). But first let's think about the data structure required to specify an instance of a `FiniteMarkovProcess` (i.e., the data structure we'd pass to the `__init__` method of `FiniteMarkovProcess`). One choice is a $m \times n$ 2D numpy array representation, i.e., matrix elements representing transition probabilities
 $$\mathcal{P} : \mathcal{N} \times \mathcal{S} \rightarrow [0, 1]$$
@@ -755,10 +759,11 @@ The subsection on *Start States* we had covered for Markov Processes naturally a
 If all random sequences of states in a Markov Reward Process terminate, we refer to it as *episodic* sequences (otherwise, we refer to it as *continuing* sequences). 
 
 Let's write some code that captures this formalism. We create a derived `@abstractclass MarkovRewardProcess` that inherits from the `@abstractclass MarkovProcess`. Analogous to `MarkovProcess`'s `@abstractmethod transition` (that represents $\mathcal{P}$), `MarkovRewardProcess` has an `@abstractmethod transition_reward` that represents $\mathcal{P}_R$. Note that the return type of `transition_reward` is `Distribution[Tuple[State[S], float]]`, representing the probability distribution of (next state, reward) pairs transitioned to.
-\index{Markov reward processes!MarkovRewardProcess@\texttt{MarkovRewardProcess}}
+\index{MarkovRewardProcess@\texttt{MarkovRewardProcess}}
 
 Also, analogous to `MarkovProcess`'s `simulate` method, `MarkovRewardProcess` has the method `simulate_reward` which generates a stream of `TransitionStep[S]` objects. Each `TransitionStep[S]` object consists of a 3-tuple: (state, next state, reward) representing the sampled transitions within the generated sampling trace. Here's the actual code:
-processes|TransitionStep@\texttt{TransitionStep}}
+
+\index{TransitionStep@\texttt{TransitionStep}}
 
 ```python
 @dataclass(frozen=True)
@@ -912,7 +917,7 @@ Certain calculations for Markov Reward Processes can be performed easily if:
 * The state space is finite ($\mathcal{S} = \{s_1, s_2, \ldots, s_n\}$), and
 * The set of unique pairs of next state and reward transitions from each of the states in $\mathcal{N}$ is finite
 
-\index{Markov reward processes!FiniteMarkovRewardProcess@\texttt{FiniteMarkovRewardProcess}}
+\index{FiniteMarkovRewardProcess@\texttt{FiniteMarkovRewardProcess}}
 
 If we satisfy the above two characteristics, we refer to the Markov Reward Process as a Finite Markov Reward Process. So let us write some code for a Finite Markov Reward Process. We create a concrete class `FiniteMarkovRewardProcess` that primarily inherits from `FiniteMarkovProcess` (a concrete class) and secondarily implements the interface of the abstract class `MarkovRewardProcess`. Our first task is to think about the data structure required to specify an instance of `FiniteMarkovRewardProcess` (i.e., the data structure we'd pass to the `__init__` method of `FiniteMarkovRewardProcess`). Analogous to how we curried $\mathcal{P}$ for a Markov Process as $\mathcal{N} \rightarrow (\mathcal{S} \rightarrow [0,1])$ (where $\mathcal{S} = \{s_1, s_2, \ldots, s_n\}$ and $\mathcal{N}$ has $m \leq n$ states), here we curry $\mathcal{P}_R$ as:
 $$\mathcal{N} \rightarrow (\mathcal{S} \times \mathcal{D} \rightarrow [0, 1])$$
@@ -1150,6 +1155,8 @@ The corresponding values of the attribute `reward_function_vec` (i.e., $\mathcal
 This tells us that On-Hand of 0 and On-Order of 2 has the highest expected reward. However, the Value Function is highest for On-Hand of 0 and On-Order of 1.
 
 This computation for the Value Function works if the state space is not too large (the size of the square linear system of equations is equal to number of non-terminal states). When the state space is large, this direct method of solving a linear system of equations won't scale and we have to resort to numerical methods to solve the recursive Bellman Equation. This is the topic of Dynamic Programming and Reinforcement Learning algorithms that we shall learn in this book. 
+
+\index{Markov processes|)}
 
 ### Summary of Key Learnings from this Chapter
 

@@ -122,11 +122,11 @@ class Distribution(ABC):
     def sample(self):
         pass
 ```
-\index{probability!Distribution@\texttt{Distribution}}
-\index{abstract classes!ABC@\texttt{ABC}|see{abstract classes}}
+\index{Distribution@\texttt{Distribution}}
+\index{ABC@\texttt{ABC}|see{abstract classes}}
 \index{abstract classes!abstract base class|see{abstract classes}}
 \index{abstract classes!abstract methods}
-\index{abstract classes!abstractmethod@\texttt{abstractmethod}|see{abstract methods}}
+\index{abstractmethod@\texttt{abstractmethod}|see{abstract methods}}
 
 This class defines an **interface**\index{interfaces|textbf}: a definition of what we require for something to qualify as a distribution. Any kind of distribution we implement in the future will be able to, at minimum, generate samples; when we write functions that sample distributions, they can require their inputs to inherit from `Distribution`.
 
@@ -262,7 +262,7 @@ Most of the classes we will define in the rest of the book follow this same patt
   * It's easy for mistakes to sneak in. For example, if you add an attribute to a class but forget to add it to its `__eq__` method, you won't get an error — `==` will just ignore that attribute. Unless you have tests that explicitly check how `==` handles your new attribute, this oversight can sneak through and lead to weird behavior in code that uses your class.
   * Frankly, writing these methods by hand is just *tedious*.
 
-\index{dataclasses!dataclass@\texttt{"@dataclass}}
+\index{dataclass@\texttt{"@dataclass}|see{dataclasses}}
 \index{dataclasses|textbf}
 
 Luckily, Python 3.7 introduced a feature that fixes all of these
@@ -379,7 +379,6 @@ Immutable dataclass objects act like plain data — not too different from strin
 #### Checking Types
 
 A die has to have an int number of sides — `0.5` sides or `"foo"` sides simply doesn't make sense. Python will not stop us from *trying* `Die("foo")`, but we would get a `TypeError` if we tried sampling it:
-\index{types!TypeError@\texttt{TypeError}}
 
 ``` python
 >>> foo = Die("foo")
@@ -522,7 +521,6 @@ This is an illustrative example, but it doesn't let us do much. If all we needed
 If all we cared about were dice, `Distribution` wouldn't carry its weight. Reinforcement Learning, though, involves both a wide range of specific distributions — any given Reinforcement Learning problem can have domain-specific distributions — as well as algorithms that need to work for all of these problems. This gives us two reasons to define a `Distribution` abstraction: `Distribution` will *unify* different applications of Reinforcement Learning and will *generalize* our Reinforcement Learning code to work in different contexts. By programming against a general interface like `Distribution`, our algorithms will be able to work for the different applications we present in the book — and even work for applications we weren't thinking about when we designed the code.
 
 One of the practical advantages of defining general-purpose abstractions in our code is that it gives us a place to add functionality that will work for *any* instance of the abstraction. For example, one of the most common operations for a probability distribution that we can sample is drawing *n* samples. Of course, we could just write a loop every time we needed to do this:
-\index{abstraction}
 
 ``` python
 samples = []
@@ -612,7 +610,7 @@ The code for `Distribution` and several concrete classes implementing the `Distr
     Some combination of `for` and `if` clauses can let us build surprisingly complicated lists! Comprehensions will often be easier to read than loops—a loop could be doing *anything*, a comprehension is always creating a list—but it's always a judgement call. A couple of nested for loops might be easier to read than a sufficiently convoluted comprehension!
 
 ### Abstracting over Computation
-\index{abstraction}
+\index{abstraction!computation}
 
 So far, we've seen how we can build up a programming model for our domain by defining interfaces (like `Distribution`) and writing classes (like `Die`) that implement these interfaces. Classes and interfaces give us a way to model the "things" in our domain, but, in an area like Reinforcement Learning, "things" aren't enough: we also want some way to abstract over the *actions* that we're taking or the computation that we're performing.
 
@@ -652,7 +650,7 @@ repeat(do_something, 10)
 ```
 
 `repeat` takes `action`  and `n` as arguments, then calls `action` `n` times. `action` has the type `Callable` which, in Python, covers functions as well as any other objects you can call with the `f()` syntax. We can also specify the return type and arguments a `Callable` should have; if we wanted the type of a function that took an `int` and a `str` as input and returned a `bool`, we would write `Callable[[int, str], bool]`.
-\index{functions!Callable@\texttt{Callable}}
+\index{Callable@\texttt{Callable}}
 
 The version with the `repeat` function makes our intentions clear in the code. A `for` loop can do many different things, while `repeat` will always just repeat. It's not a big difference in this case — the `for` loop version is sufficiently easy to read that it's not a big impediment — but it becomes more important with complex or domain-specific logic.
 
@@ -690,7 +688,8 @@ The `payoff` function maps outcomes to numbers and then we calculate the expecte
 We'll see first-class functions used in a number of places throughout the book; the key idea to remember is that *functions are values* that we can pass around or store just like any other object.
 
 ##### Lambdas
-\index{functions!lambda@\texttt{lambda}}
+\index{lambda@\texttt{lambda}}
+\index{lambda@\texttt{lambda}!|seealso{functions}}
 
 `payoff` itself is a pretty reasonable function: it has a clear name and works as a standalone concept. Often, though, we want to use a first-class function in some specific context where giving the function a name is not needed or even distracting. Even in cases with reasonable names like `payoff`, it might not be worth introducing an extra named function if it will only be used in one place.
 
@@ -795,7 +794,9 @@ Note how we converted the result of `takewhile` into a list — without that, we
 ```
 
 Now that we've seen a few examples of how we can *use* iterators, how do we define our own? In the most general sense, a Python `Iterator` is any object that implements a `__next__()` method, but implementing iterators this way is pretty awkward. Luckily, Python has a more convenient way to create an iterator by creating a *generator* using the `yield` keyword. `yield` acts similar to `return` from a function, except instead of stopping the function altogether, it outputs the yielded value to an iterator and pauses the function until the yielded element is consumed by the caller.
-\index{iteration!yield@\texttt{yield}|seealso{generators}}
+
+\index{yield@\texttt{yield}}
+\index{yield@\texttt{yield}!|seealso{generators}}
 
 This is a bit of an abstract description, so let's look at how this would apply to our `sqrt` function. Instead of looping and stopping based on some condition, we'll write a version of `sqrt` that returns an iterator with each iteration of the algorithm as a value:
 
