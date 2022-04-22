@@ -217,14 +217,16 @@ def main(
     # xelatex ourselves
     if index and to == "pdf":
         with tempfile.TemporaryDirectory() as tmp:
-            tmp_out = os.path.join(tmp, f"tmp.tex")
+            shutil.copytree("book", os.path.join(tmp, "book"))
+            tmp_out = os.path.join(tmp, "book", f"tmp.tex")
+
             run_pandoc(
                 target, out=tmp_out, to="latex", tf_format=tf_format, index=index
             )
 
             cwd = os.getcwd()
             try:
-                os.chdir(tmp)
+                os.chdir(os.path.join(tmp, "book"))
                 subprocess.run(["xelatex", "tmp.tex"])  # generate .idx file
                 subprocess.run(["makeindex", "tmp"])  # generate .ind file
                 subprocess.run(["xelatex", "tmp.tex"])  # generate pdf with index
