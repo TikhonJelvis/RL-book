@@ -23,6 +23,7 @@ let
       fire
 
       # Tools
+      black
       ipython
       jedi
       jupyter
