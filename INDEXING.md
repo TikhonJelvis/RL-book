@@ -34,6 +34,23 @@ bin/to-pdf --index --tf-format
 
 The `\index` command [offers a number of options][sophisticated-indexing] to structure and format index entries. Here are a few examples useful for us:
 
+### Ranges
+
+If a discussion about a topic covers multiple pages, we can create a range by defining two `\index{...}` entries marked with `|(` and `|)`. We can still call out specific pages within that range separate (eg for a formal definition):
+
+``` markdown
+\index{Markov decision processes|(}
+text
+...
+\index{Markov decision processes|textbf}
+formal definition
+...
+text
+\index{Markov decision processes|)}
+```
+
+![Index entry for "Markov decision processes" with a range of pages and specific pages marked for definitions](misc/index-page-range.png)
+
 ### Formatting and Sorting
 
 We can use TeX formatting commands (including math mode) in index entries. If we do, we need to add a sorting label *without* formatting so that the entry gets sorted correctly.
