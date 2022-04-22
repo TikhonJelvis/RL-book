@@ -17,9 +17,9 @@ How can we take a complex domain like reinforcement learning and turn it into co
 
 There is no simple single answer to these questions. No two programming challenges are identical and the same challenge has many reasonable solutions. A solid design will not be completely clear up-front; it helps to have a clear direction in mind, but expect to revisit specific decisions over time. That's exactly what we did with the code for this book: we had a vision for a Python Reinforcement Learning framework that matched the topics we present, but as we wrote more and more of the book, we revised the framework code as we came up with better ideas or found new requirements our previous design did not cover.
 
-We might have no easy answers, but we do have patterns and principles that — in our experience — consistently produce quality code. Taken together, these ideas form a philosophy of code design oriented around defining and combining *abstractions** that reflect how we think about our domain. Since code itself can point to specific design ideas and capabilities, there's a feedback loop: expanding the programming abstractions we've designed can help us find new algorithms and functionality, improving our understanding of the domain.
+We might have no easy answers, but we do have patterns and principles that — in our experience — consistently produce quality code. Taken together, these ideas form a philosophy of code design oriented around defining and combining **abstractions**\index{abstraction|textbf} that reflect how we think about our domain. Since code itself can point to specific design ideas and capabilities, there's a feedback loop: expanding the programming abstractions we've designed can help us find new algorithms and functionality, improving our understanding of the domain.
 
-Just what *is* an abstraction\index{abstraction}? An appropriately abstract question! An abstraction is a "compound idea": a single concept that combines multiple separate ideas into one. We can combine ideas along two axes:
+Just what *is* an abstraction? An appropriately abstract question! An abstraction is a "compound idea": a single concept that combines multiple separate ideas into one. We can combine ideas along two axes:
 
   * We can *compose* different concepts together, thinking about how they behave as one unit. A car engine has thousands of parts that interact in complex ways, but we can think about it as a single object for most purposes.
   * We can *unify* different concepts by identifying how they are similar. Different breeds of dogs might look totally different, but we can think of all of them as dogs.
@@ -76,7 +76,7 @@ If everything installed correctly, you should see an "OK" message on the last li
 [^venv]: A Python "virtual environment" is a way to manage Python dependencies on a per-project basis. Having a different environment for different Python projects lets each project have its own version of Python libraries, which avoids problems when one project needs an older version of a library and another project needs a newer version.
 
 ### Classes and Interfaces
-\index{classes}\index{interfaces|seealso{classes}}
+\index{interfaces}
 
 What does designing clean abstractions actually entail? There are always two parts to answering this question:
 
@@ -104,16 +104,15 @@ How can we write code to get the expected value of a distribution? If we have a 
 Since distributions are implicit in the code, the *intentions* of the code aren't clear and it is hard to write code that generalizes over distributions. Distributions are absolutely crucial for machine learning, so this is not a great starting point.
 
 #### A Distribution Interface
-\index{interfaces}
 
 To address these problems, let's define an abstraction for probability distributions.
 
 How do we represent a distribution in code? What can we *do* with distributions? That depends on exactly what kind of distribution we're working with. If we know something about the structure of a distribution — perhaps it's a Poisson distribution where $\lambda=5$, perhaps it's an empirical distribution with set probabilities for each outcome — we could do quite a bit: produce an exact Probability Distribution Function (PDF) or Cumulative Distribution Function (CDF), calculate expectations and do various operations efficiently. But that isn't the case for all the distributions we work with! What if the distribution comes from a complicated simulation? At the extreme, we might not be able to do anything except draw samples from the distribution.
 
-Sampling is the least common denominator. We can sample distributions where we don't know enough to do anything else, and we can sample distributions where we know the exact form and parameters. Any abstraction we start with for a probability distribution needs to cover sampling, and any abstraction that requires more than just sampling will not let us handle all the distributions we care about.
+Sampling\index{probability!sampling} is the least common denominator. We can sample distributions where we don't know enough to do anything else, and we can sample distributions where we know the exact form and parameters. Any abstraction we start with for a probability distribution needs to cover sampling, and any abstraction that requires more than just sampling will not let us handle all the distributions we care about.
 
 In Python, we can express this idea with a class:
-\index{classes!abstract classes}
+\index{abstract classes}
 
 ``` python
 from abc import ABC, abstractmethod
@@ -123,10 +122,13 @@ class Distribution(ABC):
     def sample(self):
         pass
 ```
-\index{Distribution@\texttt{Distribution}}
-\index{ABC@\texttt{ABC}|see{abstract classes}}
+\index{probability!Distribution@\texttt{Distribution}}
+\index{abstract classes!ABC@\texttt{ABC}|see{abstract classes}}
+\index{abstract classes!abstract base class|see{abstract classes}}
+\index{abstract classes!abstract methods}
+\index{abstract classes!abstractmethod@\texttt{abstractmethod}|see{abstract methods}}
 
-This class defines an **interface**: a definition of what we require for something to qualify as a distribution. Any kind of distribution we implement in the future will be able to, at minimum, generate samples; when we write functions that sample distributions, they can require their inputs to inherit from `Distribution`.
+This class defines an **interface**\index{interfaces|textbf}: a definition of what we require for something to qualify as a distribution. Any kind of distribution we implement in the future will be able to, at minimum, generate samples; when we write functions that sample distributions, they can require their inputs to inherit from `Distribution`.
 
 The class itself does not actually implement `sample`. `Distribution` captures the *abstract concept* of distributions that we can sample, but we would need to specify a specific distribution to actually sample anything. To reflect this in Python, we've made `Distribution` an **abstract base class** (ABC), with `sample` as an *abstract* method—a method without an implementation. Abstract classes and abstract methods are features that Python provides to help us define interfaces for abstractions. We can define the `Distribution` class to structure the rest of our probability distribution code before we define any specific distributions.
 
@@ -139,7 +141,7 @@ Now that we have an interface, what do we do with it? An interface can be approa
 
 If we have some code that requires an interface and some other code that satisfies the interface, we know that we can put the two together and get something that works — even if the two sides were written without any knowledge or reference to each other. The interface manages how the two sides interact.
 
-To use our `Distribution` class, we can start by providing a **concrete class**[^concrete] that implements the interface. Let's say that we wanted to model dice — perhaps for a game of D&D or Monopoly. We could do this by defining a `Die` class that represents an n-sided die and inherits from `Distribution`:
+To use our `Distribution` class, we can start by providing a **concrete class**[^concrete]\index{concrete classes} that implements the interface. Let's say that we wanted to model dice — perhaps for a game of D&D or Monopoly. We could do this by defining a `Die` class that represents an n-sided die and inherits from `Distribution`:
 
 [^concrete]: In this context, a concrete class is any class that is not an abstract class. More generally, "concrete" is the opposite of "abstract" — when an abstraction can represent multiple more specific concepts, we call any of the specific concepts "concrete".
 
@@ -198,7 +200,7 @@ This seems small but makes debugging *much* easier, especially as the codebase g
 [^f-strings]: Our definition of `__repr__` used a Python feature called an "f-string". Introduced in Python 3.6, f-strings make it easier to inject Python values into strings. By putting an `f` in front of a string literal, we can include a Python value in a string: `f"{1 + 1}"` gives us the string `"2"`.
 
 ##### Dataclasses
-\index{classes!dataclasses}
+\index{dataclasses|(}
 
 The `Die` class we wrote is intentionally simple. Our die is defined by a single property: the number of sides it has. The `__init__` method takes the number of sides as an input and puts it into an *attribute* of the class; once a `Die` object is created, there is no reason to change this value — if we need a die with a different number of sides, we can just create a new object. Abstractions do not have to be complex to be useful.
 
@@ -260,9 +262,12 @@ Most of the classes we will define in the rest of the book follow this same patt
   * It's easy for mistakes to sneak in. For example, if you add an attribute to a class but forget to add it to its `__eq__` method, you won't get an error — `==` will just ignore that attribute. Unless you have tests that explicitly check how `==` handles your new attribute, this oversight can sneak through and lead to weird behavior in code that uses your class.
   * Frankly, writing these methods by hand is just *tedious*.
 
+\index{dataclasses!dataclass@\texttt{"@dataclass}}
+\index{dataclasses|textbf}
+
 Luckily, Python 3.7 introduced a feature that fixes all of these
 problems: **dataclasses**. The `dataclasses` module provides a
-decorator[^decorators] that lets us write a class that behaves like
+decorator[^decorators]\index{decorators} that lets us write a class that behaves like
 `Die` without needing to manually implement `__init__`, `__repr__` or
 `__eq__`. We still have access to "normal" class features like
 inheritance (`(Distribution)`) and custom methods (`sample`):
@@ -327,7 +332,7 @@ Traceback (most recent call last):
 dataclasses.FrozenInstanceError: cannot assign to field 'sides'
 ```
 
-An object that we cannot change is called **immutable**\index{immutability|textbf}\index{immutable|see{immutability}}. Instead of changing the object *in place*, we can return a fresh copy with the attribute changed; `dataclasses` provides a `replace` function that makes this easy:
+An object that we cannot change is called **immutable**\index{immutability|textbf}. Instead of changing the object *in place*, we can return a fresh copy with the attribute changed; `dataclasses` provides a `replace` function that makes this easy:
 
 ``` python
 >>> import dataclasses
@@ -369,9 +374,12 @@ With `frozen=True`, dictionaries and sets work as expected:
 
 Immutable dataclass objects act like plain data — not too different from strings and ints. In this book, we follow the same practice with `frozen=True` as we do with dataclasses in general: we set `frozen=True` unless there is a specific reason not to.
 
+\index{dataclasses|)}
+
 #### Checking Types
 
 A die has to have an int number of sides — `0.5` sides or `"foo"` sides simply doesn't make sense. Python will not stop us from *trying* `Die("foo")`, but we would get a `TypeError` if we tried sampling it:
+\index{types!TypeError@\texttt{TypeError}}
 
 ``` python
 >>> foo = Die("foo")
@@ -385,7 +393,7 @@ Traceback (most recent call last):
 TypeError: can only concatenate str (not "int") to str
 ```
 
-The types of an object's attributes are a useful indicator of how the object should be used. Python's dataclasses let us use **type annotations** \index{type annotations}(also known as "type hints"\index{type hints|see{type annotations}}) to specify the type of each attribute:
+The types of an object's attributes are a useful indicator of how the object should be used. Python's dataclasses let us use **type annotations** \index{types!annotations}(also known as "type hints"\index{types!hints|see{annotations}}) to specify the type of each attribute:
 
 ``` python
 @dataclass(frozen=True)
@@ -416,11 +424,11 @@ This particular message comes from **pyright** running over the [language server
 
 Instead of needing to call `sample` to see an error — which we then have to carefully read to track back to the source of the mistake — the mistake is highlighted for us without even needing to run the code.
 
-##### Static Typing?
+##### Static Typing
 
-Being able to find type mismatches *without running code* is called **static typing**. Some languages — like Java and C++  — require *all* code to be statically typed; Python does not. In fact, Python started out as a **dynamically typed** language with no type annotations and not typechecking. With older versions of Python, type errors could only ever happen at runtime.
+Being able to find type mismatches *without running code* is called **static typing**\index{types!static types|textbf}. Some languages — like Java and C++  — require *all* code to be statically typed; Python does not. In fact, Python started out as a **dynamically typed**\index{types!dynamic types|textbf} language with no type annotations. Type errors would only come up when the code containing the error was run.
 
-Python is still *primarily* a dynamically typed language — type annotations are optional in most places and there is no built-in checking for annotations. In the `Die("foo")` example, we only got an error when we ran code that passed `sides` into a function that *required* an `int` (`random.randint`). We can get static checking with external tools, but even then it remains *optional* — even statically checked Python code runs dynamic type checks, and we can freely mix statically checked and "normal" Python. Optional static typing on top of a dynamically typed languages is called **gradual typing** because we can incrementally add static types to an existing dynamically typed codebase.
+Python is still *primarily* a dynamically typed language — type annotations are optional in most places and there is no built-in checking for annotations. In the `Die("foo")` example, we only got an error when we ran code that passed `sides` into a function that *required* an `int` (`random.randint`). We can get static checking with external tools, but even then it remains *optional* — even statically checked Python code runs dynamic type checks, and we can freely mix statically checked and "normal" Python. Optional static typing on top of a dynamically typed languages is called **gradual typing**\index{types!gradual types|textbf} because we can incrementally add static types to an existing dynamically typed codebase.
 
 Dataclass attributes are not the only place where knowing types is useful; it would also be handy for function parameters, return values and variables. Python supports *optional* annotations on all of these; dataclasses are the only language construct where annotations are *required*. To help mix annotated and unannotated code, typecheckers will report mismatches in code that is explicitly annotated, but will usually not try to guess types for unannotated code.
 
@@ -455,7 +463,7 @@ class Distribution(ABC):
 
 This works — annotations are optional — but it can get confusing: some code we write will work for any kind of distribution, some code needs distributions that return numbers, other code will need something else... In every instance `sample` better return *something*, but that isn't explicitly annotated. When we leave out annotations our code will still work, but our editor or IDE will not catch as many mistakes.
 
-The difficulty here is that different kinds of distributions — different *implementations of the `Distribution` interface* — will return different types from `sample`. To deal with this, we need **type variables**: variables that stand in for *some* type that can be different in different contexts. Type variables are also known as "generics" because they let us write classes that generically work for any type.
+The difficulty here is that different kinds of distributions — different *implementations of the `Distribution` interface* — will return different types from `sample`. To deal with this, we need **type variables**\index{types!variables|textbf}: variables that stand in for *some* type that can be different in different contexts. Type variables are also known as "generics" because they let us write classes that generically work for any type.
 
 To add annotations to the abstract `Distribution` class, we will need to define a type variable for the outcomes of the distribution, then tell Python that `Distribution` is "generic" in that type:
 
@@ -514,6 +522,7 @@ This is an illustrative example, but it doesn't let us do much. If all we needed
 If all we cared about were dice, `Distribution` wouldn't carry its weight. Reinforcement Learning, though, involves both a wide range of specific distributions — any given Reinforcement Learning problem can have domain-specific distributions — as well as algorithms that need to work for all of these problems. This gives us two reasons to define a `Distribution` abstraction: `Distribution` will *unify* different applications of Reinforcement Learning and will *generalize* our Reinforcement Learning code to work in different contexts. By programming against a general interface like `Distribution`, our algorithms will be able to work for the different applications we present in the book — and even work for applications we weren't thinking about when we designed the code.
 
 One of the practical advantages of defining general-purpose abstractions in our code is that it gives us a place to add functionality that will work for *any* instance of the abstraction. For example, one of the most common operations for a probability distribution that we can sample is drawing *n* samples. Of course, we could just write a loop every time we needed to do this:
+\index{abstraction}
 
 ``` python
 samples = []
@@ -532,6 +541,7 @@ class Distribution(ABC, Generic[A]):
 ```
 
 The implementation here is different — it's using a **list comprehension**[^list-comprehension] rather than a normal `for` loop — but it's accomplishing the same thing. The more important distinction happens when we *use* the method; instead of needing a `for` loop or list comprehension each time, we can just write:
+\index{list comprehensions|textbf}
 
 ``` python
 samples = distribution.sample_n(100)
@@ -570,7 +580,6 @@ class Gaussian(Distribution[float]):
 
 That's a 53× difference!
 
-
 The code for `Distribution` and several concrete classes implementing the `Distribution` interface (including `Gaussian`) is in the file [rl/distribution.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/distribution.py).
 
 [^timing]: This code uses the [`timeit`](https://docs.python.org/3/library/timeit.html) module from Python's standard library, which provides a simple way to benchmark small bits of Python code. By default, it measures how long it takes to execute 1,000,000 iterations of the function in seconds, so the two examples here took 0.293ms and 0.006ms respectively.
@@ -603,10 +612,11 @@ The code for `Distribution` and several concrete classes implementing the `Distr
     Some combination of `for` and `if` clauses can let us build surprisingly complicated lists! Comprehensions will often be easier to read than loops—a loop could be doing *anything*, a comprehension is always creating a list—but it's always a judgement call. A couple of nested for loops might be easier to read than a sufficiently convoluted comprehension!
 
 ### Abstracting over Computation
+\index{abstraction}
 
 So far, we've seen how we can build up a programming model for our domain by defining interfaces (like `Distribution`) and writing classes (like `Die`) that implement these interfaces. Classes and interfaces give us a way to model the "things" in our domain, but, in an area like Reinforcement Learning, "things" aren't enough: we also want some way to abstract over the *actions* that we're taking or the computation that we're performing.
 
-Classes do give us one way to model behavior: methods. A common analogy is that objects act as "nouns" and methods act as "verbs" — methods are the actions we can take with an object. This is a useful capability that lets us abstract over doing the same kind of action on different sorts of objects. Our `sample_n` method, for example, with it's default implementation, gives us two things:
+Classes do give us one way to model behavior: **methods**\index{methods|textbf}. A common analogy is that objects act as "nouns" and methods act as "verbs" — methods are the actions we can take with an object. This is a useful capability that lets us abstract over doing the same kind of action on different sorts of objects. Our `sample_n` method, for example, with it's default implementation, gives us two things:
 
 1. If we implement a new type of distribution with a custom sample method, we get `sample_n` for free for that distribution.
 2. If we implement a new type of distribution which has a way to get n samples faster than calling sample n times, we can override the method to use the faster algorithm.
@@ -618,6 +628,7 @@ So if methods are our "verbs", what else do we need? While methods abstract over
 In this world, "nouns" (objects) are **first-class citizens** but "verbs" (methods) aren't. What it takes to be a "first-class" value in a programming language is a fuzzy concept; a reasonable litmus test is whether we can pass a value to a function or store it in a data structure. We can do this with objects, but it's not clear what this would mean for methods.
 
 #### First-Class Functions
+\index{functions!first-class}
 
 If we didn't have a first-class way to talk about actions (as opposed to objects), one way we could work around this would be to represent functions *as* objects with a single method. We'd be able to pass them around just like normal values and, when we needed to actually perform the action or computation, we'd just call the object's method. This solution shows us that it makes sense to have a first-class way to work with actions, but it requires an extra layer of abstraction (an object just to have a single method) which doesn't add anything substantial on its own while making our intentions less clear.
 
@@ -641,6 +652,7 @@ repeat(do_something, 10)
 ```
 
 `repeat` takes `action`  and `n` as arguments, then calls `action` `n` times. `action` has the type `Callable` which, in Python, covers functions as well as any other objects you can call with the `f()` syntax. We can also specify the return type and arguments a `Callable` should have; if we wanted the type of a function that took an `int` and a `str` as input and returned a `bool`, we would write `Callable[[int, str], bool]`.
+\index{functions!Callable@\texttt{Callable}}
 
 The version with the `repeat` function makes our intentions clear in the code. A `for` loop can do many different things, while `repeat` will always just repeat. It's not a big difference in this case — the `for` loop version is sufficiently easy to read that it's not a big impediment — but it becomes more important with complex or domain-specific logic.
 
@@ -678,6 +690,7 @@ The `payoff` function maps outcomes to numbers and then we calculate the expecte
 We'll see first-class functions used in a number of places throughout the book; the key idea to remember is that *functions are values* that we can pass around or store just like any other object.
 
 ##### Lambdas
+\index{functions!lambda@\texttt{lambda}}
 
 `payoff` itself is a pretty reasonable function: it has a clear name and works as a standalone concept. Often, though, we want to use a first-class function in some specific context where giving the function a name is not needed or even distracting. Even in cases with reasonable names like `payoff`, it might not be worth introducing an extra named function if it will only be used in one place.
 
@@ -690,6 +703,7 @@ expected_value(coin_flip, lambda coin: 1.0 if coin == "heads" else 0.0)
 The `lambda` expression here behaves exactly the same as `def payoff` did in the earlier version. Note how the lambda as a single expression with no `return` — if you ever need multiple statements in a function, you'll have to use a `def` instead of a `lambda`. In practice, lambdas are great for functions whose bodies are *short* expressions, but anything that's too long or complicated will read better as a standalone function `def`.
 
 #### Iterative Algorithms
+\index{iteration}
 
 First-class functions give us an abstraction over *individual* computations: we can pass functions around, give them inputs and get outputs, but the computation between the input and the output is a complete black box. The caller of the function has no control over what happens inside the function. This limitation can be a real problem!
 
@@ -732,6 +746,8 @@ Then what do we do when we have $n$ other iterative algorithms? Do we copy-paste
 This friction points to a conceptual distinction that our code does not support: *what happens at each iteration* is logically separate from *how we do the iteration*, but the two are fully coupled in our implementation. We need some way to abstract over iteration in some way that lets us separate *producing* values iteratively from *consuming* them.
 
 Luckily, Python provides powerful facilities for doing exactly this: **iterators** and **generators**. Iterators give us a way of *consuming* values and generators give us a way of *producing* values.
+\index{iteration!iterators|textbf}
+\index{iteration!generators|textbf}
 
 You might not realize it, but chances are your Python code uses iterators all the time. Python's `for` loop uses an iterator under the hood to get each value it's looping over — this is how `for` loops work for lists, dictionaries, sets, ranges and even custom types. Try it out:
 
