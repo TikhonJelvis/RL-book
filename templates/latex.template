@@ -2,7 +2,7 @@
 $if(tf-format)$
 \documentclass[10pt]{AlonLarge}
 $else$
-\documentclass[11t]{scrbook}
+\documentclass[11pt]{scrbook}
 $endif$
 
 \usepackage{fontspec,xltxtra,xunicode}
