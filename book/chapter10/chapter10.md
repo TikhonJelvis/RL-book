@@ -1,6 +1,6 @@
 # Reinforcement Learning Algorithms
 
-## Monte-Carlo (MC) and Temporal-Difference (TD) for Prediction {#sec:rl-prediction-chapter}
+## Monte-Carlo and Temporal-Difference for Prediction {#sec:rl-prediction-chapter}
 
 ### Overview of the Reinforcement Learning approach
 

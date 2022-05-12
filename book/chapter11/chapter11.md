@@ -1,4 +1,4 @@
-## Monte-Carlo (MC) and Temporal-Difference (TD) for Control {#sec:rl-control-chapter}
+## Monte-Carlo and Temporal-Difference for Control {#sec:rl-control-chapter}
 
 In chapter [-@sec:rl-prediction-chapter], we covered MC and TD algorithms to solve the *Prediction* problem. In this chapter, we cover MC and TD algorithms to solve the *Control* problem. As a reminder, MC and TD algorithms are Reinforcement Learning algorithms that only have access to an individual experience (at a time) of next state and reward when the AI agent performs an action in a given state. The individual experience could be the result of an interaction with an actual environment or could be served by a simulated environment (as explained at the state of Chapter [-@sec:rl-prediction-chapter]). It also pays to remind that RL algorithms overcome the Curse of Dimensionality and the Curse of Modeling by incrementally updating (learning) an appropriate function approximation of the Value Function from a stream of individual experiences. Hence, large-scale Control problems that are typically seen in the real-world are often tackled by RL.
 
