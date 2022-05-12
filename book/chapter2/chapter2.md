@@ -365,7 +365,7 @@ class NonTerminal(State[S]):
 Now we are ready to write a class to represent Markov Processes. We create an abstract class `MarkovProcess` parameterized by a generic type (`TypeVar('S')`) representing a generic state space `Generic[S]`. The abstract class has an abstract method called `transition` that is meant to specify the transition probability distribution of next states, given a current non-terminal state. We know that `transition` is well-defined only for non-terminal states and hence, it's argument is clearly type-annotated as `NonTerminal[S]`. The return type of `transition` is `Distribution[State[S]]`, which as we know from the Chapter on *Programming and Design*, represents the probability distribution of next states. We also have a method `simulate` that enables us to generate an `Iterable` (generator) of sampled states, given as input a `start_state_distribution: Distribution[NonTerminal[S]]` (from which we sample the starting state). The sampling of next states relies on the implementation of the `sample` method for  the `Distribution[State[S]]` object produced by the `transition` method. 
 \index{MarkovProcess@\texttt{MarkovProcess}}
 
-Here's the full body of the abstract class `MarkovProcess`:
+Here's the full body of the abstract class `MarkovProcess`[^markov-process-file]:
 
 ```python
 from abc import abstractmethod
@@ -389,7 +389,7 @@ class MarkovProcess(ABC, Generic[S]):
             yield state
 ```
 
-The above code is in the file [rl/markov_process.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/markov_process.py).
+[^markov-process-file]: `MarkovProcess` is defined in the file [rl/markov_process.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/markov_process.py).
 
 ### Stock Price Examples modeled as Markov Processes
 
@@ -501,7 +501,7 @@ Transition = Mapping[NonTerminal[S], FiniteDistribution[State[S]]]
 
 To create a `Transition` data type from the above example of the weather Markov Process, we'd need to wrap each of the "Rain", "Snow" and "Nice" strings with `NonTerminal`. 
 
-Now we are ready to write the code for the `FiniteMarkovProcess` class. The `__init__` method (constructor) takes as argument a `transition_map` whose type is similar to `Transition[S]` except that we use the `S` type directly in the `Mapping` representation instead of `NonTerminal[S]` or `State[S]` (this is convenient for users to specify their Markov Process in a succinct `Mapping` representation without the burden of wrapping each `S` with a `NonTerminal[S]` or `Terminal[S]`). The dictionary we created above for the weather Markov Process can be used as the `transition_map` argument. However, this means the `__init__` method needs to wrap the specified `S` states as `NonTerminal[S]` or `Terminal[S]` when creating the attribute `self.transition_map`. We also have an attribute `self.non_terminal_states: Sequence[NonTerminal[S]]` that is an ordered sequence of the non-terminal states. We implement the `transition` method by simply returning the `FiniteDistribution[State[S]]` the given `state: NonTerminal[S]` maps to in the attribute `self.transition_map: Transition[S]`. Note that along with the `transition` method, we have implemented the `__repr__` method for a well-formatted display of `self.transition_map`.
+Now we are ready to write the code for the `FiniteMarkovProcess` class.[^finite-markov-process-file] The `__init__` method (constructor) takes as argument a `transition_map` whose type is similar to `Transition[S]` except that we use the `S` type directly in the `Mapping` representation instead of `NonTerminal[S]` or `State[S]` (this is convenient for users to specify their Markov Process in a succinct `Mapping` representation without the burden of wrapping each `S` with a `NonTerminal[S]` or `Terminal[S]`). The dictionary we created above for the weather Markov Process can be used as the `transition_map` argument. However, this means the `__init__` method needs to wrap the specified `S` states as `NonTerminal[S]` or `Terminal[S]` when creating the attribute `self.transition_map`. We also have an attribute `self.non_terminal_states: Sequence[NonTerminal[S]]` that is an ordered sequence of the non-terminal states. We implement the `transition` method by simply returning the `FiniteDistribution[State[S]]` the given `state: NonTerminal[S]` maps to in the attribute `self.transition_map: Transition[S]`. Note that along with the `transition` method, we have implemented the `__repr__` method for a well-formatted display of `self.transition_map`.
 
 ```python
 from typing import Sequence
@@ -538,7 +538,7 @@ class FiniteMarkovProcess(MarkovProcess[S]):
         return self.transition_map[state]
 ```
 
-The above code is in the file [rl/markov_process.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/markov_process.py).
+[^finite-markov-process-file]: `FiniteMarkovProcess` is defined in the file [rl/markov_process.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/markov_process.py).
 
 ### Simple Inventory Example
 
@@ -796,7 +796,7 @@ class MarkovRewardProcess(MarkovProcess[S]):
             state = next_state
 ```
 
-So the idea is that if someone wants to model a Markov Reward Process, they'd simply have to create a concrete class that implements the interface of the `@abstractclass MarkovRewardProcess` (specifically implement the abstract method `transition_reward`). But note that the abstract method `transition` of `MarkovProcess` also needs to be implemented to make the whole thing concrete. However, we don't have to implement it in the concrete class implementing the interface of `MarkovRewardProcess` - in fact, we can implement it in the `MarkovRewardProcess` class itself by tapping the method `transition_reward`. Here's the code for the `transition` method in `MarkovRewardProcess`:
+So the idea is that if someone wants to model a Markov Reward Process, they'd simply have to create a concrete class that implements the interface of the abstract class `MarkovRewardProcess` (specifically implement the abstract method `transition_reward`). But note that the abstract method `transition` of `MarkovProcess` also needs to be implemented to make the whole thing concrete. However, we don't have to implement it in the concrete class implementing the interface of `MarkovRewardProcess` - in fact, we can implement it in the `MarkovRewardProcess` class itself by tapping the method `transition_reward`. Here's the code for the `transition` method in `MarkovRewardProcess`:
 
 ```python
 from rl.distribution import Distribution, SampledDistribution
@@ -811,8 +811,9 @@ from rl.distribution import Distribution, SampledDistribution
         return SampledDistribution(next_state)
 ```
 
-Note that since the `transition_reward` method is abstract in `MarkovRewardProcess`, the only thing the `transition` method can do is to tap into the `sample` method of the abstract `Distribution` object produced by `transition_reward` and return a `SampledDistribution`. The full code for the `MarkovRewardProcess` class shown above is in the file [rl/markov_process.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/markov_process.py).
+Note that since the `transition_reward` method is abstract in `MarkovRewardProcess`[^markov-reward-process-full], the only thing the `transition` method can do is to tap into the `sample` method of the abstract `Distribution` object produced by `transition_reward` and return a `SampledDistribution`.
 
+[^markov-reward-process-full]: The full definition of `MarkovRewardProcess` is in the file [rl/markov_process.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/markov_process.py).
 
 Now let us develop some more theory. Given a specification of $\mathcal{P}_R$, we can extract:
 \begin{itemize}
@@ -935,7 +936,7 @@ The `FiniteMarkovRewardProcess` class has 3 responsibilities:
 * It needs to implement the `transition_reward` method analogous to the implementation of the `transition` method in `FiniteMarkovProcess`
 * It needs to compute the reward fuction $\mathcal{R}: \mathcal{N} \rightarrow \mathbb{R}$ from the transition probability function $\mathcal{P}_R$ (i.e. from `self.transition_reward_map: RewardTransition`) based on the expectation calculation we specified above (as mentioned earlier, $\mathcal{R}$ is key to the relevant calculations we shall soon be performing on Finite Markov Reward Processes). To perform further calculations with the reward function $\mathcal{R}$, we need to produce it as a 1-dimensional numpy array (i.e., a vector) attribute of the class (we name it as `reward_function_vec`).
 
-Here's the code that fulfills the above three responsibilities:
+Here's the code that fulfills the above three responsibilities[^finite-markov-reward-process-file]:
 
 ```python
 import numpy as np
@@ -982,7 +983,7 @@ class FiniteMarkovRewardProcess(FiniteMarkovProcess[S],
         return self.transition_reward_map[state]
 ```
 
-The code for `FiniteMarkovRewardProcess` (and more) is in [rl/markov_process.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/markov_process.py).
+[^finite-markov-reward-process-file]: The code for `FiniteMarkovRewardProcess` (and more) is in [rl/markov_process.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/markov_process.py).
 
 ### Simple Inventory Example as a Finite Markov Reward Process
 

@@ -208,7 +208,7 @@ $$\pi(s,a; \bm{\theta}) = \frac 1 {\sqrt{2 \pi \sigma^2}} \cdot e^{-\frac {(a - 
 
 To be clear, our code below works with the `@abstractclass FunctionApprox` (meaning it is an arbitrary parameterized function approximation) with the assumption that the probability distribution of actions given a state is Gaussian whose variance $\sigma^2$ is assumed to be a constant.  Assume we have $m$ features for our function approximation, denoted as $\bm{\phi}(s) = (\phi_1(s), \ldots, \phi_m(s))$ for all $s \in \mathcal{N}$.
 
-$\sigma$ is specified in the code below with the input `policy_stdev`. The input `policy_mean_approx0: FunctionApprox[NonTerminal[S]]` specifies the function approximation we initialize the algorithm with (it is up to the user of `reinforce_gaussian` to configure `policy_mean_approx0` with the appropriate functional form for the function approximation, the hyper-parameter values, and the initial values of the parameters $\bm{\theta}$ that we want to solve for). 
+$\sigma$ is specified in the code below as `policy_stdev`. The input `policy_mean_approx0:` `FunctionApprox[NonTerminal[S]]` specifies the function approximation we initialize the algorithm with (it is up to the user of `reinforce_gaussian` to configure `policy_mean_approx0` with the appropriate functional form for the function approximation, the hyper-parameter values, and the initial values of the parameters $\bm{\theta}$ that we want to solve for). 
 
 The Gaussian policy (of the type `GaussianPolicyFromApprox`) selects an action $a$ (given state $s$) by sampling from the gaussian distribution defined by mean $g(s;\bm{\theta})$ and variance $\sigma^2$.
 

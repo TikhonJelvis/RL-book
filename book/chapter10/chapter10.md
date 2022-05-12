@@ -54,9 +54,12 @@ class TransitionStep(Generic[S]):
     reward: float
 ```
 
-`TransitionStep[S]` will be our representation for a single atomic experience. `simulate_reward` produces an `Iterator[TransitionStep[S]]` (i.e., a stream of atomic experiences in the form of a sampling trace) but in general, we can represent a single trace experience as an `Iterable[TransitionStep[S]]` (i.e., a sequence *or* stream of atomic experiences). Therefore, we want the input to an RL prediction algorithm to be either an `Iterable[TransitionStep[S]]` (representing an `Iterable` of atomic experiences) or an `Iterable[Iterable[TransitionStep[S]]]` (representing an `Iterable` of trace experiences).
+`TransitionStep[S]` represents a single atomic experience. `simulate_reward` produces an `Iterator[TransitionStep[S]]` (i.e., a stream of atomic experiences in the form of a sampling trace) but in general, we can represent a single trace experience as an `Iterable[TransitionStep[S]]` (i.e., a sequence *or* stream of atomic experiences). Therefore, we want the input to an RL prediction algorithm to be either: 
 
-Let's add a method `reward_traces` to `MarkovRewardProcess` that produces an `Iterator` (stream) of the sampling traces  produced by `simulate_reward`. So then we'd be able to use the output of `reward_traces` as the `Iterable[Iterable[TransitionStep[S]]]` input to an RL Prediction algorithm. Note that the input `start_state_distribution` is the specification of the probability distribution of start states (state from which we start a sampling trace that can be used as a trace experience).
+  * an `Iterable[TransitionStep[S]]` representing a stream of atomic experiences
+  * an `Iterable[Iterable[TransitionStep[S]]]` representing a stream of trace experiences
+
+Let's add a method `reward_traces` to `MarkovRewardProcess` that produces an `Iterator` (stream) of the sampling traces  produced by `simulate_reward`.[^reward-traces-file] So then we'd be able to use the output of `reward_traces` as the `Iterable[Iterable[TransitionStep[S]]]` input to an RL Prediction algorithm. Note that the input `start_state_distribution` is the specification of the probability distribution of start states (state from which we start a sampling trace that can be used as a trace experience).
 
 ```python
     def reward_traces(
@@ -67,7 +70,7 @@ Let's add a method `reward_traces` to `MarkovRewardProcess` that produces an `It
             yield self.simulate_reward(start_state_distribution)
 ```
 
-The code above is in the file [rl/markov_process.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/markov_process.py).
+[reward-traces-file]: `reward_traces` is defined in the file [rl/markov_process.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/markov_process.py).
 
 
 ### Monte-Carlo (MC) Prediction
@@ -97,7 +100,9 @@ def mc_prediction(
 
 The core of the `mc_prediction` function above is the call to the `returns` function (detailed below and available in the file [rl/returns.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/returns.py)). `returns` takes as input: `trace` representing a trace experience (`Iterable` of `TransitionStep`), the discount factor `gamma`, and an `episodes_length_tolerance` that determines how many time steps to cover in each trace experience when $\gamma < 1$ (as many steps as until $\gamma^{steps}$ falls below `episodes_length_tolerance` or until the trace experience ends in a terminal state, whichever happens first). If $\gamma = 1$, each trace experience needs to end in a terminal state (else the `returns` function will loop forever). 
 
-The `returns` function calculates the returns $G_t$ (accumulated discounted rewards) starting from each state $S_t$ in the trace experience. The key is to walk backwards from the end of the trace experience to the start (so as to reuse the calculated returns while walking backwards: $G_t = R_{t+1} + \gamma \cdot G_{t+1}$). Note the use of `iterate.accumulate` to perform this backwards-walk calculation, which in turn uses the `add_return` method in `TransitionStep` to create an instance of `ReturnStep`. The `ReturnStep` (as seen in the code below) class is derived from the `TransitionStep` class and includes the additional attribute named `return_`. We add a method called `add_return` in `TransitionStep` so we can augment the attributes `state`, `reward`, `next_state` with the additional attribute `return_` that is computed as reward plus gamma times the `return_` from the next state. 
+The `returns` function calculates the returns $G_t$ (accumulated discounted rewards) starting from each state $S_t$ in the trace experience. [^returns-file] The key is to walk backwards from the end of the trace experience to the start (so as to reuse the calculated returns while walking backwards: $G_t = R_{t+1} + \gamma \cdot G_{t+1}$). Note the use of `iterate.accumulate` to perform this backwards-walk calculation, which in turn uses the `add_return` method in `TransitionStep` to create an instance of `ReturnStep`. The `ReturnStep` (as seen in the code below) class is derived from the `TransitionStep` class and includes the additional attribute named `return_`.
+
+We add a method called `add_return` in `TransitionStep` so we can augment the attributes `state`, `reward`, `next_state` with the additional attribute `return_` that is computed as reward plus gamma times the `return_` from the next state. [^transition-step-file]
 
 
 ```python
@@ -120,7 +125,9 @@ class ReturnStep(TransitionStep[S]):
     return_: float
 ```
 
-The above code is in the file [rl/markov_process.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/markov_process.py). The code below is in the file [rl/returns.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/returns.py). 
+[^transition-step-file]: `TransitionStep` and the `add_return` method are defined in the file [rl/markov_process.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/markov_process.py).
+
+[^returns-file]: `returns` is defined in the file [rl/returns.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/returns.py). 
 
 ```python
 import itertools
@@ -489,7 +496,9 @@ This prints the following:
  NonTerminal(state=InventoryState(on_hand=2, on_order=0)): -30.305}
 ```
 
-Thus, we see that our implementation of TD prediction with the above settings fetches us an estimated Value Function within 0.065 of the true Value Function after 60,000 episodes. As ever, we encourage you to play with various settings for MC Prediction and TD prediction to develop some intuition for how the results change as you change the settings. You can play with the code in the file [rl/chapter10/simple_inventory_mrp.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/chapter10/simple_inventory_mrp.py).
+Thus, we see that our implementation of TD prediction with the above settings fetches us an estimated Value Function within 0.065 of the true Value Function after 60,000 episodes.
+
+As ever, we encourage you to play with various settings for MC Prediction and TD prediction to develop some intuition for how the results change as you change the settings. You can play with the code in the file [rl/chapter10/simple_inventory_mrp.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/chapter10/simple_inventory_mrp.py).
 
 ### TD versus MC
 
@@ -840,7 +849,7 @@ This variant of the TD Prediction algorithm is known as *Batch Updating* and mor
 
 Although our TD Prediction algorithm is an Incremental Method, it did get fairly close to the Value Function of the data-implied MRP. So let us ignore the nuance that our TD Prediction algorithm didn't exactly match the Value Function of the data-implied MRP and instead focus on the fact that our MC Prediction algorithm and our TD Prediction algorithm drove towards two very different Value Functions. The MC Prediction algorithm learns a "fairly naive" Value Function - one that is based on the mean of the observed returns (for each state) in the given fixed finite data. The TD Prediction algorithm is learning something "deeper" - it is (implicitly) constructing an MRP based on the given fixed finite data (Equation \eqref{eq:mrp-mle}), and then (implicitly) calculating the Value Function of the constructed MRP. The mechanics of the TD Prediction algorithms don't actually construct the MRP and calculate the Value Function of the MRP - rather, the TD Prediction algorithm directly drives towards the Value Function of the data-implied MRP. However, the fact that it gets to this "more nuanced" Value Function means that it is (implictly) trying to infer a transitions structure from the given data, and hence, we say that it is learning something "deeper" than what MC is learning. This has practical implications. Firstly, this learning facet of TD means that it exploits any Markov property in the environment and so, TD algorithms are more efficient (learn faster than MC) in Markov environments. On the other hand, the naive nature of MC (not exploiting any Markov property in the environment) is advantageous (more effective than TD) in non-Markov environments.
 
-We encourage you to play with the above code (in the file [rl/chapter10/mc_td_experience_replay.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/chapter10/mc_td_experience_replay.py)) by trying Experience Replay on larger input data sets. We also encourage you to code up Batch Method variants of MC and TD Prediction algorithms.
+We encourage you to try Experience Replay on larger input data sets, and to code up Batch Method variants of MC and TD prediction algorithms. As a starting point, the experience replay code for this chapter is in the file [rl/chapter10/mc_td_experience_replay.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/chapter10/mc_td_experience_replay.py).
 
 #### Bootstrapping and Experiencing
 
