@@ -59,7 +59,7 @@ class TransitionStep(Generic[S]):
   * an `Iterable[TransitionStep[S]]` representing a stream of atomic experiences
   * an `Iterable[Iterable[TransitionStep[S]]]` representing a stream of trace experiences
 
-Let's add a method `reward_traces` to `MarkovRewardProcess` that produces an `Iterator` (stream) of the sampling traces  produced by `simulate_reward`.[^reward-traces-file] So then we'd be able to use the output of `reward_traces` as the `Iterable[Iterable[TransitionStep[S]]]` input to an RL Prediction algorithm. Note that the input `start_state_distribution` is the specification of the probability distribution of start states (state from which we start a sampling trace that can be used as a trace experience).
+Let's add a method `reward_traces` to `MarkovRewardProcess` that produces an `Iterator` (stream) of the sampling traces  produced by `simulate_reward`. [^reward-traces-file] So then we'd be able to use the output of `reward_traces` as the `Iterable[Iterable[TransitionStep[S]]]` input to an RL Prediction algorithm. Note that the input `start_state_distribution` is the specification of the probability distribution of start states (state from which we start a sampling trace that can be used as a trace experience).
 
 ```python
     def reward_traces(
@@ -70,7 +70,7 @@ Let's add a method `reward_traces` to `MarkovRewardProcess` that produces an `It
             yield self.simulate_reward(start_state_distribution)
 ```
 
-[reward-traces-file]: `reward_traces` is defined in the file [rl/markov_process.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/markov_process.py).
+[^reward-traces-file]: `reward_traces` is defined in the file [rl/markov_process.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/markov_process.py).
 
 
 ### Monte-Carlo (MC) Prediction
@@ -618,7 +618,7 @@ def fixed_experiences_from_fixed_episodes(
     return list(itertools.chain.from_iterable(fixed_episodes))
 ```
 
-We'd like TD Prediction to run on an endless stream of `TransitionStep[S]` sourced from the fixed finite set of atomic experiences produced by `fixed_experiences_from_fixed_episodes`. So we write the following function to generate an endless stream by repeatedly randomly (uniformly) sampling from the fixed finite set of atomic experiences:
+We'd like TD Prediction to run on an endless stream of `TransitionStep[S]` from the fixed finite set of atomic experiences produced by `fixed_experiences_from_fixed_episodes`. So we write the following function to generate an endless stream by repeatedly randomly (uniformly) sampling from the fixed finite set of atomic experiences:
 
 ```python
 def get_experiences_stream(

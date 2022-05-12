@@ -670,7 +670,7 @@ Running this horse race for 9 Bernoulli arms with 500 time steps, 500 episodes a
 
 Figure \ref{fig:bernoulli_horse_race_arms_count} shows the number of times each arm is pulled (for each of the algorithms). The X-axis is sorted by the mean of the reward distributions of the arms. For each arm, the left-to-right order of the arm-pulls count is the order in which the 6 MAB algorithms are listed above. As we can see, the arms with low means are pulled only a few times and the arms with high means are pulled often.
 
-As ever, we encourage you to experiment with the code in [rl/chapter14/plot_mab_graphs.py](https://github.com/TikhonJelvis/RL-book/tree/master/rl/chapter14/plot_mab_graphs.py) - try different arm distributions, try different input parameters for each of the algorithms, plot the graphs, and try to explain the relative performance of the algorithms (perhaps by writing some more diagnostics code). This will help build tremendous intuition on the pros and cons of these algorithms.
+We encourage you to experiment with the code in [rl/chapter14/plot_mab_graphs.py](https://github.com/TikhonJelvis/RL-book/tree/master/rl/chapter14/plot_mab_graphs.py): try different arm distributions, try different input parameters for each of the algorithms, plot the graphs, and try to explain the relative performance of the algorithms (perhaps by writing some more diagnostics code). This will help build tremendous intuition on the pros and cons of these algorithms.
 
 ### Information State Space MDP
 
