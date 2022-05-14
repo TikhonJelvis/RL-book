@@ -4,7 +4,7 @@ In this chapter, we venture into the world of Algorithmic Trading and specifical
 
 For a deeper study on the topics of Order Book, Price Impact, Order Execution, Market-Making (and related topics), we refer you to the comprehensive treatment in [Olivier Gueant's book](https://www.amazon.com/Financial-Mathematics-Market-Liquidity-Execution/dp/1498725473) [@Gueant2016].
 
-![Trading Order Book \label{fig:trading_order_book}](./chapter9/order_book.png "Trading Order Book")
+![Trading Order Book (Image Credit: [https://nms.kcl.ac.uk/rll/enrique-miranda/index.html](https://nms.kcl.ac.uk/rll/enrique-miranda/index.html)) \label{fig:trading_order_book}](./chapter9/order_book.png "Trading Order Book (Image Credit: [https://nms.kcl.ac.uk/rll/enrique-miranda/index.html](https://nms.kcl.ac.uk/rll/enrique-miranda/index.html))")
 
 ### Basics of Order Book and Price Impact
 
