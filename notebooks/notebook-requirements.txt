@@ -1,0 +1,4 @@
+more-itertools==8.4.0
+scipy==1.7.0
+typed-ast==1.4.1
+typing-extensions==3.7.4.3
