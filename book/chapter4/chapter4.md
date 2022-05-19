@@ -110,7 +110,7 @@ def iterate(step: Callable[[X], X], start: X) -> Iterator[X]:
         state = step(state)
 ```
 
-The above function takes as input a function (`step: Callable[X], X]`) and a starting value (`start: X`), and repeatedly applies the function while `yield`ing the values in the form of an `Iterator[X]`, i.e., as a stream of values. This produces an endless stream though. We need a way to specify convergence, i.e., when successive values of the stream are "close enough". 
+The above function takes as input a function (`step: Callable[[X], X]`) and a starting value (`start: X`), and repeatedly applies the function while `yield`ing the values in the form of an `Iterator[X]`, i.e., as a stream of values. This produces an endless stream though. We need a way to specify convergence, i.e., when successive values of the stream are "close enough". 
 
 ```python
 def converge(values: Iterator[X], done: Callable[[X, X], bool]) -> Iterator[X]:
