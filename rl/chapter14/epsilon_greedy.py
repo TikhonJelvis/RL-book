@@ -113,7 +113,7 @@ if __name__ == '__main__':
     plot_list_of_curves(
         [range(1, steps + 1), range(1, steps + 1), range(1, steps + 1)],
         [greedy_cum_regret, eg_cum_regret, decay_eg_cum_regret],
-        ["r", "b", "g"],
+        ["r-", "b--", "g-."],
         ["Greedy", "$\epsilon$-Greedy", "Decaying $\epsilon$-Greedy"],
         x_label="Time Steps",
         y_label="Expected Total Regret",

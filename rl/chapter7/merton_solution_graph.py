@@ -92,7 +92,7 @@ if __name__ == '__main__':
             expected_wealth_growth,
             [expected_portfolio_return] * intervals
         ],
-        ["b", "g", "r"],
+        ["b-", "g--", "r-."],
         [
          "Fractional Consumption Rate",
          "Expected Wealth Growth Rate",

@@ -20,8 +20,10 @@ let
       numpy
       pandas
       scipy
+      fire
 
       # Tools
+      black
       ipython
       jedi
       jupyter
@@ -72,5 +74,8 @@ pkgs.stdenv.mkDerivation {
 
   # Should be set to an absolute path to the latex directory that's in
   # the same directory as *this file*
+  #
+  # Note: trailing comma (:) is important! Without it, LaTeX won't
+  # find standard classes like article.cls.
   TEXINPUTS = "${toString ./latex}:";
 }

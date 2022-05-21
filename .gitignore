@@ -17,10 +17,15 @@ __pycache__
 # LaTeX files
 book/*/*.tex
 book.tex
+*.tex
 *.aux
 *.dvi
 *.log
 *.out.ps
-latex/Alon.cls
+*.idx
+*.ind
+*.ilg
+latex/Alon*
 latex/epigrafica.sty
 lgrenc.def
+

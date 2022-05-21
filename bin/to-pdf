@@ -1,90 +1,256 @@
-#!/usr/bin/env bash
+#!/usr/bin/env python3
+import os
+from os.path import abspath, basename, splitext
+import shutil
+import subprocess
+import sys
+import tempfile
 
-book=0
-
-if [[ -z "$DEJA_VU_DIRECTORY" ]]
-then
-    echo "DEJA_VU_DIRECTORY variable not set."
-    echo "Try restarting your Nix shell."
-    exit 1
-fi
-
-if [[ $# -eq 0 ]]
-then
-    book=1
-fi
-
-if [[ $TF_FORMAT == 1 ]]
-then
-    echo "Using T&F format."
-fi
-
-run_pandoc() {
-    out=$1
-    format=$2
-    chapters="${@:3}"
-
-    cd book
-    pandoc --to "$format" \
-             --output "$out" \
-             --metadata chapters \
-             --metadata title='Foundations of Reinforcement Learning with Applications in Finance' \
-             --metadata author='Ashwin Rao, Tikhon Jelvis' \
-             --metadata reference-section-title='Bibliography' \
-             --filter pandoc-crossref \
-             --pdf-engine xelatex \
-             --template ../templates/latex.template \
-             --top-level-division part \
-             $( (( book == 1 )) && printf %s '--toc' ) \
-             $(tf-format --metadata tf-format) \
-             --lua-filter ../bin/alon-style-quotes.lua \
-             --citeproc \
-             --bibliography bibliography.bib \
-             $(tf-format --lua-filter ../bin/remove-hyperref.lua) \
-             $chapters
-
-    cd ..
-}
-
-tf-format() {
-    if [[ $TF_FORMAT == 1 ]]; then echo -n "${@}"; fi
-}
+import fire
 
 
-format="pdf"
-if [[ $TO_TEX == 1 ]]; then format="latex"; fi
+def all_chapters():
+    """
+    Parse the structure file (in the top level of the repo) to get a
+    list of chapters in the order they appear in the book.
 
-extension="$format"
-if [ "$format" = "latex" ]; then extension="tex"; fi
+    Empty lines and lines starting from # in the structure file are
+    ignored.
+
+    :return: A list of chapter names for the book: ("preface",
+             "chapter1", "appendix1"... etc)
+    """
+    with open("structure", "r") as structure:
+        return [
+            chapter.strip()
+            for chapter in structure
+            if len(chapter) > 0
+            if chapter[0] != "#"
+            if not chapter.isspace()
+        ]
 
 
-if [[ $book == 1 ]]
-then
-    out="$(pwd)/book.$extension"
+def chapter_name(chapter):
+    """
+    We want accept several different formats to specify the chpater:
 
-    echo "Building $out from:"
-    while read chapter
-    do
-        echo "book/$chapter/${chapter}.md"
-        names+=("$chapter/${chapter}.md")
-    done < <(grep -vxE -e '(^#.*$|^\s*$)' structure)
-    # Regexp matches blank lines and comments, which we filter out
-    # with grep
+      • chapter1
+      • chapter1/chapter1
+      • chapter1/chapter1.md
+      • book/chapter1/chapter1.md
 
-    run_pandoc "$out" "$format" "${names[@]}"
-else
-    # Several equivalent options:
-    #
-    # bin/to-pdf chapter1
-    # bin/to-pdf chapter1/chapter1
-    # bin/to-pdf chapter1/chapter1.md
-    # bin/to-pdf book/chapter1/chapter1.md
-    file=$(basename $1)
-    name="${file%.*}"
-    target="$name/$name.md"
-    out="${target%.*}.$extension"
+    This function takes an input formatted like above and normalizes
+    to just the name of the chapter (ie chapter1 in the above
+    example).
 
-    echo "Converting book/$target to book/$out"
-    run_pandoc "$out" "$format" "$target"
-fi
+    :param chapter: name of the chapter (format is flexible)
 
+    :return: normalized name of the chapter ("preface", "chapter1"...
+        etc)
+    """
+    name, _ = splitext(basename(chapter))
+    return name
+
+
+def run_pandoc(target, *, out, to, tf_format, index):
+    """
+    Run pandoc to compile either the entire book or a single chapter.
+
+    :param target: either a chapter name or "book"
+    :param out: absolute path for the generated tex/pdf/etc file
+    :param to: format to generate: tex/latex/pdf/etc
+    :param tf_format: if True, try to use proprietary T&F .cls file
+    :param index: if True, generate indexing commands—requires two
+        compiles when to=pdf
+    """
+    if target == "book":
+        chapters = [f"{name}/{name}.md" for name in all_chapters()]
+        toc = ["--toc"]
+    else:
+        name = chapter_name(target)
+        chapters = [f"{name}/{name}.md"]
+        toc = []
+
+    do_index = ["--metadata", "index"] if index else []
+
+    out = abspath(out)
+
+    tf_settings = (
+        [
+            "--metadata",
+            "tf-format",
+            "--lua-filter",
+            "../bin/remove-hyperref.lua",
+        ]
+        if tf_format
+        else []
+    )
+
+    try:
+        os.chdir("book")
+        subprocess.run(
+            [
+                "pandoc",
+                "--to",
+                to,
+                "--output",
+                out,
+                "--metadata",
+                "chapters",
+                "--metadata",
+                "numbersections",
+                "--metadata",
+                "title=Foundations of Reinforcement Learning with Applications in Finance",
+                "--metadata",
+                "author=Ashwin Rao, Tikhon Jelvis",
+                "--metadata",
+                "reference-section-title=Bibliography",
+                "--filter",
+                "pandoc-crossref",
+                "--pdf-engine",
+                "xelatex",
+                "--template",
+                "../templates/latex.template",
+                "--top-level-division",
+                "part",
+                "--lua-filter",
+                "../bin/alon-style-quotes.lua",
+                "--citeproc",
+                "--bibliography",
+                "bibliography.bib",
+            ]
+            + do_index
+            + toc
+            + tf_settings
+            + chapters
+        )
+    finally:
+        os.chdir("..")
+
+
+def pdf_to_grayscale(pdf, out=None):
+    """
+    Use the gs command to convert a PDF at the given path to
+    grayscale.
+
+    :param pdf: path to the PDF to convert
+    :param out: path to save grayscale PDF, defaults to overwriting
+        input
+    """
+    if out is None:
+        out = pdf
+
+    subprocess.run(
+        [
+            "gs",
+            f"-sOutputFile={out}",
+            "-sDEVICE=pdfwrite",
+            "-sColorConversionStrategy=Gray",
+            "-dProcessColorModel=/DeviceGray",
+            "-dCompatibilityLevel=1.4",
+            "-dNOPAUSE",
+            "-dBATCH",
+            pdf,
+        ],
+        check=True,
+        capture_output=True,
+    )
+
+
+def main(
+    target=None,
+    *,
+    tf_format=False,
+    out=None,
+    to="pdf",
+    gray=False,
+    index=False,
+):
+    """
+    Usage: bin/to-pdf [chapter] [--tf-format] [--out|-o=<out-path>] [--to=pdf|tex]
+
+    Compile either the entire book or a single chapter. Needs to run
+    in a Nix shell and from the top-level directory fo the repo.
+
+    :param target: Optional chapter name. Generates entire book by
+        default.
+    :param out: Path to save output (optional). Uses chapter or book
+        name with appropriate file extension if not specified.
+    :param tf_format: If set, try to use proprietary T&F .cls file
+        (default: False)
+    :param to: Format to generate. Can be "tex", "latex", "pdf" or
+        any other format supported by pandoc. (Default: "pdf")
+    :param gray: If set, generate grayscale version of PDF. Only
+        works with to="pdf". (Default: False)
+    :param index: If set, generate an index. Requires two xelatex
+        compiles when to=pdf (might be slow). (Default: False)
+    """
+    if "DEJA_VU_DIRECTORY" not in os.environ:
+        print("DEJA_VU_DIRECTORY variable not set.")
+        print("Try restarting your Nix shell.")
+        sys.exit(1)
+
+    # It's nice to use to=tex or to=latex interchangeably
+    if to == "tex":
+        to = "latex"
+    extension = "tex" if to == "latex" else to
+
+    if target:
+        name = chapter_name(target)
+        out = f"{name}.{extension}"
+        print(f"Building {out} from book/{name}/{name}.md")
+    else:
+        target = "book"
+        out = f"Foundations of Reinforcement Learning.{extension}"
+        chapters = "\n".join([f"  • {name}/{name}.md" for name in all_chapters()])
+        print(f"Building {out} from:\n{chapters}")
+
+    out = abspath(out)
+
+    if tf_format:
+        print("T&F Format")
+    if index:
+        print("with index")
+    if gray:
+        print("with grayscale PDF")
+
+    # We can't use pandoc --to=pdf directly to generate an index;
+    # instead, we have to generate a .tex file and run makeindex +
+    # xelatex ourselves
+    if index and to == "pdf":
+        with tempfile.TemporaryDirectory() as tmp:
+            shutil.copytree("book", os.path.join(tmp, "book"))
+            tmp_out = os.path.join(tmp, "book", f"tmp.tex")
+
+            run_pandoc(
+                target, out=tmp_out, to="latex", tf_format=tf_format, index=index
+            )
+
+            cwd = os.getcwd()
+            try:
+                os.chdir(os.path.join(tmp, "book"))
+                subprocess.run(["xelatex", "tmp.tex"])  # generate .idx file
+                subprocess.run(["makeindex", "tmp"])  # generate .ind file
+                subprocess.run(["xelatex", "tmp.tex"])  # generate pdf with index
+                shutil.copyfile("tmp.pdf", out)
+            finally:
+                os.chdir(cwd)
+    else:
+        run_pandoc(target, out=out, to=to, tf_format=tf_format, index=index)
+
+    if gray:
+        if to != "pdf":
+            print(f"Can only generate grayscale version for --to=pdf, not --to={to}")
+            sys.exit(1)
+
+        try:
+            pdf_to_grayscale(out, f"gray-{out}")
+            print(f"Grayscale version of {out} at gray-{out}")
+        except subprocess.CalledProcessError as e:
+            print("Failed to generate grayscale version of PDF")
+            print(e.stderr)
+            sys.exit(1)
+
+
+if __name__ == "__main__":
+    fire.Fire(main)

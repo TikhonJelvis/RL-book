@@ -104,7 +104,7 @@ class FiniteMarkovProcess(MarkovProcess[S]):
         self.transition_map = {
             NonTerminal(s): Categorical(
                 {(NonTerminal(s1) if s1 in non_terminals else Terminal(s1)): p
-                 for s1, p in v.table().items()}
+                 for s1, p in v}
             ) for s, v in transition_map.items()
         }
         self.non_terminal_states = list(self.transition_map.keys())
@@ -272,7 +272,7 @@ class FiniteMarkovRewardProcess(FiniteMarkovProcess[S],
         self.transition_reward_map = {
             NonTerminal(s): Categorical(
                 {(NonTerminal(s1) if s1 in nt else Terminal(s1), r): p
-                 for (s1, r), p in v.table().items()}
+                 for (s1, r), p in v}
             ) for s, v in transition_reward_map.items()
         }
 

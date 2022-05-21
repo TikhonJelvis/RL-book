@@ -69,6 +69,18 @@ into book.pdf
 
 Note that this can take a little while (10–20 seconds for chapters 0–5).
 
+### Index
+
+We can generate an index with the `--index` flag:
+
+``` shell
+bin/to-pdf chapter1 --index
+```
+
+This requires running `xelatex` twice, so it'll take longer to generate the PDF. Index terms [are defined within the text with the `\index` command][index-command].
+
+[index-command]: INDEXING.md
+
 ### Cross-references
 
 We can define labels for chapters and headings:

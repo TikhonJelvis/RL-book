@@ -331,7 +331,7 @@ def compare_td_and_mc(
 ) -> None:
     true_vf: np.ndarray = fmrp.get_value_function_vec(gamma)
     states: Sequence[NonTerminal[S]] = fmrp.non_terminal_states
-    colors: Sequence[str] = ['b', 'g', 'r', 'k', 'c', 'm', 'y']
+    colors: Sequence[str] = ['r', 'y', 'm', 'g', 'c', 'k', 'b']
 
     import matplotlib.pyplot as plt
     plt.figure(figsize=(11, 7))

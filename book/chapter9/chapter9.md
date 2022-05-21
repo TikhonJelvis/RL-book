@@ -4,7 +4,8 @@ In this chapter, we venture into the world of Algorithmic Trading and specifical
 
 For a deeper study on the topics of Order Book, Price Impact, Order Execution, Market-Making (and related topics), we refer you to the comprehensive treatment in [Olivier Gueant's book](https://www.amazon.com/Financial-Mathematics-Market-Liquidity-Execution/dp/1498725473) [@Gueant2016].
 
-![Trading Order Book \label{fig:trading_order_book}](./chapter9/order_book.png "Trading Order Book")
+
+![Trading Order Book (Image Credit: \protect\url{https://nms.kcl.ac.uk/rll/enrique-miranda/index.html}) \label{fig:trading_order_book}](./chapter9/order_book.png "Trading Order Book (Image Credit: \protect\url{https://nms.kcl.ac.uk/rll/enrique-miranda/index.html})")
 
 ### Basics of Order Book and Price Impact
 
@@ -371,8 +372,8 @@ class OptimalOrderExecution:
 
 The two key things we need to perform the backward induction are:
 
-* A method `get_mdp` that given a time step $t$, produces the `MarkovDecisionProcess` object representing the transitions from time $t$ to time $t+1$. The class `OptimalExecutionMDP` within `get_mdp` implements the abstract methods `step` and `actions` of the abstract class `MarkovDecisionProcess`. The code should be fairly self-explanatory - just a couple of things to point out here. Firstly, the input `p_r: NonTerminal[PriceAndShares]` to the `step` method represents the state $(P_t, R_t)$ at time $t$, and the variable `p_s: PriceAndShares` represents the pair of $(P_t, N_t)$, which serves as input to `avg_exec_price_diff` and `price_dynamics` (function attributes of `OptimalOrderExecution`). Secondly, note that the `actions` method returns an `Iterator` on a single `int` at time $t = T-1$ because of the constraint $N_{T-1} = R_{T-1}$.
-* A method `get_states_distribution` that given a time step $t$, produces the probability distribution of states $(P_t, R_t)$ at time $t$ (of type `SampledDistribution[NonTerminal[PriceAndShares]]`). The code here is fairly similar to the `get_states_distribiution` method of `AssetAllocDiscrete` in Chapter [-@sec:portfolio-chapter] (essentially, walking forward from time 0 to time $t$ by sampling from the state-transition probability distribution and also sampling from uniform choices over all actions at each time step).
+* A method `get_mdp` that given a time step $t$, produces the `MarkovDecisionProcess` object representing the transitions from time $t$ to time $t+1$. The class `OptimalExecutionMDP` within `get_mdp` implements the abstract methods `step` and `actions` of the abstract class `MarkovDecisionProcess`. The code should be fairly self-explanatory - just a couple of things to point out here. Firstly, the input `p_r: NonTerminal[PriceAndShares]` to the `step` method represents the state $(P_t, R_t)$ at time $t$, and the variable `p_s: PriceAndShares` represents the pair of $(P_t, N_t)$, which serves as input to `avg_exec_price_diff` and `price_dynamics` (attributes of `OptimalOrderExecution`). Secondly, note that the `actions` method returns an `Iterator` on a single `int` at time $t = T-1$ because of the constraint $N_{T-1} = R_{T-1}$.
+* A method `get_states_distribution` that returns the probability distribution of states $(P_t, R_t)$ at time $t$ (of type `SampledDistribution[NonTerminal[PriceAndShares]]`). The code here is similar to the `get_states_distribiution` method of `AssetAllocDiscrete` in Chapter [-@sec:portfolio-chapter] (essentially, walking forward from time 0 to time $t$ by sampling from the state-transition probability distribution and also sampling from uniform choices over all actions at each time step).
 
 ```python
     def get_mdp(self, t: int) -> MarkovDecisionProcess[PriceAndShares, int]:
