@@ -81,7 +81,7 @@ class OptimalExerciseBinTree:
             if len(ex_points) > 0:
                 boundary_pt = min(ex_points) if is_call else max(ex_points)
                 ex_boundary.append(
-                    (i * dt, opt_ex_bin_tree.state_price(i, boundary_pt))
+                    (i * dt, self.state_price(i, boundary_pt))
                 )
         return ex_boundary
 
