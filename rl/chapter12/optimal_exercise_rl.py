@@ -1,5 +1,6 @@
 from typing import Callable, Sequence, Tuple, List
 import numpy as np
+import random
 from scipy.stats import norm
 from rl.function_approx import DNNApprox, LinearFunctionApprox, \
     FunctionApprox, DNNSpec, AdamGradient, Weights
@@ -321,10 +322,13 @@ if __name__ == '__main__':
     spot_price_frac_lspi: float = 0.3
     training_iters_lspi: int = 8
 
-    num_steps_dql: int = 40
+    num_steps_dql: int = 20
     num_training_paths_dql: int = 1000
     spot_price_frac_dql: float = 0.02
     training_iters_dql: int = 100000
+
+    random.seed(100)
+    np.random.seed(100)
 
     flspi: LinearFunctionApprox[Tuple[float, float]] = fitted_lspi_put_option(
         expiry=expiry_val,
@@ -402,6 +406,14 @@ if __name__ == '__main__':
         plt.title(f"DQL Curves for Time = {t:.3f}")
         plt.show()
 
+    european_price: float = european_put_price(
+        spot_price=spot_price_val,
+        expiry=expiry_val,
+        rate=rate_val,
+        vol=vol_val,
+        strike=strike_val
+    )
+
     opt_ex_bin_tree: OptimalExerciseBinTree = OptimalExerciseBinTree(
         spot_price=spot_price_val,
         payoff=lambda _, x: max(strike_val - x, 0),
@@ -448,6 +460,7 @@ if __name__ == '__main__':
         vol=vol_val
     )
 
+    print(f"European Put Price = {european_price:.3f}")
     print(f"Binary Tree Price = {bin_tree_price:.3f}")
 
     lspi_opt_price: float = option_price(
