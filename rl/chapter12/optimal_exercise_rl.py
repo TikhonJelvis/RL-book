@@ -404,7 +404,7 @@ if __name__ == '__main__':
 
     opt_ex_bin_tree: OptimalExerciseBinTree = OptimalExerciseBinTree(
         spot_price=spot_price_val,
-        payoff=lambda x: max(strike_val - x, 0),
+        payoff=lambda _, x: max(strike_val - x, 0),
         expiry=expiry_val,
         rate=rate_val,
         vol=vol_val,
@@ -416,7 +416,6 @@ if __name__ == '__main__':
     bin_tree_ex_boundary: Sequence[Tuple[float, float]] = \
         opt_ex_bin_tree.option_exercise_boundary(policy_seq, False)
     bin_tree_x, bin_tree_y = zip(*bin_tree_ex_boundary)
-
 
     lspi_x, lspi_y = put_option_exercise_boundary(
         func=flspi,
@@ -432,7 +431,7 @@ if __name__ == '__main__':
     )
     plot_list_of_curves(
         list_of_x_vals=[lspi_x, dql_x, bin_tree_x],
-        list_of_y_vals=[dql_x, dql_y, bin_tree_y],
+        list_of_y_vals=[lspi_y, dql_y, bin_tree_y],
         list_of_colors=["b", "r", "g"],
         list_of_curve_labels=["LSPI", "DQL", "Binary Tree"],
         x_label="Time",
