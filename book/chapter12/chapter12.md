@@ -946,7 +946,7 @@ We denote the third Value Function vector of interest in the $\bphi$ subspace as
 $$\bm{w}_{TDE} = \argmin_{\bw} \sum_{s \in \mathcal{S}} \bmu(s) \sum_{r,s'} \mathbb{P}_{\pi}(r, s'|s) \cdot (r + \gamma \cdot \bm{\phi}(s')^T \cdot \bw - \bm{\phi}(s)^T \cdot \bw)^2$$
 To perform Stochastic Gradient Descent, we have to estimate the gradient of the expected square of TD error by sampling. The weight update for each gradient sample in the Stochastic Gradient Descent is:
 \begin{align*}
-\Delta \bw & = - \alpha \cdot frac{1}{2} \cdot \nabla_{\bw} (r + \gamma \cdot \bm{\phi}(s')^T \cdot \bw - \bm{\phi}(s)^T \cdot \bw)^2\\
+\Delta \bw & = - \alpha \cdot \frac{1}{2} \cdot \nabla_{\bw} (r + \gamma \cdot \bm{\phi}(s')^T \cdot \bw - \bm{\phi}(s)^T \cdot \bw)^2\\
 & = \alpha \cdot (r + \gamma \cdot \bm{\phi}(s')^T \cdot \bw - \bm{\phi}(s)^T \cdot \bw) \cdot (\bm{\phi}(s) - \gamma \cdot \bm{\phi}(s'))\\
 \end{align*}
 This algorithm is called [*Naive Residual Gradient*, due to Leemon Baird](http://www.cs.utsa.edu/~bylander/cs6243/baird95residual.pdf)  [@Baird:95]. Naive Residual Gradient converges robustly, but again, not to a desirable place. So researchers had to look even further.
