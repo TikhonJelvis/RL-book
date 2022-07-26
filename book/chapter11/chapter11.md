@@ -63,7 +63,7 @@ But we haven't yet actually proved that an $\epsilon$-greedy policy is indeed an
 For a Finite MDP, if $\pi$ is a policy such that for all $s \in \mathcal{N}, \pi(s, a) \geq \frac {\epsilon} {|\mathcal{A}|}$ for all $a \in \mathcal{A}$, then the $\epsilon$-greedy policy $\pi'$ obtained from $Q^{\pi}$ is an improvement over $\pi$, i.e., $\bm{V}^{\pi'}(s) \geq \bm{V}^{\pi}(s)$ for all $s \in \mathcal{N}$.
 \end{theorem}
 
-\begin{proof}
+*Proof.*
 We've previously learnt that for any policy $\pi'$, if we apply the Bellman Policy Operator $\bm{B}^{\pi'}$ repeatedly (starting with $\bvpi$), we converge to $\bm{V}^{\pi'}$. In other words,
 $$\lim_{i\rightarrow \infty} (\bm{B}^{\pi'})^i(\bvpi) = \bm{V}^{\pi'}$$
 So the proof is complete if we prove that:
@@ -93,7 +93,7 @@ $$\text{Monotonicity Property of } \bm{B}^{\pi}: \bm{X} \geq \bm{Y} \Rightarrow 
 Note that we proved the monotonicity property of the $\bm{B}^{\pi}$ operator in Chapter [-@sec:dp-chapter]. A straightforward application of this monotonicity property provides the induction step of the proof:
 $$(\bm{B}^{\pi'})^{i+1}(\bvpi) \geq (\bm{B}^{\pi'})^i(\bvpi) \Rightarrow (\bm{B}^{\pi'})^{i+2}(\bvpi) \geq (\bm{B}^{\pi'})^{i+1}(\bvpi) \text{ for all } i = 0, 1, 2, \ldots $$
 This completes the proof.
-\end{proof}
+$\qed$
 
 We note that for any $\epsilon$-greedy policy $\pi$, we do ensure the condition that for all $s \in \mathcal{N}$, $\pi(s, a) \geq \frac {\epsilon} {|\mathcal{A}|}$ for all $a \in \mathcal{A}$. So we just need to ensure that this condition holds true for the initial choice of $\pi$ (in the GPI with MC algorithm). An easy way to ensure this is to choose the initial $\pi$ to be a uniform choice over actions (for each state), i.e., for all $s \in \mathcal{N}$, $\pi(s,a) = \frac 1 {|\mathcal{A}|}$ for all $a \in \mathcal{A}$.
 
