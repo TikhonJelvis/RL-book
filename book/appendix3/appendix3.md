@@ -1,8 +1,10 @@
 ## Introduction to and Overview of Stochastic Calculus Basics {#sec:stochasticcalculus-appendix}
+\index{stochastic calculus|(}
 
 In this Appendix, we provide a quick introduction to the *Basics of Stochastic Calculus*. To be clear, Stochastic Calculus is a vast topic requiring an entire graduate-level course to develop a good understanding. We shall only be scratching the surface of Stochastic Calculus and even with the very basics of this subject, we will focus more on intuition than rigor, and familiarize you with just the most important results relevant to this book. For an adequate treatment of Stochastic Calculus relevant to Finance, we recommend Steven Shreve's two-volume discourse [Stochastic Calculus for Finance I](https://www.amazon.com/Stochastic-Calculus-Finance-Binomial-Springer/dp/0387249680) [@shreve03] and [Stochastic Calculus for Finance II](https://www.amazon.com/Stochastic-Calculus-Finance-II-Continuous-Time/dp/144192311X) [@shreve04]. For a broader treatment of Stochastic Calculus, we recommend [Bernt Oksendal's book on Stochastic Differential Equations](https://www.amazon.com/Stochastic-Differential-Equations-Introduction-Applications/dp/3540047581) [@UBMA_106106503]. 
 
 ### Simple Random Walk
+\index{process!random walk|textbf}
 
 The best way to get started with Stochastic Calculus is to first get familiar with key properties of a *simple random walk* viewed as a discrete-time, countable state-space, time-homogeneous Markov Process. The state space is the set of integers $\mathbb{Z}$. Denoting the random state at time $t$ as $Z_t$, the state transitions are defined in terms of the independent and identically distributed (i.i.d.) random variables $Y_t$ for all $t = 0, 1, \ldots$
 
@@ -11,13 +13,15 @@ $$Z_{t+1} = Z_t + Y_t \mbox{ and } \mathbb{P}[Y_t = 1] = \mathbb{P}[Y_t = -1] = 
 A quick point on notation: We refer to the random state at time $t$ as $Z_t$ (i.e., as a random variable at time $t$), whereas we refer to the Markov Process for this simple random walk as $Z$ (i.e., without any subscript).
 
 Since the random variables $\{Y_t|t = 0, 1, \ldots\}$ are i.i.d, the *increments* $Z_{t_{i+1}} - Z_{t_i}$ (for $i = 0, 1, \ldots n-1$) in the random walk states for any set of time steps $t_0 < t_1 < \ldots < t_n$ have the following properties:
-
 * **Independent Increments**: Increments $Z_{t_1} - Z_{t_0}, Z_{t_2} - Z_{t_1}, \ldots, Z_{t_n} - Z_{t_{n-1}}$ are independent of each other.
 * **Martingale (i.e., Zero-Drift) Property**: Expected Value of any Increment is 0.
 $$\mathbb{E}[Z_{t_{i+1}} - Z_{t_i}] = \sum_{j=t_i}^{t_{i+1} - 1} \mathbb{E}[Z_{j+1} - Z_j] = 0 \text{ for all } i = 0, 1, \ldots, n-1$$
 * **Variance of any Increment equals Time Steps of the Increment**:
 $$\mathbb{E}[(Z_{t_{i+1}} - Z_{t_i})^2] = \mathbb{E}[(\sum_{j=t_i}^{t_{i+1} - 1} Y_j)^2] = \sum_{j=t_i}^{t_{i+1} - 1} \mathbb{E}[Y_j^2] + 2 \sum_{j=t_i}^{t_{i+1} - 1} \sum_{k=j+1}^{t_{i+1}} \mathbb{E}[Y_j] \cdot \mathbb{E}[Y_k] = t_{i+1} - t_i$$
 for all $i = 0, 1, \ldots, n-1$.
+
+\index{stochastic calculus!martingale|textbf}
+\index{stochastic calculus!quadratic variation|textbf}
 
 Moreover, we have an important property that **Quadratic Variation equals Time Steps**. Quadratic Variation over the time interval $[t_i, t_{i+1}]$ for all $i = 0, 1, \ldots, n-1$ is defined as:
 
@@ -36,6 +40,7 @@ $$[X]_t = \sum_{j=0}^t (X_{j+1} - X_j)^2$$
 Thus, for the simple random walk Markov Process $Z$, we have the succinct formula: $[Z]_t = t$ for all $t$ (i.e., this Quadratic Variation process is a deterministic process).
 
 ### Brownian Motion as Scaled Random Walk
+\index{stochastic process!brownian motion|textbf}
 
 Now let us take our simple random walk process $Z$, and simultaneously A) speed up time and B) scale down the size of the atomic increments $Y_t$. Specifically, define for any fixed positive integer $n$:
 
@@ -46,17 +51,21 @@ It's easy to show that the above properties of the simple random walk process ho
 $$z_t = \lim_{n\rightarrow \infty} z^{(n)}_t \mbox{ for all } t \in \mathbb{R}_{\geq 0}$$
 
 This continuous-time process $z$ with $z_0 = 0$ is known as standard Brownian Motion. $z$ retains the same properties as those of the simple random walk process that we have listed above (independent increments, martingale, increment variance equal to time interval, and quadratic variation equal to time interval). Also, by Central Limit Theorem,
+\index{central limit theorem}
 
 $$z_t | z_s \sim \mathcal{N}(z_s, t-s) \mbox{ for any } 0 \leq s < t$$
 
 We denote $dz_t$ as the increment in $z$ over the infinitesimal time interval $[t, t + dt]$.
 
 $$dz_t \sim \mathcal{N}(0, dt)$$
+\index{stochastic calculus!martingale}
+\index{stochastic calculus!quadratic variation}
 
 ### Continuous-Time Stochastic Processes
 
 Brownian motion $z$ is our first example of a Continuous-Time Stochastic Process. Now let us define a general continuous-time stochastic process, although for the sake of simplicity, we shall restrict ourselves to one-dimensional real-valued continuous-time stochastic processes.
 
+\index{stochastic process|textbf}
 \begin{definition}
 A {\em One-dimensional Real-Valued Continuous-Time Stochastic Process} denoted $X$ is defined as a collection of real-valued random variables $\{X_t|t \in [0, T]\}$ (for some fixed $T \in \mathbb{R}$, with index $t$ interpreted as continuous-time) defined on a common probability space $(\Omega, \mathcal{F}, \mathbb{P})$, where $\Omega$ is a sample space, $\mathcal{F}$ is a $\sigma$-algebra and $\mathbb{P}$ is a probability measure (so, $X_t: \Omega \rightarrow \mathbb{R}$ for each $t \in [0, T])$.
 \end{definition}
@@ -71,6 +80,7 @@ As a two-variable function, if we fix $t$, then we get the random variable $X_t:
 Now let us come back to Brownian motion, viewed as a Continuous-Time Stochastic Process.
 
 ### Properties of Brownian Motion sample traces
+\index{stochastic process!brownian motion}
 
 * Sample traces $z(\omega)$ of Brownian motion $z$ are continuous.
 * Sample traces $z(\omega)$ are almost always non-differentiable, meaning:
@@ -85,6 +95,7 @@ $$\int_S^T (dz_t)^2 = T-S$$
 
 This means each sample random trace of brownian motion has quadratic variation equal to the time interval of the trace. The quadratic variation of $z$ expressed as a process $[z]$ has the deterministic value of $t$ at time $t$. Expressed in infinitesimal terms, we say that:
 
+\index{stochastic calculus!quadratic variation}
 $$(dz_t)^2 = dt$$
 
 This formula generalizes to:
@@ -96,6 +107,7 @@ where $z^{(1)}$ and $z^{(2)}$ are two different brownian motions with correlatio
 You should intuitively interpret the formula $(dz_t)^2 = dt$ (and it's generalization) as a deterministic statement, and in fact this statement is used as an algebraic convenience in Brownian motion-based stochastic calculus, forming the core of *Ito Isometry* and *Ito's Lemma* (which we cover shortly, but first we need to define the Ito Integral).
 
 ### Ito Integral
+\index{stochastic calculus!Ito integral|textbf}
 
 We want to define a stochastic process $Y$ from a stochastic process $X$ as follows:
 
@@ -110,7 +122,11 @@ We state without proof the following properties of the Ito Integral stochastic p
 
 * $Y$ is a martingale, i.e., $\mathbb{E}[(Y_t - Y_s)|Y_s] = 0$ (i.e., $\mathbb{E}[Y_t|Y_s] = Y_s$) for all $0 \leq s < t$
 * **Ito Isometry**: $\mathbb{E}[Y_t^2] = \int_0^t \mathbb{E}[X_s^2] \cdot ds$. 
-* Quadratic Variance formula: $[Y]_t = \int_0^t X_s^2 \cdot ds$
+* Quadratic Variation formula: $[Y]_t = \int_0^t X_s^2 \cdot ds$
+
+\index{stochastic calculus!martingale}
+\index{stochastic calculus!Ito isometry|textbf}
+\index{stochastic calculus!quadratic variation}
 
 Note that we have generalized the notation $[X]$ for discrete-time processes to continuous-time processes, defined as $[X]_t = \int_0^t (dX_s)^2$ for any continuous-time stochastic process.
 
@@ -120,12 +136,13 @@ $$\mathbb{E}[(\int_S^T X^{(1)}_t \cdot dz^{(1)}_t)(\int_S^T X^{(2)}_t \cdot dz^{
 
 where $X^{(1)}$ and $X^{(2)}$ are two different stochastic processes, and $z^{(1)}$ and $z^{(2)}$ are two different brownian motions with correlation between the random variables $z^{(1)}_t$ and $z^{(2)}_t$ equal to $\rho$ for all $t > 0$.
 
-Likewise, the Quadratic Variance formula generalizes to:
+Likewise, the Quadratic Variation formula generalizes to:
 
 $$\int_S^T (X^{(1)}_t \cdot dz^{(1)}_t)(X^{(2)}_t \cdot dz^{(2)}_t) = \int_S^T X^{(1)}_t\cdot X^{(2)}_t \cdot \rho \cdot dt$$
 
 ### Ito's Lemma {#sec:itos-lemma-section}
 
+\index{stochastic process!Ito process|textbf}
 We can extend the above Ito Integral to an Ito process $Y$ as defined below:
 
 $$dY_t = \mu_t \cdot dt + \sigma_t \cdot dz_t$$
@@ -144,6 +161,8 @@ $$df(t, Y_t) = \pdv{f}{t} \cdot dt + \pdv{f}{Y_t} \cdot (\mu_t \cdot dt + \sigma
 
 Next, we use the rules: $(dt)^2 = 0, dt \cdot dz_t = 0, (dz_t)^2 = dt$ to get **Ito's Lemma**:
 
+\index{stochastic calculus!Ito's lemma|textbf}
+
 \begin{equation}
 df(t, Y_t) = (\pdv{f}{t} + \mu_t \cdot \pdv{f}{Y_t} + \frac {\sigma_t^2} 2 \cdot \pdv[2]{f}{Y_t}) \cdot dt + \sigma_t \cdot \pdv{f}{Y_t} \cdot dz_t
 \label{eq:itos-lemma}
@@ -161,14 +180,18 @@ then we get the multi-variate version of Ito's Lemma, as follows:
 df(t, \bm{Y}_t) = (\pdv{f}{t} + (\nabla_{\bm{Y}} f)^T \cdot \bm{\mu}_t + \frac 1 2 Tr[\bm{\sigma}_t^T \cdot (\Delta_{\bm{Y}} f) \cdot \bm{\sigma}_t]) \cdot dt + (\nabla_{\bm{Y}} f)^T \cdot \bm{\sigma}_t \cdot d\bm{z}_t
 \label{eq:itos-lemma-multi}
 \end{equation}
+\index{stochastic calculus!Ito's lemma}
 
 where the symbol $\nabla$ represents the gradient of a function, the symbol $\Delta$ represents the [Hessian](https://en.wikipedia.org/wiki/Hessian_matrix) of a function, and the symbol $Tr$ represents the [Trace](https://en.wikipedia.org/wiki/Trace_(linear_algebra)) of a matrix.
 
 Next, we cover two common Ito processes, and use Ito's Lemma to solve the Stochastic Differential Equation represented by these Ito Processes:
 
 ### A Lognormal Process {#sec:lognormal-process-section}
+\index{stochastic process!lognormal process|textbf}
 
 Consider a stochastic process $x$ described in the form of the following Ito process:
+\index{stochastic process!Ito process}
+\index{stochastic process!brownian motion}
 
 $$dx_t = \mu(t) \cdot x_t \cdot dt + \sigma(t) \cdot x_t \cdot dz_t$$
 
@@ -177,6 +200,7 @@ Note that here $z$ is standard (one-dimensional) Brownian motion, and $\mu$, $\s
 $$y_t = \log(x_t)$$
 
 Applying Ito's Lemma on $y_t$ with respect to $x_t$, we get:
+\index{stochastic calculus!Ito's lemma}
 
 \begin{align*}
 dy_t & = (\mu(t) \cdot x_t \cdot \frac 1 {x_t} - \frac {\sigma^2(t) \cdot x_t^2} 2 \cdot \frac 1 {x_t^2}) \cdot dt + \sigma(t) \cdot x_t \cdot \frac 1 {x_t} \cdot dz_t \\
@@ -194,6 +218,7 @@ $$y_T = \log(x_T) \sim \mathcal{N}(\log(x_S) + \int_S^T (\mu(t) - \frac {\sigma^
 $$E[x_T|x_S] = x_S \cdot e^{\int_S^T \mu(t) \cdot dt}$$
 $$E[x_T^2|x_S] = x_S^2 \cdot e^{\int_S^T (2 \mu(t) + \sigma^2(t)) \cdot dt}$$
 $$Variance[x_T|x_S] = E[x_T^2|x_S] - (E[x_T|x_S])^2 = x_S^2 \cdot e^{\int_S^T 2 \mu(t) \cdot dt} \cdot (e^{\int_S^T \sigma^2(t) \cdot dt} - 1)$$
+\index{stochastic process!geometric brownian motion|textbf}
 
 The special case of $\mu(t) = \mu$ (constant) and $\sigma(t) = \sigma$ (constant) is a very common Ito process used all over Finance/Economics (for its simplicity, tractability as well as practicality), and is known as [Geometric Brownian Motion](https://en.wikipedia.org/wiki/Geometric_Brownian_motion),  to reflect the fact that the stochastic increment of the process ($\sigma \cdot x_t \cdot dz_t$) is multiplicative to the level of the process $x_t$. If we consider this special case, we get:
 
@@ -202,6 +227,9 @@ $$E[x_T|x_S] = x_S \cdot e^{\mu (T-S)}$$
 $$Variance[x_T|x_S] = x_S^2 \cdot e^{2 \mu (T-S)} \cdot (e^{\sigma^2 (T-S)} - 1)$$
 
 ### A Mean-Reverting Process {#sec:mean-reverting-process-section}
+\index{stochastic process!mean-reverting process|textbf}
+\index{stochastic process!Ito process}
+\index{stochastic process!brownian motion}
 
 Now we consider a stochastic process $x$ described in the form of the following Ito process:
 
@@ -211,6 +239,7 @@ As in the process of the previous section, $z$ is standard (one-dimensional) Bro
 
 $$y_t = x_t \cdot e^{-\int_0^t \mu(u) \cdot du}$$
 Applying Ito's Lemma on $y_t$ with respect to $x_t$, we get:
+\index{stochastic calculus!Ito's lemma}
 
 \begin{align*}
 dy_t & = (- x_t \cdot \mu(t) \cdot e^{-\int_0^t \mu(u) \cdot du} + \mu(t) \cdot x_t \cdot e^{-\int_0^t \mu(u) \cdot du}) \cdot dt + \sigma(t) \cdot e^{-\int_0^t \mu(u) \cdot du} \cdot dz_t \\
@@ -218,6 +247,8 @@ dy_t & = (- x_t \cdot \mu(t) \cdot e^{-\int_0^t \mu(u) \cdot du} + \mu(t) \cdot 
 \end{align*}
 
 So the process $y$ is a martingale. Using Ito Isometry, we get:
+\index{stochastic calculus!martingale}
+\index{stochastic calculus!Ito isometry}
 
 $$y_T \sim \mathcal{N}(y_S, \int_S^T \sigma^2(t) \cdot e^{-\int_0^t 2 \mu(u) \cdot du} \cdot dt)$$
 
@@ -226,7 +257,9 @@ Therefore,
 $$x_T \sim \mathcal{N}(x_S \cdot e^{\int_S^T \mu(t) \cdot dt}, e^{\int_0^T 2\mu(t) \cdot dt} \cdot \int_S^T \sigma^2(t) \cdot e^{-\int_0^t 2 \mu(u) \cdot du} \cdot dt)$$
 
 We call this process "mean-reverting" because with negative $\mu(t)$, the process is "pulled" to a baseline level of 0, at a speed whose expectation is proportional to $-\mu(t)$ and proportional to the distance from the baseline (so we say the process reverts to a baseline of 0 and the strength of mean-reversion is greater if the distance from the baseline is greater). If $\mu(t)$ is positive, then we say that the process is "mean-diverting" to signify that it gets pulled away from the baseline level of 0.
+\index{stochastic process!Ornstein-Uhlenbeck process|textbf}
 
 The special case of $\mu(t) = \mu$ (constant) and $\sigma(t) = \sigma$ (constant) is a fairly common Ito process (again for it's simplicity, tractability as well as practicality), and is known as the [Ornstein-Uhlenbeck Process](https://en.wikipedia.org/wiki/Ornstein%E2%80%93Uhlenbeck_process) with the mean (baseline) level set to 0. If we consider this special case, we get:
 
 $$x_T \sim \mathcal{N}(x_S \cdot e^{\mu (T-S)}, \frac {\sigma^2} {2 \mu} \cdot (e^{2 \mu (T-S)} - 1))$$
+\index{stochastic calculus|)}

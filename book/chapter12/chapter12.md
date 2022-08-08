@@ -1,5 +1,7 @@
 ## Batch RL, Experience-Replay, DQN, LSPI, Gradient TD {#sec:batch-rl-chapter}
 
+\index{reinforcement learning|(}
+
 In Chapters [-@sec:rl-prediction-chapter] and [-@sec:rl-control-chapter], we covered the basic RL algorithms for Prediction and Control respectively. Specifically, we covered the basic Monte-Carlo (MC) and Temporal-Difference (TD) techniques. We want to highlight two key aspects of these basic RL algorithms:
 
   1. The experiences data arrives in the form of a single unit of experience at a time (single unit is a *trace experience* for MC and an *atomic experience* for TD), the unit of experience is used by the algorithm for Value Function learning, and then that unit of experience is not used later in the algorithm (essentially, that unit of experience, once consumed, is *not re-consumed* for further learning later in the algorithm). It doesn't have to be this way - one can develop RL algorithms that re-use experience data - this approach is known as *Experience-Replay* (in fact, we saw a glimpse of Experience-Replay in Section [-@sec:experience-replay-section] of Chapter [-@sec:rl-prediction-chapter]).
@@ -759,6 +761,7 @@ Gradient Q-Learning & \cmark & \cmark & \xmark \\ \hline
 
 We learnt in Chapter [-@sec:derivatives-pricing-chapter] that the American Options Pricing problem is an Optimal Stopping problem and can be modeled as an MDP so that solving the Control problem of the MDP gives us the fair price of an American Option. We can solve it with Dynamic Programming or Reinforcement Learning, as appropriate. 
 
+\index{finance!derivative!underlying}
 In the financial trading industry, it has traditionally not been a common practice to explicitly view the American Options Pricing problem as an MDP. Specialized algorithms have been developed to price American Options. We now provide a quick overview of the common practice in pricing American Options in the financial trading industry. Firstly, we should note that the price of some American Options is equal to the price of the corresponding European Option, for which we have a closed-form solution under the assumption of a lognormal process for the underlying - this is the case for a plain-vanilla American call option whose price (as we proved in Chapter [-@sec:derivatives-pricing-chapter]) is equal to the price of a plain-vanilla European call option. However, this is not the case for a plain-vanilla American put option. Secondly, we should note that if the payoff of an American option is dependent on only the current price of the underlying (and not on the past prices of the underlying) - in which case, we say that the option payoff is not "history-dependent" - and if the dimension of the state space is not large, then we can do a simple backward induction on a binomial tree (as we showed in Chapter [-@sec:derivatives-pricing-chapter]). In practice, a more detailed data structure such as a [trinomial tree](https://en.wikipedia.org/wiki/Trinomial_tree) or a lattice is often used for more accurate backward-induction calculations. However, if the payoff is history-dependent (i.e., payoff depends on past prices of the underlying) or if the payoff depends on the prices of several underlying assets, then the state space is too large for backward induction to handle. In such cases, the standard approach in the financial trading industry is to use the [Longstaff-Schwartz pricing algorithm](https://people.math.ethz.ch/~hjfurrer/teaching/LongstaffSchwartzAmericanOptionsLeastSquareMonteCarlo.pdf) [@LongstaffSchwartz2001]. We won't cover the Longstaff-Schwartz pricing algorithm in detail in this book - it suffices to share here that the Longstaff-Schwartz pricing algorithm combines 3 ideas:
 
 * The Pricing is based on a set of sampling traces of the underlying prices.
@@ -827,6 +830,7 @@ This solved $\bm{w}^*$ updates the $Q$-Value Function Approximation to $\hat{Q}(
 $$\pi'_D(s) = \argmax_a \hat{Q}(s,a; \bm{w}^*) \text{ for all } s \in \mathcal{N}$$
 
 [Li, Szepesvari, Schuurmans](http://proceedings.mlr.press/v5/li09d/li09d.pdf) [@li2009] recommend in their paper to use 7 feature functions, the first 4 Laguerre polynomials that are functions of the underlying price and 3 functions of time. Precisely, the feature functions they recommend are:
+\index{finance!derivative!underlying}
 
 * $\phi_0(S_t) = 1$
 * $\phi_1(S_t) = e^{-\frac {M_t} 2}$
@@ -1027,6 +1031,7 @@ where $\beta$ is the learning rate for $\btheta$. Note that $\bm{\phi}(s)^T \cdo
 
 Repeating what we had said in Chapter [-@sec:rl-control-chapter], Gradient TD converges reliably for the Prediction problem even when we are faced with the Deadly Triad of [Bootstrapping, Off-Policy, Non-Linear Function Approximation]. The picture is less rosy for Control. Gradient Q-Learning (Gradient TD for Off-Policy Control) converges reliably for both on-policy and off-policy linear function approximations, but there are divergence issues for non-linear function approximations. For Control problems with non-linear function approximations (especially, neural network approximations with off-policy learning), one can leverage the approach of the DQN algorithm (Experience Replay with fixed Target Network helps overcome the Deadly Triad).
 
+\index{reinforcement learning|)}
 
 ### Key Takeaways from this Chapter
 

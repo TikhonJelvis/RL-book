@@ -1,30 +1,46 @@
 ## Black-Scholes Equation and it's Solution for Call/Put Options {#sec:black-scholes-appendix}
 
+\index{finance!Black-Scholes equation|(}
+\index{finance!derivative!pricing|(}
+
 In this Appendix, we sketch the derivation of the [much-celebrated Black-Scholes equation and it's solution for Call and Put Options](https://www.cs.princeton.edu/courses/archive/fall09/cos323/papers/black_scholes73.pdf) [@BlackScholes1973]. As is the norm in the Appendices in this book, we will compromise on some of the rigor and emphasize the intuition to develop basic familiarity with concepts in continuous-time derivatives pricing and hedging.
 
 ### Assumptions
 The Black-Scholes Model is about pricing and hedging of a derivative on a single underlying asset (henceforth, simply known as "underlying"). The model makes several simplifying assumptions for analytical convenience. Here are the assumptions:
+\index{finance!Black-Scholes model}
+\index{finance!derivative!underlying}
 
 * The underlying (whose price we denote as $S_t$ as time $t$) follows a special case of the lognormal process we covered in Section [-@sec:lognormal-process-section] of Appendix [-@sec:stochasticcalculus-appendix], where the drift $\mu(t)$ is a constant (call it $\mu \in \mathbb{R}$) and the dispersion $\sigma(t)$ is also a constant (call it $\sigma \in \mathbb{R}^+$):
 \begin{equation}
 dS_t = \mu \cdot S_t \cdot dt + \sigma \cdot S_t \cdot dz_t
 \label{eq:black-scholes-underlying-process}
 \end{equation}
+
+\index{stochastic process!geometric brownian motion}
+\index{finance!risky asset}
+
 This process is often refered to as *Geometric Brownian Motion* to reflect the fact that the stochastic increment of the process ($\sigma \cdot S_t \cdot dz_t$) is multiplicative to the level of the process $S_t$.
 * The derivative has a known payoff at time $t=T$, as a function $f: \mathbb{R}^+ \rightarrow \mathbb{R}$ of the underlying price $S_T$ at time $T$.
 * Apart from the underlying, the market also includes a riskless asset (which should be thought of as lending/borrowing money at a constant infinitesimal rate of annual return equal to $r$). The riskless asset (denote it's price as $R_t$ at time $t$) movements can thus be described as:
 $$dR_t = r \cdot R_t \cdot dt$$
 * Assume that we can trade in any real-number quantity in the underlying as well as in the riskless asset, in continuous-time, without any transaction costs (i.e., the typical "frictionless" market assumption).
 
+\index{finance!frictionless market}
+\index{finance!riskless asset}
 ### Derivation of the Black-Scholes Equation
 
 We denote the price of the derivative at any time $t$ for any price $S_t$ of the underlying as $V(t, S_t)$. Thus, $V(T, S_T)$ is equal to the payoff $f(S_T)$. Applying Ito's Lemma on $V(t, S_t)$ (see Equation \eqref{eq:itos-lemma} in Appendix [-@sec:stochasticcalculus-appendix]), we get:
+
+\index{stochastic calculus!Ito's lemma}
 
 \begin{equation}
 dV(t, S_t) = (\pdv{V}{t} + \mu \cdot S_t \cdot \pdv{V}{S_t} + \frac {\sigma^2} 2 \cdot S_t^2 \cdot \pdv[2]{V}{S_t}) \cdot dt + \sigma \cdot S_t \cdot \pdv{V}{S_t} \cdot dz_t
 \label{eq:black-scholes-derivative-process}
 \end{equation}
 
+\index{finance!derivative!underlying}
+\index{finance!derivative!riskless portfolio}
+\index{finance!derivative!hedging}
 Now here comes the key idea: create a portfolio comprising of the derivative and the underlying so as to eliminate the incremental uncertainty arising from the brownian motion increment $dz_t$. It's clear from the coefficients of $dz_t$ in Equation \eqref{eq:black-scholes-underlying-process} and \eqref{eq:black-scholes-derivative-process} that this can be accomplished with a portfolio comprising of $\pdv{V}{S_t}$ units of the underlying and -1 units of the derivative (i.e., by selling a derivative contract written on a single unit of the underlying). Let us refer to the value of this portfolio as $\Pi_t$ at time $t$. Thus,
 
 \begin{equation}
@@ -63,6 +79,8 @@ Re-arranging, we arrive at the famous Black-Scholes equation:
 \pdv{V}{t} + \frac {\sigma^2} 2 \cdot S_t^2 \cdot \pdv[2]{V}{S_t} + r \cdot S_t \cdot \pdv{V}{S_t} + r \cdot V(t, S_t) = 0
 \label{eq:black-scholes-equation}
 \end{equation}
+
+\index{finance!Black-Scholes equation|textbf}
 
 A few key points to note here:
 
@@ -112,9 +130,15 @@ where
 $$d_1 = \frac {\log(\frac {S_t} K) + (r + \frac {\sigma^2} 2) \cdot (T-t)} {\sigma \cdot \sqrt{T-t}}$$
 $$d_2 = d_1 - \sigma \sqrt{T-t}$$
 
+\index{finance!call option!Black-Scholes price}
+
 The put option price is:
 
 \begin{equation}
 P(t, S_t) = K \cdot e^{-r\cdot (T-t)} \cdot N(-d_2) - S_t \cdot N(-d_1)
 \label{eq:black-scholes-put-option-pricing}
 \end{equation}
+
+\index{finance!derivative!pricing|)}
+\index{finance!put option!Black-Scholes price}
+\index{finance!Black-Scholes equation|)}
