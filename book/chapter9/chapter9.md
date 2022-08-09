@@ -765,7 +765,7 @@ We need to point out here that the general case of optimal order execution invol
 
 #### Paper by Bertsimas and Lo on Optimal Order Execution
 
-\index{Bertsimas-Lo order execution problem}
+\index{finance!Bertsimas-Lo order execution problem}
 [A paper by Bertsimas and Lo on Optimal Order Execution](http://alo.mit.edu/wp-content/uploads/2015/06/Optimal-Control-of-Execution-Costs.pdf) [@bertsimas1998optimal] considered a special case of the simple Linear Impact model we sketched above. Specifically, they assumed no risk-aversion (Utility function is identity function) and assumed that the Permanent Price Impact parameter $\alpha$ is equal to the Temporary Price Impact Parameter $\beta$. In the same paper, Bertsimas and Lo then extended this Linear Impact Model to include dependence on a serially-correlated variable $X_t$ as follows:
 $$P_{t+1} = P_t - (\beta \cdot N_t + \theta \cdot X_t) + \epsilon_t$$
 $$X_{t+1} = \rho \cdot X_t + \eta_t$$
@@ -799,7 +799,7 @@ As an exercise, we recommend implementing the above (LPT) model by customizing `
 
 \index{utility theory!risk-aversion}
 
-\index{Almgren-Chriss order execution problem}
+\index{finance!Almgren-Chriss order execution problem}
 
 Bertsimas and Lo ignored risk-aversion for the purpose of analytical tractability. Although there was value in obtaining closed-form solutions, ignoring risk-aversion makes their model unrealistic. We have discussed in detail in Chapter [-@sec:utility-theory-chapter] about the fact that traders are wary of the risk of uncertain revenues and would be willing to trade away some expected revenues for lower variance of revenues. This calls for incorporating risk-aversion in the maximization objective. [Almgren and Chriss wrote an important paper](https://www.math.nyu.edu/faculty/chriss/optliq_f.pdf) [@almgren2000optimal] where they work in this Risk-Aversion framework. They consider our simple linear price impact model and incorporate risk-aversion by maximizing $E[Y] - \lambda \cdot Var[Y]$ where $Y$ is the total (uncertain) sales proceeds $\sum_{t=0}^{T-1} N_t \cdot Q_t$ and $\lambda$ controls the degree of risk-aversion. The incorporation of risk-aversion affects the time-trajectory of $N_t^*$. Clearly, if $\lambda = 0$, we get the usual uniform-split strategy: $N_t^* = \frac N T$. The other extreme assumption is to minimize $Var[Y]$ which yields: $N_0^* = N$ (sell everything immediately because the only thing we want to avoid is uncertainty of sales proceeds). In their paper, Almgren and Chriss go on to derive the *Efficient Frontier* for this problem (analogous to the Efficient Frontier Portfolio Theory we outline in Appendix [-@sec:portfoliotheory-appendix]). They also derive solutions for specific utility functions.
 
@@ -888,7 +888,7 @@ $$\mathbb{E}[\sum_{t=1}^T R_t] = \mathbb{E}[R_T] = \mathbb{E}[U(W_T + I_T \cdot 
 
 #### Avellaneda-Stoikov Continuous-Time Formulation
 
-\index{Avellaneda-Stoikov market-making problem}
+\index{finance!Avellaneda-Stoikov market-making problem|(}
 \index{time!continuous-time}
 
 [A landmark paper by Avellaneda and Stoikov](https://www.math.nyu.edu/faculty/avellane/HighFrequencyTrading.pdf) [@Avellaneda2008] formulated this optimal market-making problem in it's continuous-time version. Their formulation is conducive to analytical tractability and they came up with a simple, clean and intuitive solution. In this subsection, we go over their formulation and in the next subsection, we show the derivation of their solution. We adapt our discrete-time notation above to their continuous-time setting.
@@ -1260,6 +1260,7 @@ $$\mbox{ Outer Spreads } {P_t^{(a)}}^* - Q_t^{(a)} = Q_t^{(b)}  - {P_t^{(b)}}^* 
 $$\mbox{ Inner Spreads } Q_t^{(a)} - Q_t^{(m)} = Q_t^{(m)} - Q_t^{(b)} = \frac {\gamma \cdot \sigma^2 \cdot (T-t)} 2$$
 
 This completes the analytical approximation to the solution of the Avellaneda-Stoikov continuous-time formulation of the Optimal Market-Making problem. 
+\index{finance!Avellaneda-Stoikov market-making problem|)}
 
 #### Real-World Market-Making
 \index{curse of dimensionality}

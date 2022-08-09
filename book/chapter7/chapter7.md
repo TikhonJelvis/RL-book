@@ -41,7 +41,7 @@ Since our goal here was to simply do a rough and informal sketch, the above cove
 \index{time!continuous-time}
 
 ### Merton's Portfolio Problem and Solution
-\index{Merton's portfolio problem|(}
+\index{finance!Merton's portfolio problem|(}
 
 Now we describe Merton's Portfolio problem and derive its analytical solution, which is one of the most elegant solutions in Mathematical Economics. The solution structure will provide tremendous intuition for how the asset-allocation and consumption decisions depend on not just the state variables but also on the problem inputs.
 
@@ -331,7 +331,7 @@ Figure \ref{fig:merton-solution-wealth-trajectory} shows the time-trajectory of 
 <div style="text-align:center" markdown="1">
 ![Expected Wealth Time-Trajectory \label{fig:merton-solution-wealth-trajectory}](./chapter7/wealth_trajectory.png "Expected Wealth Time-Trajectory")
 </div>
-\index{Merton's portfolio problem|)}
+\index{finance!Merton's portfolio problem|)}
 
 ### A Discrete-Time Asset-Allocation Example {#sec:discrete-asset-alloc}
 \index{time!discrete-time}

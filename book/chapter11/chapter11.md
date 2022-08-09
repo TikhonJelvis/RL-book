@@ -1,10 +1,17 @@
 ## Monte-Carlo and Temporal-Difference for Control {#sec:rl-control-chapter}
 
 \index{reinforcement learning|(}
-
-In chapter [-@sec:rl-prediction-chapter], we covered MC and TD algorithms to solve the *Prediction* problem. In this chapter, we cover MC and TD algorithms to solve the *Control* problem. As a reminder, MC and TD algorithms are Reinforcement Learning algorithms that only have access to an individual experience (at a time) of next state and reward when the AI agent performs an action in a given state. The individual experience could be the result of an interaction with a real environment or could be served by a simulated environment (as explained at the state of Chapter [-@sec:rl-prediction-chapter]). It also pays to remind that RL algorithms overcome the Curse of Dimensionality and the Curse of Modeling by incrementally updating (learning) an appropriate function approximation of the Value Function from a stream of individual experiences. Hence, large-scale Control problems that are typically seen in the real-world are often tackled by RL.
+\index{reinforcement learning!control|(}
+\index{Markov decision process!environment!real environment}
+\index{Markov decision process!environment!smulated environment}
+\index{curse of dimensionality}
+\index{curse of modeling}
+In chapter [-@sec:rl-prediction-chapter], we covered MC and TD algorithms to solve the *Prediction* problem. In this chapter, we cover MC and TD algorithms to solve the *Control* problem. As a reminder, MC and TD algorithms are Reinforcement Learning algorithms that only have access to an individual experience (at a time) of next state and reward when the AI agent performs an action in a given state. The individual experience could be the result of an interaction with a real environment or could be served by a simulated environment (as explained at the state of Chapter [-@sec:rl-prediction-chapter]). It also pays to remind that RL algorithms overcome the Curse of Dimensionality and the Curse of Modeling by learning an appropriate function approximation of the Value Function from a stream of individual experiences. Hence, large-scale Control problems that are typically seen in the real-world are often tackled by RL.
 
 ### Refresher on *Generalized Policy Iteration* (GPI)
+
+\index{generalized policy iteration}
+\index{Markov decision process!control}
 
 We shall soon see that all RL Control algorithms are based on the fundamental idea of *Generalized Policy Iteration* (introduced initially in Chapter [-@sec:dp-chapter]), henceforth abbreviated as GPI. The exact ways in which the GPI idea is utilized in RL algorithms differs from one algorithm to another, and they differ significantly from how the GPI idea is utilized in DP algorithms. So before we get into RL Control algorithms, it's important to ground on the abstract concept of GPI. We now ask you to re-read Section [-@sec:gpi] in Chapter [-@sec:dp-chapter].
 
@@ -16,7 +23,12 @@ As has been our norm in the book so far, our approach to RL Control algorithms i
 
 ### GPI with Evaluation as Monte-Carlo
 
+\index{reinforcement learning!monte carlo}
+\index{reinforcement learning!monte carlo!for control|(}
+
 Let us think about how to do MC Control based on the GPI idea. The natural idea that emerges is to do Policy Evaluation with MC (this is basically MC Prediction), followed by greedy Policy Improvement, then MC Policy Evaluation with the improved policy, and so on … . This seems like a reasonable idea, but there is a problem with doing greedy Policy Improvement. The problem is that the Greedy Policy Improvement calculation (Equation \ref{eq:greedy-policy-improvement-mc}) requires a model of the state transition probability function $\mathcal{P}$ and the reward function $\mathcal{R}$, which is not available in an RL interface. 
+
+\index{policy!greedy policy}
 
 \begin{equation}
 \pi_D'(s) = \argmax_{a\in \mathcal{A}} \{\mathcal{R}(s,a) + \gamma \sum_{s' \in \mathcal{N}} \mathcal{P}(s,a,s') \cdot V^{\pi}(s') \} \text{ for all } s \in \mathcal{N}
@@ -30,6 +42,9 @@ However, we note that Equation \ref{eq:greedy-policy-improvement-mc} can be writ
 \label{eq:greedy-policy-improvement-mc-q}
 \end{equation}
 
+\index{Q@$Q$}
+\index{value function!action-value function}
+
 This view of Greedy Policy Improvement is valuable because instead of doing Policy Evaluation for calculating $V^{\pi}$ (MC Prediction), we can instead do Policy Evaluation to calculate $Q^{\pi}$ (with MC Prediction for the Q-Value Function). With this modification to Policy Evaluation, we can keep alternating between Policy Evaluation and Policy Improvement until convergence to obtain the Optimal Value Function and Optimal Policy. Indeed, this is a valid MC Control algorithm. However, this algorithm is not practical as each Policy Evaluation (MC Prediction) typically takes very long to converge (as we have noted in Chapter [-@sec:rl-prediction-chapter]) and the number of iterations of Evaluation and Improvement until GPI convergence will also be large. More importantly, this algorithm simply modifies the Policy Iteration DP/ADP algorithm by replacing DP/ADP Policy Evaluation with MC Q-Value Policy Evaluation - hence, we simply end up with a slower version of the Policy Iteration DP/ADP algorithm. Instead, we seek an MC Control Algorithm that switches from Policy Evaluation to Policy Improvement without requiring Policy Evaluation to converge (this is essentially the GPI idea). 
 
 So the natural GPI idea here would be to do the usual MC Prediction updates (of the Q-Value estimate) at the end of an episode, then improve the policy at the end of that episode, then perform MC Prediction updates (with the improved policy) at the end of the next episode, and so on … . Let's see what this algorithm looks like. Equation \ref{eq:greedy-policy-improvement-mc-q} tells us that all we need to perform the requisite greedy action (from the improved policy) at any time step in any episode is an estimate of the Q-Value Function. For ease of understanding, for now, let us just restrict ourselves to the case of Tabular Every-Visit MC Control with equal weights for each of the *Return* data points obtained for any (state, action) pair. In this case, we can simply perform the following two updates at the end of each episode for each $(S_t, A_t)$ pair encountered in the episode (note that at each time step $t$, $A_t$ is based on the greedy policy derived from the current estimate of the Q-Value function):
@@ -42,11 +57,18 @@ Q(S_t,A_t) & \leftarrow Q(S_t,A_t) + \frac 1 {Count(S_t,A_t)} \cdot (G_t - Q(S_t
 \label{eq:tabular-mc-control-updates}
 \end{equation}
 
+\index{Q@$Q$}
+\index{value function!action-value function}
+
 It's important to note that $Count(S_t, A_t)$ is accumulated over the set of all episodes seen thus far. Note that the estimate $Q(S_t,A_t)$ is not an estimate of the Q-Value Function for a single policy - rather, it keeps updating as we encounter new greedy policies across the set of episodes.
 
 So is this now our first Tabular RL Control algorithm? Not quite - there is yet another problem. This problem is more subtle and we illustrate the problem with a simple example. Let's consider a specific state (call it $s$) and assume that there are only two allowable actions $a_1$ and $a_2$ for state $s$. Let's say the true Q-Value Function for state $s$ is: $Q_{true}(s,a_1) = 2, Q_{true}(s,a_2) = 5$. Let's say we initialize the Q-Value Function estimate as: $Q(s,a_1) = Q(s,a_2) = 0$. When we encounter state $s$ for the first time, the action to be taken is arbitrary between $a_1$ and $a_2$ since they both have the same Q-Value estimate (meaning both $a_1$ and $a_2$ yield the same max value for $Q(s,a)$ among the two choices for $a$). Let's say we arbitrarily pick $a_1$ as the action choice and let's say for this first encounter of state $s$ (with the arbitrarily picked action $a_1$), the return obtained is 3. So $Q(s,a_1)$ updates to the value 3. So when the state $s$ is encountered for the second time, we see that $Q(s,a_1) = 3$ and $Q(s,a_2) = 0$ and so, action $a_1$ will be taken according to the greedy policy implied by the estimate of the Q-Value Function. Let's say we now obtain a return of -1, updating $Q(s,a_1)$ to $\frac {3 - 1} 2 = 1$. When $s$ is encountered for the third time, yet again action $a_1$ will be taken according to the greedy policy implied by the estimate of the Q-Value Function. Let's say we now obtain a return of 2, updating $Q(s,a_1)$ to $\frac {3 - 1 + 2} 3 = \frac 4 3$. We see that as long as the returns associated with $a_1$ are not negative enough to make the estimate $Q(s,a_1)$ negative, $a_2$ is "locked out" by $a_1$ because the first few occurrences of $a_1$ happen to yield an average return greater than the initialization of $Q(s,a_2)$. Even if $a_2$ was chosen, it is possible that the first few occurrences of $a_2$ yield an average return smaller than the average return obtained on the first few occurrences of $a_1$, in which case $a_2$ could still get locked-out prematurely. 
 
 This problem goes beyond MC Control and applies to the broader problem of RL Control - updates can get biased by initial random occurrences of returns (or return estimates), which in turn could prevent certain actions from being sufficiently chosen (thus, disallowing accurate estimates of the Q-Values for those actions). While we do want to *exploit* actions that seem to be fetching higher returns, we also want to adequately *explore* all possible actions so we can obtain an accurate-enough estimate of their Q-Values. This is essentially the Explore-Exploit dilemma of the famous [Multi-Armed Bandit Problem](https://en.wikipedia.org/wiki/Multi-armed_bandit). In Chapter [-@sec:multi-armed-bandits-chapter], we will cover the Multi-Armed Bandit problem in detail, along with a variety of techniques to solve the Multi-Armed Bandit problem (which are essentially creative ways of resolving the Explore-Exploit dilemma). We will see in Chapter [-@sec:multi-armed-bandits-chapter] that a simple way of resolving the Explore-Exploit dilemma is with a method known as $\epsilon$-greedy, which essentially means we must be greedy ("exploit") a certain ($1 - \epsilon$) fraction of the time and for the remaining ($\epsilon$) fraction of the time, we explore all possible actions. The term "certain fraction of the time" refers to probabilities of choosing actions, which means an $\epsilon$-greedy policy (generated from a Q-Value Function estimate) will be a stochastic policy. For the sake of simplicity, in this book, we will employ the $\epsilon$-greedy method to resolve the Explore-Exploit dilemma in all RL Control algorithms involving the Explore-Exploit dilemma (although you must understand that we can replace the $\epsilon$-greedy method by the other methods we shall cover in Chapter [-@sec:multi-armed-bandits-chapter] in any of the RL Control algorithms where we run into the Explore-Exploit dilemma). So we need to tweak the Tabular MC Control algorithm described above to perform Policy Improvement with the $\epsilon$-greedy method. The formal definition of the $\epsilon$-greedy stochastic policy $\pi'$ (obtained from the current estimate of the Q-Value Function) for a Finite MDP (since we are focused on Tabular RL Control) is as follows:
+\index{exploration versus exploitation}
+\index{policy!epsilon greedy policy@$\epsilon$-greedy policy|textbf}
+\index{Q@$Q$}
+\index{value function!action-value function}
 
 $$\text{Improved Stochastic Policy } \pi'(s,a) =
 \begin{cases}
@@ -97,6 +119,8 @@ $$(\bm{B}^{\pi'})^{i+1}(\bvpi) \geq (\bm{B}^{\pi'})^i(\bvpi) \Rightarrow (\bm{B}
 This completes the proof.
 $\qed$
 
+\index{policy!epsilon greedy policy@$\epsilon$-greedy policy}
+
 We note that for any $\epsilon$-greedy policy $\pi$, we do ensure the condition that for all $s \in \mathcal{N}$, $\pi(s, a) \geq \frac {\epsilon} {|\mathcal{A}|}$ for all $a \in \mathcal{A}$. So we just need to ensure that this condition holds true for the initial choice of $\pi$ (in the GPI with MC algorithm). An easy way to ensure this is to choose the initial $\pi$ to be a uniform choice over actions (for each state), i.e., for all $s \in \mathcal{N}$, $\pi(s,a) = \frac 1 {|\mathcal{A}|}$ for all $a \in \mathcal{A}$.
 
 
@@ -126,6 +150,8 @@ A simple way by which our method of using the $\epsilon$-greedy policy (for poli
 $$\epsilon_k = \frac 1 k$$
 
 So now we are ready to describe the Tabular MC Control algorithm we've been seeking. We ensure that this algorithm has GLIE behavior and so, we refer to it as *GLIE Tabular Monte-Carlo Control*. The following is the outline of the procedure for each episode (terminating trace experience) in the algorithm:
+
+\index{reinforcement learning!tabular}
 
 * Generate the trace experience (episode) with actions sampled from the $\epsilon$-greedy policy $\pi$ obtained from the estimate of the Q-Value Function that is available at the start of the trace experience. Also, sample the first state of the trace experience from a uniform distribution of states in $\mathcal{N}$. This ensures infinite exploration of both states and actions. Let's denote the contents of this trace experience as:
 $$S_0, A_0, R_1, S_1, A_1, \ldots, R_T, S_T$$
@@ -163,6 +189,10 @@ Now let us write some code to implement the above description of GLIE Monte-Carl
 
 `glie_mc_control` produces a generator (`Iterator`) of Q-Value Function estimates at the end of each trace experience. The code is fairly self-explanatory. The method `simulate_actions` of `mdp: MarkovDecisionProcess` creates a single sampling trace (i.e., a trace experience). At the end of each trace experience, the `update` method of `FunctionApprox` updates the Q-Value Function (creates a new Q-Value Function without mutating the currrent Q-Value Function) using each of the returns (and associated state-actions pairs) from the trace experience. The $\epsilon$-greedy policy is derived from the Q-Value Function estimate by using the function `epsilon_greedy_policy` that is shown below and is quite self-explanatory.
 
+\index{policy!epsilon greedy policy@$\epsilon$-greedy policy}
+\index{glie mc control@\texttt{glie\_mc\_control}}
+
+
 ```python
 from rl.markov_decision_process import epsilon_greedy_policy, TransitionStep
 from rl.approximate_dynamic_programming import QValueFunctionApprox
@@ -196,6 +226,8 @@ def glie_mc_control(
 ```
 
 The implementation of `epsilon_greedy_policy` is as follows:   
+\index{greedy policy from qvf@\texttt{greedy\_policy\_from\_qvf}}
+\index{epsilon greedy policy@\texttt{epsilon\_greedy\_policy}}
 
 ```python
 from rl.policy import DeterministicPolicy, Policy, RandomPolicy
@@ -379,7 +411,12 @@ We see that this reasonably converges to the true Value Function (and reaches th
 
 The code above is in the file [rl/chapter11/simple_inventory_mdp_cap.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/chapter11/simple_inventory.py). Also see the helper functions in [rl/chapter11/control_utils.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/chapter11/control_utils.py) which you can use to run your own experiments and tests for RL Control algorithms.
 
+\index{reinforcement learning!monte carlo!for control|)}
+
 ### SARSA
+
+\index{reinforcement learning!temporal difference!sarsa|(}
+\index{reinforcement learning!temporal difference!for control|(}
 
 Just like in the case of RL Prediction, the natural idea is to replace MC Control with TD Control using the TD Target $R_{t+1}  + \gamma \cdot Q(S_{t+1}, A_{t+1}; \bm{w})$ as a biased estimate of $G_t$ when updating $Q(S_t, A_t; \bm{w})$. This means the parameters update in Equation \eqref{eq:mc-control-funcapprox-params-adj} gets modified to the following parameters update:
 
@@ -389,9 +426,13 @@ Just like in the case of RL Prediction, the natural idea is to replace MC Contro
 \end{equation}
 
 Unlike MC Control where updates are made at the end of each trace experience (i.e., episode), a TD control algorithm can update at the end of each atomic experience. This means the Q-Value Function Approximation is updated after each atomic experience (*continuous learning*), which in turn means that the $\epsilon$-greedy policy will be (automatically) updated at the end of each atomic experience. At each time step $t$ in a trace experience, the current $\epsilon$-greedy policy is used to sample $A_t$ from $S_t$ and is also used to sample $A_{t+1}$ from $S_{t+1}$. Note that in MC Control, the same $\epsilon$-greedy policy is used to sample all the actions from their corresponding states in the trace experience, and so in MC Control, we were able to generate the entire trace experience with the currently available $\epsilon$-greedy policy. However, here in TD Control, we need to generate a trace experience incrementally since the action to be taken from a state depends on the just-updated $\epsilon$-greedy policy (that is derived from the just-updated Q-Value Function).
+\index{policy!epsilon greedy policy@$\epsilon$-greedy policy}
 
 Just like in the case of RL Prediction, the disadvantage of the TD Target being a biased estimate of the return is compensated by a reduction in the variance of the return estimate. Also, TD Control offers a better speed of convergence (as we shall soon illustrate). Most importantly, TD Control offers the ability to use in situations where we have incomplete trace experiences (happens often in real-world situations where experiments gets curtailed/disrupted) and also, we can use it in situations where we never reach a terminal state (*continuing trace*). 
 
+\index{Markov decision process!state}
+\index{Markov decision process!action}
+\index{Markov decision process!reward}
 Note that Equation \eqref{eq:td-control-funcapprox-params-adj} has the entities
 
 * **S**tate $S_t$
@@ -422,6 +463,8 @@ Now let us write some code to implement the above-described SARSA algorithm. Let
 * Update the Q-Value Function based on Equation \eqref{eq:td-control-funcapprox-params-adj} (using the `update` method of `q: QValueFunctionApprox[S, A]`). Note that this is an immutable update since we produce an `Iterable` (generator) of the Q-Value Function estimate after each time step.
 
 Before the code for `glie_sarsa`, let's understand the code for `epsilon_greedy_action` which returns an action sampled from the $\epsilon$-greedy policy probability distribution that is derived from the Q-Value Function estimate, given as input a non-terminal state, a Q-Value Function estimate, the set of allowable actions, and $\epsilon$.
+\index{glie sarsa@\texttt{glie\_sarsa}}
+\index{policy!epsilon greedy policy@$\epsilon$-greedy policy}
 
 ```python
 from operator import itemgetter
@@ -587,7 +630,10 @@ Lastly, it's important to recognize that MC Control is not very sensitive to the
 
 More generally, we encourage you to play with the `compare_mc_sarsa_ql` function on other MDP choices (ones we have created earlier in this book, or make up your own MDPs) so you can develop good intuition for how GLIE MC Control and GLIE SARSA algorithms converge for a variety of choices of learning rate schedules, initial Value Function choices, choices of discount factor etc.
 
+
 ### SARSA($\lambda$)
+
+\index{reinforcement learning!temporal difference$(\lambda)$!for control}
 
 Much like how we extended TD Prediction to TD($\lambda$) Prediction, we can extend SARSA to SARSA($\lambda$), which gives us a way to tune the spectrum from MC Control to SARSA using the $\lambda$ parameter. Recall that in order to develop TD($\lambda$) Prediction from TD Prediction, we first developed the $n$-step TD Prediction Algorithm, then the Offline $\lambda$-Return TD Algorithm, and finally the Online TD($\lambda$) Algorithm. We develop an analogous progression from SARSA to SARSA($\lambda$).
 
@@ -625,20 +671,33 @@ with the eligiblity traces initialized at time 0 for each trace experience as $\
 
 We leave the implementation of SARSA($\lambda$) in Python code as an exercise for you to do.
 
+\index{reinforcement learning!temporal difference!sarsa|)}
+
 ### Off-Policy Control
 
 All control algorithms face a tension between wanting to learn Q-Values contingent on *subsequent optimal behavior* versus wanting to explore all actions. This almost seems contradictory because the quest for exploration deters one from optimal behavior. Our approach so far of pursuing an $\epsilon$-greedy policy (to be thought of as an *almost optimal* policy) is a hack to resolve this tension. A cleaner approach is to use two separate policies for the two separate goals of wanting to be optimal and wanting to explore. The first policy is the one that we learn about (which eventually becomes the optimal policy) - we call this policy the *Target Policy* (to signify the "target" of Control). The second policy is the one that behaves in an exploratory manner, so we can obtain sufficient data for all actions, enabling us to adequately estimate the Q-Value Function - we call this policy the *Behavior Policy*.
 
+\index{policy!target policy|textbf}
+\index{policy!behavior policy|textbf}
+
 In SARSA, at a given time step, we are in a current state $S$, take action $A$, after which we obtain the reward $R$ and next state $S'$, upon which we take the next action $A'$. The action $A$ taken from the current state $S$ is meant to come from an exploratory policy (behavior policy) so that for each state $S$, we have adequate occurrences of all actions in order to accurately estimate the Q-Value Function. The action $A'$ taken from the next state $S'$ is meant to come from the target policy as we aim for *subsequent optimal behavior* ($Q^*(S, A)$ requires optimal behavior subsequent to taking action $A$). However, in the SARSA algorithm, the behavior policy producing $A$ from $S$ and the target policy producing $A'$ from $S'$ are in fact the same policy - the $\epsilon$-greedy policy. Algorithms such as SARSA in which the behavior policy is the same as the target policy are refered to as On-Policy Algorithms to indicate the fact that the behavior used to generate data (experiences) does not deviate from the policy we are aiming for (target policy, which drives towards the optimal policy). 
+
+\index{reinforcement learning!on-policy|textbf}
 
 The separation of behavior policy and target policy as two separate policies gives us algorithms that are known as Off-Policy Algorithms to indicate the fact that the behavior policy is allowed to "deviate off" from the target policy. This separation enables us to construct more general and more powerful RL algorithms. We will use the notation $\pi$ for the target policy and the notation $\mu$ for the behavior policy - therefore, we say that Off-Policy algorithms estimate the Value Function for target policy $\pi$ while following behavior policy $\mu$. Off-Policy algorithms can be very valuable in real-world situations where we can learn the target policy $\pi$ by observing humans or other AI agents who follow a behavior policy $\mu$. Another great practical benefit is to be able to re-use prior experiences that were generated from old policies, say $\pi_1, \pi_2, \ldots$. Yet another powerful benefit is that we can learn multiple policies $\mu_1, \mu_2, \ldots$ while following one behavior policy $\pi$. Let's now make the concept of Off-Policy Learning concrete by covering the most basic (and most famous) Off-Policy Control Algorithm, which goes by the name of Q-Learning.
  
+\index{reinforcement learning!off-policy|textbf}
 
 #### Q-Learning
+
+\index{reinforcement learning!temporal difference!q learning|(}
 
 The best way to understand the (Off-Policy) Q-Learning algorithm is to tweak SARSA to make it Off-Policy. Instead of having both the action $A$ and the next action $A'$ being generated by the same $\epsilon$-greedy policy, we generate (i.e., sample) action $A$ (from state $S$) using an exploratory behavior policy $\mu$ and we generate the next action $A'$ (from next state $S'$) using the target policy $\pi$. The behavior policy can be any policy as long as it is exploratory enough to be able to obtain sufficient data for all actions (in order to obtain an adequate estimate of the Q-Value Function). Note that in SARSA, when we roll over to the next (new) time step, the new time step's state $S$ is set to be equal to the previous time step's next state $S'$ and the new time step's action $A$ is set to be equal to the previous time step's next action $A'$. However, in Q-Learning, we only set the new time step's state $S$ to be equal to the previous time step's next state $S'$. The action $A$ for the new time step will be generated using the behavior policy $\mu$, and won't be equal to the previous time step's next action $A'$ (that would have been generated using the target policy $\pi$).
 
 This Q-Learning idea of two separate policies - behavior policy and target policy - is fairly generic, and can be used in algorithms beyond solving the Control problem. However, here we are interested in Q-Learning for Control and so, we want to ensure that the target policy eventually becomes the optimal policy. One straightforward way to accomplish this is to make the target policy equal to the deterministic greedy policy derived from the Q-Value Function estimate at every step. Thus, the update for Q-Learning Control algorithm is as follows:
+
+\index{policy!target policy|textbf}
+\index{policy!behavior policy|textbf}
 
 $$\Delta \bm{w} = \alpha \cdot \delta_t \cdot \nabla_{\bm{w}} Q(S_t, A_t; \bm{w})$$
 where
@@ -662,6 +721,8 @@ Now let us write some code for Q-Learning. The function `q_learning` below is qu
 * `glie_sarsa` takes as input `epsilon_as_func_of_episodes: Callable[[int], float]` whereas `q_learning` doesn't require this argument (Q-Learning can converge even if it's behavior policy has an unchanging $\epsilon$, and any $\epsilon$ specification in `q_learning` would be built into the `policy_from_q` argument).
 * As explained above, in `q_learning`, the `action` from the `state` is obtained using the specified behavior policy `policy_from_q` and the "next action" from the `next_state` is implicitly obtained using the deterministic greedy policy derived from the Q-Value Function estimate `q`. In `glie_sarsa`, both `action` and `next_action` were obtained from the $\epsilon$-greedy policy.
 * As explained above, in `q_learning`, as we move to the next time step, we set `state` to be equal to the previous time step's `next_state` whereas in `glie_sarsa`, we not only do this but we also set `action` to be equal to the previous time step's `next_action`. 
+
+\index{q learning@\texttt{q\_learning}}
 
 ```python
 PolicyFromQType = Callable[
@@ -698,7 +759,11 @@ def q_learning(
 
 The above code is in the file [rl/td.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/td.py). Much like how we tested GLIE SARSA on `SimpleInventoryMDPCap`, the code in the file [rl/chapter11/simple_inventory_mdp_cap.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/chapter11/simple_inventory.py) also tests Q-Learning on `SimpleInventoryMDPCap`. We encourage you to leverage the helper functions in [rl/chapter11/control_utils.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/chapter11/control_utils.py) to run your own experiments and tests for Q-Learning. In particular, the functions for Q-Learning in rl/chapter11/control_utils.py employ the common practice of using the $\epsilon$-greedy policy as the behavior policy.
 
+\index{reinforcement learning!temporal difference!q learning|)}
+
 #### Windy Grid
+
+\index{windy grid|(}
 
 Now we cover an interesting Control problem that is quite popular in the RL literature - how to navigate a "Windy Grid". We have added some bells and whistles to this problem to make it more interesting. We want to evaluate SARSA and Q-Learning on this problem. Here's the detailed description of this problem:
 
@@ -733,6 +798,8 @@ Discount Factor $\gamma = 1$
 Now let's write some code to model this problem with the above MDP spec, and run Value Iteration, SARSA and Q-Learning as three different ways of solving this MDP Control problem. 
 
 We start with the problem specification in the form of a Python class `WindyGrid` and write some helper functions before getting into the MDP creation and DP/RL algorithms.
+
+\index{WindyGrid@\texttt{WindyGrid}}
 
 ```python
 '''
@@ -1037,14 +1104,22 @@ We first run GLIE SARSA and Q-Learning for the above settings of bump cost = 4.0
 
 Now let us set the bump cost to a very high value of 100,000. Figure \ref{fig:windy_grid_convergence2} depicts the convergence trajectory for bump cost of 100,000. We see that Q-Learning converges much faster than GLIE SARSA (we kept GLIE SARSA $\epsilon(k) = \frac 1 k$ and Q-Learning $\epsilon = 0.2$). So why does Q-Learning do better? Q-Learning has two advantages over GLIE SARSA here: Firstly, it's behavior policy is exploring at the constant amount of 20\% whereas GLIE SARSA's exploration declines to 10\% after just the 10th episode. This means Q-Learning gets sufficient data quicker than GLIE SARSA for the entire set of (state, action) pairs. Secondly, Q-Learning's target policy is greedy, versus GLIE SARSA's declining-$\epsilon$-greedy. This means GLIE SARSA's Optimal Q-Value estimation is compromised due to the exploration of actions in it's target policy (rather than a pure exploitation with $\max$ over actions, as is the case with Q-Learning). Thus, the separation between behavior policy and target policy in Q-Learning fetches it the best of both worlds and enables it to perform better than GLIE SARSA in this example.
 
+\index{windy grid|)}
+
 SARSA is a more "conservative" algorithm in the sense that if there is a risk of a large negative reward close to the optimal path, SARSA will tend to avoid that dangerous optimal path and only slowly learn to use that optimal path when $\epsilon$ (exploration) reduces sufficiently. Q-Learning, on the other hand, will tend to take that risk while exploring and learns fast through "big failures". This provides us with a guide on when to use SARSA and when to use Q-Learning. Roughly speaking, use SARSA if you are training your AI agent with interaction with the real environment where you care about time and money consumed while doing the training with real environment-interaction (eg: you don't want to risk damaging a robot by walking it towards an optimal path in the proximity of physical danger). On the other hand, use Q-Learning if you are training your AI agent with a simulated environment where large negative rewards don't cause actual time/money losses, but these large negative rewards help the AI agent learn quickly. In a financial trading example, if you are training your RL agent in a real trading environment, you'd want to use SARSA as Q-Learning can potentially incur big losses while SARSA (although slower in learning) will avoid real trading losses during the process of learning. On the other hand, if you are training your RL agent in a simulated trading environment, Q-Learning is the way to go as it will learn fast by incuring "paper trading" losses as part of the process of executing risky trades.
 
 Note that Q-Learning (and Off-policy Learning in general) has higher per-sample variance than SARSA, which could lead to problems in convergence, especially when we employ function approximation for the Q-Value Function. Q-Learning has been shown to be particularly problematic in converging when using neural networks for it's Q-Value function approximation.
 
 The SARSA algorithm was introduced [in a paper by Rummery and Niranjan](http://mi.eng.cam.ac.uk/reports/svr-ftp/auto-pdf/rummery_tr166.pdf) [@rummery:tech94]. The Q-Learning algorithm was introduced in the [Ph.D. thesis of Chris Watkins](http://www.cs.rhul.ac.uk/~chrisw/new_thesis.pdf) [@Watkins:89].
 
+\index{reinforcement learning!temporal difference!for control|)}
 
 #### Importance Sampling
+
+\index{probability!sampling!importance sampling|(}
+\index{reinforcement learning!off-policy}
+\index{policy!target policy}
+\index{policy!behavior policy}
 
 Now that we've got a good grip of Off-Policy Learning through the Q-Learning algorithm, we show a very different (arguably simpler) method of doing Off-Policy Learning. This method is known as [Importance Sampling](https://en.wikipedia.org/wiki/Importance_sampling), a fairly general technique (beyond RL) for estimating properties of a particular probability distribution, while only having access to samples of a different probability distribution. Specializing this technique to Off-Policy Control, we estimate the Value Function for the target policy (probability distribution of interest) while having access to samples generated from the probability distribution of the behavior policy. Specifically, Importance Sampling enables us to calculate $\mathbb{E}_{X\sim P}[f(X)]$ (where $P$ is the probability distribution of interest), given samples from probability distribution $Q$, as follows:
 \begin{align*}
@@ -1076,6 +1151,7 @@ $$\Delta \bm{w} = \alpha \cdot \frac {\pi(S_t, A_t)} {\mu(S_t, A_t)} \cdot (R_{t
 This has much lower variance than MC importance sampling. A key advantage of TD importance sampling is that policies only need to be similar over a single time step.
 
 Since the modifications from On-Policy algorithms to Off-Policy algorithms based on Importance Sampling are just a small tweak of scaling the update by importance sampling corrections, we won't implement the Off-Policy Importance Sampling algorithms in Python code. However, we encourage you to implement the Prediction and Control MC and TD Off-Policy algorithms (based on Importance Sampling) described above. 
+\index{probability!sampling!importance sampling|)}
 
 ### Conceptual Linkage between DP and TD algorithms
 
@@ -1116,6 +1192,10 @@ The table in Figure \ref{table:dp_td_linkage} summarizes these RL algorithms, al
 \end{figure}
 
 ### Convergence of RL Algorithms
+\index{reinforcement learning!convergence|(}
+\index{function approximation!semi-gradient}
+\index{function approximation!linear}
+\index{function approximation!non-linear}
 
 Now we provide an overview of convergence of RL Algorithms. Let us start with RL Prediction. Figure \ref{fig:rl_prediction_convergence} provides the overview of RL Prediction. As you can see, Monte-Carlo Prediction has convergence guarantees, whether On-Policy or Off-Policy, whether Tabular or with Function Approximation (even with non-linear Function Approximation). However, Temporal-Difference Prediction can have convergence issues - the core reason for this is that the TD update is not a true gradient update (as we've explained in Chapter [-@sec:rl-prediction-chapter], it is a *semi-gradient* update). As you can see, although we have convergence guarantees for On-Policy TD Prediction with linear function approximation, there is no convergence guarantee for On-Policy TD Prediction with non-linear function approximation. The situation is even worse for Off-Policy TD Prediction - there is no convergence guarantee even for linear function approximation.
 
@@ -1137,6 +1217,10 @@ Off-Policy & TD(0) & \cmark & \xmark & \xmark \\
 \end{figure}
 
 We want to highlight a confluence pattern in RL Algorithms where convergence problems arise. As a rule of thumb, if we do all of the following three, then we run into convergence problems.
+\index{bootstrapping}
+\index{reinforcement learning!off-policy}
+\index{function approximation}
+\index{reinforcement learning!deadly triad|textbf}
 
 * Bootstrapping, i.e., updating with a target that involves the current Value Function estimate (as is the case with Temporal-Difference)
 * Off-Policy
@@ -1180,6 +1264,8 @@ Q-Learning & \cmark & \xmark & \xmark \\
 \label{fig:rl_control_convergence}
 \end{figure}
 
+\index{reinforcement learning!convergence|)}
+\index{reinforcement learning!control|)}
 \index{reinforcement learning|)}
 
 ### Key Takeaways from this Chapter
@@ -1189,3 +1275,5 @@ Q-Learning & \cmark & \xmark & \xmark \\
   - Improved Policy needs to be exploratory, eg: $\epsilon$-greedy
 * On-Policy versus Off-Policy (eg: SARSA versus Q-Learning)
 * Deadly Triad := [Bootstrapping, Off-Policy, Function Approximation]
+
+\index{reinforcement learning!control|seealso{Markov decision process, control}}

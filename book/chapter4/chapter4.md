@@ -317,7 +317,7 @@ If the number of non-terminal states of a given MRP is $m$, then the running tim
 
 We had said earlier that we will be presenting 3 Dynamic Programming Algorithms. The first (Policy Evaluation), as we saw in the previous section, solves the MDP Prediction problem. The other two (that will present in the next two sections) solve the MDP Control problem. This section is a stepping stone from *Prediction* to *Control*. In this section, we define a function that is motivated by the idea of *improving a value function/improving a policy* with a "greedy" technique. Formally, the *Greedy Policy Function*
 
-\index{policy!greedy policy}
+\index{policy!greedy policy|textbf}
 
 $$G: \mathbb{R}^m \rightarrow (\mathcal{N} \rightarrow \mathcal{A})$$
 
@@ -1362,4 +1362,3 @@ Before we end this chapter, we'd like to highlight the three highly important co
 * Backward Induction: A straightforward method to solve finite-horizon MDPs by simply backpropagating the Value Function from the horizon-end to the start.
 
 \index{greedy algorithm|seealso{policy, greedy policy}}
-\index{tabular algorithms|seealso{dynamic programming}}

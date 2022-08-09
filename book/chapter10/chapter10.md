@@ -33,11 +33,11 @@ To understand the core idea of how RL works, we take you back to the start of th
 We should also point out another important feature of human/animal learning - it is the fact that humans/animals are good at generalizing their inferences from experiences, i.e., they can interpolate and extrapolate the linkages between their actions and the outcomes received from their environment. Technically, this translates to a suitable function approximation of the Q-Value function. So before we embark on studying the details of various RL algorithms, it's important to recognize that RL overcomes complexity (specifically, the Curse of Dimensionality and Curse of Modeling, as we have alluded to in previous chapters) with a combination of:
 
 \index{function approximation!incremental estimation}
-1. Learning incrementally by updating the Q-Value function from individual experiences of next state and reward received after performing actions in specific states.
+1. Learning from individual experiences of next state and reward received after performing actions in specific states.
 2. Good generalization ability of the Q-Value function with a suitable function approximation (indeed, recent progress in capabilities of deep neural networks have helped considerably).
 \index{function approximation!generalization}
 
-This idea of solving the MDP Prediction and Control problems in this manner (learning incrementally from a stream of data with appropriate generalization ability in the Q-Value function approximation) came from [the Ph.D. thesis of Chris Watkins](http://www.cs.rhul.ac.uk/~chrisw/new_thesis.pdf) [@Watkins:89]. As mentioned before, we consider [the RL book by Sutton and Barto](http://www.incompleteideas.net/book/the-book.html) [@Sutton1998] as the best source for a comprehensive study of RL algorithms as well as the best source for all references associated with RL (hence, we don't provide too many references in this book).
+This idea of solving the MDP Prediction and Control problems in this manner (learning from a stream of experiences data with appropriate generalization ability in the Q-Value function approximation) came from [the Ph.D. thesis of Chris Watkins](http://www.cs.rhul.ac.uk/~chrisw/new_thesis.pdf) [@Watkins:89]. As mentioned before, we consider [the RL book by Sutton and Barto](http://www.incompleteideas.net/book/the-book.html) [@Sutton1998] as the best source for a comprehensive study of RL algorithms as well as the best source for all references associated with RL (hence, we don't provide too many references in this book).
 
 \index{generalized policy iteration}
 \index{Bellman equations}
@@ -1325,4 +1325,4 @@ Thus, we see that our implementation of TD($\lambda$) Prediction with the above 
 * MC learns the statistical mean of the observed returns while TD learns something "deeper" - it implicitly estimates an MRP from the observed  data and produces the Value Function of the implicitly-estimated MRP.
 * Understanding TD versus MC versus DP from the perspectives of "bootstrapping" and "experiencing" (Figure \ref{fig:unified_view_of_rl} provides a great view).
 * "Equivalence" of $\lambda$-Return Prediction and TD($\lambda$) Prediction, hence TD is equivalent to TD(0) and MC is "equivalent" to TD(1).
-\index{reinforcement learning!prediction|seealso{prediction}}
+\index{reinforcement learning!prediction|seealso{Markov decision process, prediction}}
