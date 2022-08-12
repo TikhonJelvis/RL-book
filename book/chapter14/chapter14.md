@@ -2,6 +2,9 @@
 
 ## Multi-Armed Bandits: Exploration versus Exploitation {#sec:multi-armed-bandits-chapter}
 
+\index{exploration versus exploitation|(}
+\index{multi-armed bandits|(}
+
 We learnt in Chapter [-@sec:rl-control-chapter] that balancing exploration and exploitation is vital in RL Control algorithms. While we want to exploit actions that seem to be fetching good returns,  we also want to adequately explore all possible actions so we can obtain an accurate-enough estimate of their Q-Values. We had mentioned that this is essentially the Explore-Exploit dilemma of the famous [Multi-Armed Bandit Problem](https://en.wikipedia.org/wiki/Multi-armed_bandit). The Multi-Armed Bandit problem provides a simple setting to understand the explore-exploit tradeoff and to develop explore-exploit balancing algorithms. The approaches followed by the Multi-Armed Bandit algorithms are then well-transportable to the more complex setting of RL Control.
 
 In this Chapter, we start by specifying the Multi-Armed Bandit problem, followed by coverage of a variety of techniques to solve the Multi-Armed Bandit problem (i.e., effectively balancing exploration against exploitation). We've actually seen one of these algorithms already for RL Control - following an $\epsilon$-greedy policy, which naturally is applicable to the simpler setting of Multi-Armed Bandits. We had mentioned in Chapter [-@sec:rl-control-chapter] that we can simply replace the $\epsilon$-greedy approach with any other algorithm for explore-exploit tradeoff. In this chapter, we consider a variety of such algorithms, many of which are far more sophisticated compared to the simple $\epsilon$-greedy approach. However, we cover these algorithms for the simple setting of Multi-Armed Bandits as it promotes understanding and development of intuition. After covering a range of algorithms for Multi-Armed Bandits, we consider an extended problem known as Contextual Bandits, that is a step between the Multi-Armed Bandits problem and the RL Control problem (in terms of problem complexity). Finally, we explain how the algorithms for Multi-Armed Bandits can be easily transported to the more nuanced/extended setting of Contextual Bandits, and further extended to RL Control.
@@ -19,7 +22,12 @@ Exploitation has intuitive notions of "being greedy" and of being "short-sighted
 * Oil Drilling: We like to drill at the best known location (Exploitation) but we also like to drill at a new location (Exploration).
 * Learning to play a game: We like to play the move that has worked well for us so far (Exploitation) but we also like to play a new experimental move (Exploration).
 
+\index{multi-armed bandits!slot machines}
+
 The term *Multi-Armed Bandit* (abbreviated as MAB) is a spoof name that stands for "Many One-Armed Bandits" and the term *One-Armed Bandit* refers to playing a slot-machine in a casino (that has a single lever to be pulled, that presumably addicts us and eventually takes away all our money, hence the term "bandit"). Multi-Armed Bandit refers to the problem of playing several slot machines (each of which has an unknown fixed payout probability distribution) in a manner that we can make the maximum cumulative gains by playing over multiple rounds (by selecting a single slot machine in a single round). The core idea is that to achieve maximum cumulative gains, one would need to balance the notions of exploration and exploitation, no matter which selection strategy one would pursue.
+
+
+\index{multi-armed bandits|textbf}
 
 #### Problem Definition
 
@@ -40,7 +48,12 @@ So the AI Agent has $T$ selections of actions to make (in sequence), basing each
 
 It is immediately observable that the Environment doesn't have a notion of *State*. When the AI Agent selects an arm, the Environment simply samples from the probability distribution for that arm. However, the AI Agent might maintain relevant features of the history (of actions taken and rewards obtained) as it's *State*, which would help the AI Agent in making the arm-selection (action) decision. The arm-selection action is then based on a (*Policy*) function of the agent's *State*. So, the agent's arm-selection strategy is basically this *Policy*. Thus, even though a MAB is not posed as an MDP, the agent could model it as an MDP and solve it with an appropriate Planning or Learning algorithm. However, many MAB algorithms don't take this formal MDP approach. Instead, they rely on heuristic methods that don't aim to *optimize* - they simply strive for *good* Cumulative Rewards (in Expectation). Note that even in a simple heuristic algorithm, $A_t$ is a random variable simply because it is a function of past (random) rewards.
 
+\index{Markov decision process}
+
 #### Regret
+
+\index{multi-armed bandits!regret|textbf}
+\index{multi-armed bandits!action value|textbf}
 
 The idea of *Regret* is quite fundamental in designing algorithms for MAB. In this section, we illuminate this idea.
 
@@ -73,6 +86,8 @@ In this chapter, we implement (in code) a few different algorithms for the MAB p
 * `num_episodes` which represents the number of episodes we can run the algorithm on (each episode having $T$ time steps), in order to produce metrics to evaluate how well the algorithm does in expectation (averaged across the episodes).
 
 Each of the algorithms we'd like to write simply needs to implement the `@abstractmethod get_episode_rewards_actions` which is meant to return a 1-D `ndarray` of actions taken by the algorithm across the $T$ time steps (for a single episode), and a 1-D `ndarray` of rewards produced in response to those actions.
+
+\index{MABBase@\texttt{MABBase}}
 
 ```python
 from rl.distribution import Distribution
@@ -148,10 +163,15 @@ where $\mathbb{I}$ refers to the indicator function.
 
 #### Greedy and $\epsilon$-Greedy
 
+\index{multi-armed bandits!greedy}
+
 First consider an algorithm that *never* explores (i.e., *always* exploits). This is known as the *Greedy Algorithm* which selects the action with highest estimated value, i.e.,
 $$A_t = \argmax_{a\in \mathcal{A}} \hat{Q}_{t-1}(a)$$
 
 As ever, $\argmax$ ties are broken with an arbitrary rule in prioritizing actions. We've noted in Chapter [-@sec:rl-control-chapter] that such an algorithm can lock into a suboptimal action forever (suboptimal $a$ is an action for which $\Delta_a > 0$). This results in $Count_T(a)$ being a linear function of $T$ for some suboptimal $a$, which means the Total Regret is a linear function of $T$ (we refer to this as *Linear Total Regret*). 
+
+\index{multi-armed bandits!linear total regret}
+\index{multi-armed bandits!epsilon greedy@$\epsilon$-greedy}
 
 Now let's consider the $\epsilon$-greedy algorithm, which explores forever. At each time-step $t$:
 
@@ -165,6 +185,8 @@ Hence, the $\epsilon$-Greedy algorithm also has Linear Total Regret.
 
 #### Optimistic Initialization
 
+\index{multi-armed bandits!optimistic initialization}
+
 Next we consider a simple and practical idea: Initialize $\hat{Q}_0(a)$ to a high value for all $a\in \mathcal{A}$ and update $\hat{Q}_t$ by incremental-averaging. Starting with $N_0(a) \geq 0$ for all $a\in \mathcal{A}$, the updates at each time step $t$ are as follows:
 
 $$N_t(A_t) = N_{t-1}(A_t) + 1$$
@@ -172,7 +194,11 @@ $$\hat{Q}_t(A_t) = \hat{Q}_{t-1}(A_t) + \frac {R_t - \hat{Q}_{t-1}(A_t)} {N_t(A_
 
 The idea here is that by setting a high initial value for the estimate of Q-Values (which we refer to as *Optimistic Initialization*), we encourage systematic exploration early on. Another way of doing optimistic initialization is to set a high value for $N_0(a)$ for all $a \in \mathcal{A}$, which likewise encourages systematic exploration early on. However, these optimistic initialization ideas only serve to promote exploration early on and eventually, one can still lock into a suboptimal action. Specifically, the Greedy algorithm together with optimistic initialization cannot be prevented from having Linear Total Regret in the general case. Likewise, the $\epsilon$-Greedy algorithm together with optimistic initialization cannot be prevented from having Linear Total Regret in the general case. But in practice, these simple ideas of doing optimistic initialization work quite well. 
 
+\index{multi-armed bandits!linear total regret}
+
 #### Decaying $\epsilon_t$-Greedy Algorithm
+
+\index{multi-armed bandits!decaying epsilon greedy@decaying $\epsilon_t$-greedy}
 
 The natural question that emerges is whether it is possible to construct an algorithm with Sublinear Total Regret in the general case. Along these lines, we consider an $\epsilon$-Greedy algorithm with $\epsilon$ decaying as time progresses. We call such an algorithm Decaying $\epsilon_t$-Greedy.
 
@@ -184,6 +210,8 @@ $$\epsilon_t = \min(1, \frac {c|\mathcal{A}|} {d^2 (t+1)})$$
 It can be shown that this decay schedule achieves *Logarithmic* Total Regret. However, note that the above schedule requires advance knowledge of the gaps $\Delta_a$ (which by definition, is not known to the AI Agent). In practice, implementing *some* decay schedule helps considerably. Let's now write some code to implement Decaying $\epsilon_t$-Greedy algorithm along with Optimistic Initialization.
 
 The class `EpsilonGreedy` shown below implements the interface of the abstract base class `MABBase`.  It's constructor inputs `arm_distributions`, `time_steps` and `num_episodes` are the inputs we have seen before (used to pass to the constructor of the abstract base class `MABBase`). `epsilon` and `epsilon_half_life` are the inputs used to specify the declining trajectory of $\epsilon_t$. `epsilon` refers to $\epsilon_0$ (initial value of $\epsilon$) and `epsilon_half_life` refers to the half life of an exponentially-decaying $\epsilon_t$ (used in the `@staticmethod get_epsilon_decay_func`). `count_init` and `mean_init` refer to values of $N_0$ and $\hat{Q}_0$ respectively. `get_episode_rewards_actions` implements `MABBase`'s `@abstracmethod` interface, and it's code below should be self-explanatory.
+
+\index{EpsilonGreedy@\texttt{EpsilonGreedy}}
 
 ```python
 from operator import itemgetter
@@ -255,9 +283,15 @@ The above code is in the file [rl/chapter14/epsilon_greedy.py](https://github.co
 
 Figure \ref{fig:exp_cum_regret} shows the results of running the above code for 1000 time steps over 500 episodes, with $N_0$ and $\hat{Q}_0$ both set to 0. This graph was generated (see `__main__` in [rl/chapter14/epsilon_greedy.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/chapter14/epsilon_greedy.py)) by creating 3 instances of `EpsilonGreedy` - the first with `epsilon` set to 0 (i.e., Greedy), the second with `epsilon` set to 0.12 and `epsilon_half_life` set to a very high value (i.e, $\epsilon$-Greedy, with no decay for $\epsilon$), and the third with `epsilon` set to 0.12 and `epsilon_half_life` set to 150 (i.e., Decaying $\epsilon_t$-Greedy). We can see that Greedy produces Linear Total Regret since it locks to a suboptimal value. We can also see that $\epsilon$-Greedy has higher total regret than Greedy initially because of exploration, and then settles in with Linear Total Regret, commensurate with the constant amount of exploration ($\epsilon = 0.12$ in this case). Lastly, we can see that Decaying $\epsilon_t$-Greedy produces Sublinear Total Regret as the initial effort spent in exploration helps identify the best action and as time elapses, the exploration keeps reducing so as to keep reducing the single-step regret.
 
+\index{multi-armed bandits!linear total regret}
+\index{multi-armed bandits!sublinear total regret}
+
 In the `__main__` code in [rl/chapter14/epsilon_greedy.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/chapter14/epsilon_greedy.py), we encourage you to experiment with different `arm_distributions`, `epsilon`, `epsilon_half_life`, `count_init` ($N_0$) and `mean_init` ($\hat{Q}_0$), observe how the graphs change, and develop better intuition for these simple algorithms.
 
 ### Lower Bound
+
+\index{multi-armed bandits!Lai-Robbins lower bound|textbf}
+\index{probability!Kullback-Leibler divergence}
 
 It should be clear by now that we strive for algorithms with Sublinear Total Regret for any MAB problem (i.e., without any prior knowledge of the arm-reward distributions $\mathcal{R}^a$). Intuitively, the performance of any algorithm is determined by the similarity between the optimal arm's reward-distribution and the other arms's reward-distributions. Hard MAB problems are those with similar-distribution arms with different means $Q(a)$. This can be formally described in terms of the [KL Divergence](https://en.wikipedia.org/wiki/Kullback%E2%80%93Leibler_divergence) $KL(\mathcal{R}^a||\mathcal{R}^{a^*})$ and gaps $\Delta_a$. Indeed, [Lai and Robbins](https://www.sciencedirect.com/science/article/pii/0196885885900028) [@lai-allocation] established a logarithmic lower bound for the Asymptotic Total Regret, with a factor expressed in terms of the KL Divergence $KL(\mathcal{R}^a||\mathcal{R}^{a^*})$ and gaps $\Delta_a$. Specifically,
 
@@ -266,9 +300,13 @@ Asymptotic Total Regret is at least logarithmic in the number of time steps, i.e
 $$L_T \geq log T \sum_{a|\Delta_a > 0} \frac 1 {\Delta_a}  \geq \log T \sum_{a|\Delta_a > 0} \frac {\Delta_a} {KL(\mathcal{R}^a||\mathcal{R}^{a^*})}$$
 \end{theorem}
 
+\index{multi-armed bandits!logarithmic total regret}
+
 This makes intuitive sense because it would be hard for an algorithm to have low total regret if the KL Divergence of arm reward-distributions (relative to the optimal arm's reward-distribution) are low (i.e., arms that look distributionally-similar to the optimal arm) but the Gaps (Expected Rewards of Arms relative to Optimal Arm) are not small - these are the MAB problem instances where the algorithm will have a hard time isolating the optimal arm simply from reward samples (we'd get similar sampling reward-distributions of arms), and suboptimal arm selections would inflate the Total Regret.
 
 ### Upper Confidence Bound Algorithms
+
+\index{multi-armed bandits!optimism in the face of uncertainty}
 
 Now we come to an important idea that is central to many algorithms for MAB. This idea goes by the catchy name of *Optimism in the Face of Uncertainty*. As ever, this idea is best understood with intuition first, followed by mathematical rigor. To develop intuition, imagine you are given 3 arms. You'd like to develop an estimate of $Q(a) = \mathbb{E}[r|a]$ for each of the 3 arms $a$. After playing the arms a few times, you start forming beliefs in your mind of what the $Q(a)$ might be for each arm. Unlike the simple algorithms we've seen so far where one averaged the sample rewards for each arm to maintain a $\hat{Q}(a)$ estimate for each $a$, here we maintain the sampling distribution of the mean rewards (for each $a$) that represents our (probabilistic) beliefs of what $Q(a)$ might be for each arm $a$.
 
@@ -280,7 +318,10 @@ It pays to emphasize that *Optimism in the Face of Uncertainty* is a great appro
 
 ![Q-Value Distributions \label{fig:q_value_distribution2}](./chapter14/q_value_distribution2.png "Q-Value Distributions")
 
+
 A formalization of the above intuition on *Optimism in the Face of Uncertainty* is the idea of *Upper Confidence Bounds* (abbreviated as UCB). The idea of UCB is that along with an estimate $\hat{Q}_t(a)$ (for each $a$ after $t$ time steps), we also maintain an estimate $\hat{U}_t(a)$ representing the upper confidence interval width for the mean reward of $a$ (after $t$ time steps) such that $Q(a) < \hat{Q}_t(a) + \hat{U}_t(a)$ with high probability. This naturally depends on the number of times that $a$ has been selected so far (call it $N_t(a)$). A small value of $N_t(a)$ would imply a large value of $\hat{U}_t(a)$ since the estimate of the mean reward would be fairly uncertain. On the other hand, a large value of $N_t(a)$ would imply a small value of $\hat{U}_t(a)$ since the estimate of the mean reward would be fairly certain. We refer to $\hat{Q}_t(a) + \hat{U}_t(a)$ as the *Upper Confidence Bound* (or simply UCB). The idea is to select the action that maximizes the UCB. Formally, the action $A_{t+1}$ selected for the next ($t+1$) time step is as follows:
+
+\index{multi-armed bandits!upper confidence bound|textbf}
 
 $$A_{t+1} = \argmax_{a\in\mathcal{A}} \{ \hat{Q}_t(a) + \hat{U}_t(a) \}$$
 
@@ -289,6 +330,8 @@ Next, we develop the famous UCB1 Algorithm. In order to do that, we tap into an 
 #### Hoeffding's Inequality
 
 We state Hoeffding's Inequality without proof.
+
+\index{probability!Hoeffding's inequality}
 
 \begin{theorem}[Hoeffding's Inequality]
 Let $X_1, \ldots, X_n$ be independent and identically distributed random variables in the range $[0,1]$, and let $$\bar{X}_n = \frac 1 n \sum_{i=1}^n X_i$$ be the sample mean. Then for any $u \geq 0$,
@@ -305,6 +348,9 @@ $$\hat{U}_t(a) = \sqrt{\frac {\alpha \log t} {2N_t(a)}}$$
 
 #### UCB1 Algorithm
 
+\index{multi-armed bandits!ucb1|(}
+\index{multi-armed bandits!logarithmic total regret}
+
 This yields the [UCB1 algorithm by Auer, Cesa-Bianchi, Fischer](https://homes.di.unimi.it/cesa-bianchi/Pubblicazioni/ml-02.pdf) [@Auer2002] for arbitrary-distribution arms bounded in $[0,1]$:
 $$A_{t+1} = \argmax_{a\in \mathcal{A}} \{ \hat{Q}_t(a) + \sqrt{\frac {\alpha \log t} {2N_t(a)}} \}$$
 It has been shown that the UCB1 Algorithm achieves logarithmic total regret asymptotically. Specifically,
@@ -314,6 +360,8 @@ $$L_T \leq \sum_{a|\Delta_a > 0} \frac {4\alpha \cdot \log T} {\Delta_a} + \frac
 \end{theorem}
 
 Now let's implement the UCB1 Algorithm in code. The class `UCB1` below implements the interface of the abstract base class `MABBase`. We've implemented the below code for rewards range $[0,B]$ (adjusting the above UCB1 formula apropriately from $[0,1]$ range to $[0,B]$ range). $B$ is specified as the constructor input `bounds_range`. The constructor input `alpha` corresponds to the parameter $\alpha$ specified above. `get_episode_rewards_actions` implements `MABBase`'s `@abstracmethod` interface, and it's code below should be self-explanatory.
+
+\index{UCB1@\texttt{UCB1}}
 
 ```python
 from numpy import ndarray, empty, sqrt, log
@@ -367,25 +415,40 @@ The above code is in the file [rl/chapter14/ucb1.py](https://github.com/TikhonJe
 
 We encourage you to modify the code in `__main__` to model other distributions for the arms, examine the results obtained, and develop more intuition for the UCB1 Algorithm.
 
+\index{multi-armed bandits!ucb1|)}
+
 #### Bayesian UCB
+
 
 The algorithms we have covered so far have not made any assumptions about the rewards distributions $\mathcal{R}^a$ (except for the range of the rewards). Now we assume that the rewards distributions are restricted to a family of analytically-tractable probability distributions, which enables us to make analytically-favorable inferences about the rewards distributions. Let us refer to the sequence of distributions $[\mathcal{R}^a|a \in \mathcal{A}]$ as $\mathcal{R}$. To be clear, the AI Agent (algorithm) does not have knowledge of $\mathcal{R}$ and aims to estimate $\mathcal{R}$ from the rewards data obtained upon performing actions. Bayesian Bandit Algorithms (abbreviated as *Bayesian Bandits*) achieve this by maintaining an estimate of the probability distribution over $\mathcal{R}$ based on rewards data seen for each of the selected arms. The idea is to compute the posterior distribution $\mathbb{P}[\mathcal{R}|H_t]$ by exploiting prior knowledge of $\mathbb{P}[\mathcal{R}]$, where $H_t = A_1,R_1, A_1, R_1, \ldots, A_t, R_t$ is the history. Note that the prior distribution $\mathbb{P}[\mathcal{R}]$ and the posterior distribution $\mathbb{P}[\mathcal{R}|H_t]$ are probability distributions over probability distributions (since each $\mathcal{R}^a$ in $\mathcal{R}$ is a probability distribution). This posterior distribution is then used to guide exploration. This leads to two types of algorithms:
 
 * Upper Confidence Bounds (Bayesian UCB), which we give an example of below.
 * Probability Matching, which we cover in the next section in the form of Thompson Sampling.
 
+\index{probability!prior distribution}
+\index{probability!posterior distribution}
+\index{multi-armed bandits!bayesian ucb}
+
 We get a better performance if our prior knowledge of $\mathbb{P}[\mathcal{R}]$ is accurate. A simple example of Bayesian UCB is to model independent Gaussian distributions. Assume the reward distribution is Gaussian: $\mathcal{R}^a(r) =\mathcal{N}(r;\mu_a, \sigma_a^2)$ for all $a \in \mathcal{A}$, where $\mu_a$ and $\sigma_a^2$ denote the mean and variance respectively of the Gaussian reward distribution of $a$. The idea is to compute a Gaussian posterior over $\mu_a,\sigma_a^2$, as follows:
 $$\mathbb{P}[\mu_a, \sigma_a^2|H_t] \propto \mathbb{P}[\mu_a, \sigma_a^2] \cdot \prod_{t|A_t=a} \mathcal{N}(R_t;\mu_a, \sigma_a^2)$$
 This posterior calculation can be performed in an incremental manner by updating $\mathbb{P}[\mu_{A_t}, \sigma_{A_t}^2|H_t]$ after each time step $t$ (observing $R_t$ after selecting action $A_t$). This incremental calculation with Bayesian updates to hyperparameters (parameters controlling the probability distributions of $\mu_a$ and $\sigma_a^2$) is described in detail in Section [-@sec:conjugate-prior-gaussian] in Appendix [-@sec:conjugate-priors-appendix]. 
+
+\index{probability!prior distribution}
+\index{probability!posterior distribution}
 
 Given this posterior distribution for $\mu_a$ and $\sigma_a^2$ for all $a \in \mathcal{A}$ after each time step $t$, we select the action that maximizes the Expectation of "$c$ standard-errors above mean" , i.e., 
 $$A_{t+1} = \argmax_{a\in\mathcal{A}} \mathbb{E}_{\mathbb{P}[\mu_a,\sigma_a^2|H_t]}[\mu_a + \frac {c \cdot \sigma_a} {\sqrt{N_t(a)}}]$$
 
 ### Probability Matching
 
+\index{multi-armed bandits!probability matching}
+
 As mentioned in the previous section, calculating the posterior distribution $\mathbb{P}[\mathcal{R}|H_t]$ after each time step $t$ also enables a different approach known as *Probability Matching*.  The idea behind Probability Matching is to select an action $a$ probabilistically in proportion to the probability that $a$ might be the optimal action (based on the rewards data seen so far). Before describing Probability Matching formally, we illustrate the idea with a simple example to develop intuition.
 
 Let us say we have only two actions $a_1$ and $a_2$. For simplicity, let us assume that the posterior distribution $\mathbb{P}[\mathcal{R}^{a_1}|H_t]$ has only two distribution outcomes (call them $\mathcal{R}^{a_1}_1$ and $\mathcal{R}^{a_1}_2$) and that the posterior distribution $\mathbb{P}[\mathcal{R}^{a_2}|H_t]$ also has only two distribution outcomes (call them $\mathcal{R}^{a_2}_1$ and $\mathcal{R}^{a_2}_2$). Typically, there will be an infinite (continuum) of distribution outcomes for $\mathbb{P}[\mathcal{R}|H_t]$ - here we assume only two distribution outcomes for each of the actions' estimated conditional probability of rewards purely for simplicity so as to convey the intuition behind Probability Matching. Assume that $\mathbb{P}[\mathcal{R}^{a_1} = \mathcal{R}^{a_1}_1|H_t] = 0.7$ and $\mathbb{P}[\mathcal{R}^{a_1} = \mathcal{R}^{a_1}_2|H_t] = 0.3$, and that $\mathcal{R}^{a_1}_1$ has mean 5.0 and $\mathcal{R}^{a_1}_2$ has mean 10.0. Assume that $\mathbb{P}[\mathcal{R}^{a_2} = \mathcal{R}^{a_2}_1|H_t] = 0.2$ and $\mathbb{P}[\mathcal{R}^{a_2} = \mathcal{R}^{a_2}_2|H_t] = 0.8$, and that $\mathcal{R}^{a_2}_1$ has mean 2.0 and $\mathcal{R}^{a_2}_2$ has mean 7.0.
+
+\index{probability!prior distribution}
+\index{probability!posterior distribution}
 
 Probability Matching calculates at each time step $t$ how often does each action $a$ have the maximum $\mathbb{E}[r|a]$ among all actions, across all the probabilistic outcomes for the posterior distribution $\mathbb{P}[\mathcal{R}|H_t]$, and then selects that action $a$ probabilistically in proportion to this calculation. Let's do this probability calculation for our simple case of two actions and two probabilistic outcomes each for the posterior distribution for each action. So here, we have 4 probabilistic outcomes when considering the two actions jointly, as follows:
 
@@ -411,6 +474,8 @@ We see that the Probability Matching approach is mathematically disciplined in d
 
 #### Thompson Sampling
 
+\index{multi-armed bandits!Thompson sampling}
+
 We can reformulate the right-hand-side of Equation \ref{eq:probability-matching} as follows:
 \begin{align*}
 \mathbb{P}[A_{t+1}|H_t] & = \mathbb{P}_{\mathcal{D}_t \sim \mathbb{P}[\mathcal{R}|H_t]}[\mathbb{E}_{\mathcal{D}_t}[r|A_{t+1}] > \mathbb{E}_{\mathcal{D}_t}[r|a] \text{for all } a \neq A_{t+1}] \\
@@ -426,9 +491,17 @@ $$\hat{Q}_t(a) = \mathbb{E}_{\mathcal{D}_t}[r|a]$$
 * Select the action (for time step $t+1$) that maximizes this sample Action-Value function:
 $$A_{t+1} = \argmax_{a\in\mathcal{A}} \hat{Q}_t(a)$$
 
+\index{probability!prior distribution}
+\index{probability!posterior distribution}
+\index{multi-armed bandits!logarithmic total regret}
+
 It turns out that Thompson Sampling achieves the Lai-Robbins lower bound for Logarithmic Total Regret. To learn more about Thompson Sampling, we refer you to [the excellent tutorial on Thompson Sampling by Russo, Roy, Kazerouni, Osband, Wen](https://arxiv.org/abs/1707.02038) [@Russo_2018].
 
 Now we implement Thompson Sampling by assuming a Gaussian distribution of rewards for each action. The posterior distributions for each action are produced by performing Bayesian updates of the hyperparameters that govern the estimated [Gaussian-Inverse-Gamma Probability Distributions](https://en.wikipedia.org/wiki/Normal-inverse-gamma_distribution) of the parameters of the Gaussian reward distributions for each action. Section [-@sec:conjugate-prior-gaussian] of Appendix [-@sec:conjugate-priors-appendix] describes the Bayesian updates of the hyperparameters $\theta, \alpha, \beta$, and the code below implements this update in the variable `bayes` in method `get_episode_rewards_actions` (this method implements the `@abstractmethod` interface of abstract base class `MABBase`). The sample mean rewards are obtained by invoking the `sample` method of `Gaussian` and `Gamma` classes, and assigned to the variable `mean_draws`. The variable `theta` refers to the hyperparameter $\theta$, the variable `alpha` refers to the hyperparameter $\alpha$, and the variable `beta` refers to the hyperparameter $\beta$. The rest of the code in the method `get_episode_rewards_actions` should be self-explanatory.
+
+\index{ThompsonSamplingGaussian@\texttt{ThompsonSamplingGaussian}}
+\index{probability!normal distribution}
+
 ```python
 from rl.distribution import Gaussian, Gamma
 from operator import itemgetter
@@ -485,7 +558,13 @@ The above code is in the file [rl/chapter14/ts_gaussian.py](https://github.com/T
 
 We encourage you to modify the code in `__main__` to try other mean and variance settings for the Gaussian reward distributions of the arms, examine the results obtained, and develop more intuition for Thompson Sampling for Gaussians.
 
+\index{probability!prior distribution}
+\index{probability!posterior distribution}
+
 Now we implement Thompson Sampling by assuming a Bernoulli distribution of rewards for each action. The posterior distributions for each action are produced by performing Bayesian updates of the hyperparameters that govern the estimated [Beta Probability Distributions](https://en.wikipedia.org/wiki/Beta_distribution) of the parameters of the Bernoulli reward distributions for each action. Section [-@sec:conjugate-prior-bernoulli] of Appendix [-@sec:conjugate-priors-appendix] describes the Bayesian updates of the hyperparameters $\alpha$ and $\beta$, and the code below implements this update in the variable `bayes` in method `get_episode_rewards_actions` (this method implements the `@abstractmethod` interface of abstract base class `MABBase`). The sample mean rewards are obtained by invoking the `sample` method of the `Beta` class, and assigned to the variable `mean_draws`. The variable `alpha` refers to the hyperparameter $\alpha$ and the variable `beta` refers to the hyperparameter $\beta$. The rest of the code in the method `get_episode_rewards_actions` should be self-explanatory.
+
+\index{ThompsonSamplingBernoulli@\texttt{ThompsonSamplingBernoulli}}
+\index{probability!bernoulli distribution}
 
 ```python
 from rl.distribution import Bernoulli, Beta
@@ -531,6 +610,8 @@ We encourage you to modify the code in `__main__` to try other mean settings for
 
 ### Gradient Bandits
 
+\index{multi-armed bandits!gradient bandits|(}
+
 Now we cover a MAB algorithm that is similar to Policy Gradient for MDPs. This MAB algorithm's action selection is randomized and the action selection probabilities are constructed through Gradient Ascent (much like Stochastic Policy Gradient for MDPs). This MAB Algorithm and it's variants are cheekily refered to as *Gradient Bandits*. Our coverage below follows the coverage of [Gradient Bandit algorithm in the RL book by Sutton and Barto](http://incompleteideas.net/book/the-book-2nd.html) [@Sutton1998].
 
 The basic idea is that we have $m$ *Score* parameters (to be optimized), one for each action, denoted as $\{s_a|a \in \mathcal{A}\}$ that define the action-selection probabilities, which in turn defines an *Expected Reward* Objective function to be maximized, as follows:
@@ -540,6 +621,9 @@ $$J(s_{a_1}, \ldots, s_{a_m}) = \sum_{a\in\mathcal{A}} \pi(a) \cdot \mathbb{E}[r
 where $\pi: \mathcal{A} \rightarrow [0, 1]$ refers to the function for action-selection probabilities, that is defined as follows:
 
 $$\pi(a) = \frac {e^{s_a}} {\sum_{b\in \mathcal{A}} e^{s_b}} \text{ for all } a \in \mathcal{A}$$
+
+\index{probability!score}
+\index{probability!softmax distribution}
 
 The *Score* parameters are meant to represent the relative value of actions based on the rewards seen until a certain time step, and are adjusted appropriately after each time step (using Gradient Ascent). Note that $\pi(\cdot)$ is a [Softmax function](https://en.wikipedia.org/wiki/Softmax_function) of the *Score* parameters.
 
@@ -576,6 +660,8 @@ $$s_{t+1}(a) = s_t(a) + \alpha \cdot (R_t - \bar{R}_t) \cdot (\mathbb{I}_{a=A_t}
 It should be noted that this Gradient Bandit algorithm and it's variant Gradient Bandit algorithms are simply a special case of policy gradient-based RL algorithms.
 
 Now let's write some code to implement this Gradient Algorithm. Apart from the usual constructor inputs `arm_distributions`, `time_steps` and `num_episodes` that are passed along to the constructor of the abstract base class `MABBase`, `GradientBandits`' constructor also takes as input `learning_rate` (specifying the initial learning rate) and `learning_rate_decay` (specifying the speed at which the learning rate decays), which influence how the variable `step_size` is set at every time step. The variable `scores` represents $s_t(a)$ for all $a \in \mathcal{A}$ and the variable `probs` represents $\pi_t(a)$ for all $a \in \mathcal{A}$. The rest of the code below should be self-explanatory, based on the above description of the calculations.
+
+\index{GradientBandits@\texttt{GradientBandits}}
 
 ```python
 from rl.distribution import Distribution, Categorical
@@ -633,6 +719,8 @@ The above code is in the file [rl/chapter14/gradient_bandits.py](https://github.
 
 We encourage you to modify the code in `__main__` to try other mean and standard deviation settings for the Gaussian reward distributions of the arms, examine the results obtained, and develop more intuition for this Gradient Algorithm.
 
+\index{multi-armed bandits!gradient bandits|)}
+
 ### Horse Race
 
 We've implemented several algorithms for the MAB problem. Now it's time for a competition between them, that we will call a *Horse Race*. In this Horse Race, we will compare the *Total Regret* across the algorithms, and we will also examine the number of times the different arms get pulled by the various algorithms. We expect a good algorithm to have small total regret and we expect a good algorithm to pull the arms with high *Gap*s few number of times and pull the arms with low (and zero) gaps large number of times.
@@ -674,11 +762,19 @@ We encourage you to experiment with the code in [rl/chapter14/plot_mab_graphs.py
 
 ### Information State Space MDP
 
+\index{multi-armed bandits!information state space MDP|(}
+
 We had mentioned earlier in this chapter that although a MAB problem is not posed as an MDP, the AI Agent could maintain relevant features of the history (of actions taken and rewards obtained) as it's *State*, which would help the AI Agent in making the arm-selection (action) decision. So the AI Agent treats the MAB problem as an MDP and the arm-selection action is essentially a (*Policy*) function of the agent's *State*. One can then arrive at the Optimal arm-selection strategy by solving the Control problem of this MDP with an appropriate Planning or Learning algorithm. The representation of *State* as relevant features of history is known as *Information State* (to indicate that the agent captures all of the relevant information known so far in the *State* of the modeled MDP). Before we explain this *Information State Space MDP* approach in more detail, it pays to develop an intuitive understanding of the *Value of Information*.
 
 The key idea is that *Exploration* enables the agent to acquire information, which in turn enables the agent to make more informed decisions as far as it's future arm-selection strategy is concerned. The natural question to ask then is whether we can quantify the value of this information that can be acquired by *Exploration*. In other words, how much would a decision-maker be willing to pay to acquire information (through exploration), prior to making a decision? Vaguely speaking, the decision-maker should be paying an amount equal to the gains in long-term (accumulated) reward that can be obtained upon getting the information, less the sacrifice of excess immediate reward one would have obtained had one exploited rather than explored. We can see that this approach aims to settle the explore-exploit trade-off in a mathematically rigorous manner by establishing the *Value of Information*. Note that information gain is higher in a more uncertain situation (all else being equal). Therefore, it makes sense to explore uncertain situations more. By formalizing the value of information, we can trade-off exploration and exploitation *optimally*.
 
 Now let us formalize the approach of treating a MAB as an Information State Space MDP. After each time step of a MAB, we construct an *Information State* $\tilde{s}$, which comprises of relevant features of the history until that time step. Essentially, $\tilde{s}$ summarizes all of the information accumulated so far that is pertinent to be able to predict the reward distribution for each action. Each action $a$ causes a transition to a new information state $\tilde{s}'$ (by adding information about the reward obtained after performing action $a$), with probability $\tilde{\mathcal{P}}(\tilde{s}, a, \tilde{s}')$. Note that this probability depends on the reward probability function $\mathcal{R}^a$ of the MAB. Moreover, the MAB reward $r$ obtained upon performing action $a$ constitutes the Reward of the Information State Space MDP for that time step. Putting all this together, we have an MDP $\tilde{M}$ in information state space as follows:
+
+\index{Markov decision process!state space}
+\index{Markov decision process!action space}
+\index{Markov decision process!state transition probability function}
+\index{Markov decision process!reward function}
+\index{discount factor}
 
 * Denote the Information State Space of $\tilde{M}$ as $\tilde{\mathcal{S}}$.
 * The Action Space of $\tilde{M}$ is the action space of the given MAB: $\mathcal{A}$.
@@ -690,9 +786,21 @@ The key point to note is that since $\mathcal{R}^a$ is unknown to the AI Agent i
 
 Note that $\tilde{M}$ will typically be a fairly complex MDP over an infinite number of information states, and hence is not easy to solve. However, since it is after all an MDP, we can use Dynamic Programming or Reinforcement Learning algorithms to arrive at the Optimal Policy, which prescribes the optimal MAB action to take at that time step. If a Dynamic Programming approach is taken, then after each time step, as new information arrives (in the form of the MAB reward in response to the action taken), the estimates of the State Transition probability function and the Reward function change, meaning the Information State Space MDP to be solved changes, and consequently the Action-Selection strategy for the MAB problem (prescribed by the Optimal Policy of the Information State Space MDP) changes. A common approach is to treat the Information State Space MDP as a *Bayes-Adaptive MDP*. Specifically, if we have $m$ arms $a_1, \ldots, a_m$, the state $\tilde{s}$ is modeled as $(\tilde{s_{a_1}}, \ldots, \tilde{s_{a_m}})$ such that $\tilde{s_{a}}$ for any $a \in \mathcal{A}$ represents a posterior probability distribution over $\mathcal{R}^a$, which is Bayes-updated after observing the reward upon each pull of the arm $a$. This Bayes-Adaptive MDP can be tackled with the highly-celebrated Dynamic Programming method known as [Gittins Index](https://en.wikipedia.org/wiki/Gittins_index), which was introduced in a [1979 paper by Gittins](http://apdalab.org/mnk/RL/Gittins_1979.pdf) [@gittins1979bandit]. The Gittins Index approach finds the Bayes-optimal explore-exploit trade-off with respect to the prior distribution.
 
+\index{probability!prior distribution}
+\index{probability!posterior distribution}
+
+\index{multi-armed bandits!bayes-adaptive MDP}
+\index{multi-armed bandits!Gittins index}
+
+\index{probability!bernoulli distribution}
+
 To grasp the concept of Information State Space MDP, let us consider a Bernoulli Bandit problem with $m$ arms with arm $a$'s reward probability distribution $\mathcal{R}^a$ given by the Bernoulli distribution $\mathcal{B}(\mu_a)$, where $\mu_a \in [0, 1]$ (i.e., reward = 1 with probability $\mu_a$, and reward = 0 with probability $1 - \mu_a$). If we denote the $m$ arms by $a_1, a_2, \ldots, a_m$, then the information state is $\tilde{s} = (\alpha_{a_1}, \beta_{a_1}, \alpha_{a_2}, \beta_{a_2}\ldots, \alpha_{a_m}, \beta_{a_m})$, where $\alpha_a$ is the number of pulls of arm $a$ (so far) for which the reward was 1 and $\beta_a$ is the number of pulls of arm $a$ (so far) for which the reward was 0. Note that by the Law of Large Numbers, in the long-run, $\frac {\alpha_a} {\alpha_a + \beta_a} \rightarrow \mu_a$.
 
+\index{probability!beta distribution}
+
 We can treat this as a Bayes-adaptive MDP as follows: We model the prior distribution over $\mathcal{R}^a$ as the Beta Distribution $Beta(\alpha_a, \beta_a)$ over the unknown parameter $\mu_a$. Each time arm $a$ is pulled, we update the posterior for $\mathcal{R}^a$ as:
+\index{probability!prior distribution}
+\index{probability!posterior distribution}
 
 * $Beta(\alpha_a+1, \beta_a)$ if $r=1$
 * $Beta(\alpha_a, \beta_a+1)$ if $r=0$
@@ -701,7 +809,12 @@ Note that the component $(\alpha_a, \beta_a)$ within the information state provi
 
 Note that in general, an exact solution to a Bayes-adaptive MDP is typically intractable. In 2014, [Guez, Heess, Silver, Dayan](https://proceedings.neurips.cc/paper/2014/file/839ab46820b524afda05122893c2fe8e-Paper.pdf) [@conf/nips/GuezHSD14] came up with a Simulation-based Search method, which involves a forward search in information state space using simulations from current information state, to solve a Bayes-adaptive MDP.
 
+\index{multi-armed bandits!information state space MDP|)}
+\index{multi-armed bandits|)}
+
 ### Extending to Contextual Bandits and RL Control
+
+\index{contextual bandits|(}
 
 A Contextual Bandit problem is a natural extension of the MAB problem, by introducing the concept of *Context* that has an influence on the rewards probability distribution for each arm. Before we provide a formal definition of a Contextual Bandit problem, we will provide an intuitive explanation with a canonical example. Consider the problem of showing a banner advertisement on a web site where there is a choice of displaying one among $m$ different advertisements at a time. If the user clicks on the advertisement, there is a reward of 1 (if the user doesn't click, the reward is 0). The selection of the advertisement to display is the arm-selection (out of $m$ arms, i.e., advertisements). This seems like a standard MAB problem, except that on a web site, we don't have a single user. In each round, a random user (among typically millions of users) appears. Each user will have their own characteristics of how they would respond to advertisements, meaning the rewards probability distribution for each arm would depend on the user. We refer to the user characteristics (as relevant to their likelihood to respond to specific advertisements) as the *Context*. This means, the *Context* influences the rewards probability distribution for each arm. This is known as the *Contextual Bandit* problem, which we formalize below:
 
@@ -726,11 +839,14 @@ We won't cover the details of the extensions of all MAB Algorithms to Contextual
 
 We want to highlight that many authors refer to the *Context* in Contextual Bandits as *State*. We desist from using the term *State* in Contextual Bandits since we want to reserve the term *State* to refer to the concept of "transitions" (as is the case in MDPs). Note that the Context does not "transition" to the next Context in the next time step in Contextual Bandits problems. Rather, the Context is drawn at random independently at each time step from the Context probability distribution $\mathcal{C}$. This is in contrast to the *State* in MDPs which transitions to the next state at the next time step based on the State Transition probability function of the MDP.
 
+\index{contextual bandits|)}
+
 We finish this chapter by simply pointing out that the approaches of the MAB algorithms can be further extended to resolve the Explore-Exploit dilemma in RL Control. From the perspective of this extension, it pays to emphasize that MAB algorithms that fall under the category of *Optimism in the Face of Uncertainty* can be roughly split into:
 
 * Those that estimate the $Q$-Values (i.e., estimate $\mathbb{E}[r|a]$ from observed data) and the uncertainty of the $Q$-Values estimate. When extending to RL Control, we estimate the $Q$-Value Function for the (unknown) MDP and the uncertainty of the $Q$-Value Function estimate. Note that when moving from MAB to RL Control, the $Q$-Values are no longer simply the Expected Reward for a given action - rather, they are the Expected Return (i.e., accumulated rewards) from a given state and a given action. This extension from Expected Reward to Expected Return introduces significant complexity in the calculation of the uncertainty of the $Q$-Value Function estimate.
 * Those that estimate the Model of the MDP, i.e., estimate of the State-Reward Transition Probability function $\mathcal{P}_R$ of the MDP, and the uncertainty of the $\mathcal{P}_R$ estimate. This includes extension of Bayesian Bandits, Thompson Sampling and Bayes-Adaptive MDP (for Information State Space MDP) where we replace $\mathbb{P}[\mathcal{R}|H_t]$ in the case of Bandits with $\mathbb{P}[\mathcal{P}_R|H_t]$ in the case of RL Control. Some of these algorithms sample from the estimated $\mathcal{P}_R$, and learn the Optimal Value Function/Optimal Policy from the samples. Some other algorithms are Planning-oriented. Specifically, the Planning-oriented approach is to run a Planning method (eg: Policy Iteration, Value Iteration) using the estimated $\mathcal{P}_R$, then generate more data using the Optimal Policy (produced by the Planning method), use the generated data to improve the $\mathcal{P}_R$ estimate, then run the Planning method again to come up with the Optimal Policy (for the MDP based on the improved $\mathcal{P}_R$ estimate), and loop on in this manner until convergence. As an example of this Planning-oriented approach, we refer you to the [paper on RMax Algorithm](https://www.jmlr.org/papers/volume3/brafman02a/brafman02a.pdf) [@conf/ijcai/BrafmanT01] to learn more.
 
+\index{exploration versus exploitation|)}
 
 ### Key Takeaways from this Chapter
 

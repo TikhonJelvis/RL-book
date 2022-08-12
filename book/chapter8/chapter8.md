@@ -184,7 +184,7 @@ $$(V_D^{(1)}, V_D^{(2)}, \ldots, V_D^{(n)})$$
 where $V_D^{(i)}$ is the payoff of the derivative in random outcome $\omega_i$ for all $i = 1, \ldots, n$
 \end{definition}
 
-\index{finance!replicating portfolio|textbf}
+\index{finance!derivative!replicating portfolio|textbf}
 \begin{definition}
 A Portfolio $\theta = (\theta_0, \theta_1, \ldots, \theta_m) \in \mathbb{R}^{m+1}$ is a {\em Replicating Portfolio} for derivative $D$ if:
 \begin{equation}
@@ -192,7 +192,7 @@ V_D^{(i)} = V_{\theta}^{(i)} = \sum_{j=0}^m \theta_j \cdot S_j^{(i)} \mbox{ for 
 \end{equation}
 \end{definition}
 
-\index{finance!hedging}
+\index{finance!derivative!hedging}
 The negatives of the components $(\theta_0, \theta_1, \ldots, \theta_m)$ are known as the *hedges* for $D$ since they can be used to offset the risk in the payoff of $D$ at $t=1$.
 
 \begin{definition}
@@ -210,7 +210,7 @@ We will first prove that in an arbitrage-free market, if every derivative has a 
 $$V_{D_k}^{(i)} = \mathbb{I}_{i=k} \text{ for all } i = 1, \ldots, n$$
 where $\mathbb{I}$ represents the indicator function. This means the payoff of derivative $D_k$ is 1 for random outcome $\omega_k$ and 0 for all other random outcomes.
 \index{finance!Arrow-Debreu securities|textbf}
-\index{finance!replicating portfolio}
+\index{finance!derivative!replicating portfolio}
 
 Since each derivative has a replicating portfolio, denote $\theta^{(k)} = (\theta_0^{(k)}, \theta_1^{(k)}, \ldots, \theta_m^{(k)})$ as the replicating portfolio for $D_k$ for each $k = 1, \ldots, m$. Therefore, for each $k= 1, \ldots, m$:
 
@@ -226,7 +226,7 @@ $$\pi(\omega_k) = (1 + r) \cdot \sum_{j=0}^m \theta_j^{(k)} \cdot S_j^{(0)} \tex
 
 which implies that we have a unique risk-neutral probability measure.
 \index{finance!risk-neutral probability measure}
-\index{finance!replicating portfolio}
+\index{finance!derivative!replicating portfolio}
 
 Next, we prove the other direction of the 2nd FTAP. We need to prove that if there exists a risk-neutral probability measure $\pi$ and if there exists a derivative $D$ with no replicating portfolio, then we can construct a risk-neutral probability measure different than $\pi$.
 
@@ -297,7 +297,7 @@ V_D^{(0)} = \frac 1 {1+r} \cdot \sum_{i=1}^n \pi(\omega_i) \cdot V_D^{(i)}
 \end{theorem}
 \index{finance!risk-neutral probability measure}
 \index{finance!complete market}
-\index{finance!replicating portfolio}
+\index{finance!derivative!replicating portfolio}
 \index{finance!arbitrage}
 \index{time!discrete-time}
 
@@ -368,9 +368,9 @@ Solving this yields Replicating Portfolio $(\theta_0, \theta_1)$ as follows:
 \end{equation}
 Note that the derivative price can also be expressed as:
 $$V_D^{(0)} = \theta_0 + \theta_1 \cdot S^{(0)}$$ 
-\index{finance!hedging}
+\index{finance!derivative!hedging}
 \index{finance!arbitrage}
-\index{finance!replicating portfolio}
+\index{finance!derivative!replicating portfolio}
 \index{finance!risk-neutral probability measure}
 
 #### Derivatives Pricing when Market is Incomplete {#sec:derivatives-pricing-incomplete-market}
@@ -391,7 +391,7 @@ $$V_D^{(2)} = \theta_0 \cdot (1 + r) + \theta_1 \cdot S^{(2)}$$
 $$V_D^{(3)} = \theta_0 \cdot (1 + r) + \theta_1 \cdot S^{(3)}$$
 3 equations \& 2 variables implies there is no replicating portfolio for *some* $D$. This means this is an Incomplete Market. 
 \index{finance!superhedging}
-\index{finance!replicating portfolio}
+\index{finance!derivative!replicating portfolio}
 \index{finance!risk-neutral probability measure}
 
 So with multiple risk-neutral probability measures (and consequent, multiple derivative prices), how do we go about determining how much to buy/sell derivatives for?  One approach to handle derivative pricing in an incomplete market is the technique called  *Superhedging*, which provides upper and lower bounds for the derivative price.  The idea of Superhedging is to create a portfolio of fundamental assets whose Value *dominates* the derivative payoff in *all* random outcomes at $t=1$. Superhedging Price is the smallest possible Portfolio Spot ($t=0$) Value among all such Derivative-Payoff-Dominating portfolios. Without getting into too many details of the Superhedging technique (out of scope for this book), we shall simply sketch the outline of this technique for our simple setting.
@@ -472,7 +472,7 @@ The $(\theta_1^*, \ldots, \theta_m^*)$ that achieve $\max_{\theta_{1:m}} g(V_D, 
 
 To develop some intuition for what this solution looks like, let us now write some code for the case of 1 risky asset (i.e., $m=1$). To make things interesting, we will write code for the case where the risky asset price at $t=1$ (denoted $S$) follows a normal distribution $S \sim \mathcal{N}(\mu, \sigma^2)$. This means we have a continuous (rather than discrete) set of values for the risky asset price at $t=1$. Since there are more than 2 random outcomes at time $t=1$, this is the case of an Incomplete Market. Moreover, we assume the CARA utility function:
 \index{finance!incomplete market}
-\index{utility theory!constant absolute risk aversion}
+\index{utility theory!constant absolute risk-aversion}
 
 $$U(y) = \frac {1 - e^{-a\cdot y}} {a}$$
 
@@ -650,8 +650,8 @@ Running this code for $S_0 = 100, r = 5\%, \mu = 110, \sigma = 25$ when buying a
 ```
 
 We note that the call option price is quite high (23.28) when the risk-aversion is low at $a=0.3$ (relative to the complete market price of 11.43) but the call option price drops to 12.67 and 8.87 for $a=0.6$ and $a=0.9$ respectively. This makes sense since if you are more risk-averse (high $a$), then you'd be less willing to take the risk of buying a call option and hence, would want to pay less to buy the call option. Note how the risky asset short-sale is significantly less (~47\% - ~49\%) compared the to the risky asset short-sale of 60\% in the case of a complete market. The varying investments in the riskless asset (as a function of the risk-aversion $a$) essentially account for the variation in option prices (as a function of $a$). Figure \ref{fig:buy_call_option_hedges} provides tremendous intuition on how the hedges work for the case of a complete market and for the cases of an incomplete market with the 3 choices of risk-aversion parameters. Note that we have plotted the negatives of the hedge portfolio values at $t=1$ so as to visualize them appropriately relative to the payoff of the call option. Note that the hedge portfolio value is a linear function of the risky asset price at $t=1$. Notice how the slope and intercept of the hedge portfolio value changes for the 3 risk-aversion scenarios and how they compare against the complete market hedge portfolio value.
-\index{finance!call option}
-\index{finance!hedging}
+\index{finance!derivative!call option}
+\index{finance!derivative!hedging}
 
 ![Hedges when buying a Call Option \label{fig:buy_call_option_hedges}](./chapter8/buy_call_option_hedges.png "Hedges when buying a Call Option")
 
@@ -671,14 +671,14 @@ With the same inputs of $S_0 = 100, r = 5\%, \mu = 110, \sigma = 25$, and for th
 We note that the sale price demand for the call option is quite low (6.31) when the risk-aversion is low at $a=0.3$ (relative to the complete market price of 11.43) but the sale price demand for the call option rises sharply to 32.32 and 44.24 for $a=0.6$ and $a=0.9$ respectively. This makes sense since if you are more risk-averse (high $a$), then you'd be less willing to take the risk of selling a call option and hence, would want to charge more for the sale of the call option. Note how the risky asset hedge units are less (~52\% - 53\%) compared to the risky asset hedge units (60\%) in the case of a complete market. The varying riskless borrowing amounts (as a function of the risk-aversion $a$) essentially account for the variation in option prices (as a function of $a$). Figure \ref{fig:sell_call_option_hedges} provides the visual intuition on how the hedges work for the 3 choices of risk-aversion parameters (along with the hedges for the complete market, for reference). 
 
 ![Hedges when selling a Call Option \label{fig:sell_call_option_hedges}](./chapter8/sell_call_option_hedges.png "Hedges when selling a Call Option")
-\index{finance!call option}
-\index{finance!hedging}
+\index{finance!derivative!call option}
+\index{finance!derivative!hedging}
 
 Note that each buyer and each seller might have a different level of risk-aversion, meaning each of them would have a different buy price bid/different sale price ask. A transaction can occur between a buyer and a seller (with potentially different risk-aversion levels) if the buyer's bid matches the seller's ask.
 
 #### Derivatives Pricing when Market has Arbitrage
 \index{finance!arbitrage}
-\index{finance!replicating portfolio}
+\index{finance!derivative!replicating portfolio}
 \index{finance!risk-neutral probability measure}
 
 Finally, we arrive at the case where the market has arbitrage. This is the case where there is no risk-neutral probability measure and there can be multiple replicating portfolios (which can lead to arbitrage). So this is the case where we are unable to price derivatives. To provide intuition for the case of a market with arbitrage, we consider the special case of 2 risky assets ($m=2$) and 2 random outcomes ($n=2$), which we will show is a Market with Arbitrage. Without loss of generality, we assume $S_1^{(1)} < S_1^{(2)}$ and $S_2^{(1)} < S_2^{(2)}$. Let us try to determine a risk-neutral probability measure $\pi$:
@@ -711,8 +711,8 @@ The good news is that much of the concepts we learnt for the single-period setti
  * Calculate the probabilities of random-outcomes for the unique risk-neutral probability measure, and then calculate the derivative price as the riskless rate-discounted expectation (under this risk-neutral probability measure) of the derivative payoff.
  
 It turns out that even in the multi-period setting, when the market is complete, we can calculate the derivative price (not just at $t=0$, but at any random outcome at any future time) with either of the above two (equivalent) methods, as long as we appropriately adjust the fundamental assets' units in the replicating portfolio (depending on the random outcome) as we move from one time step to the next. It is important to note that when we alter the fundamental assets' units in the replicating portfolio at each time step, we need to respect the constraint that money cannot enter or leave the replicating portfolio (i.e., it is a *self-financing replicating portfolio* with the replicating portfolio value remaining unchanged in the process of altering the units in the fundamental assets). It is also important to note that the alteration in units in the fundamental assets is dependent on the prices of the fundamental assets (which are random outcomes as we move forward from one time step to the next). Hence, the fundamental assets' units in the replicating portfolio evolve as random variables, while respecting the self-financing constraint. Therefore, the replicating portfolio in a multi-period setting in often refered to as a *Dynamic Self-Financing Replicating Portfolio* to reflect the fact that the replicating portfolio is adapting to the changing prices of the fundamental assets. The negatives of the fundamental assets' units in the replicating portfolio form the hedges for the derivative.
-\index{finance!replicating portfolio}
-\index{finance!hedging}
+\index{finance!derivative!replicating portfolio}
+\index{finance!derivative!hedging}
  
 To ensure that the market is complete in a multi-period setting, we need to assume that the market is "frictionless" - that we can trade in real-number quantities in any fundamental asset and that there are no transaction costs for any trades at any time step. From a computational perspective, we walk back in time from the final time step (call it $t=T$) to $t=0$, and calculate the fundamental assets' units in the replicating portfolio in a "backward recursive manner". As in the case of the single-period setting, each backward-recursive step from outcomes at time $t+1$ to a specific outcome at time $t$ simply involves solving a linear system of equations where each unknown is the replicating portfolio units in a specific fundamental asset and each equation corresponds to the value of the replicating portfolio at a specific outcome at time $t+1$ (which is established recursively). The market is complete if there is a unique solution to each linear system of equations (for each time $t$ and for each outcome at time $t$) in this backward-recursive computation. This gives us not just the replicating portfolio (and consequently, hedges) at each outcome at each time step, but also the price at each outcome at each time step (the price is equal to the value of the calculated replicating portfolio at that outcome at that time step).
  
@@ -735,6 +735,7 @@ So to summarize, we are in good shape to price/hedge in a multi-period and conti
 
 ### Optimal Exercise of American Options cast as a Finite MDP {#sec:binomial-pricing-model}
 \index{finance!derivative!american option}
+\index{finance!derivative!optimal exercise|(}
 \index{Markov decision process!finite}
 \index{finance!derivative!binomial options pricing model|(}
 \index{time!discrete-time}
@@ -868,8 +869,8 @@ Now we want to try out this code on an American Call Option and American Put Opt
 $$B_i = \max_{j:\pi^*_i(j) = True} S_{i,j}$$ with the little detail that we only consider those states $j$ for which the option payoff is positive. For some time steps $i$, none of the states $j$ qualify as $\pi^*_i(j) = True$, in which case we don't include that time step $i$ in the output sequence.
 
 To compare the results of American Call and Put Option Pricing on this Binomial Options Pricing Model against the corresponding European Options prices, we write the following method to implement the Black-Scholes closed-form solution (derived as Equations \ref{eq:black-scholes-call-option-pricing} and \ref{eq:black-scholes-put-option-pricing} in Appendix [-@sec:black-scholes-appendix]):
-\index{finance!call option!Black-Scholes price}
-\index{finance!put option!Black-Scholes price}
+\index{finance!derivative!Black-Scholes price}
+\index{finance!derivative!Black-Scholes price}
 
 ```python
 from scipy.stats import norm
@@ -960,6 +961,7 @@ This is a numerical validation of our proof above that it is never optimal to ex
 
 The above code is in the file [rl/chapter8/optimal_exercise_bin_tree.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/chapter8/optimal_exercise_bin_tree.py). As ever, we encourage you to play with various choices of inputs to develop intuition for how American Option Pricing changes as a function of the inputs (and how American Put Option Exercise Boundary changes). Note that you can specify the option payoff as any arbitrary function of time and the underlying price.
 \index{finance!derivative!binomial options pricing model|)}
+\index{finance!derivative!optimal exercise|)}
 
 ### Generalizing to Optimal-Stopping Problems
 

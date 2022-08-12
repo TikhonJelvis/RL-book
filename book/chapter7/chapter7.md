@@ -58,7 +58,7 @@ We define wealth at any time $t$ (denoted $W_t$) as the aggregate market value o
 
 You start with wealth $W_0$ at time $t=0$. As mentioned earlier, the goal is to maximize your expected lifetime-aggregated Utility of Consumption of money with the actions at any point in time being two-fold: Asset-Allocation and Consumption (Consumption being equal to the capital extracted from the investment portfolio at any point in time). Note that since there is no external source of money and since all capital extracted from the investment portfolio at any point in time is immediately consumed, you are never adding capital to your investment portfolio. The growth of the investment portfolio can happen only from growth in the market value of assets in your investment portfolio. Lastly, we assume that the Consumption Utility function is Constant Relative Risk-Aversion (CRRA), which we covered in Chapter [-@sec:utility-theory-chapter].
 \index{finance!investment portfolio}
-\index{utility theory!constant relative risk aversion}
+\index{utility theory!constant relative risk-aversion}
 
 For ease of exposition, we formalize the problem setting and derive Merton's beautiful analytical solution for the case of $n=1$ (i.e., only 1 risky asset). The solution generalizes in a straightforward manner to the case of $n > 1$ risky assets, so it pays to keep the notation and explanations simple, emphasizing intuition rather than heavy technical details.
 
@@ -75,7 +75,7 @@ The riskless asset has no uncertainty associated with it and has a fixed rate of
 $$dR_t = r \cdot R_t \cdot dt$$
 
 Assume $r \in \mathbb{R}$ is a fixed constant, representing the instantaneous riskless growth of money. We denote the consumption of wealth (equal to extraction of money from the investment portfolio) per unit time (at time $t$) as $c(t, W_t) \geq 0$ to make it clear that the consumption (our decision at any time $t$) will in general depend on both time $t$ and wealth $W_t$. Note that we talk about "rate of consumption in time" because consumption is assumed to be continuous in time. As mentioned earlier, we denote wealth at time $t$ as $W_t$ (note that $W$ is a stochastic process too). We assume that $W_t > 0$ for all $t \geq 0$. This is a reasonable assumption to make as it manifests in constraining the consumption (extraction from investment portfolio) to ensure wealth remains positive. We denote the fraction of wealth allocated to the risky asset at time $t$ as $\pi(t, W_t)$. Just like consumption $c$, risky-asset allocation fraction $\pi$ is a function of time $t$ and wealth $W_t$. Since there is only one risky asset, the fraction of wealth allocated to the riskless asset at time $t$ is $1 - \pi(t, W_t)$. Unlike the constraint $c(t, W_t) \geq 0$, $\pi(t, W_t)$ is assumed to be unconstrained. Note that $c(t, W_t)$ and $\pi(t, W_t)$ together constitute the decision (MDP action) at time $t$. To keep our notation light, we shall write $c_t$ for $c(t, W_t)$ and $\pi_t$ for $\pi(t, W_t)$, but please do recognize throughout the derivation that both are functions of wealth $W_t$ at time $t$ as well as of time $t$ itself. Finally, we assume that the Utility of Consumption function is defined as:
-\index{finance!constant relative risk aversion}
+\index{utility theory!constant relative risk-aversion}
 
 \index{time!continuous-time}
 $$U(x) = \frac {x^{1-\gamma}} {1 - \gamma}$$
@@ -337,7 +337,7 @@ Figure \ref{fig:merton-solution-wealth-trajectory} shows the time-trajectory of 
 \index{time!discrete-time}
 
 In this section, we cover a discrete-time version of the problem that lends itself to analytical tractability, much like Merton's Portfolio Problem in continuous-time. We are given wealth $W_0$ at time 0. At each of discrete time steps labeled $t = 0, 1, \ldots, T-1$, we are allowed to allocate the wealth $W_t$ at time $t$ to a portfolio of a risky asset and a riskless asset in an unconstrained manner with no transaction costs. The risky asset yields a random return $\sim \mathcal{N}(\mu, \sigma^2)$ over each single time step (for a given $\mu \in \mathbb{R}$ and a given $\sigma \in \mathbb{R}^+$). The riskless asset yields a constant return denoted by $r$ over each single time step (for a given $r \in \mathbb{R}$).  We assume that there is no consumption of wealth at any time $t < T$, and that we liquidate and consume the wealth $W_T$ at time $T$. So our goal is simply to maximize the Expected Utility of Wealth at the final time step $t=T$ by dynamically allocating $x_t \in \mathbb{R}$ in the risky asset and the remaining $W_t - x_t$ in the riskless asset for each $t = 0, 1, \ldots, T-1$. Assume the single-time-step discount factor is $\gamma$ and that the Utility of Wealth at the final time step $t=T$ is given by the following CARA function:
-\index{utility theory!constant absolute risk aversion}
+\index{utility theory!constant absolute risk-aversion}
 
 $$U(W_T) = \frac {1 - e^{-a W_T}} {a} \text{ for some fixed } a \neq 0$$
 
@@ -846,7 +846,7 @@ x_t^2 Weight = -0.020
 
 As mentioned previously, this serves as a good test for the correctness of the implementation of `AssetAllocDiscrete`.   
 We need to point out here that the general case of dynamic asset allocation and consumption for a large number of risky assets will involve a continuous-valued action space of high dimension. This means ADP algorithms will have challenges in performing the $\max/\argmax$ calculation across this large and continuous action space. Even many of the RL algorithms find it challenging to deal with very large action spaces. Sometimes we can take advantage of the specifics of the control problem to overcome this challenge. But in a general setting, these large/continuous action space require special types of RL algorithms that are well suited to tackle such action spaces. One such class of RL algorithms is Policy Gradient Algorithms that we shall learn in Chapter [-@sec:policy-gradient-chapter].
-\index{reinforcement learning!policy gradient algorithm}
+\index{reinforcement learning!policy gradient}
 \index{dynamic programming!approximate!finite-horizon|)}
 
 ### Key Takeaways from this Chapter

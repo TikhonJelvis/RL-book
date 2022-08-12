@@ -244,7 +244,7 @@ $$\max_{s \in \mathcal{N}} |(\bbpi(\bm{X}) - \bbpi(\bm{Y}))(s)| = \gamma \cdot \
 
 So invoking Banach Fixed-Point Theorem proves the following Theorem:
 
-\index{policy evaluation!convergence theorem}
+\index{dynamic programming!policy evaluation!convergence theorem}
 
 \begin{theorem}[Policy Evaluation Convergence Theorem]
 For a Finite MDP with $|\mathcal{N}| = m$ and $\gamma < 1$, if $\bvpi \in \mathbb{R}^m$ is the Value Function of the MDP when evaluated with a fixed policy $\pi: \mathcal{N} \times \mathcal{A} \rightarrow [0, 1]$, then $\bvpi$ is the unique Fixed-Point of the Bellman Policy Operator $\bbpi: \mathbb{R}^m \rightarrow \mathbb{R}^m$, and
@@ -252,7 +252,7 @@ $$\lim_{i\rightarrow \infty} ({\bbpi})^i(\bm{V_0}) \rightarrow \bvpi \text{ for 
 \label{eq:policy_evaluation_convergence_theorem}
 \end{theorem}
 
-\index{policy evaluation}
+\index{dynamic programming!policy evaluation}
 
 This gives us the following iterative algorithm (known as the *Policy Evaluation* algorithm for fixed policy $\pi: \mathcal{N} \times \mathcal{A} \rightarrow [0, 1]$):
 
@@ -384,7 +384,7 @@ The word "Greedy" is a reference to the term "Greedy Algorithm", which means an 
 
 ### Policy Improvement
 
-\index{policy improvement}
+\index{dynamic programming!policy improvement}
 
 Terms such as "better" or "improvement" refer to either Value Functions or to Policies (in the latter case, to Value Functions of an MDP evaluated with the policies). So what does it mean to say a Value Function $X: \mathcal{N} \rightarrow \mathbb{R}$ is "better" than a Value Function $Y: \mathcal{N} \rightarrow \mathbb{R}$? Here's the answer:
 
@@ -401,7 +401,7 @@ So whenever you hear terms like "Better Value Function" or "Improved Value Funct
 
 So then, what about the claim of $\pi_D' = G(\bvpi)$ being "better" than $\pi$? The following important theorem [by Richard Bellman](https://press.princeton.edu/books/paperback/9780691146683/dynamic-programming) [@Bellman1957] provides the clarification:
 
-\index{policy improvement!policy improvement theorem}
+\index{dynamic programming!policy improvement!policy improvement theorem}
 
 \begin{theorem}[Policy Improvement Theorem]
 For a finite MDP, for any policy $\pi$,
@@ -461,7 +461,7 @@ The Policy Improvement Theorem yields our first Dynamic Programming algorithm (c
 
 ### Policy Iteration Algorithm
 
-\index{policy iteration}
+\index{dynamic programming!policy iteration}
 
 The proof of the Policy Improvement Theorem has shown us how to start with the Value Function $\bvpi$ (for a policy $\pi$), perform a greedy policy improvement to create a policy $\pi_D' = G(\bvpi)$, and then perform Policy Evaluation (with policy $\pi_D'$) with starting Value Function $\bvpi$, resulting in the Value Function $\bm{V}^{\pi_D'}$ that is an improvement over the Value Function $\bvpi$ we started with. Now note that we can do the same process again to go from $\pi_D'$ and $\bm{V}^{\pi_D'}$ to an improved policy $\pi_D''$ and associated improved Value Function $\bm{V}^{\pi_D''}$. And we can keep going in this way to create further improved policies and associated Value Functions, until there is no further improvement. This methodology of performing Policy Improvement together with Policy Evaluation using the improved policy, in an iterative manner (depicted in Figure \ref{fig:policy_iteration_loop}), is known as the Policy Iteration algorithm (shown below).
 
@@ -484,7 +484,7 @@ But this in fact is the MDP State-Value Function Bellman Optimality Equation, wh
 
 \index{value function!optimal value function}
 \index{policy!optimal policy}
-\index{policy iteration!convergence theorem}
+\index{dynamic programming!policy iteration!convergence theorem}
 
 \begin{theorem}[Policy Iteration Convergence Theorem]
 For a Finite MDP with $|\mathcal{N}| = m$ and $\gamma < 1$, Policy Iteration algorithm converges to the Optimal Value Function $\bvs \in \mathbb{R}^m$ along with a Deterministic Optimal Policy $\pi_D^*: \mathcal{N} \rightarrow \mathcal{A}$, no matter which Value Function $\bm{V_0} \in \mathbb{R}^m$ we start the algorithm with.
@@ -641,7 +641,7 @@ $$\max_{s \in \mathcal{N}} |(\bbs(\bm{X}) - \bbs(\bm{Y}))(s)| \leq \gamma c  = \
 
 So invoking Banach Fixed-Point Theorem proves the following Theorem:
 
-\index{value iteration!convergence theorem}
+\index{dynamic programming!value iteration!convergence theorem}
 
 \begin{theorem}[Value Iteration Convergence Theorem]
 For a Finite MDP with $|\mathcal{N}| = m$ and $\gamma < 1$, if $\bvs \in \mathbb{R}^m$ is the Optimal Value Function, then $\bvs$ is the unique Fixed-Point of the Bellman Optimality Operator $\bbs: \mathbb{R}^m \rightarrow \mathbb{R}^m$, and
@@ -651,7 +651,7 @@ $$\lim_{i\rightarrow \infty} (\bbs)^i(\bm{V_0}) \rightarrow \bvs \text{ for all 
 
 This gives us the following iterative algorithm, known as the *Value Iteration* algorithm, [due to Richard Bellman](http://www.iumj.indiana.edu/IUMJ/fulltext.php?artid=56038&year=1957&volume=6) [@bellman1957markovian]:
 
-\index{value iteration}
+\index{dynamic programming!value iteration}
 
 * Start with any Value Function $\bm{V_0} \in \mathbb{R}^m$
 * Iterating over $i = 0, 1, 2, \ldots$, calculate in each iteration:
@@ -997,7 +997,7 @@ $$(\mathcal{P}_R^{\pi_t})_t(s_t, r_{t+1}, s_{t+1}) = \sum_{a_t \in \mathcal{A}_t
 So for a Finite MDP, this yields a simple algorithm to calculate $V^{\pi}_t$ for all $t$ by simply decrementing down from $t=T-1$ to $t=0$ and using Equation \eqref{eq:bellman_policy_equation_finite_horizon} to calculate $V^{\pi}_t$ for all $t = 0, 1, \ldots, T-1$ from the known values of $W^{\pi}_{t+1}$ (since we are decrementing in time index $t$).
 
 \index{Markov decision process!prediction}
-\index{policy evaluation!finite-horizon}
+\index{dynamic programming!policy evaluation!finite-horizon}
 
 This algorithm is the adaptation of Policy Evaluation to the finite horizon case with this simple technique of "stepping back in time" (known as *Backward Induction*). Let's write some code to implement this algorithm. We are given an MDP over the augmented (finite) state space `WithTime[S]`, and a policy $\pi$ (also over the augmented state space `WithTime[S]`). So, we can use the method `apply_finite_policy` in `FiniteMarkovDecisionProcess[WithTime[S], A]` to obtain the $\pi$-implied MRP of type `FiniteMarkovRewardProcess[WithTime[S]]`.
 
@@ -1117,7 +1117,7 @@ is defined as:
 
 So for a Finite MDP, this yields a simple algorithm to calculate $V^*_t$ for all $t$, by simply decrementing down from $t = T-1$ to $t=0$, using Equation \eqref{eq:bellman_optimality_equation_finite_horizon} to calculate $V^*_t$, and Equation \eqref{eq:optimal_policy_finite_horizon} to calculate $(\pi^*_D)_t$ for all $t = 0, 1, \ldots, T-1$ from the known values of $W^*_{t+1}$ (since we are decrementing in time index $t$).
 
-\index{value iteration!finite-horizon}
+\index{dynamic programming!value iteration!finite-horizon}
 
 This algorithm is the adaptation of Value Iteration to the finite horizon case with this simple technique of "stepping back in time" (known as *Backward Induction*). Let's write some code to implement this algorithm. We are given a MDP over the augmented (finite) state space `WithTime[S]`. So this MDP is of type `FiniteMarkovDecisionProcess[WithTime[S], A]`. Our first task to to "unwrap" the state-reward probability transition function $\mathcal{P}_R$ of this MDP into a time-indexed sequenced of state-reward probability transition functions $(\mathcal{P}_R)_t, t = 0, 1, \ldots, T-1$. This is accomplished by the following function `unwrap_finite_horizon_MDP` (`itertools.groupby` groups the augmented states by their time step, and the function `without_time` strips the time step from the augmented states when placing the states in $(\mathcal{P}_R)_t$, i.e., `Sequence[StateActionMapping[S, A]]`).
 

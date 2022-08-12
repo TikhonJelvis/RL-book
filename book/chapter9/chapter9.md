@@ -922,7 +922,7 @@ OB Mid Price Dynamics is assumed to be scaled brownian motion:
 $$dS_t = \sigma \cdot dz_t$$
 
 for some $\sigma \in \mathbb{R}^+$.
-\index{utility theory!constant absolute risk aversion}
+\index{utility theory!constant absolute risk-aversion}
 
 The Utility function is assumed to be: $U(x) = -e^{-\gamma x}$ where $\gamma > 0$ is the risk-aversion parameter (this Utility function is essentially the CARA Utility function devoid of associated constants).
 

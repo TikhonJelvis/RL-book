@@ -130,8 +130,6 @@ where
 $$d_1 = \frac {\log(\frac {S_t} K) + (r + \frac {\sigma^2} 2) \cdot (T-t)} {\sigma \cdot \sqrt{T-t}}$$
 $$d_2 = d_1 - \sigma \sqrt{T-t}$$
 
-\index{finance!call option!Black-Scholes price}
-
 The put option price is:
 
 \begin{equation}
@@ -140,5 +138,5 @@ P(t, S_t) = K \cdot e^{-r\cdot (T-t)} \cdot N(-d_2) - S_t \cdot N(-d_1)
 \end{equation}
 
 \index{finance!derivative!pricing|)}
-\index{finance!put option!Black-Scholes price}
+\index{finance!derivative!Black-Scholes price}
 \index{finance!Black-Scholes equation|)}

@@ -25,7 +25,7 @@ To deal with the "decisioning" aspect, we will introduce the notion of *Action* 
 \index{Markov decision process!action}
 
 ### The Difficulty of Sequential Decisioning under Uncertainty
-\index{Markov decision process|textbf}
+\index{Markov decision process}
 
 This simple inventory example has given us a peek into the world of Markov Decision Processes, which in general, have two distinct (and inter-dependent) high-level features:
 
@@ -161,8 +161,8 @@ defined as:
 
 $$\pi(s, a) = \mathbb{P}[A_t = a|S_t = s] \text{ for time steps } t = 0, 1, 2, \ldots, \text{ for all } s \in \mathcal{N}, a \in \mathcal{A}$$ such that $$\sum_{a \in \mathcal{A}} \pi(s,a) = 1 \text{ for all } s \in \mathcal{N}$$
 
-\index{policy!Markovian|textbf}
-\index{policy!stationary|textbf}
+\index{policy!Markovian policy|textbf}
+\index{policy!stationary policy|textbf}
 
 Note that the definition above assumes that a Policy is Markovian, i.e., the action probabilities depend only on the current state and not the history. The definition above also assumes that a Policy is *Stationary*, i.e., $\mathbb{P}[A_t = a|S_t = s]$ is invariant in time $t$. If we do encounter a situation where the policy would need to depend on the time $t$, we'll simply include $t$ to be part of the state, which would make the Policy stationary (albeit at the cost of state-space bloat and hence, computational cost).
 
@@ -714,7 +714,7 @@ We expand $V^{\pi}(s) = \mathbb{E}_{\pi, \mathcal{P}_R}[G_t|S_t=s]$ as follows:
 
 But from Equation \eqref{eq:mrp_bellman_eqn} in Chapter [-@sec:mrp-chapter], we know that the last expression above is equal to the $\pi$-implied MRP's Value Function for state $s$. So, the Value Function $V^{\pi}$ of an MDP evaluated with a fixed policy $\pi$ is exactly the same function as the Value Function of the $\pi$-implied MRP. So we can apply the MRP Bellman Equation on $V^{\pi}$, i.e.,
 
-\index{Bellman equations!Bellman policy equations|(}
+\index{Bellman equations!Bellman policy equations|textbf}
 
 \begin{equation}
 \begin{split}
@@ -760,8 +760,6 @@ Equation \eqref{eq:mdp_bellman_policy_eqn_vv} is known as the MDP State-Value Fu
 ![Visualization of MDP Action-Value Function Bellman Policy Equation \label{fig:mdp_bellman_policy_tree_qq}](./chapter3/mdp_bellman_policy_tree_qq.png "Visualization of MDP Action-Value Function Bellman Policy Equation")
 </div>
 
-\index{Bellman equations!Bellman policy equations|)}
-
 For the rest of the book, in these MDP transition figures, we shall always depict states as elliptical-shaped nodes and actions as rectangular-shaped nodes. Notice that transition from a state node to an action node is associated with a probability represented by $\pi$ and transition from an action node to a state node is associated with a probability represented by $\mathcal{P}$.
 
 Note that for finite MDPs of state space not too large, we can solve the MDP Prediction problem (solving for $V^{\pi}$ and equivalently, $Q^{\pi}$) in a straightforward manner: Given a policy $\pi$, we can create the finite MRP implied by $\pi$, using the method `apply_policy` in `FiniteMarkovDecisionProcess`, then use the direct linear-algebraic solution that we covered in Chapter [-@sec:mrp-chapter] to calculate the Value Function of the $\pi$-implied MRP. We know that the $\pi$-implied MRP's Value Function is the same as the State-Value Function $V^{\pi}$ of the MDP which can then be used to arrive at the Action-Value Function $Q^{\pi}$ of the MDP (using Equation \eqref{eq:mdp_bellman_policy_eqn_qv}). For large state spaces, we need to use iterative/numerical methods (Dynamic Programming and Reinforcement Learning algorithms) to solve this Prediction problem (covered later in this book).
@@ -798,7 +796,7 @@ $$Q^*(s, a) = \max_{\pi \in \Pi} Q^{\pi}(s, a) \text{ for all } s \in \mathcal{N
 
 $V^*$ is often refered to as the Optimal State-Value Function to distinguish it from the Optimal Action-Value Function $Q^*$ (although, for succinctness, $V^*$ is often also refered to as simply the Optimal Value Function). To be clear, if someone says, Optimal Value Function, by default, they'd be refering to the Optimal State-Value Function $V^*$ (not $Q^*$).
 
-\index{Bellman equations!Bellman optimality equations|(}
+\index{Bellman equations!Bellman optimality equations|textbf}
 
 Much like how the Value Function(s) for a fixed policy have a recursive formulation, [Bellman noted](https://press.princeton.edu/books/paperback/9780691146683/dynamic-programming) [@Bellman1957] that we can create a recursive formulation for the Optimal Value Function(s). Let us start by unraveling the Optimal State-Value Function $V^*(s)$ for a given non-terminal state $s$ - we consider all possible actions $a\in \mathcal{A}$ we can take from state $s$, and pick the action $a$ that yields the best Action-Value from thereon, i.e., the action $a$ that yields the best $Q^*(s,a)$. Formally, this gives us the following equation:
 
@@ -839,8 +837,6 @@ Equation \eqref{eq:mdp_bellman_opt_eqn_qq} is known as the MDP Action-Value Func
 </div>
 
 Note that Equation \eqref{eq:mdp_bellman_opt_eqn_vq} and Equation \eqref{eq:mdp_bellman_opt_eqn_qv} are embedded in Figure \ref{fig:mdp_bellman_opt_tree_vv} as well as in Figure \ref{fig:mdp_bellman_opt_tree_qq}. Equations \eqref{eq:mdp_bellman_opt_eqn_vv}, \eqref{eq:mdp_bellman_opt_eqn_vq}, \eqref{eq:mdp_bellman_opt_eqn_qv} and \eqref{eq:mdp_bellman_opt_eqn_qq} are collectively known as the MDP Bellman Optimality Equations. We should highlight that when someone says MDP Bellman Equation or simply Bellman Equation, unless they explicit state otherwise, they'd be refering to the MDP Bellman Optimality Equations (and typically specifically the MDP State-Value Function Bellman Optimality Equation). This is because the MDP Bellman Optimality Equations address the ultimate purpose of Markov Decision Processes - to identify the Optimal Value Function and the associated policy/policies that achieve the Optimal Value Function (i.e., enabling us to solve the MDP *Control* problem).
-
-\index{Bellman equations!Bellman optimality equations|)}
 
 Again, it pays to emphasize that the Bellman Optimality Equations don't directly give us a recipe to calculate the Optimal Value Function or the policy/policies that achieve the Optimal Value Function - they simply state a powerful mathematical property of the Optimal Value Function that (as we shall see later in this book) helps us come up with algorithms (Dynamic Programming and Reinforcement Learning) to calculate the Optimal Value Function and the associated policy/policies that achieve the Optimal Value Function.
 
@@ -1022,6 +1018,6 @@ The idea of partial observability was introduced in [a paper by K.J.Astrom](http
 * MDP Bellman Optimality Equations
 * Theorem \eqref{th:mdp-optimal-policy-existence} on the existence of an Optimal Policy, and of each Optimal Policy achieving the Optimal Value Function
 
-\index{policy!stationary|seealso{policy, Markovian}}
+\index{policy!stationary policy|seealso{policy, Markovian policy}}
 \index{Markov decision process!prediction|seealso{value function, value function for fixed policy}}
 \index{Markov decision process!control|seealso{value function, optimal value function}}

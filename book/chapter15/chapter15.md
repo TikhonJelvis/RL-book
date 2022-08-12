@@ -1,13 +1,26 @@
 ## Blending Learning and Planning {#sec:blending-learning-planning-chapter}
 
+\index{planning|(}
+\index{learning|(}
+
 After coverage of the issue of Exploration versus Exploitation in the last chapter, in this chapter, we cover the topic of Planning versus Learning (and how to blend the two approaches) in the context of solving MDP Prediction and Control problems. In this chapter, we also provide some coverage of the much-celebrated Monte-Carlo Tree-Search (abbreviated as MCTS) algorithm and it's spiritual origin - the Adaptive Multi-Stage Sampling (abbreviated as AMS) algorithm. MCTS and AMS are examples of Planning algorithms tackled with sampling/RL-based techniques.
 
 ### Planning versus Learning
 
+\index{planning versus learning}
+
 In the language of AI, we use the terms *Planning* and *Learning* to refer to two different approaches to solve an AI problem. Let us understand these terms from the perspective of solving MDP Prediction and Control. Let us zoom out and look at the big picture. The AI Agent has access to an MDP Environment $E$. In the process of *interacting* with the MDP Environment $E$, the AI Agent receives  experiences data. Each unit of experience data is in the form of a (next state, reward) pair for the current state and action. The AI Agent's goal is to estimate the requisite Value Function/Policy through this process of interaction with the MDP Environment $E$ (for Prediction, the AI Agent estimates the Value Function for a given policy and for Control, the AI Agent estimates the Optimal Value Function and the Optimal Policy). The AI Agent can go about this in one of two ways:
+
+\index{Markov decision process!agent}
+\index{Markov decision process!environment}
+\index{Markov decision process!environment!real environment}
+\index{model}
+\index{reinforcement learning!model-based}
 
 1. By interacting with the MDP Environment $E$, the AI Agent can build a *Model of the Environment* (call it $M$) and then use that model to estimate the requisite Value Function/Policy. We refer to this as the *Model-Based* approach. Solving Prediction/Control using a Model of the Environment (i.e., *Model-Based* approach) is known as *Planning* the solution. The term *Planning* comes from the fact that the AI Agent projects (with the help of the model $M$) probabilistic scenarios of future states/rewards for various choices of actions from specific states, and solves for the requisite Value Function/Policy based on the model-projected future outcomes. 
 2. By interacting with the MDP Environment $E$, the AI Agent can directly estimate the requisite Value Function/Policy, without bothering to build a Model of the Environment. We refer to this as the *Model-Free* approach. Solving Prediction/Control without using a model (i.e., *Model-Free* approach) is known as *Learning* the solution. The term *Learning* comes from the fact that the AI Agent "learns" the requisite Value Function/Policy directly from experiences data obtained by interacting with the MDP Environment $E$ (without requiring any model).
+
+\index{reinforcement learning!model-free}
 
 Let us now dive a bit deeper into both these approaches to understand them better.
 
@@ -15,8 +28,16 @@ Let us now dive a bit deeper into both these approaches to understand them bette
 
 In the first approach (*Planning* the solution of Prediction/Control), we first need to "build a model". By "model" , we refer to the State-Reward Transition Probability Function $\mathcal{P}_R$. By "building a model", we mean estimating $\mathcal{P}_R$ from experiences data obtained by interacting with the MDP Environment $E$. How does the AI Agent do this? Well, this is a matter of estimating the conditional probability density function of pairs of (next state, reward), conditioned on a particular pair of (state, action). This is an exercise in Supervised Learning, where the $y$-values are (next state, reward) pairs and the $x$-values are (state, action) pairs. We covered how to do Supervised Learning in Chapter [-@sec:funcapprox-chapter]. Also, note that Equation \eqref{eq:mrp-mle} in Chapter [-@sec:rl-prediction-chapter] provides a simple tabular calculation to estimate the $\mathcal{P}_R$ function for an MRP from a fixed, finite set of atomic experiences of (state, reward, next state) triples. Following this Equation, we had written the function `finite_mrp` to construct a `FiniteMarkovRewardProcess` (which includes a tabular $\mathcal{P}_R$ function of explicit probabilities of transitions), given as input a `Sequence[TransitionStep[S]]` (i.e., fixed, finite set of MRP atomic experiences). This approach can be easily extended to estimate the $\mathcal{P}_R$ function for an MDP. Ok - now we have a model $M$ in the form of an estimated $\mathcal{P}_R$. The next thing to do in this approach of *Planning* the solution of Prediction/Control is to use the model $M$ to estimate the requisite Value Function/Policy. There are two broad approaches to do this:
 
+\index{model!probabilities model}
+
 1. By constructing $\mathcal{P}_R$ as an explicit representation of probabilities of transitions, the AI Agent can utilize one of the Dynamic Programming Algorithms (eg: Policy Evaluation, Policy Iteration, Value Iteration) or a Tree-search method (by growing out a tree of future states/rewards/actions from a given state/action, eg: the MCTS/AMS algorithms we will cover later in this chapter). Note that in this approach, there is *no need to interact with an MDP Environment* since a model of transition probabilities are available that can be used to project any (probabilistic) future outcome (for any choice of action) that is desired to estimate the requisite Value Function/Policy.
-2. By treating $\mathcal{P}_R$ as a *sampling model*, by which we mean that the AI agent uses $\mathcal{P}_R$ as simply an (on-demand) interface to sample an individual pair of (next state, reward) from a given (state, action) pair. This means the AI Agent treats this *sampling model* view of $\mathcal{P}_R$ as a *Simulated MDP Environment* (let us refer to this Simulated MDP Environment as $S$). Note that $S$ serves as a proxy interaction-interface to the actual MDP Environment $E$. A significant advantage of interacting with $S$ instead of $E$ is that we can sample infinitely many times without any of the real-world interaction constraints that an actual MDP Environment $E$ poses. Think about a robot learning to walk on an actual street versus learning to walk on a simulator of the street's activities. Furthermore, the user could augment his/her views on top of an experiences-data-learnt simulator. For example, the user might say that the experiences data obtained by interacting with $E$ doesn't include certain types of scenarios but the user might have knowledge of how those scenarios would play out, thus creating a "human-knowledge-augmented simulator" (more on this in Chapter [-@sec:concluding-chapter]). By interacting with the simulated MDP Environment $S$ (instead of the actual MDP Environment $E$), the AI Agent can use any of the RL Algorithms we covered in Module III of this book to estimate the requisite Value Function/Policy. Since this approach uses a model $M$ (albeit a sampling model) and since this approach uses RL, we refer to this approach as *Model-Based RL*. To summarize this approach, the AI Agent first learns (supervised learning) a model $M$ as an approximation of the actual MDP Environment $E$, and then the AI Agent plans the solution to Prediction/Control by using the model $M$ in the form of a simulated MDP Environment $S$ which an RL algorithm interacts with. Here the Planning/Learning terminology often gets confusing to new students of this topic since this approach is supervised learning followed by planning (the planning being done with a Reinforcement Learning algorithm interacting with the learnt simulator).
+2. By treating $\mathcal{P}_R$ as a *sampling model*, by which we mean that the AI agent uses $\mathcal{P}_R$ as simply an (on-demand) interface to sample an individual pair of (next state, reward) from a given (state, action) pair. This means the AI Agent treats this *sampling model* view of $\mathcal{P}_R$ as a *Simulated MDP Environment* (let us refer to this Simulated MDP Environment as $S$). Note that $S$ serves as a proxy interaction-interface to the real MDP Environment $E$. A significant advantage of interacting with $S$ instead of $E$ is that we can sample infinitely many times without any of the real-world interaction constraints that a real MDP Environment $E$ poses. Think about a robot learning to walk on an actual street versus learning to walk on a simulator of the street's activities. Furthermore, the user could augment his/her views on top of an experiences-data-learnt simulator. For example, the user might say that the experiences data obtained by interacting with $E$ doesn't include certain types of scenarios but the user might have knowledge of how those scenarios would play out, thus creating a "human-knowledge-augmented simulator" (more on this in Chapter [-@sec:concluding-chapter]). By interacting with the simulated MDP Environment $S$ (instead of the real MDP Environment $E$), the AI Agent can use any of the RL Algorithms we covered in Module III of this book to estimate the requisite Value Function/Policy. Since this approach uses a model $M$ (albeit a sampling model) and since this approach uses RL, we refer to this approach as *Model-Based RL*. To summarize this approach, the AI Agent first learns (supervised learning) a model $M$ as an approximation of the real MDP Environment $E$, and then the AI Agent plans the solution to Prediction/Control by using the model $M$ in the form of a simulated MDP Environment $S$ which an RL algorithm interacts with. Here the Planning/Learning terminology often gets confusing to new students of this topic since this approach is supervised learning followed by planning (the planning being done with a Reinforcement Learning algorithm interacting with the learnt simulator).
+
+\index{model!sampling model}
+\index{simulator}
+\index{Markov decision process!environment!simulated environment}
+\index{supervised learning}
+\index{reinforcement learning!model-based}
 
 ![Planning with a Supervised-Learnt Model \label{fig:planning}](./chapter15/planning.png "Planning with a Supervised-Learnt Model")
 
@@ -24,7 +45,11 @@ Figure \ref{fig:planning} depicts the above-described approach of *Planning* the
 
 #### Learning the solution of Prediction/Control {#sec:learning-subsection}
 
-In the second approach (*Learning* the solution of Prediction/Control), we don't bother to build a model. Rather, the AI Agent directly estimates the requisite Value Function/Policy from the experiences data obtained by interacting with the Actual MDP Environment $E$. The AI Agent does this by using any of the RL algorithms we covered in Module III of this book. Since this approach is "model-free", we refer to this approach as *Model-Free RL*.
+\index{Markov decision process!environment!real environment}
+
+In the second approach (*Learning* the solution of Prediction/Control), we don't bother to build a model. Rather, the AI Agent directly estimates the requisite Value Function/Policy from the experiences data obtained by interacting with the real MDP Environment $E$. The AI Agent does this by using any of the RL algorithms we covered in Module III of this book. Since this approach is "model-free", we refer to this approach as *Model-Free RL*.
+
+\index{reinforcement learning!model-free}
 
 #### Advantages and Disadvantages of Planning versus Learning
 
@@ -33,6 +58,7 @@ In the previous two subsections, we covered the two different approaches to solv
 *Planning* involves constructing a Model, so it's natural advantage is to be able to construct a model (from experiences data) with efficient and robust supervised learning methods. The other key advantage of *Planning* is that we can reason about Model Uncertainty. Specifically, when we learn the Model $M$ using supervised learning, we typically obtain the standard errors for estimation of model parameters, which can then be used to create confidence intervals for the Value Function and Policy planned using the model. Furthermore, since modeling real-world problems tends to be rather difficult, it is valuable to create a family of models with differing assumptions, with different functional forms, with differing parameterizations etc., and reason about how the Value Function/Policy would disperse as a function of this range of models. This is quite beneficial in typical real-world problems since it enables us to do Prediction/Control in a *robust* manner.
 
 The disadvantage of *Planning* is that we have two sources of approximation error - the first from supervised learning in estimating the model $M$, and the second from constructing the Value Function/Policy (given the model). The *Learning* approach (without resorting to a model, i.e., Model-Free RL) is thus advantageous is not having the first source of approximation error (i.e., Model Error).
+\index{reinforcement learning!model-free}
 
 #### Blending Planning and Learning
 
@@ -40,15 +66,27 @@ The disadvantage of *Planning* is that we have two sources of approximation erro
 
 In this subsection, we show a rather creative and practically powerful approach to solve real-world Prediction and Control problems. We basically extend Figure \ref{fig:planning} to Figure \ref{fig:planning_learning}. As you can see in Figure \ref{fig:planning_learning}, the change is that there is a downward-pointing arrow from the *Experiences* node to the *Policy* node. This downward-pointing arrow refers to *Model-Free Reinforcement Learning*, i.e., learning the Value Function/Policy directly from experiences obtained by interacting with Environment $E$, i.e., Model-Free RL. This means we obtain the requisite Value Function/Policy through the collaborative approach of *Planning* (using the model $M$) and *Learning* (using Model-Free RL).
 
+\index{reinforcement learning!model-free}
+\index{reinforcement learning!model-based}
+\index{Markov decision process!environment!real environment}
+\index{Markov decision process!environment!simulated environment}
+\index{supervised learning}
+
 Note that when Planning is based on RL using experiences obtained by interacting with the Simulated Environment $S$ (based on Model $M$), then we obtain the requisite Value Function/Policy from two sources of experiences (from $E$ and $S$) that are combined and provided to an RL Algorithm. This means we simultaneously do Model-Based RL and Model-Free RL. This is creative and powerful because it blends the best of both worlds - Planning (with Model-Based RL) and Learning (with Model-Free RL). Apart from Model-Free RL and Model-Based RL being blended here to obtain a more accurate Value Function/Policy, the Model is simultaneously being updated with incremental supervised learning (rightward-pointing arrow in Figure \ref{fig:planning_learning}) as new experiences are being generated as a result of the Policy interacting with the Environment $E$ (upward-pointing arrow in Figure \ref{fig:planning_learning}).
 
 This framework of blending Planning and Learning was created by Richard Sutton which he named as [Dyna](https://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.329.6065&rep=rep1&type=pdf) [@journals/sigart/Sutton91].
 
+\index{reinforcement learning!dyna}
+
 ### Decision-Time Planning
+
+\index{planning!decision-time planning|(}
 
 In the next two sections of this chapter, we cover a couple of Planning methods that are sampling-based (experiences obtained by interacting with a sampling model) and use RL techniques to solve for the requisite Value Function/Policy from the model-sampled experiences. We cover the famous Monte-Carlo Tree-Search (MCTS) algorithm, followed by an algorithm which is MCTS' spiritual origin - the Adaptive Multi-Stage Sampling (AMS) algorithm.
 
 Both these algorithms are examples of *Decision-Time Planning*. The term *Decision-Time Planning* requires some explanation. When it comes to Planning (with a model), there are two possibilities:
+
+\index{planning!background planning}
 
 * Background Planning: This refers to a planning method where the AI Agent pre-computes the requisite Value Function/Policy *for all states*, and when it is time for the AI Agent to perform the requisite action for a given state, it simply has to refer to the pre-calculated policy and apply that policy to the given state. Essentially, in the *background*, the AI Agent is constantly improving the requisite Value Function/Policy, irrespective of which state the AI Agent is currently required to act on. Hence, the term *Background Planning*.
 * Decision-Time Planning: This approach contrasts with Background Planning. In this approach, when the AI Agent has to identify the best action to take for a specific state that the AI Agent currently encounters, the calculations for that best-action-identification happens only when the AI Agent *reaches that state*. This is appropriate in situations when there are such a large number of states in the state space that Background Planning is infeasible. However, for Decision-Time Planning to be effective, the AI Agent needs to have sufficient time to be able to perform the calculations to identify the action to take *upon reaching a given state*. This is feasible in games like Chess where there is indeed some time for the AI Agent to make it's move upon encountering a specific state of the chessboard (the move response doesn't need to be immediate). However, this is not feasible for a self-driving car, where the decision to accelerate/brake or to steer must be immediate (this requires *Background Planning*).
@@ -57,9 +95,15 @@ Hence, with Decision-Time Planning, the AI Agent focuses all of the available co
 
 Decision-Time Planning typically looks much deeper than just a single time step ahead (DP algorithms only look a single time step ahead) and evaluates action choices leading to many different state and reward possibilities over the next several time steps. Searching deeper than a single time step ahead is required because these Decision-Time Planning algorithms typically work with imperfect Q-Values. 
 
+\index{planning!heuristic search}
+
 Decision-Time Planning methods sometimes go by the name *Heuristic Search*. Heuristic Search refers to the method of growing out a tree of future states/actions/rewards from the given state (which serves as the root of the tree). In classical Heuristic Search, an approximate Value Function is calculated at the leaves of the tree and the Value Function is then backed up to the root of the tree. Knowing the backed-up Q-Values at the root of the tree enables the calculation of the best action for the root state. Modern methods of Heuristic Search are very efficient in how the Value Function is approximated and backed up. Monte-Carlo Tree-Search (MCTS) in one such efficient method that we cover in the next section.
 
+\index{planning!decision-time planning|)}
+
 ### Monte-Carlo Tree-Search (MCTS)
+
+\index{reinforcement learning!monte carlo tree search|(}
 
 [Monte-Carlo Tree-Search (abbreviated as MCTS)](https://en.wikipedia.org/wiki/Monte_Carlo_tree_search) is a Heuristic Search method that involves growing out a Search Tree from the state for which we seek the best action (hence, it is a Decision-Time Planning algorithm). MCTS was popularized in 2016 by [Deep Mind's AlphaGo algorithm](https://www.nature.com/articles/nature16961}) [@silver2016mastering]. MCTS was first introduced by [Remi Coulom for game trees](https://hal.inria.fr/inria-00116992/document) [@conf/cg/Coulom06].
 
@@ -76,7 +120,11 @@ Each sampling trace round of MCTS consists of four steps:
 
 The Selection Step in MCTS involves picking a child node (action) with "most promise", for each state in the sampling trace of the Selection Step. This means prioritizing actions with higher Q-Value estimates. However, this needs to be balanced against actions that haven't been tried sufficiently (i.e., those actions whose Q-Value estimates have considerable uncertainty). This is our usual *Explore v/s Exploit* tradeoff that we covered in detail in Chapter [-@sec:multi-armed-bandits-chapter]. The Explore v/s Exploit formula for games was [first provided by Kocsis and Szepesvari](http://ggp.stanford.edu/readings/uct.pdf) [@kocsis2006a]. This formula is known as *Upper Confidence Bound 1 for Trees* (abbreviated as UCT). Most current MCTS Algorithms are based on some variant of UCT. UCT is based on the [UCB1 formula of Auer, Cesa-Bianchi, Fischer](https://homes.di.unimi.it/cesa-bianchi/Pubblicazioni/ml-02.pdf) [@Auer2002].
 
+\index{reinforcement learning!monte carlo tree search|)}
+
 ### Adaptive Multi-Stage Sampling
+
+\index{reinforcement learning!adaptive multi-stage sampling|(}
 
 It's not well known that MCTS and UCT concepts first appeared in the [Adaptive Multi-Stage Sampling algorithm by Chang, Fu, Hu, Marcus](https://pdfs.semanticscholar.org/a378/b2895a3e3f6a19cdff1a0ad404b301b5545f.pdf) [@journals/ior/ChangFHM05]. Adaptive Multi-Stage Sampling (abbreviated as AMS) is a generic sampling-based algorithm to solve finite-horizon Markov Decision Processes (although the paper describes how to extend this algorithm for infinite-horizon MDPs). We consider AMS to be the "spiritual origin" of MCTS/UCT, and hence we dedicate this section to coverage of AMS.
 
@@ -106,6 +154,8 @@ When all $N_t$ action selections are made for a given state $s_t$, $V_t^*(s_t) =
 \end{equation}
 
 Now let's write a Python class to implement AMS. We start by writing it's constructor. For convenience, we assume each of the state spaces $\mathcal{S}_t$ (for $t = 0, 1, \ldots, T$) is the same (denoted as $\mathcal{S}$) and the allowable actions are the same across all time steps (denoted as $\mathcal{A})$. 
+
+\index{AMS@\texttt{AMS}}
 
 ```python
 from rl.distribution import Distribution
@@ -147,6 +197,7 @@ Let us understand the inputs to the constructor `__init__`.
 Next we write the method `optimal_vf_and_policy` to compute $\hat{V}_t^{N_t}(s_t)$ and the associated recommended action for state $s_t$ (note the type of the output, representing this pair as `Tuple[float, A]`).
 
 In the code below, `vals_sum` builds up the sum $\sum_{j=1}^{N_t^{s_t,a_t}} \hat{V}_{t+1}^{N_{t+1}}(s_{t+1}^{(s_t,a_t,j)})$, and `counts` represents $N_t^{s_t,a_t}$. Before the `for` loop, we initialize `vals_sum` by selecting each action $a_t \in \mathcal{A}_t(s_t)$ exactly once. Then, for each iteration $i$ of the `for` loop (for $i$ ranging from $|\mathcal{A}_t(s_t)|$ to $N_t - 1$), we calculate the Upper-Confidence Value (`ucb_vals` in the code below) for each of the actions $a_t \in \mathcal{A}_t(s_t)$ using the UCT formula of Equation \eqref{eq:ams_uct_formula}, and pick an action $a_t^*$ that maximizes `ucb_vals`. After the termination of the `for` loop, `optimal_vf_and_policy` returns the Optimal Value Function approximation for $s_t$ based on Equation \eqref{eq:ams_optimal_vf_approx} and the recommended action for $s_t$ as the action that maximizes $\hat{Q}_t(s_t, a_t)$
+
 
 ```python
 import numpy as np
@@ -197,6 +248,10 @@ Now let's analyze the running-time complexity of AMS. Let $N = \max{(N_0, N_1, \
 $$\lim_{N_0\rightarrow \infty} \lim_{N_1\rightarrow \infty} \ldots \lim_{N_{T-1}\rightarrow \infty} \mathbb{E}[\hat{V}_0^{N_0}(s_0)] = V_0^*(s_0) \mbox{ for all } s_0 \in \mathcal{S}$$
 They also proved that the worst-possible bias is bounded by a quantity that converges to zero at the rate of $O(\sum_{t=0}^{T-1} \frac {\ln N_t} {N_t})$. Specifically,
 $$0 \leq V_0^*(s_0) - \mathbb{E}[\hat{V}_0^{N_0}(s_0)] \leq O(\sum_{t=0}^{T-1} \frac {\ln N_t} {N_t}) \mbox{ for all } s_0 \in \mathcal{S}$$
+
+\index{reinforcement learning!adaptive multi-stage sampling|)}
+\index{planning|)}
+\index{learning|)}
 
 ### Summary of Key Learnings from this Chapter
 
