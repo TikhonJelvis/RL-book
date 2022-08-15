@@ -24,7 +24,7 @@ To aid with the intuition, let us pretend that stock prices take on only integer
 $$\mathbb{P}[X_{t+1} = X_t + 1] = \frac 1 {1 + e^{-\alpha_1(L - X_t)}}$$
 where $L$ is an arbitrary reference level and $\alpha_1 \in \mathbb{R}_{\geq 0}$ is a "pull strength" parameter. Note that this probability is defined as a [logistic function](https://en.wikipedia.org/wiki/Logistic_function) of $L - X_t$ with the steepness of the logistic function controlled by the parameter $\alpha_1$ (see Figure \ref{fig:logistic})
 
-\index{functions!logistic function}
+\index{functions!logistic function|textbf}
 
 <div style="text-align:center" markdown="1">
 ![Logistic Curves \label{fig:logistic}](./chapter2/logistic_curves.png "Logistic Curves")
@@ -174,7 +174,7 @@ where $\alpha_3 \in \mathbb{R}_{\geq 0}$ is a "pull strength" parameter. Let us 
 $$f(\frac {D_t} {U_t + D_t}; \alpha_3)$$
 where $f: [0, 1] \rightarrow [0, 1]$ is a sigmoid-shaped function
  $$f(x; \alpha) = \frac 1 {1 + (\frac 1 x - 1)^{\alpha}}$$
- whose steepness at $x=0.5$ is controlled by the parameter $\alpha$ (note: values of $\alpha < 1$ will produce an inverse sigmoid as seen in Figure \ref{fig:unit_sigmoid} which shows unit-sigmoid functions \index{functions!unit-sigmoid function} $f$ for different values of $\alpha$). 
+ whose steepness at $x=0.5$ is controlled by the parameter $\alpha$ (note: values of $\alpha < 1$ will produce an inverse sigmoid as seen in Figure \ref{fig:unit_sigmoid} which shows unit-sigmoid functions \index{functions!unit-sigmoid function|textbf} $f$ for different values of $\alpha$). 
 
 <div style="text-align:center" markdown="1">
 ![Unit-Sigmoid Curves \label{fig:unit_sigmoid}](./chapter2/unit_sigmoid_curves.png "Unit-Sigmoid Curves")
