@@ -1,39 +1,63 @@
 # Reinforcement Learning Algorithms
 
 ## Monte-Carlo and Temporal-Difference for Prediction {#sec:rl-prediction-chapter}
+\index{reinforcement learning|(}
 
 ### Overview of the Reinforcement Learning approach
 
-In Module I, we covered Dynamic Programming (DP) and Approximate Dynamic Programming (ADP) algorithms to solve the problems of Prediction and Control. DP and ADP algorithms assume that we have access to a *model* of the MDP environment (by *model*, we mean the transitions defined by $\mathcal{P}_R$ - notation from Chapter [-@sec:mdp-chapter] - refering to probabilities of next state and reward, given current state and action). However, in real-world situations, we often do not have access to a model of the MDP environment and so, we'd need to access the actual MDP environment directly. As an example, a robotics application might not have access to a model of a certain type of terrain to learn to walk on, and so we'd need to access the actual (physical) terrain. This means we'd need to *interact* with the actual MDP environment. Note that the actual MDP environment doesn't give us transition probabilities - it simple serves up a new state and reward when we take an action in a certain state. In other words, it gives us individual experiences of next state and reward, rather than the actual probabilities of occurrence of next states and rewards. So, the natural question to ask is whether we can infer the Optimal Value Function/Optimal Policy without access to a model (in the case of Prediction - the question is whether we can infer the Value Function for a given policy). The answer to this question is *Yes* and the algorithms that achieve this are known as Reinforcement Learning algorithms.
+\index{reinforcement learning!prediction|(}
+\index{Markov decision process!environment}
+\index{model}
+\index{Markov decision process!transition probabilities}
 
-But Reinforcement Learning is often a great option even in situations where we do have a model. In typical real-world problems, the state space is large and the transitions structure is complex, so transition probabilities are either hard to compute or impossible to store/compute (within practical storage/compute constraints). This means even if we could *theoretically* estimate a model from interactions with the actual environment and then run a DP/ADP algorithm, it's typically intractable/infeasible in a typical real-world problem. Moreover, a typical real-world environment is not stationary (meaning the probabilities $\mathcal{P}_R$ change over time) and so, the $\mathcal{P}_R$ probabilities model would need to be re-estimated periodically (making it cumbersome to do DP/ADP). All of this points to the practical alternative of constructing a *sampling model* (a model that serves up samples of next state and reward) - this is typically much more feasible than estimating a *probabilities model* (i.e. a model of explicit transition probabilities). A sampling model can then be used by a Reinforcement Learning algorithm (as we shall explain shortly).
+In Module I, we covered Dynamic Programming (DP) and Approximate Dynamic Programming (ADP) algorithms to solve the problems of Prediction and Control. DP and ADP algorithms assume that we have access to a *model* of the MDP environment (by *model*, we mean the transitions defined by $\mathcal{P}_R$ - notation from Chapter [-@sec:mdp-chapter] - refering to probabilities of next state and reward, given current state and action). However, in real-world situations, we often do not have access to a model of the MDP environment and so, we'd need to access the actual (real) MDP environment directly. As an example, a robotics application might not have access to a model of a certain type of terrain to learn to walk on, and so we'd need to access the actual (physical) terrain. This means we'd need to *interact* with the real MDP environment. Note that the real MDP environment doesn't give us transition probabilities - it simple serves up a new state and reward when we take an action in a certain state. In other words, it gives us individual experiences of next state and reward, rather than the explicit probabilities of occurrence of next states and rewards. So, the natural question to ask is whether we can infer the Optimal Value Function/Optimal Policy without access to a model (in the case of Prediction - the question is whether we can infer the Value Function for a given policy). The answer to this question is *Yes* and the algorithms that achieve this are known as Reinforcement Learning algorithms.
+
+But Reinforcement Learning is often a great option even in situations where we do have a model. In typical real-world problems, the state space is large and the transitions structure is complex, so transition probabilities are either hard to compute or impossible to store/compute (within practical storage/compute constraints). This means even if we could *theoretically* estimate a model from interactions with the real environment and then run a DP/ADP algorithm, it's typically intractable/infeasible in a typical real-world problem. Moreover, a typical real-world environment is not stationary (meaning the probabilities $\mathcal{P}_R$ change over time) and so, the $\mathcal{P}_R$ probabilities model would need to be re-estimated periodically (making it cumbersome to do DP/ADP). All of this points to the practical alternative of constructing a *sampling model* (a model that serves up samples of next state and reward) - this is typically much more feasible than estimating a *probabilities model* (i.e. a model of explicit transition probabilities). A sampling model can then be used by a Reinforcement Learning algorithm (as we shall explain shortly).
+\index{model!sampling model}
+\index{model!probabilities model}
+\index{Markov decision process!environment!real environment}
+\index{Markov decision process!environment!simulated environment}
 
 So what we are saying is that practically we are left with one of the following two options:
 
-1. The AI Agent interacts with the actual environment and doesn't bother with either a model of explicit transition probabilities (*probabilities model*) or a model of transition samples (*sampling model*).
-2. We create a sampling model (by learning from interaction with the actual environment) and treat this sampling model as a simulated environment (meaning, the AI agent interacts with this simulated environment).
+1. The AI Agent interacts with the real environment and doesn't bother with either a model of explicit transition probabilities (*probabilities model*) or a model of transition samples (*sampling model*).
+2. We create a sampling model (by learning from interaction with the real environment) and treat this sampling model as a simulated environment (meaning, the AI agent interacts with this simulated environment).
 
 From the perspective of the AI agent, either way there is an environment interface that will serve up (at each time step) a single experience of (next state, reward) pair when the agent performs a certain action in a given state. So essentially, either way, our access is simply to a stream of individual experiences of next state and reward rather than their explicit probabilities. So, then the question is - at a conceptual level, how does RL go about solving Prediction and Control problems with just this limited access (access to only experiences and not explicit probabilities)? This will become clearer and clearer as we make our way through Module III, but it would be a good idea now for us to briefly sketch an intuitive overview of the RL approach (before we dive into the actual RL algorithms).
 
-To understand the core idea of how RL works, we take you back to the start of the book where we went over how a baby learns to walk. Specifically, we'd like you to develop intuition for how humans and other animals learn to perform requisite tasks or behave in appropriate ways, so as to get trained to make suitable decisions. Humans/animals don't build a model of explicit probabilities in their minds in a way that a DP/ADP algorithm would require. Rather, their learning is essentially a sort of "trial and error" method - they try an action, receive an experience (i.e., next state and reward) from their environment, then take a new action, receive another experience, and so on … and then over a period of time, they figure out which actions might be leading to good outcomes (producing good rewards) and which actions might be leading to poor outcomes (poor rewards). This learning process involves raising the priority of actions perceived as good, and lowering the priority of actions perceived as bad. Humans/animals don't quite link their actions to the immediate reward - they link their actions to the cumulative rewards (*Return*s) obtained after performing an action. Linking actions to cumulative rewards is challenging because multiple actions have significantly overlapping rewards sequences, and often rewards show up in a delayed manner. Indeed, learning by attributing good versus bad outcomes to specific past actions is the powerful part of human/animal learning. Humans/animals are essentially estimating a Q-Value Function and are updating their Q-Value function each time they receive a new experience (of essentially a pair of next state and reward). Exactly how humans/animals manage to estimate Q-Value functions efficiently is unclear (a big area of ongoing research), but RL algorithms have specific techniques to estimate the Q-Value function in an incremental manner by updating the Q-Value function in subtle ways after each experience of next state and reward received from either the actual environment or simulated environment.
+\index{reinforcement learning!trial and error}
+To understand the core idea of how RL works, we take you back to the start of the book where we went over how a baby learns to walk. Specifically, we'd like you to develop intuition for how humans and other animals learn to perform requisite tasks or behave in appropriate ways, so as to get trained to make suitable decisions. Humans/animals don't build a model of explicit probabilities in their minds in a way that a DP/ADP algorithm would require. Rather, their learning is essentially a sort of "trial and error" method - they try an action, receive an experience (i.e., next state and reward) from their environment, then take a new action, receive another experience, and so on … and then over a period of time, they figure out which actions might be leading to good outcomes (producing good rewards) and which actions might be leading to poor outcomes (poor rewards). This learning process involves raising the priority of actions perceived as good, and lowering the priority of actions perceived as bad. Humans/animals don't quite link their actions to the immediate reward - they link their actions to the cumulative rewards (*Return*s) obtained after performing an action. Linking actions to cumulative rewards is challenging because multiple actions have significantly overlapping rewards sequences, and often rewards show up in a delayed manner. Indeed, learning by attributing good versus bad outcomes to specific past actions is the powerful part of human/animal learning. Humans/animals are essentially estimating a Q-Value Function and are updating their Q-Value function each time they receive a new experience (of essentially a pair of next state and reward). Exactly how humans/animals manage to estimate Q-Value functions efficiently is unclear (a big area of ongoing research), but RL algorithms have specific techniques to estimate the Q-Value function in an incremental manner by updating the Q-Value function in subtle ways after each experience of next state and reward received from either the real environment or simulated environment.
+\index{value function!action-value function}
+\index{Q@$Q$}
 
 We should also point out another important feature of human/animal learning - it is the fact that humans/animals are good at generalizing their inferences from experiences, i.e., they can interpolate and extrapolate the linkages between their actions and the outcomes received from their environment. Technically, this translates to a suitable function approximation of the Q-Value function. So before we embark on studying the details of various RL algorithms, it's important to recognize that RL overcomes complexity (specifically, the Curse of Dimensionality and Curse of Modeling, as we have alluded to in previous chapters) with a combination of:
 
-1. Learning incrementally by updating the Q-Value function from individual experiences of next state and reward received after performing actions in specific states.
+\index{function approximation!incremental estimation}
+1. Learning from individual experiences of next state and reward received after performing actions in specific states.
 2. Good generalization ability of the Q-Value function with a suitable function approximation (indeed, recent progress in capabilities of deep neural networks have helped considerably).
+\index{function approximation!generalization}
 
-This idea of solving the MDP Prediction and Control problems in this manner (learning incrementally from a stream of data with appropriate generalization ability in the Q-Value function approximation) came from [the Ph.D. thesis of Chris Watkins](http://www.cs.rhul.ac.uk/~chrisw/new_thesis.pdf) [@Watkins:89]. As mentioned before, we consider [the RL book by Sutton and Barto](http://www.incompleteideas.net/book/the-book.html) [@Sutton1998] as the best source for a comprehensive study of RL algorithms as well as the best source for all references associated with RL (hence, we don't provide too many references in this book).
+This idea of solving the MDP Prediction and Control problems in this manner (learning from a stream of experiences data with appropriate generalization ability in the Q-Value function approximation) came from [the Ph.D. thesis of Chris Watkins](http://www.cs.rhul.ac.uk/~chrisw/new_thesis.pdf) [@Watkins:89]. As mentioned before, we consider [the RL book by Sutton and Barto](http://www.incompleteideas.net/book/the-book.html) [@Sutton1998] as the best source for a comprehensive study of RL algorithms as well as the best source for all references associated with RL (hence, we don't provide too many references in this book).
 
+\index{generalized policy iteration}
+\index{Bellman equations}
 As mentioned in previous chapters, most RL algorithms are founded on the Bellman Equations and all RL Control algorithms are based on the fundamental idea of *Generalized Policy Iteration* that we have explained in Chapter [-@sec:mdp-chapter]. But the exact ways in which the Bellman Equations and Generalized Policy Iteration idea are utilized in RL algorithms differ from one algorithm to another, and they differ significantly from how the Bellman Equations/Generalized Policy Iteration idea is utilized in DP algorithms.
 
 As has been our practice, we start with the Prediction problem (this chapter) and then cover the Control problem (next chapter). 
 
 ### RL for Prediction
 
-We re-use a lot of the notation we had developed in Module I. As a reminder, Prediction is the problem of estimating the Value Function of an MDP for a given policy $\pi$. We know from Chapter [-@sec:mdp-chapter] that this is equivalent to estimating the Value Function of the $\pi$-implied MRP. So in this chapter, we assume that we are working with an MRP (rather than an MDP) and we assume that the MRP is available in the form of an interface that serves up an individual experience of (next state, reward) pair, given current state. The interface might be an actual environment or a simulated environment. We refer to the agent's receipt of an individual experience of (next state, reward), given current state, as an *atomic experience*. Interacting with this interface in succession (starting from a state $S_0$) gives us a *trace experience* consisting of alternating states and rewards as follows:
+\index{Markov decision process!prediction}
+\index{value function!value function for fixed policy}
+We re-use a lot of the notation we had developed in Module I. As a reminder, Prediction is the problem of estimating the Value Function of an MDP for a given policy $\pi$. We know from Chapter [-@sec:mdp-chapter] that this is equivalent to estimating the Value Function of the $\pi$-implied MRP. So in this chapter, we assume that we are working with an MRP (rather than an MDP) and we assume that the MRP is available in the form of an interface that serves up an individual experience of (next state, reward) pair, given current state. The interface might be a real environment or a simulated environment. We refer to the agent's receipt of an individual experience of (next state, reward), given current state, as an *atomic experience*. Interacting with this interface in succession (starting from a state $S_0$) gives us a *trace experience* consisting of alternating states and rewards as follows:
+\index{Markov reward process!state}
+\index{Markov reward process!reward}
+\index{atomic experience}
+\index{trace experience}
 
 $$S_0, R_1, S_1, R_2, S_2, \ldots$$
 
+\index{value function!value function of Markov reward process}
 Given a stream of atomic experiences or a stream of trace experiences, the RL Prediction problem is to estimate the *Value Function* $V: \mathcal{N} \rightarrow \mathbb{R}$ of the MRP defined as:
 
 $$V(s) = \mathbb{E}[G_t|S_t = s] \text{ for all } s \in \mathcal{N}, \text{ for all } t = 0, 1, 2, \ldots$$
@@ -43,8 +67,10 @@ where the *Return* $G_t$ for each $t = 0, 1, 2, \ldots$ is defined as:
 $$G_t = \sum_{i=t+1}^{\infty} \gamma^{i-t-1} \cdot R_i = R_{t+1} + \gamma \cdot R_{t+2} + \gamma^2 \cdot R_{t+3} + \ldots = R_{t+1} + \gamma \cdot G_{t+1}$$
 
 We use the above definition of *Return* even for a terminating trace experience (say terminating at $t=T$, i.e., $S_T \in \mathcal{T}$), by treating $R_i = 0$ for all $i > T$.
+\index{Markov reward process!return}
 
 The RL prediction algorithms we will soon develop consume a stream of atomic experiences or a stream of trace experiences to learn the requisite Value Function.  So we want the input to an RL Prediction algorithm to be either an `Iterable` of atomic experiences or an `Iterable` of trace experiences. Now let's talk about the representation (in code) of a single atomic experience and the representation of a single trace experience. We take you back to the code in Chapter [-@sec:mrp-chapter] where we had set up a `@dataclass TransitionStep` that served as a building block in the method `simulate_reward` in the abstract class `MarkovRewardProcess`.
+\index{TransitionStep@\texttt{TransitionStep}}
 
 ```python
 @dataclass(frozen=True)
@@ -74,8 +100,12 @@ Let's add a method `reward_traces` to `MarkovRewardProcess` that produces an `It
 
 
 ### Monte-Carlo (MC) Prediction
+\index{reinforcement learning!monte carlo}
+\index{reinforcement learning!monte carlo!for prediction|(}
+\index{supervised learning}
 
 Monte-Carlo (MC) Prediction is a very simple RL algorithm that performs supervised learning to predict the expected return from any state of an MRP (i.e., it estimates the Value Function of an MRP), given a stream of trace experiences. Note that we wrote the abstract class `FunctionApprox` in Chapter [-@sec:funcapprox-chapter] for supervised learning that takes data in the form of $(x,y)$ pairs where $x$ is the predictor variable and $y \in \mathbb{R}$ is the response variable. For the Monte-Carlo prediction problem, the $x$-values are the encountered states across the stream of input trace experiences and the $y$-values are the associated returns on the trace experiences (starting from the corresponding encountered state). The following function (in the file [rl/monte_carlo.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/monte_carlo.py)) `mc_prediction` takes as input an `Iterable` of trace experiences, with each trace experience represented as an `Iterable` of `TransitionStep`s. `mc_prediction` performs the requisite supervised learning in an incremental manner, by calling the method `iterate_updates` of `approx_0: ValueFunctionApprox[S]` on an `Iterator` of (state, return) pairs that are extracted from each trace experience. As a reminder, the method `iterate_updates` calls the method `update` of `FunctionApprox` iteratively (in this case, each call to `update` updates the `ValueFunctionApprox` for a single (state, return) data point). `mc_prediction` produces as output an `Iterator` of `ValueFunctionApprox[S]`, i.e., an updated function approximation of the Value Function at the end of each trace experience (note that function approximation updates can be done only at the end of trace experiences because the trace experience returns are available only at the end of trace experiences).
+\index{mc prediction@\texttt{mc\_prediction}}
 
 ```python
 import MarkovRewardProcess as mp
@@ -162,9 +192,13 @@ def returns(
     return return_steps
 ``` 
 
+\index{Markov reward process!episodic}
+\index{Markov reward process!continuing}
+
 We say that the trace experiences are *episodic traces* if each trace experience ends in a terminal state to signify that each trace experience is an episode, after whose termination we move on to the next episode. Trace experiences that do not terminate are known as *continuing traces*. We say that an RL problem is *episodic* if the input trace experiences are all *episodic* (likewise, we say that an RL problem is *continuing* if some of the input trace experiences are *continuing*).
 
 Assume that the probability distribution of returns conditional on a state is modeled by a function approximation as a (state-conditional) normal distribution, whose mean (Value Function) we denote as $V(s; \bm{w})$ where $s$ denotes a state for which the function approximation is being evaluated and $\bm{w}$ denotes the set of parameters in the function approximation (eg: the weights in a neural network). Then, the loss function for supervised learning of the Value Function is the sum of squares of differences between observed returns and the Value Function estimate from the function approximation. For a state $S_t$ visited at time $t$ in a trace experience and it's associated return $G_t$ on the trace experience, the contribution to the loss function is:
+\index{function approximation!loss function}
 
 \begin{equation}
 \mathcal{L}_{(S_t,G_t)}(\bm{w}) = \frac 1 2 \cdot (V(S_t;\bm{w}) - G_t)^2
@@ -176,6 +210,7 @@ It's gradient with respect to $\bm{w}$ is:
 $$\nabla_{\bm{w}} \mathcal{L}_{(S_t,G_t)}(\bm{w}) = (V(S_t;\bm{w}) - G_t) \cdot \nabla_{\bm{w}} V(S_t;\bm{w})$$
 
 We know that the change in the parameters (adjustment to the parameters) is equal to the negative of the gradient of the loss function, scaled by the learning rate (let's denote the learning rate as $\alpha$). Then the change in parameters is:
+\index{function approximation!gradient descent}
 
 \begin{equation}
 \Delta \bm{w} = \alpha \cdot (G_t - V(S_t;\bm{w})) \cdot \nabla_{\bm{w}} V(S_t;\bm{w})
@@ -189,6 +224,7 @@ This is a standard formula for change in parameters in response to incremental a
 * *Estimate Gradient* of the conditional expected return $V(S_t;\bm{w})$ with respect to the parameters $\bm{w}$
 
 This interpretation of the change in parameters as the product of these three conceptual entities: (Learning rate, Return Residual, Estimate Gradient) is important as this will be a repeated pattern in many of the RL algorithms we will cover.
+\index{reinforcement learning!tabular}
 
 Now we consider a simple case of Monte-Carlo Prediction where the MRP consists of a finite state space with the non-terminal states $\mathcal{N} = \{s_1, s_2, \ldots, s_m\}$. In this case, we represent the Value Function of the MRP in a data structure (dictionary) of (state, expected return) pairs. This is known as "Tabular" Monte-Carlo (more generally as Tabular RL to reflect the fact that we represent the calculated Value Function in a "table" , i.e., dictionary). Note that in this case, Monte-Carlo Prediction reduces to a very simple calculation wherein for each state, we simply maintain the average of the trace experience returns from that state onwards (averaged over state visitations across trace experiences), and the average is updated in an incremental manner. Recall from Section [-@sec:tabular-funcapprox-section] of Chapter [-@sec:funcapprox-chapter] that this is exactly what's done in the `Tabular` class (in file [rl/func_approx.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/func_approx.py)). We also recall from Section [-@sec:tabular-funcapprox-section] of Chapter [-@sec:funcapprox-chapter] that `Tabular` implements the interface of the abstract class `FunctionApprox` and so, we can perform Tabular Monte-Carlo Prediction by passing a `Tabular` instance as the `approx0: FunctionApprox` argument to the `mc_prediction` function above. The implementation of the `update` method in Tabular is exactly as we desire: it performs an incremental averaging of the trace experience returns obtained from each state onwards (over a stream of trace experiences). 
 
@@ -223,6 +259,7 @@ V_n(s_i) = \frac 1 n \cdot Y^{(n)}_i + \frac {n-1} n\cdot \frac 1 {n-1} \cdot Y^
 \end{equation}
 
 which is an equally-weighted average of the trace experience returns from the state. From the [Law of Large Numbers](https://en.wikipedia.org/wiki/Law_of_large_numbers), we know that the sample average converges to the expected value, which is the core idea behind the Monte-Carlo method.
+\index{law of large numbers}
 
 Note that the `Tabular` class as an implementation of the abstract class `FunctionApprox` is not just a software design happenstance - there is a formal mathematical specialization here that is vital to recognize. This tabular representation is actually a special case of linear function approximation by setting a feature function $\phi_i(\cdot)$ for each $x_i$ as: $\phi_i(x_i) = 1$ and $\phi(x) = 0$ for each $x \neq x_i$ (i.e., $\phi_i(\cdot)$ is the indicator function for $x_i$, and the $\bm{\Phi}$ matrix of Chapter [-@sec:funcapprox-chapter] reduces to the identity matrix). So we can conceptualize Tabular Monte-Carlo Prediction as a linear function approximation with the feature functions equal to the indicator functions for each of the non-terminal states and the linear-approximation parameters $w_i$ equal to the Value Function estimates for the corresponding non-terminal states.
 
@@ -231,6 +268,8 @@ With this perspective, more broadly, we can view Tabular RL as a special case of
 $$w^{(n)}_i = w^{(n-1)}_i + \alpha_n \cdot (Y^{(n)}_i - w^{(n-1)}_i)$$
 
 So, the change in parameter $w_i$ for state $s_i$ is $\alpha_n$ times $Y^{(n)}_i - w^{(n-1)}_i$. We observe that $Y^{(n)}_i - w^{(n-1)}_i$ represents the gradient of the loss function for the data point $(s_i, Y^{(n)}_i)$ in the case of linear function approximation with features as indicator variables (for each state). This is because the loss function for the data point $(s_i, Y^{(n)}_i)$ is $\frac 1 2 \cdot (Y^{(n)}_i - \sum_{j=1}^m \phi_j(s_i) \cdot w^{(n-1)}_j)^2$ which reduces to $\frac 1 2 \cdot (Y^{(n)}_i - w^{(n-1)}_i)^2$, whose gradient in the direction of $w_i$ is $Y^{(n)}_i - w^{(n-1)}_i$ and 0 in the other directions (for $j \neq i$). So we see that `Tabular` updates are basically a special case of `LinearFunctionApprox` updates if we set the features to be indicator functions for each of the states (with `count_to_weight_func` playing the role of the learning rate).
+
+\index{function approximation!gradient descent!learning rate}
 
 Now that you recognize that `count_to_weight_func` essentially plays the role of the learning rate and governs the importance given to the latest trace experience return relative to past trace experience returns, we want to point out that real-world situations are not stationary in the sense that the environment typically evolves over a period of time and so, RL algorithms have to appropriately adapt to the changing environment. The way to adapt effectively is to have an element of "forgetfulness" of the past because if one learns about the distant past far too strongly in a changing environment, our predictions (and eventually control) would not be effective. So, how does an RL algorithm "forget"? Well, one can "forget" through an appropriate time-decay of the weights when averaging trace experience returns. If we set a constant learning rate $\alpha$ (in `Tabular`, this would correspond to `count_to_weight_func=lambda _: alpha`), we'd obtain "forgetfulness" with lower weights for old data points and higher weights for recent data points. This is because with a constant learning rate $\alpha$, Equation \eqref{eq:tabular-mc-estimate} reduces to:
 
@@ -320,8 +359,10 @@ This prints the following:
 We see that the Value Function computed by Tabular Monte-Carlo Prediction with 60000 trace experiences is within 0.01 of the exact Value Function, for each of the states.
 
 This completes the coverage of our first RL Prediction algorithm: Monte-Carlo Prediction. This has the advantage of being a very simple, easy-to-understand algorithm with an unbiased estimate of the Value Function. But Monte-Carlo can be slow to converge to the correct Value Function and another disadvantage of Monte-Carlo is that it requires entire trace experiences (or long-enough trace experiences when $\gamma < 1$). The next RL Prediction algorithm we cover (Temporal-Difference) overcomes these weaknesses.
+\index{reinforcement learning!monte carlo!for prediction|)}
      
 ### Temporal-Difference (TD) Prediction
+\index{reinforcement learning!temporal difference!for prediction|(}
 
 To understand Temporal-Difference (TD) Prediction, we start with it's Tabular version as it is simple to understand (and then we can generalize to TD Prediction with Function Approximation). To understand Tabular TD prediction, we begin by taking another look at the Value Function update in Tabular Monte-Carlo (MC) Prediction with constant learning rate.
 
@@ -331,6 +372,8 @@ V(S_t) \leftarrow V(S_t) + \alpha \cdot (G_t - V(S_t))
 \end{equation}
 
 where $S_t$ is the state visited at time step $t$ in the current trace experience, $G_t$ is the trace experience return obtained from time step $t$ onwards, and $\alpha$ denotes the learning rate (based on `count_to_weight_func` attribute in the `Tabular` class). The key in moving from MC to TD is to take advantage of the recursive structure of the Value Function as given by the MRP Bellman Equation (Equation \eqref{eq:mrp_bellman_eqn}). Although we only have access to individual experiences of next state $S_{t+1}$ and reward $R_{t+1}$, and not the transition probabilities of next state and reward, we can approximate $G_t$ as experience reward $R_{t+1}$ plus $\gamma$ times $V(S_{t+1})$ (where $S_{t+1}$ is the experience's next state). The idea is to build upon (the term we use is *bootstrap*) the Value Function that is currently estimated. Clearly, this is a biased estimate of the Value Function meaning the update to the Value Function for $S_t$ will be biased. But the bias disadvantage is outweighed by the reduction in variance (which we will discuss more about later), by speedup in convergence (bootstrapping is our friend here), and by the fact that we don't actually need entire/long-enough trace experiences (again, bootstrapping is our friend here). So, the update for Tabular TD Prediction is:
+\index{bias-variance tradeoff}
+\index{reinforcement learning!tabular}
 
 \begin{equation}
 V(S_t) \leftarrow V(S_t) + \alpha \cdot (R_{t+1} + \gamma \cdot V(S_{t+1}) - V(S_t))
@@ -344,6 +387,7 @@ To facilitate understanding, for the remainder of the book, we shall interpret $
 We refer to $R_{t+1} + \gamma \cdot V(S_{t+1})$ as the TD target and we refer to $\delta_t = R_{t+1} + \gamma \cdot V(S_{t+1}) - V(S_t)$ as the TD Error. The TD Error is the crucial quantity since it represents the "sample Bellman Error" and hence, the TD Error can be used to move $V(S_t)$ appropriately (as shown in the above adjustment to $V(S_t)$), which in turn has the effect of bridging the TD error (on an expected basis).
 
 An important practical advantage of TD is that (unlike MC) we can use it in situations where we have incomplete trace experiences (happens often in real-world situations where experiments gets curtailed/disrupted) and also, we can use it in situations where we never reach a terminal state (*continuing* trace). The other appealing thing about TD is that it is learning (updating Value Function) after each atomic experience (we call it *continuous learning*) versus MC's learning at the end of trace experiences. This also means that TD can be run on *any* stream of atomic experiences, not just atomic experiences that are part of a trace experience. This is a major advantage as we can chop the available data and serve it any order, freeing us from the order in which the data arrives.
+\index{continuous learning}
 
 Now that we understand how TD Prediction works for the Tabular case, let's consider TD Prediction with Function Approximation. Here, each time we transition from a state $S_t$ to state $S_{t+1}$ with reward $R_{t+1}$, we make an update to the parameters of the function approximation. To understand how the parameters of the function approximation update, let's consider the loss function for TD. We start with the single-state loss function for MC (Equation \eqref{eq:mc-funcapprox-loss-function}) and simply replace $G_t$ with $R_{t+1} + \gamma \cdot V(S_{t+1}, \bm{w})$ as follows:
 
@@ -353,6 +397,7 @@ Now that we understand how TD Prediction works for the Tabular case, let's consi
 \end{equation}
 
 Unlike MC, in the case of TD, we don't take the gradient of this loss function. Instead we "cheat" in the gradient calculation by ignoring the dependency of $V(S_{t+1}; \bm{w})$ on $\bm{w}$. This "gradient with cheating" calculation is known as *semi-gradient*. Specifically, we pretend that the only dependency of the loss function on $\bm{w}$ is through $V(S_t; \bm{w})$. Hence, the semi-gradient calculation results in the following formula for change in parameters $\bm{w}$:
+\index{function approximation!gradient descent}
 
 \begin{equation}
 \Delta \bm{w} = \alpha \cdot (R_{t+1} + \gamma \cdot V(S_{t+1};\bm{w}) - V(S_t;\bm{w})) \cdot \nabla_{\bm{w}} V(S_t;\bm{w})
@@ -369,6 +414,7 @@ Now let's write some code to implement TD Prediction (with Function Approximatio
 
 1. The `update` of the `ValueFunctionApprox` is done after each atomic experience, versus MC where the `update`s are done at the end of each trace experience.
 2. The $y$-value depends on the Value Function estimate, as seen from the update Equation \eqref{eq:td-funcapprox-params-adj} above. This means we cannot use the `iterate_updates` method of `FunctionApprox` that MC Prediction uses. Rather, we need to directly use the `rl.iterate.accumulate` function (a wrapped version of  [`itertools.accumulate`](https://docs.python.org/3/library/itertools.html#itertools.accumulate)). As seen in the code below, the accumulation is performed on the input `transitions: Iterable[TransitionStep[S]]` and the function governing the accumulation is the `step` function in the code below that calls the `update` method of `ValueFunctionApprox`. Note that the $y$-values passed to `update` involve a call to the estimated Value Function `v` for the `next_state` of each `transition`. However, since the `next_state` could be `Terminal` or `NonTerminal`, and since `ValueFunctionApprox` is valid only for non-terminal states, we use the `extended_vf` function we had implemented in Chapter [-@sec:funcapprox-chapter] to handle the cases of the next state being `Terminal` or `NonTerminal` (with terminal states evaluating to the default value of 0).
+\index{td prediction@\texttt{td\_prediction}}
 
 
 ```python
@@ -423,6 +469,7 @@ def unit_experiences_from_episodes(
     )
 ```
 
+\index{reinforcement learning!tabular}
 Effective use of Tabular TD Prediction requires us to create an appropriate learning rate schedule by suitably lowering the learning rate as a function of the number of occurrences of a state in the atomic experiences stream (learning rate schedule specified by `count_to_weight_func` attribute of `Tabular` class). We write below (code in the file [rl/function_approx.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/function_approx.py)) the following learning rate schedule:
 
 \begin{equation}
@@ -499,8 +546,11 @@ This prints the following:
 Thus, we see that our implementation of TD prediction with the above settings fetches us an estimated Value Function within 0.065 of the true Value Function after 60,000 episodes.
 
 As ever, we encourage you to play with various settings for MC Prediction and TD prediction to develop some intuition for how the results change as you change the settings. You can play with the code in the file [rl/chapter10/simple_inventory_mrp.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/chapter10/simple_inventory_mrp.py).
+\index{reinforcement learning!temporal difference!for prediction|)}
 
 ### TD versus MC
+
+\index{bootstrapping}
 
 It is often claimed that TD is the most significant and innovative idea in the development of the field of Reinforcement Learning. The key to TD is that it blends the advantages of Dynamic Programming (DP) and Monte-Carlo (MC). Like DP, TD updates the Value Function estimate by bootstrapping from the Value Function estimate of the next state experienced (essentially, drawing from Bellman Equation). Like MC, TD learns from experiences without requiring access to transition probabilities (MC and TD updates are *experience updates* while DP updates are *transition-probabilities-averaged-updates*). So TD overcomes curse of dimensionality and curse of modeling (computational limitation of DP), and also has the advantage of not requiring entire trace experiences (practical limitation of MC). 
 
@@ -509,17 +559,20 @@ The TD idea has it's origins in a [seminal book by Harry Klopf](https://www.sema
 #### TD learning akin to human learning
 
 Perhaps the most attractive thing about TD (versus MC) is that it is akin to how humans learn. Let us illustrate this point with how a soccer player learns to improve her game in the process of playing many soccer games. Let's simplify the soccer game to a "golden-goal" soccer game, i.e., the game ends when a team scores a goal. The reward in such a soccer game is +1 for scoring (and winning), 0 if the opponent scores, and also 0 for the entire duration of the game before the goal is scored. The soccer player (who is learning) has her *State* comprising of her position/velocity/posture etc., the other players' positions/velocity etc., the soccer ball's position/velocity etc. The *Action*s of the soccer player are her physical movements, including the ways to dribble/kick the ball. If the soccer player learns in an MC style (a single episode is a single soccer game), then the soccer player analyzes (at the end of the game) all possible states and actions that occurred during the game and assesses how the actions in each state might have affected the final outcome of the game. You can see how laborious and difficult this actions-reward linkage would be, and you might even argue that it's impossible to disentangle the effects of various actions during the game on the goal that was eventually scored. In any case, you should recognize that this is absolutely not how a soccer player would analyze and learn. Rather, a soccer player learns *during the game* - she is continuously evaluating how her actions change the probability of scoring the goal (which is essentially the Value Function). If a pass to her teammate did not result in a goal but greatly increased the chances of scoring a goal, then the action of passing the ball to one's teammate in that state is a good action, boosting the action's Q-value immediately, and she will likely try that action (or a similar action) again, meaning actions with better Q-values are prioritized, which drives towards better and quicker goal-scoring opportunities, and likely eventually results in a goal. Such goal-scoring (based on active learning during the game, cutting out poor actions and promoting good actions) would be hailed by commentators as "success from continuous and eager learning" on the part of the soccer player. This is essentially TD learning.
+\index{continuous learning}
 
 If you think about career decisions and relationship decisions in our lives, MC-style learning is quite infeasible because we simply don't have sufficient "episodes" (for certain decisions, our entire life might be a single episode), and waiting to analyze and adjust until the end of an episode might be far too late in our lives. Rather, we learn and adjust our evaluations of situations constantly in a TD-like manner. Think about various important decisions we make in our lives and you will see that we learn by perpetual adjustment of estimates and we are efficient in the use of limited experiences we obtain in our lives.
 
 #### Bias, Variance and Convergence {#sec:bias-variance-convergence}
 
 Now let's talk about bias and variance of the MC and TD prediction estimates, and their convergence properties.
+\index{bias-variance tradeoff}
 
 Say we are at state $S_t$ at time step $t$ on a trace experience, and $G_t$ is the return from that state $S_t$ onwards on this trace experience. $G_t$ is an unbiased estimate of the true value function for state $S_t$, which is a big advantage for MC when it comes to convergence, even with function approximation of the Value Function. On the other hand, the TD Target $R_{t+1} + \gamma \cdot V(S_{t+1}; \bm{w})$ is a biased estimate of the true value function for state $S_t$. There is considerable literature on formal proofs of TD Prediction convergence and we won't cover it in detail here, but here's a qualitative summary: Tabular TD Prediction converges to the true value function in the mean for constant learning rate, and converges to the true value function if the following stochastic approximation conditions are satisfied for the learning rate schedule $\alpha_n, n = 1, 2, \ldots$, where the index $n$ refers to the $n$-th occurrence of a particular state whose Value Function is being updated:
 
 $$\sum_{n=1}^{\infty} \alpha_n = \infty \text{ and } \sum_{n=1}^{\infty} \alpha_n^2 < \infty$$
 
+\index{stochastic approximation}
 The stochastic approximation conditions above are known as the [Robbins-Monro schedule](https://en.wikipedia.org/wiki/Stochastic_approximation#Robbins%E2%80%93Monro_algorithm) and apply to a general class of iterative methods used for root-finding or optimization when data is noisy. The intuition here is that the steps should be large enough (first condition) to eventually overcome any unfavorable initial values or noisy data and yet the steps should eventually become small enough (second condition) to ensure convergence. Note that in Equation \eqref{eq:learning-rate-schedule}, exponent $\beta = 1$ satisfies the Robbins-Monro conditions. In particular, our default choice of `count_to_weight_func=lambda n: 1.0 / n` in `Tabular` satisfies the Robbins-Monro conditions, but our other common choice of constant learning rate does not satisfy the Robbins-Monro conditions. However, we want to emphasize that the Robbins-Monro conditions are typically not that useful in practice because it is not a statement of speed of convergence and it is not a statement on closeness to the true optima (in practice, the goal is typically simply to get fairly close to the true answer reasonably quickly).
 
 The bad news with TD (due to the bias in it's update) is that TD Prediction with function approximation does not always converge to the true value function. Most TD Prediction convergence proofs are for the Tabular case, however some proofs are for the case of linear function approximation of the Value Function.
@@ -529,6 +582,7 @@ The flip side of MC's bias advantage over TD is that the TD Target $R_{t+1} + \g
 As for speed of convergence and efficiency in use of limited set of experiences data, we still don't have formal proofs on whether MC is better or TD is better. More importantly, because MC and TD have significant differences in their usage of data, nature of updates, and frequency of updates, it is not even clear how to create a level-playing field when comparing MC and TD for speed of convergence or for efficiency in usage of limited experiences data. The typical comparisons between MC and TD are done with constant learning rates, and it's been determined that practically TD learns faster than MC with constant learning rates.
 
 A popular simple problem in the literature (when comparing RL prediction algorithms) is a random walk MRP with states $\{0, 1, 2, \ldots, B\}$ with $0$ and $B$ as the terminal states (think of these as terminating barriers of a random walk) and the remaining states as the non-terminal states. From any non-terminal state $i$, we transition to state $i+1$ with probability $p$ and to state $i-1$ with probability $1-p$. The reward is 0 upon each transition, except if we transition from state $B-1$ to terminal state $B$ which results in a reward of 1. It's quite obvious that for $p=0.5$ (symmetric random walk), the Value Function is given by: $V(i) = \frac i B$ for all $0 < i < B$. We'd like to analyze how MC and TD converge, if at all, to this Value Function, starting from a neutral initial Value Function of $V(i) = 0.5$ for all $0 < i < B$. The following code sets up this random walk MRP.
+\index{RandomWalkMRP@\texttt{RandomWalkMRP}}
 
 ```python
 from rl.distribution import Categorical
@@ -568,6 +622,7 @@ Lastly, it's important to recognize that MC is not very sensitive to the initial
 More generally, we encourage you to play with the `compare_mc_and_td` function on other choices of MRP (ones we have created earlier in this book such as the inventory examples, or make up your own MRPs) so you can develop good intuition for how MC and TD Prediction algorithms converge for a variety of choices of learning rate schedules, initial Value Function choices, choices of discount factor etc.
 
 #### Fixed-Data Experience Replay on TD versus MC {#sec:experience-replay-section}
+\index{reinforcement learning!experience replay}
 
 We have talked a lot about *how* TD learns versus *how* MC learns. In this subsection, we turn our focus to *what* TD learns and *what* MC learns, to shed light on a profound conceptual difference between TD and MC. We illuminate this difference with a special setting - we are given a fixed finite set of trace experiences (versus usual settings considered in this chapter so far where we had an "endless" stream of trace experiences). The agent is allowed to tap into this fixed finite set of traces experiences endlessly, i.e., the MC or TD Prediction RL agent can indeed consume an endless stream of experiences, but all of that stream of experiences must ultimately be sourced from the given fixed finite set of trace experiences. This means we'd end up tapping into trace experiences (or it's component atomic experiences) repeatedly. We call this technique of re-using experiences data encountered previously as *Experience Replay*. We will cover this Experience Replay technique in more detail in Chapter [-@sec:batch-rl-chapter], but for now, we shall uncover the key conceptual difference between *what* MC and TD learn by running the algorithms on an *Experience Replay* of a fixed finite set of trace experiences.
 
@@ -576,6 +631,7 @@ So let us start by setting up this experience replay with some code. Firstly, we
 `Sequence[Sequence[Tuple[S, float]]]`
 
 The outer `Sequence` refers to the sequence of trace experiences, and the inner `Sequence` refers to the sequence of (state, reward) pairs in a trace experience (to represent the alternating sequence of states and rewards in a trace experience). The first function we write is to convert this data set into a:
+\index{trace experience}
 
 `Sequence[Sequence[TransitionStep[S]]]`
 
@@ -845,6 +901,8 @@ So our TD Prediction algorithm doesn't exactly match the Value Function of the d
 - Each batch of atomic experiences consists of a single occurrence of each atomic experience in the given fixed finite data set.
 - The updates to the Value Function to be performed at the end of each batch are accumulated in a buffer after each atomic experience and the buffer's contents are used to update the Value Function only at the end of the batch. Specifically, this means that the right-hand-side of Equation \eqref{eq:td-funcapprox-params-adj} is calculated at the end of each atomic experience and these calculated values are accumulated in the buffer until the end of the batch, at which point the buffer's contents are used to update the Value Function.
 
+\index{reinforcement learning!incremental}
+\index{reinforcement learning!batch}
 This variant of the TD Prediction algorithm is known as *Batch Updating* and more broadly, RL algorithms that update the Value Function at the end of a batch of experiences are refered to as *Batch Methods*. This contrasts with *Incremental Methods*, which are RL algorithms that update the Value Function after each atomic experience (in the case of TD) or at the end of each trace experience (in the case of MC). The MC and TD Prediction algorithms we implemented earlier in this chapter are Incremental Methods. We will cover Batch Methods in detail in Chapter [-@sec:batch-rl-chapter]. 
 
 Although our TD Prediction algorithm is an Incremental Method, it did get fairly close to the Value Function of the data-implied MRP. So let us ignore the nuance that our TD Prediction algorithm didn't exactly match the Value Function of the data-implied MRP and instead focus on the fact that our MC Prediction algorithm and our TD Prediction algorithm drove towards two very different Value Functions. The MC Prediction algorithm learns a "fairly naive" Value Function - one that is based on the mean of the observed returns (for each state) in the given fixed finite data. The TD Prediction algorithm is learning something "deeper" - it is (implicitly) constructing an MRP based on the given fixed finite data (Equation \eqref{eq:mrp-mle}), and then (implicitly) calculating the Value Function of the constructed MRP. The mechanics of the TD Prediction algorithms don't actually construct the MRP and calculate the Value Function of the MRP - rather, the TD Prediction algorithm directly drives towards the Value Function of the data-implied MRP. However, the fact that it gets to this "more nuanced" Value Function means that it is (implictly) trying to infer a transitions structure from the given data, and hence, we say that it is learning something "deeper" than what MC is learning. This has practical implications. Firstly, this learning facet of TD means that it exploits any Markov property in the environment and so, TD algorithms are more efficient (learn faster than MC) in Markov environments. On the other hand, the naive nature of MC (not exploiting any Markov property in the environment) is advantageous (more effective than TD) in non-Markov environments.
@@ -853,18 +911,21 @@ We encourage you to try Experience Replay on larger input data sets, and to code
 
 #### Bootstrapping and Experiencing
 
-We summarize MC, TD and DP in terms of whether they bootstrap (or not) and in terms of whether they experience interactions with an actual/simulated environment (or not).
+We summarize MC, TD and DP in terms of whether they bootstrap (or not) and in terms of whether they experience interactions with an real/simulated environment (or not).
+\index{bootstrapping}
 
 - Bootstrapping: By "bootstrapping", we mean that an update to the Value Function utilizes a current or prior estimate of the Value Function. MC *does not bootstrap* since it's Value Function updates use actual trace experience returns and not any current or prior estimates of the Value Function. On the other hand, TD and DP *do bootstrap*.
-- Experiencing: By "experiencing", we mean that the algorithm uses experiences obtained by interacting with an actual or simulated environment, rather than performing expectation calculations with a model of transition probabilities (the latter doesn't require interactions with an environment and hence, doesn't "experience"). MC and TD *do experience*, while DP *does not experience*.
+- Experiencing: By "experiencing", we mean that the algorithm uses experiences obtained by interacting with a real or simulated environment, rather than performing expectation calculations with a model of transition probabilities (the latter doesn't require interactions with an environment and hence, doesn't "experience"). MC and TD *do experience*, while DP *does not experience*.
 
 We illustrate this perspective of bootstrapping (or not) and experiencing (or not) with some very popular diagrams that we are borrowing from [lecture slides from David Silver's RL course](https://www.deepmind.com/learning-resources/introduction-to-reinforcement-learning-with-david-silver) and from [teaching content prepared by Richard Sutton](http://www.incompleteideas.net/).
+
 
 The first diagram is Figure \ref{fig:mc_backup}, known as the MC *backup* diagram for an MDP (although we are covering Prediction in this chapter, these concepts also apply to MDP Control). The root of the tree is the state whose Value Function we want to update. The remaining nodes of the tree are the future states that might be visited and future actions that might be taken. The branching on the tree is due to the probabilistic transitions of the MDP and the multiple choices of actions that might be taken at each time step. The nodes marked as "T" are the terminal states. The highlighted path on the tree from the root node (current state) to a terminal state indicates a particular trace experience used by the MC algorithm. The highlighted path is the set of future states/actions used in updating the Value Function of the current state (root node). We say that the Value Function is "backed up" along this highlighted path (to mean that the Value Function update calculation propagates from the bottom of the highlighted path to the top, since the trace experience return is calculated as accumulated rewards from the bottom to the top, i.e., from the end of the trace experience to the beginning of the trace experience). This is why we refer to such diagrams as *backup* diagrams. Since MC "experiences" , it only considers a single child node from any node (rather than all the child nodes, which would be the case if we considered all probabilistic transitions or considered all action choices). So the backup is narrow (doesn't go wide across the tree). Since MC does not "bootstrap", it doesn't use the Value Function estimate from it's child/grandchild node (next time step's state/action) - instead, it utilizes the rewards at all future states/actions along the entire trace experience. So the backup works deep into the tree (is not shallow as would be the case in "bootstrapping"). In summary, the MC backup is narrow and deep.
 
 ![MC Backup Diagram (Image Credit: David Silver's RL Course) \label{fig:mc_backup}](./chapter10/mc_backup.png "MC Backup Diagram (Image Credit: David Silver's RL Course)")
 
 The next diagram is Figure \ref{fig:td_backup}, known as the TD *backup* diagram for an MDP. Again, the highlighting applies to the future states/actions used in updating the Value Function of the current state (root node). The Value Function is "backed up" along this highlighted portion of the tree. Since TD "experiences" , it only considers a single child node from any node (rather than all the child nodes, which would be the case if we considered all probabilistic transitions or considered all actions choices). So the backup is narrow (doesn't go wide across the tree). Since TD "bootstraps" , it uses the Value Function estimate from it's child/grandchild node (next time step's state/action) and doesn't utilize rewards at states/actions beyond the next time step's state/action. So the backup is shallow (doesn't work deep into the tree). In summary, the TD backup is narrow and shallow.
+\index{reinforcement learning!backup diagram}
 
 ![TD Backup Diagram (Image Credit: David Silver's RL Course) \label{fig:td_backup}](./chapter10/td_backup.png "TD Backup Diagram (Image Credit: David Silver's RL Course)")
 
@@ -873,6 +934,7 @@ The next diagram is Figure \ref{fig:dp_backup}, known as the DP *backup* diagram
 ![DP Backup Diagram (Image Credit: David Silver's RL Course) \label{fig:dp_backup}](./chapter10/dp_backup.png "DP Backup Diagram (Image Credit: David Silver's RL Course)")
 
 This perspective of shallow versus deep (for "bootstrapping" or not) and of narrow versus wide (for "experiencing" or not) is a great way to visualize and internalize the core ideas within MC, TD and DP, and it helps us compare and contrast these methods in a simple and intuitive manner. We must thank Rich Sutton for this excellent pedagogical contribution. This brings us to the next diagram (Figure \ref{fig:unified_view_of_rl}) which provides a unified view of RL in a single picture. The top of this Figure shows methods that "bootstrap" (including TD and DP) and the bottom of this Figure shows methods that do not "bootstrap" (including MC and methods known as "Exhaustive Search" that go both deep into the tree and wide across the tree - we shall cover some of these methods in a later chapter). Therefore the vertical dimension of this Figure refers to the depth of the backup. The left of this Figure shows methods that "experience" (including TD and MC) and the right of this Figure shows methods than do not "experience" (including DP and "Exhaustive Search"). Therefore, the horizontal dimension of this Figure refers to the width of the backup.
+\index{bootstrapping}
 
 ![Unified View of RL (Image Credit: Sutton-Barto's RL Book) \label{fig:unified_view_of_rl}](./chapter10/unified_view.png "Unified View of RL (Image Credit: Sutton-Barto's RL Book)")
 
@@ -958,6 +1020,7 @@ Thus, the update Equation is:
 We note that for $\lambda=0$, the $\lambda$-Return target reduces to the TD (1-step bootstrapping) target and for $\lambda=1$, the $\lambda$-Return target reduces to the MC target $G_t$. The $\lambda$ parameter gives us a smooth way of tuning from TD ($\lambda=0$) to MC ($\lambda=1$).
 
 Note that for $\lambda > 0$, Equation \eqref{eq:lambda-return-funcapprox-params-adj} tells us that the parameters $\bm{w}$ of the function approximation can be updated only at the end of an episode (the term *episode* refers to a terminating trace experience). Updating $\bm{w}$ according to Equation \eqref{eq:lambda-return-funcapprox-params-adj} for all states $S_t, t = 0, \ldots, T-1$, *at the end of each episode* gives us the *Offline* $\lambda$-Return Prediction algorithm. The term *Offline* refers to the fact that we have to wait till the end of an episode to make an update to the parameters $\bm{w}$ of the function approximation (rather than making parameter updates after each time step in the episode, which we refer to as an *Online* algorithm). Online algorithms are appealing because the Value Function update for an atomic experience could be utilized immediately by the updates for the next few atomic experiences, and so it facilitates continuous/fast learning. So the natural question to ask here is if we can turn the Offline $\lambda$-return Prediction algorithm outlined above to an Online version. An online version is indeed possible (it's known as the TD($\lambda$) Prediction algorithm) and is the topic of the remaining subsections of this section. But before we begin the coverage of the (Online) TD($\lambda$) Prediction algorithm, let's wrap up this subsection with an implementation of this Offline version (i.e., the $\lambda$-Return Prediction algorithm).
+\index{lambda return prediction@\texttt{lambda\_return\_prediction}}
 
 ```python
 import rl.markov_process as mp
@@ -1011,6 +1074,8 @@ The above code is in the file [rl/td_lambda.py](https://github.com/TikhonJelvis/
 Note that this $\lambda$-Return Prediction algorithm is not just Offline, it is also a highly inefficient algorithm because of the two loops within each trace experience. However, it serves as a pedagogical benefit before moving on to the (efficient) Online TD($\lambda$) Prediction algorithm.
 
 #### Eligibility Traces
+
+\index{eligibility traces|(}
 
 Now we are ready to start developing the TD($\lambda$) Prediction algorithm. The TD($\lambda$) Prediction algorithm is founded on the concept of *Eligibility Traces*. So we start by introducing the concept of Eligibility traces (first for the Tabular case, then generalize to Function Approximations), then go over the TD($\lambda$) Prediction algorithm (based on Eligibility traces), and finally explain why the TD($\lambda$) Prediction algorithm is essentially the *Online* version of the *Offline* $\lambda$-Return Prediction algorithm we've implemented above.
 
@@ -1075,6 +1140,7 @@ $$E_t(s) = \gamma \cdot \lambda \cdot E_{t-1}(s) + \mathbb{I}_{S_t=s}, \text{ fo
 
 where $\mathbb{I}$ denotes the indicator function.
 
+\index{reinforcement learning!temporal difference$(\lambda)$!for prediction|(}
 Then, the Tabular TD($\lambda$) Prediction algorithm performs the following updates to the Value Function at each time step $t$ in each trace experience:
 
 $$V(s) \leftarrow V(s) + \alpha \cdot (R_{t+1} + \gamma \cdot V(S_{t+1}) - V(S_t)) \cdot E_t(s), \text{ {\em for all} } s \in \mathcal{N}$$
@@ -1151,6 +1217,7 @@ $$\Delta \bm{w} = \alpha \cdot \delta_t \cdot \bm{E}_t$$
 where $\delta_t$ now denotes the TD Error based on the function approximation for the Value Function.
 
 The idea of Eligibility Traces has it's origins in a [seminal book by Harry Klopf](https://www.semanticscholar.org/paper/Brain-Function-and-Adaptive-Systems%3A-A-Heterostatic-Klopf/0c1accd2ef7218534a1726a8de7d6e7c14271a75) [@klopf1972brain] that greatly influenced Richard Sutton and Andrew Barto to pursue the idea of Eligibility Traces further, after which they published several papers on Eligibility Traces, much of whose content is covered in [their RL book](http://www.incompleteideas.net/book/the-book.html) [@Sutton1998].
+\index{eligibility traces|)}
 
 #### Implementation of the TD($\lambda$) Prediction algorithm
 
@@ -1159,6 +1226,7 @@ You'd have observed that the TD($\lambda$) update is not as simple as the MC and
 The function `td_lambda_prediction` below takes as input an `Iterable` of trace experiences (`traces`), an initial `FunctionApprox` (`approx_0`), and the $\gamma$ and $\lambda$ parameters. At the start of each trace experience, we need to initialize the eligibility traces to 0. The data type of the eligibility traces is the `Gradient` type and so we invoke the `zero` method for `Gradient(func_approx)` in order to initialize the eligibility traces to $0$. Then, at every time step in every trace experience, we first set the predictor variable $x_t$ to be the state and the response variable $y_t$ to be the TD target. Then we need to update the eligibility traces `el_tr` and update the function approximation `func_approx` using the updated `el_tr`.
 
 Thankfully, the `__mul__` method of `Gradient` class enables us to conveniently multiply `el_tr` with $\gamma \cdot \lambda$ and then, it also enables us to multiply the updated `el_tr` with the prediction error $\mathbb{E}_M[y|x_t] - y_t = V(S_t; \bm{w}) - (R_{t+1} + \gamma \cdot V(S_{t+1}; \bm{w}))$ (in the code as `func_approx(x) - y`), which is then used (as a `Gradient` type) to update the internal parameters of the `func_approx`. The `__add__` method of `Gradient` enables us to add $\nabla_{\bm{w}} V(S_t;\bm{w})$ (as a `Gradient` type) to `el_tr * gamma * lambd`. The only seemingly difficult part is calculating $\nabla_{\bm{w}} V(S_t; \bm{w})$. The `FunctionApprox` interface provides us with a method `objective_gradient` to calculate the gradient of any specified objective (call it $Obj(x,y)$). But here we have to calculate the gradient of the prediction of the function approximation. Thankfully, the interface of `objective_gradient` is fairly generic and we actually have a choice of constructing $Obj(x,y)$ to be whatever function we want (not necessarily a minimizing Objective Function). We specify $Obj(x,y)$ in terms of the `obj_deriv_out_func` argument, which as a reminder, represents $\frac {\partial Obj(x,y)} {\partial Out(x)}$. Note that we have assumed a gaussian distribution for the returns conditioned on the state. So we can set $Out(x)$ to be the function approximation's prediction $V(S_t; \bm{w})$ and we can set $Obj(x,y) = Out(x)$, meaning `obj_deriv_out_func` ($\frac {\partial Obj(x,y)} {\partial Out(x)}$) is a function returning the constant value of 1 (as seen in the code below).
+\index{td lambda prediction@\texttt{td\_lambda\_prediction}}
 
 ```python
 import rl.markov_process as mp
@@ -1246,9 +1314,15 @@ This prints the following:
 
 Thus, we see that our implementation of TD($\lambda$) Prediction with the above settings fetches us an estimated Value Function fairly close to the true Value Function. As ever, we encourage you to play with various settings for TD($\lambda$) Prediction to develop an intuition for how the results change as you change the settings, and particularly as you change the $\lambda$ parameter. You can play with the code in the file [rl/chapter10/simple_inventory_mrp.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/chapter10/simple_inventory_mrp.py).
 
+\index{reinforcement learning!temporal difference$(\lambda)$!for prediction|)}
+\index{eligibility traces|)}
+\index{reinforcement learning|)}
+\index{reinforcement learning!prediction|)}
+
 ### Key Takeaways from this Chapter
 
 * Bias-Variance tradeoff of TD versus MC.
 * MC learns the statistical mean of the observed returns while TD learns something "deeper" - it implicitly estimates an MRP from the observed  data and produces the Value Function of the implicitly-estimated MRP.
 * Understanding TD versus MC versus DP from the perspectives of "bootstrapping" and "experiencing" (Figure \ref{fig:unified_view_of_rl} provides a great view).
 * "Equivalence" of $\lambda$-Return Prediction and TD($\lambda$) Prediction, hence TD is equivalent to TD(0) and MC is "equivalent" to TD(1).
+\index{reinforcement learning!prediction|seealso{Markov decision process, prediction}}

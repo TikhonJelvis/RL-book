@@ -1,17 +1,26 @@
 ## Batch RL, Experience-Replay, DQN, LSPI, Gradient TD {#sec:batch-rl-chapter}
 
+\index{reinforcement learning|(}
+
 In Chapters [-@sec:rl-prediction-chapter] and [-@sec:rl-control-chapter], we covered the basic RL algorithms for Prediction and Control respectively. Specifically, we covered the basic Monte-Carlo (MC) and Temporal-Difference (TD) techniques. We want to highlight two key aspects of these basic RL algorithms:
 
   1. The experiences data arrives in the form of a single unit of experience at a time (single unit is a *trace experience* for MC and an *atomic experience* for TD), the unit of experience is used by the algorithm for Value Function learning, and then that unit of experience is not used later in the algorithm (essentially, that unit of experience, once consumed, is *not re-consumed* for further learning later in the algorithm). It doesn't have to be this way - one can develop RL algorithms that re-use experience data - this approach is known as *Experience-Replay* (in fact, we saw a glimpse of Experience-Replay in Section [-@sec:experience-replay-section] of Chapter [-@sec:rl-prediction-chapter]).
 
   2. Learning occurs in a *granularly incremental* manner, by updating the Value Function after each unit of experience. It doesn't have to be this way - one can develop RL algorithms that take an entire batch of experiences (or in fact, all of the experiences that one could possibly get), and learn the Value Function directly for that entire batch of experiences. A key idea here is that if we know in advance what experiences data we have (or will have), and if we collect and organize all of that data, then we could directly (i.e., not incrementally) estimate the Value Function for *that* experiences data set. This approach to RL is known as *Batch RL* (versus the basic RL algorithms we covered in the previous chapters that can be termed as *Incremental RL*).
 
+\index{reinforcement learning!experience replay|textbf}
+\index{reinforcement learning!incremental|textbf}
+\index{reinforcement learning!batch|textbf}
+
 Thus, we have a choice or doing Experience-Replay or not, and we have a choice of doing Batch RL or Incremental RL. In fact, some of the interesting and practically effective algorithms combine both the ideas of Experience-Replay and Batch RL. This chapter starts with the coverage of Batch RL and Experience-Replay. Then, we cover some key algorithms (including Deep Q-Networks and Least Squares Policy Iteration) that effectively leverage Batch RL and/or Experience-Replay. Next, we look deeper into the issue of the *Deadly Triad* (that we had alluded to in Chapter [-@sec:rl-control-chapter]) by viewing Value Functions as Vectors (we had done this in Chapter [-@sec:dp-chapter]), understand Value Function Vector transformations with a balance of geometric intuition and mathematical rigor, providing insights into convergence issues for a variety of traditional loss functions used to develop RL algorithms. Finally, this treatment of Value Functions as Vectors leads us in the direction of overcoming the Deadly Triad by defining an appropriate loss function, calculating whose gradient provides a more robust set of RL algorithms known as Gradient Temporal Difference (abbreviated, as Gradient TD).
 
 ### Batch RL and Experience-Replay
 
+\index{reinforcement learning!batch|(}
+
 Let us understand Incremental RL versus Batch RL in the context of fixed finite experiences data. To make things simple and easy to understand, we first focus on understanding the difference for the case of MC Prediction (i.e., to calculate the Value Function of an MRP using Monte-Carlo). In fact, we had covered this setting in Section [-@sec:experience-replay-section] of Chapter [-@sec:rl-prediction-chapter].
 
+\index{trace experience}
 To refresh this setting, specifically we have access to a fixed finite sequence/stream of MRP trace experiences (i.e., `Iterable[Iterable[TransitionStep[S]]]`), which we know can be converted to returns-augmented data of the form `Iterable[Iterable[ReturnStep[S]]]` (using the `returns` function[^returns-file-2]). Flattening this data to `Iterable[ReturnStep[S]]` and extracting from it the (state, return) pairs gives us the fixed, finite training data for MC Prediction, that we denote as follows:
 
 $$\mathcal{D} = [(S_i, G_i) | 1 \leq i \leq n]$$
@@ -33,7 +42,12 @@ $$\Delta \bm{w} = \alpha \cdot \frac 1 n \cdot \sum_{i=1}^n (G_i - V(S_i; \bm{w}
 
 Note that unlike Incremental MC where each update to $\bm{w}$ uses data from a single trace experience, each update to $\bm{w}$ in Batch MC uses all of the trace experiences data (all of the batch data). If we keep doing these updates repeatedly, we will ultimately converge to the desired MRP Value Function $V(s;\bm{w^*})$. The repeated use of the available data in $\mathcal{D}$ means that we are doing Batch MC Prediction using *Experience-Replay*. So we see that this makes more efficient use of the available training data $\mathcal{D}$ due to the re-use of the data pairs in $\mathcal{D}$.
 
+\index{reinforcement learning!experience replay}
+\index{reinforcement learning!monte carlo!batch}
+
 The code for this Batch MC Prediction algorithm (`batch_mc_prediction`) is shown below.[^batch-mc-file] From the input trace experiences (`traces` in the code below), we first create the set of `ReturnStep` transitions that span across the set of all input trace experiences (`return_steps` in the code below). This involves calculating the return associated with each state encountered in `traces` (across all trace experiences). From `return_steps`, we create the (state, return) pairs that constitute the fixed, finite training data $\mathcal{D}$, which is then passed to the `solve` method of `approx: ValueFunctionApprox[S]`.
+
+\index{batch mc prediction@\texttt{batch\_mc\_prediction}}
 
 ```python
 import rl.markov_process as mp
@@ -65,12 +79,19 @@ Now let's move on to Batch TD Prediction. Here we have fixed, finite experiences
 $$\mathcal{D} = [(S_i, R_i, S'_i) | 1 \leq i \leq n]$$
 where $(R_i, S'_i)$ is the pair of reward and next state from a state $S_i$. So, Experiences Data $\mathcal{D}$ is presented in the form of a fixed, finite number of atomic experiences. This is represented in code as an `Iterable[TransitionStep[S]]`. 
 
+\index{atomic experience}
+\index{reinforcement learning!temporal difference!batch}
+
 Just like Batch MC Prediction, here in Batch TD Prediction, we first collect and store the data as it arrives, and once we are ready with the batch of data $\mathcal{D}$ in storage, we start the MRP Value Function estimation procedure. The parameters $\bm{w}$ are updated with repeated use of the atomic experiences in the stored data $\mathcal{D}$. Each of these updates to the parameters $\bm{w}$ is as follows:
 $$\Delta \bm{w} = \alpha \cdot \frac 1 n \cdot \sum_{i=1}^n (R_i + \gamma \cdot V(S'_i; \bm{w}) - V(S_i; \bm{w})) \cdot \nabla_{\bm{w}} V(S_i; \bm{w})$$
 
 Note that unlike Incremental TD where each update to $\bm{w}$ uses data from a single atomic experience, each update to $\bm{w}$ in Batch TD uses all of the atomic experiences data (all of the batch data). The repeated use of the available data in $\mathcal{D}$ means that we are doing Batch TD Prediction using *Experience-Replay*. So we see that this makes more efficient use of the available training data $\mathcal{D}$ due to the re-use of the data pairs in $\mathcal{D}$.
 
+\index{reinforcement learning!experience replay}
+
 The code for this Batch TD Prediction algorithm (`batch_td_prediction`) is shown below.[^batch-td-file] We create a `Sequence[TransitionStep]` from the fixed, finite-length input atomic experiences $\mathcal{D}$ (`transitions` in the code below), and call the `update` method of `FunctionApprox` repeatedly, passing the data $\mathcal{D}$ (now in the form of a `Sequence[TransitionStep]`) to each invocation of the `update` method (using the function `itertools.repeat`). This repeated invocation of the `update` method is done by using the function `iterate.accumulate`.  This is done until convergence (convergence based on the `done` function in the code below), at which point we return the converged `FunctionApprox`.
+
+\index{batch td prediction@\texttt{batch\_td\_prediction}}
 
 ```python
 import rl.markov_process as mp
@@ -119,13 +140,20 @@ For trace experience $i$, for each time step $t$ in the trace experience, we cal
 $$\bm{E}_{i,t} = \gamma \lambda \cdot \bm{E}_{i, t-1} + \nabla_{\bm{w}} V(S_{i,t};\bm{w}) \text{ for all } t = 1, 1, \ldots T_i - 1$$
 with the eligiblity traces initialized at time 0 for trace experience $i$ as $\bm{E}_{i,0} = \nabla_{\bm{w}} V(S_{i,0}; \bm{w})$.
 
+\index{eligibility traces}
+\index{reinforcement learning!temporal difference$(\lambda)$!batch}
+
 Then, each update to the parameters $\bm{w}$ is as follows:
 \begin{equation}
 \Delta \bm{w} = \alpha \cdot \frac 1 n \cdot \sum_{i=1}^n \frac 1 {T_i} \cdot \sum_{t=0}^{T_i - 1} (R_{i,t+1} + \gamma \cdot V(S_{i,t+1}; \bm{w}) - V(S_{i,t}; \bm{w})) \cdot \bm{E}_{i,t}
 \label{eq:batch-td-lambda-update}
 \end{equation}
 
+\index{reinforcement learning!batch|)}
+
 ### A generic implementation of Experience-Replay
+
+\index{experience replay|(}
 
 Before we proceed to more algorithms involving Experience-Replay and/or Batch RL, it is vital to recognize that the concept of Experience-Replay stands on it's own, independent of it's use in Batch RL. In fact, Experience-Replay is a much broader concept, beyond it's use in RL. The idea of Experience-Replay is that we have a stream of data coming in and instead of consuming it in an algorithm as soon as it arrives, we store each unit of incoming data in memory (which we shall call *Experience-Replay-Memory*, abbreviated as ER-Memory), and use samples of data from ER-Memory (with replacement) for our algorithm's needs. Thus, we are routing the incoming stream of data to ER-Memory and sourcing data needed for our algorithm from ER-Memory (by sampling with replacement). This enables re-use of the incoming data stream. It also gives us flexibility to sample an arbitrary number of data units at a time, so our algorithm doesn't need to be limited to using a single unit of data at a time. Lastly, we organize the data in ER-Memory in such a manner that we can assign different sampling weights to different units of data, depending on the arrival time of the data. This is quite useful for many algorithms that wish to give more importance to recently arrived data and de-emphasize/forget older data.
 
@@ -134,6 +162,8 @@ Let us now write some code to implement all of these ideas described above. The 
 The attribute `saved_transitions: List[T]` is the data structure storing the incoming units of data, with the most recently arrived unit of data at the end of the list (since we `append` to the list). The attribute `time_weights_func` lets the user specify a function from the reverse-time-stamp of a unit of data to the sampling weight to assign to that unit of data ("reverse-time-stamp" means the most recently-arrived unit of data has a time-index of 0, although physically it is stored at the end of the list, rather than at the start). The attribute `weights` simply stores the sampling weights of all units of data in `saved_transitions`, and the attribute `weights_sum` stores the sum of the `weights` (the attributes `weights` and `weights_sum` are there purely for computational efficiency to avoid too many calls to `time_weights_func` and avoidance of summing a long list of weights, which is required to normalize the weights to sum up to 1).
 
 `add_data` appends an incoming unit of data (`transition: T`) to `self.saved_transitions` and updates `self.weights` and `self.weights_sum`. `sample_mini_batches` returns a sample of specified size `mini_batch_size`, using the sampling weights in `self.weights`. We also have a method `replay` that takes as input an `Iterable` of `transitions` and a `mini_batch_size`, and returns an `Iterator` of `mini_batch_size`d data units. As long as the input `transitions:` `Iterable[T]` is not exhausted, `replay` appends each unit of data in `transitions` to `self.saved_transitions` and then `yield`s a `mini_batch_size`d sample of data. Once `transitions:` `Iterable[T]` is exhausted, it simply `yields` the samples of data. The `Iterator` generated by `replay` can be piped to any algorithm that expects an `Iterable` of the units of data as input, essentially enabling us to replace the pipe carrying an input data stream with a pipe carrying the data stream sourced from ER-Memory.
+
+\index{ExperienceReplayMemory@\texttt{ExperienceReplayMemory}}
 
 ```python
 T = TypeVar('T')
@@ -182,10 +212,15 @@ class ExperienceReplayMemory(Generic[T]):
 
 The code above is in the file [rl/experience_replay.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/experience_replay.py). We encourage you to implement Batch MC Prediction and Batch TD Prediction using this `ExperienceReplayMemory` class.
 
+\index{experience replay|)}
 
 ### Least-Squares RL Prediction
 
+\index{reinforcement learning!least squares|(}
+
 We've seen how Batch RL Prediction is an iterative process of weight updates until convergence -  the MRP Value Function is updated with repeated use of the fixed, finite (batch) data that is made available. However, if we assume that the MRP Value Function approximation $V(s; \bm{w})$ is a linear function approximation (linear in a set of feature functions of the state space), then we can solve for the MRP Value Function with direct and simple linear algebra operations (ie., without the need for iterative weight updates until convergence). Let us see how.
+
+\index{function approximation!linear}
 
 We define a sequence of feature functions $\phi_j: \mathcal{N} \rightarrow \mathbb{R}, j = 1, 2, \ldots, m$ and we assume the parameters $\bm{w}$ is a weights vector $\bm{w} = (w_1, w_2, \ldots, w_m) \in \mathbb{R}^m$. Therefore, the MRP Value Function is approximated as:
 $$V(s;\bm{w}) = \sum_{j=1}^m \phi_j(s) \cdot w_j = \bm{\phi}(s)^T \cdot \bm{w} \text{ for all } s \in \mathcal{N}$$
@@ -194,6 +229,8 @@ where $\bm{\phi}(s) \in \mathbb{R}^m$ is the feature vector for state $s$.
 The direct solution of the MRP Value Function using simple linear algebra operations is known as Least-Squares (abbreviated as LS) solution. We start with Batch MC Prediction for the case of linear function approximation, which is known as Least-Squares Monte-Carlo (abbreviated as LSMC).
 
 #### Least-Squares Monte-Carlo (LSMC)
+
+\index{reinforcement learning!least squares!lsmc|(}
 
 For the case of linear function approximation, the loss function for Batch MC Prediction with data $[(S_i, G_i) | 1 \leq i \leq n]$ is:
 $$\mathcal{L}(\bm{w}) =  \frac 1 {2n} \cdot \sum_{i=1}^n (\sum_{j=1}^m \phi_j(S_i) \cdot w_j - G_i)^2 = \frac 1 {2n} \cdot \sum_{i=1}^n (\bm{\phi}(S_i)^T \cdot \bm{w} - G_i)^2$$
@@ -206,13 +243,19 @@ $$\bm{b} \leftarrow \bm{b} + \bm{\phi}(S_i) \cdot G_i$$
 
 To implement this algorithm, we can simply call `batch_mc_prediction` that we had written earlier by setting the argument `approx` as `LinearFunctionApprox` and by setting the attribute `direct_solve` in `approx: LinearFunctionApprox[S]` as `True`. If you read the code under `direct_solve=True` branch in the `solve` method, you will see that it indeed performs the above-described linear algebra calculations. The inversion of the matrix $\bm{A}$ is $O(m^3)$ complexity. However, we can speed up the algorithm to be $O(m^2)$ with a different implementation - we can maintain the inverse of $\bm{A}$ after each $(S_i, G_i)$ update to $\bm{A}$ by applying the [Sherman-Morrison formula for incremental inverse](https://en.wikipedia.org/wiki/Sherman%E2%80%93Morrison_formula) [@10.1214/aoms/1177729893]. The Sherman-Morrison incremental inverse for $\bm{A}$ is as follows:
 
+\index{Sherman-Morrison incremental inverse}
+
 $$(\bm{A} + \bm{\phi}(S_i) \cdot \bm{\phi}(S_i)^T)^{-1} = \bm{A}^{-1} - \frac {\bm{A}^{-1} \cdot \bm{\phi}(S_i) \cdot \bm{\phi}(S_i)^T \cdot \bm{A}^{-1}} {1 + \bm{\phi}(S_i)^T \cdot \bm{A}^{-1} \cdot \bm{\phi}(S_i)}$$
 
 with $\bm{A}^{-1}$ initialized to $\frac 1 {\epsilon} \cdot \bm{I}_m$, where $\bm{I}_m$ is the $m \times m$ identity matrix, and $\epsilon \in \mathbb{R}^+$ is a small number provided as a parameter to the algorithm. $\frac 1 \epsilon$ should be considered to be a proxy for the step-size $\alpha$ which is not required for least-squares algorithms. If $\epsilon$ is too small, the sequence of inverses of $\bm{A}$ can be quite unstable and if $\epsilon$ is too large, the learning is slowed.
 
 This brings down the computational complexity of this algorithm to $O(m^2)$. We won't implement the Sherman-Morrison incremental inverse for LSMC, but in the next subsection we shall implement it for Least-Squares Temporal Difference (LSTD).
 
+\index{reinforcement learning!least squares!lsmc|)}
+
 #### Least-Squares Temporal-Difference (LSTD)
+
+\index{reinforcement learning!least squares!lstd|(}
 
 For the case of linear function approximation, the loss function for Batch TD Prediction with data $[(S_i, R_i, S'_i) | 1 \leq i \leq n]$ is:
 $$\mathcal{L}(\bm{w}) = \frac 1 {2n} \cdot \sum_{i=1}^n (\bm{\phi}(S_i)^T \cdot \bm{w} - (R_i + \gamma \cdot \bm{\phi}(S'_i)^T \cdot \bm{w}))^2$$
@@ -222,6 +265,8 @@ We can calculate the solution $\bm{w^}*$ as $\bm{A}^{-1} \cdot \bm{b}$, where th
 $$ \bm{A} \leftarrow \bm{A} + \bm{\phi}(S_i) \cdot (\bm{\phi}(S_i) - \gamma \cdot \bm{\phi}(S'_i))^T \text{ (note the Outer-Product)}$$
 and the $m$-Vector $\bm{b}$ is accumulated at each atomic experience $(S_i, R_i, S'_i)$ as:
 $$\bm{b} \leftarrow \bm{b} + \bm{\phi}(S_i) \cdot R_i$$
+
+\index{Sherman-Morrison incremental inverse}
 
 With Sherman-Morrison incremental inverse, we can reduce the computational complexity from $O(m^3)$ to $O(m^2)$, as follows:
 $$(\bm{A} + \bm{\phi}(S_i) \cdot (\bm{\phi}(S_i) - \gamma \cdot \bm{\phi}(S_i))^T)^{-1} = \bm{A}^{-1} - \frac {\bm{A}^{-1} \cdot \bm{\phi}(S_i) \cdot (\bm{\phi}(S_i) - \gamma \cdot \bm{\phi}(S'_i))^T \cdot \bm{A}^{-1}} {1 + (\bm{\phi}(S_i) - \gamma \cdot \bm{\phi}(S'_i))^T \cdot \bm{A}^{-1} \cdot \bm{\phi}(S_i)}$$
@@ -233,6 +278,8 @@ This algorithm is known as the Least-Squares Temporal-Difference (LSTD) algorith
 Now let's write some code to implement this LSTD algorithm. The arguments `transitions`, `feature_functions`, `gamma` and `epsilon` of the function `least_squares_td` below are quite self-explanatory. This is a batch method with direct calculation of the estimated Value Function from batch data (rather than iterative weight updates), so `least_squares_td` returns the estimated Value Function of type `LinearFunctionApprox[NonTerminal[S]]`, rather than an `Iterator` over the updated function approximations (as was the case in Incremental RL algorithms).
 
 The code below should be fairly self-explanatory. `a_inv` refers to $\bm{A}^{-1}$ which is updated with the Sherman-Morrison incremental inverse method. `b_vec` refers to the $\bm{b}$ vector. `phi1` refers to $\bm{\phi}(S_i)$, `phi2` refers to $\bm{\phi}(S_i) - \gamma \cdot \bm{\phi}(S'_i)$ (except when $S'_i$ is a terminal state, in which case `phi2` is simply $\bm{\phi}(S_i)$). The temporary variable `temp` refers to $(\bm{A}^{-1})^T \cdot (\bm{\phi}(S_i) - \gamma \cdot \bm{\phi}(S'_i))$ and is used both in the numerator and denominator in the Sherman-Morrison formula to update $\bm{A}^{-1}$.
+
+\index{least squares td@\texttt{least\_squares\_td}}
 
 ```python
 from rl.function_approx import LinearFunctionApprox
@@ -361,7 +408,12 @@ Figure \ref{fig:lstd_vf_comparison} depicts how the LSTD Value Function estimate
 
 ![LSTD and Tabular TD Value Functions \label{fig:lstd_vf_comparison}](./chapter12/lstd_vf_comparison.png "LSTD and Tabular TD Value Functions")
 
+\index{reinforcement learning!least squares!lstd|)}
+
 #### LSTD($\lambda$)
+
+\index{reinforcement learning!least squares!lstd$(\lambda)$}
+\index{eligibility traces}
 
 Likewise, we can do LSTD($\lambda$) using Eligibility Traces. Here we are given a fixed, finite number of trace experiences
 $$\mathcal{D} = [(S_{i,0}, R_{i,1}, S_{i,1}, R_{i,2}, S_{i,2}, \ldots, R_{i,T_i}, S_{i,T_i}) | 1 \leq i \leq n]$$
@@ -374,6 +426,8 @@ $$\bm{b} \leftarrow \bm{b} + \frac 1 {T_i} \cdot \bm{E}_{i,t} \cdot R_{i,t+1}$$
 With Sherman-Morrison incremental inverse, we can reduce the computational complexity from $O(m^3)$ to $O(m^2)$.
 
 #### Convergence of Least-Squares Prediction
+
+\index{reinforcement learning!convergence|(}
 
 Before we move on to Least-Squares for the Control problem, we want to point out that the convergence behavior of Least-Squares Prediction algorithms are identical to their counterpart Incremental RL Prediction algorithms, with the exception that Off-Policy LSMC does not have convergence guarantees. Figure \ref{fig:rl_prediction_with_ls_convergence} shows the updated summary table for convergence of RL Prediction algorithms (that we had displayed at the end of Chapter [-@sec:rl-control-chapter]) to now also include Least-Squares Prediction algorithms. 
 
@@ -400,7 +454,15 @@ Off-Policy & TD & \cmark & \xmark & \xmark \\
 
 This ends our coverage of Least-Squares Prediction. Before we move on to Least-Squares Control, we need to cover Incremental RL Control with Experience-Replay as it serves as a stepping stone towards Least-Squares Control.
 
+\index{reinforcement learning!convergence|)}
+\index{reinforcement learning!least squares|)}
+
 ### Q-Learning with Experience-Replay
+
+\index{reinforcement learning!temporal difference!q learning}
+\index{reinforcement learning!experience replay}
+\index{reinforcement learning!off-policy}
+\index{reinforcement learning!incremental}
 
 In this section, we cover Off-Policy Incremental TD Control with Experience-Replay. Specifically, we revisit the Q-Learning algorithm we covered in Chapter [-@sec:rl-control-chapter], but we tweak that algorithm such that the transitions used to make the Q-Learning updates are sourced from an experience-replay memory, rather than from a behavior policy derived from the current Q-Value estimate. While investigating the challenges with Off-Policy TD methods with deep learning function approximation, researchers identified two challenges:
 
@@ -410,6 +472,8 @@ In this section, we cover Off-Policy Incremental TD Control with Experience-Repl
 Experience-Replay serves to smooth the training data distribution over many past behaviors, effectively resolving the correlation issue as well as the non-stationary issue. Hence, Experience-Replay is a powerful idea for Off-Policy TD Control. The idea of using Experience-Replay for Off-Policy TD Control is due to the [Ph.D. thesis of Long Lin](https://isl.anthropomatik.kit.edu/pdf/Lin1993.pdf) [@lin:phd].
 
 To make this idea of Q-Learning with Experience-Replay clear, we make a few changes to the `q_learning` function we had written in Chapter [-@sec:rl-control-chapter] with the following function `q_learning_experience_replay`.
+
+\index{q learning experience replay@\texttt{q\_learning\_experience\_replay}}
 
 ```python
 from rl.markov_decision_process import TransitionStep
@@ -475,6 +539,12 @@ The above code is in the file [rl/td.py](https://github.com/TikhonJelvis/RL-book
 
 #### Deep Q-Networks (DQN) Algorithm
 
+\index{reinforcement learning!dqn}
+\index{function approximation!neural network}
+\index{experience replay}
+\index{reinforcement learning!temporal difference!q learning}
+\index{reinforcement learning!deep reinforcement learning}
+
 [DeepMind](https://deepmind.com/) developed an innovative and practically effective RL Control algorithm based on Q-Learning with Experience-Replay - an algorithm they named as Deep Q-Networks (abberviated as DQN). Apart from reaping the above-mentioned benefits of Experience-Replay for Q-Learning with a Deep Neural Network approximating the Q-Value function, they also benefited from employing a second Deep Neural Network (let us call the main DNN as the Q-Network, refering to it's parameters at $\bm{w}$, and the second DNN as the target network, refering to it's parameters as $\bm{w}^-$). The parameters $\bm{w}^-$ of the target network are infrequently updated to be made equal to the parameters $\bm{w}$ of the Q-network. The purpose of the Q-Network is to evaluate the Q-Value of the current state $s$ and the purpose of the target network is to evaluate the Q-Value of the next state $s'$, which in turn is used to obtain the Q-Learning target (note that the Q-Value of the current state is $Q(s,a;\bm{w})$ and the Q-Learning target is $r + \gamma \cdot \max_{a'} Q(s', a'; \bm{w}^-)$ for a given atomic experience $(s,a,r,s')$).
 
 Deep Learning is premised on the fact that the supervised learning targets (response values $y$ corresponding to predictor values $x$) are pre-generated fixed values. This is not the case in TD learning where the targets are dependent on the Q-Values. As Q-Values are updated at each step, the targets also get updated, and this correlation between the current state's Q-Value estimate and the target value typically leads to oscillations or divergence of the Q-Value estimate. By infrequently updating the parameters $\bm{w}^-$ of the target network (providing the target values) to be made equal to the parameters $\bm{w}$ of the Q-network (which are updated at each iteration), the targets in the Q-Learning update are essentially kept fixed. This goes a long way in resolving the core issue of correlation between the current state's Q-Value estimate and the target values, helping considerably with convergence of the Q-Learning algorithm. Thus, DQN reaps the benefits of not just Experience-Replay in Q-Learning (which we articulated earlier), but also the benefits of having "fixed" targets. DNN utilizes a parameter $C$ such that the updating of $\bm{w}^-$ to be made equal to $\bm{w}$ is done once every $C$ updates to $\bm{w}$ (updates to $\bm{w}$ are based on the usual Q-Learning update equation).
@@ -498,12 +568,16 @@ Now we are ready to cover Batch RL Control (specifically Least-Squares TD Contro
 
 ### Least-Squares Policy Iteration (LSPI)
 
+\index{reinforcement learning!least squares!lspi|(}
+
 Having seen Least-Squares Prediction, the natural question is whether we can extend the Least-Squares (batch with linear function approximation) methodology to solve the Control problem. For On-Policy MC Control and On-Policy TD Control, we take the usual route of Generalized Policy Iteration (GPI) with:
 
 1. Policy Evaluation as Least-Squares $Q$-Value Prediction. Specifically, the $Q$-Value for a policy $\pi$ is approximated as:
 $$Q^{\pi}(s,a) \approx Q(s,a;\bm{w}) = \bm{\phi}(s, a)^T \cdot \bm{w} \text{ for all } s \in \mathcal{N}, \text{ for all } a \in \mathcal{A}$$
 with a direct linear-algebraic solve for the linear function approximation weights $\bm{w}$ using batch experiences data generated using policy $\pi$.
 2. $\epsilon$-Greedy Policy Improvement.
+
+\index{reinforcement learning!off-policy}
 
 In this section, we focus on Off-Policy Control with Least-Squares TD. This algorithm is known as Least-Squares Policy Iteration, abbreviated as LSPI, developed by [Lagoudakis and Parr](https://www.jmlr.org/papers/volume4/lagoudakis03a/lagoudakis03a.pdf) [@journals/jmlr/LagoudakisP03]. LSPI has been an important go-to algorithm in the history of RL Control because of it's simplicity and effectiveness. The basic idea of LSPI is that it does Generalized Policy Iteration (GPI) in the form of *Q-Learning with Experience-Replay*, with the key being that instead of doing the usual Q-Learning update after each atomic experience, we do *batch Q-Learning* for the Policy Evaluation phase of GPI. We spend the rest of this section describing LSPI in detail and then implementing it in Python code.
 
@@ -531,16 +605,22 @@ and the $m$-Vector $\bm{b}$ is accumulated at each atomic experience $(s_i,a_i,r
 $$\bm{b} \leftarrow \bm{b} + \bm{\phi}(s_i, a_i) \cdot r_i$$
 With Sherman-Morrison incremental inverse, we can reduce the computational complexity from $O(m^3)$ to $O(m^2)$.
 
+\index{Sherman-Morrison incremental inverse}
+
 This solved $\bm{w}^*$ defines an updated $Q$-Value Function as follows:
 $$Q(s,a; \bm{w}^*) = \bm{\phi}(s,a)^T \cdot \bm{w}^* = \sum_{j=1}^m \phi_j(s,a) \cdot w_j^*$$
 This defines an updated, improved deterministic policy $\pi'_D$ (serving as the *Deterministic Target Policy* for the next iteration of GPI):
 $$\pi'_D(s) = \argmax_a Q(s,a; \bm{w}^*) \text{ for all } s \in \mathcal{N}$$
+
+\index{reinforcement learning!least squares!lstdq}
 
 This least-squares solution of $\bm{w}^*$ (Prediction) is known as Least-Squares Temporal Difference for Q-Value, abbreviated as *LSTDQ*. Thus, LSPI is GPI with LSTDQ and greedy policy improvements. Note how LSTDQ in each iteration re-uses the same data $\mathcal{D}$, i.e., LSPI does experience-replay.
 
 We should point out here that the LSPI algorithm we described above should be considered as the *standard variant* of LSPI. However, we can design several other variants of LSPI, in terms of how the experiences data is sourced and used. Firstly, we should note that the experiences data $\mathcal{D}$ essentially provides the behavior policy for Q-Learning (along with the consequent reward and next state transition). In the *standard variant* we described above, since $\mathcal{D}$ is provided from an external source, the behavior policy that generates this data $\mathcal{D}$ must come from an external source. It doesn't have to be this way - we could generate the experiences data from a behavior policy derived from the Q-Value estimates produced by LSTDQ (eg: $\epsilon$-greedy policy). This would mean the experiences data used in the algorithm is not a fixed, finite data set, rather a variable, incrementally-produced data set. Even if the behavior policy was external, the data set $\mathcal{D}$ might not be a fixed finite data set - rather, it could be made available as an on-demand, variable data stream. Furthermore, in each iteration of GPI, we could use a subset of the experiences data made available until that point of time (rather than the approach of the standard variant of LSPI that uses all of the available experiences data). If we choose to sample a subset of the available experiences data, we might give more sampling-weightage to the more recently generated data. This would especially be the case if the experiences data was being generated from a policy derived from the Q-Value estimates produced by LSTDQ. In this case, we would leverage the `ExperienceReplayMemory` class we'd written earlier.
 
 Next, we write code to implement the *standard variant* of LSPI we described above. First, we write a function to implement LSTDQ. As described above, the inputs to LSTDQ are the experiences data $\mathcal{D}$ (`transitions` in the code below) and a deterministic target policy $\pi_D$ (`target_policy` in the code below). Since we are doing a linear function approximation, the input also includes a set of features, described as functions of state and action (`feature_functions` in the code below). Lastly, the inputs also include the discount factor $\gamma$ and the numerical control parameter $\epsilon$. The code below should be fairly self-explanatory, as it is a straightforward extension of LSTD (implemented in function `least_squares_td` earlier). The key differences are that this is an estimate of the Action-Value (Q-Value) function, rather than the State-Value Function, and the target used in the least-squares calculation is the Q-Learning target (produced by the `target_policy`).
+
+\index{least squares tdq@\texttt{least\_squares\_tdq}}
 
 ```python
 def least_squares_tdq(
@@ -576,6 +656,8 @@ def least_squares_tdq(
 
 Now we are ready to write the standard variant of LSPI. The code below is a straightforward implementation of our description above, looping through the iterations of GPI, `yield`ing the Q-Value `LinearFunctionApprox` after each iteration of GPI.
 
+\index{least squares policy iteration@\texttt{least\_squares\_policy\_iteration}}
+
 ```python
 def least_squares_policy_iteration(
     transitions: Iterable[TransitionStep[S, A]],
@@ -603,6 +685,8 @@ def least_squares_policy_iteration(
 
 The above code is in the file [rl/td.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/td.py).
 
+\index{reinforcement learning!least squares!lspi|)}
+
 #### Saving your Village from a Vampire   
 
 Now we consider a Control problem we'd like to test the above LSPI algorithm on. We call it the Vampire problem that can be described as a good old-fashioned bedtime story, as follows:
@@ -624,6 +708,8 @@ $$
 $$
 
 It is rather straightforward to solve this with Dynamic Programming (say, Value Iteration) since we know the transition probabilities and rewards function and since the state and action spaces are finite. However, in a situation where we don't know the exact probabilities with which the vampire operates, and we only had access to observations on specific days, we can attempt to solve this problem with Reinforcement Learning (assuming we had access to observations of many vampires operating on many villages). In any case, our goal here is to test LSPI using this vampire problem as an example. So we write some code to first model this MDP as described above, solve it with value iteration (to obtain the benchmark, i.e., true Optimal Value Function and true Optimal Policy to compare against), then generate atomic experiences data from the MDP, and then solve this problem with LSPI using this stream of generated atomic experiences.
+
+\index{VampireMDP@\texttt{VampireMDP}}
 
 ```python
 from rl.markov_decision_process import TransitionStep
@@ -736,6 +822,8 @@ The above code is in the file [rl/chapter12/vampire.py](https://github.com/Tikho
 
 #### Least-Squares Control Convergence
 
+\index{reinforcement learning!convergence}
+
 We wrap up this section by including the convergence behavior of LSPI in the summary table for convergence of RL Control algorithms (that we had displayed at the end of Chapter [-@sec:rl-control-chapter]). Figure \ref{fig:rl_control_with_lspi_convergence} shows the updated summary table for convergence of RL Control algorithms to now also include LSPI. Note that \(\cmark) means it doesn't quite hit the Optimal Value Function, but bounces around near the Optimal Value Function. But this is better than Q-Learning in the case of linear function approximation.
 
 \begin{figure}
@@ -757,8 +845,12 @@ Gradient Q-Learning & \cmark & \cmark & \xmark \\ \hline
 
 ### RL for Optimal Exercise of American Options
 
+\index{finance!derivative!american option}
+\index{finance!derivative!optimal exercise|(}
+
 We learnt in Chapter [-@sec:derivatives-pricing-chapter] that the American Options Pricing problem is an Optimal Stopping problem and can be modeled as an MDP so that solving the Control problem of the MDP gives us the fair price of an American Option. We can solve it with Dynamic Programming or Reinforcement Learning, as appropriate. 
 
+\index{finance!derivative!underlying}
 In the financial trading industry, it has traditionally not been a common practice to explicitly view the American Options Pricing problem as an MDP. Specialized algorithms have been developed to price American Options. We now provide a quick overview of the common practice in pricing American Options in the financial trading industry. Firstly, we should note that the price of some American Options is equal to the price of the corresponding European Option, for which we have a closed-form solution under the assumption of a lognormal process for the underlying - this is the case for a plain-vanilla American call option whose price (as we proved in Chapter [-@sec:derivatives-pricing-chapter]) is equal to the price of a plain-vanilla European call option. However, this is not the case for a plain-vanilla American put option. Secondly, we should note that if the payoff of an American option is dependent on only the current price of the underlying (and not on the past prices of the underlying) - in which case, we say that the option payoff is not "history-dependent" - and if the dimension of the state space is not large, then we can do a simple backward induction on a binomial tree (as we showed in Chapter [-@sec:derivatives-pricing-chapter]). In practice, a more detailed data structure such as a [trinomial tree](https://en.wikipedia.org/wiki/Trinomial_tree) or a lattice is often used for more accurate backward-induction calculations. However, if the payoff is history-dependent (i.e., payoff depends on past prices of the underlying) or if the payoff depends on the prices of several underlying assets, then the state space is too large for backward induction to handle. In such cases, the standard approach in the financial trading industry is to use the [Longstaff-Schwartz pricing algorithm](https://people.math.ethz.ch/~hjfurrer/teaching/LongstaffSchwartzAmericanOptionsLeastSquareMonteCarlo.pdf) [@LongstaffSchwartz2001]. We won't cover the Longstaff-Schwartz pricing algorithm in detail in this book - it suffices to share here that the Longstaff-Schwartz pricing algorithm combines 3 ideas:
 
 * The Pricing is based on a set of sampling traces of the underlying prices.
@@ -769,13 +861,20 @@ The goal of this section is to explain how to price American Options with Reinfo
 
 #### LSPI for American Options Pricing
 
+\index{reinforcement learning!least squares!lspi}
+
 [A paper by Li, Szepesvari, Schuurmans](http://proceedings.mlr.press/v5/li09d/li09d.pdf) [@li2009] showed that LSPI can be an attractive alternative to the Longstaff-Schwartz algorithm in pricing American Options. Before we dive into the details of pricing American Options with LSPI, let's review the MDP model for American Options Pricing.
+
+\index{Markov decision process!state}
+\index{Markov decision process!action}
+\index{Markov decision process!reward}
 
 * *State* is [Current Time, Relevant History of Underlying Security Prices].
 * *Action* is Boolean: Exercise (i.e., Stop) or Continue.
 * *Reward* is always 0, except upon Exercise (when the *Reward* is equal to the Payoff).
 * *State*-transitions are based on the Underlying Securities' Risk-Neutral Process.
 
+\index{function approximation!linear}
 The key is to create a linear function approximation of the state-conditioned *continuation value* of the American Option (*continuation value* is the price of the American Option at the current state, conditional on not exercising the option at the current state, i.e., continuing to hold the option). Knowing the continuation value in any state enables us to compare the continuation value against the exercise value (i.e., payoff), thus providing us with the Optimal Stopping criteria (as a function of the state), which in turn enables us to determine the Price of the American Option. Furthermore, we can customize the LSPI algorithm to the nuances of the American Option Pricing problem, yielding a specialized version of LSPI. The key customization comes from the fact that there are only two actions. The action to exercise produces a (state-conditioned) reward (i.e., option payoff) and transition to a terminal state. The action to continue produces no reward and transitions to a new state at the next time step. Let us refer to these 2 actions as: $a=c$ (continue the option) and $a=e$ (exercise the option).
 
 Since we know the exercise value in any state, we only need to create a linear function approximation for the continuation value, i.e., for the Q-Value $Q(s, c)$ for all non-terminal states $s$. If we denote the payoff in non-terminal state $s$ as $g(s)$, then $Q(s,e) = g(s)$. So we write
@@ -823,10 +922,14 @@ $$\bm{b} \leftarrow \bm{b} + \gamma  \cdot \mathbb{I}_{C2} \cdot \bm{\phi}(s_i) 
 
 With Sherman-Morrison incremental inverse of $\bm{A}$, we can reduce the time-complexity from $O(m^3)$ to $O(m^2)$.
 
+\index{Sherman-Morrison incremental inverse}
+
 This solved $\bm{w}^*$ updates the $Q$-Value Function Approximation to $\hat{Q}(s,a;\bm{w}^*)$. This defines an updated, improved deterministic policy $\pi'_D$ (serving as the *Deterministic Target Policy* for the next iteration of GPI):
 $$\pi'_D(s) = \argmax_a \hat{Q}(s,a; \bm{w}^*) \text{ for all } s \in \mathcal{N}$$
 
 [Li, Szepesvari, Schuurmans](http://proceedings.mlr.press/v5/li09d/li09d.pdf) [@li2009] recommend in their paper to use 7 feature functions, the first 4 Laguerre polynomials that are functions of the underlying price and 3 functions of time. Precisely, the feature functions they recommend are:
+\index{finance!derivative!underlying}
+\index{function approximation!feature functions}
 
 * $\phi_0(S_t) = 1$
 * $\phi_1(S_t) = e^{-\frac {M_t} 2}$
@@ -839,6 +942,9 @@ $$\pi'_D(s) = \argmax_a \hat{Q}(s,a; \bm{w}^*) \text{ for all } s \in \mathcal{N
 where $M_t = \frac {S_t} {K}$ ($S_t$ is the current underlying price and $K$ is the American Option strike), $t$ is the current time, and $T$ is the expiration time (i.e., $0 \leq t < T$).
 
 #### Deep Q-Learning for American Options Pricing
+
+\index{reinforcement learning!temporal difference!q learning}
+\index{reinforcement learning!deep reinforcement learning}
 
 LSPI is data-efficient and compute-efficient, but linearity is a limitation in the function approximation. The alternative is (incremental) Q-Learning with neural network function approximation, which we cover in this subsection. We employ the same set up as LSPI (including Experience Replay) - specifically, the function approximation is required only for continuation value. Precisely,
 
@@ -860,7 +966,13 @@ $$\Delta \bm{w} =  \alpha \cdot (\gamma \cdot \max(g(s'_i), f(s'_i;\bm{w})) - f(
 When $s'_i$ is a terminal state, the update is:
 $$\Delta \bm{w} = \alpha \cdot (\gamma \cdot g(s'_i) - f(s_i;\bm{w})) \cdot \nabla_{\bm{w}} f(s_i;\bm{w})$$
 
+\index{finance!derivative!optimal exercise|)}
+
 ### Value Function Geometry
+
+\index{value function!value function geometry|(}
+\index{value function!value function as vector}
+\index{reinforcement learning!deadly triad}
 
 Now we look deeper into the issue of the *Deadly Triad* (that we had alluded to in Chapter [-@sec:rl-control-chapter]) by viewing Value Functions as Vectors (we had done this in Chapter [-@sec:dp-chapter]), understand Value Function Vector transformations with a balance of geometric intuition and mathematical rigor, providing insights into convergence issues for a variety of traditional loss functions used to develop RL algorithms. As ever, the best way to understand Vector transformations is to visualize it and so, we loosely refer to this topic as Value Function Geometry. The geometric intuition is particularly useful for linear function approximations. To promote intuition, we shall present this content for linear function approximations of the Value Function and stick to Prediction (rather than Control) although many of the concepts covered in this section are well-extensible to non-linear function approximations and to the Control problem.
 
@@ -870,10 +982,18 @@ Along with visual intuition, it is important to write precise notation for Value
 
 #### Notation and Definitions
 
+\index{Markov decision process!finite}
+\index{Markov decision process!state space}
+\index{Markov decision process!action space}
+\index{Markov decision process!prediction}
+
 Assume our state space is finite without any terminal states, i.e. $\mathcal{S} = \mathcal{N} = \{s_1, s_2, \ldots, s_n\}$. Assume our action space $\mathcal{A}$ consists of a finite number of actions. This coverage can be extended to infinite/continuous spaces, but we shall stick to this simple setting in this section. Also, as mentioned above, we restrict this coverage to the case of a fixed (potentially stochastic) policy denoted as $\pi: \mathcal{S} \times \mathcal{A} \rightarrow [0, 1]$. This means we are restricting to the case of the Prediction problem (although it's possible to extend some of this coverage to the case of Control).
 
+\index{value function!value function for fixed policy}
 We denote the Value Function for a policy $\pi$ as $\bvpi: \mathcal{S} \rightarrow \mathbb{R}$. Consider the $n$-dimensional vector space $\mathbb{R}^n$, with each dimension corresponding to a state in $\mathcal{S}$.  Think of a Value Function (typically denoted $\bv$): $\mathcal{S} \rightarrow \mathbb{R}$ as a vector in the $\mathbb{R}^n$ vector space. Each dimension's coordinate is the evaluation of the Value Function for that dimension's state. The coordinates of vector $\bvpi$ for policy $\pi$ are: $[\bvpi(s_1), \bvpi(s_2), \ldots, \bvpi(s_n)]$. Note that this treatment is the same as the treatment in our coverage of Dynamic Programming in Chapter [-@sec:dp-chapter].
 
+\index{function approximation!feature functions}
+\index{function approximation!linear}
 Our interest is in identifying an appropriate function approximation of the Value Function $\bvpi$. For the function approximation, assume there are $m$ feature functions $\phi_1, \phi_2, \ldots, \phi_m : \mathcal{S} \rightarrow \mathbb{R}$, with $\bm{\phi}(s) \in \mathbb{R}^m$ denoting the feature vector for any state $s \in \mathcal{S}$. To keep things simple and to promote understanding of the concepts, we limit ourselves to linear function approximations. For linear function approximation of the Value Function with weights $\bw = (w_1, w_2, \ldots, w_m)$,  we use the notation $\bvw: \mathcal{S} \rightarrow \mathbb{R}$, defined as:
 $$\bvw(s) = \bm{\phi}(s)^T \cdot \bw = \sum_{j=1}^m \phi_j(s) \cdot w_j \mbox{ for all } s \in \mathcal{S}$$. 
 
@@ -885,15 +1005,24 @@ $$\brew(s) = \sum_{a \in \mathcal{A}} \pi(s, a) \cdot \mathcal{R}(s,a) \text{ fo
 $$\bprob(s,s') = \sum_{a \in \mathcal{A}} \pi(s, a) \cdot \mathcal{P}(s,a,s') \text{ for all } s, s' in \mathcal{S}$$
 to denote the Expected Reward and state transition probabilities respectively of the $\pi$-implied MRP.
 
+\index{Markov process!transition probability function}
+\index{Markov reward process!reward function}
+
 $\brew$ refers to vector $[\brew(s_1), \brew(s_2), \ldots, \brew(s_n)]$ and $\bprob$ refers to matrix $[\bprob(s_i, s_{i'})], 1 \leq i, i' \leq n$. Denote $\gamma < 1$ (since there are no terminal states) as the MDP discount factor.
 
 #### Bellman Policy Operator and Projection Operator
+
+\index{Bellman policy operator}
 
 In Chapter [-@sec:mdp-chapter], we introduced the Bellman Policy Operator $\bb$ for policy $\pi$ operating on any Value Function vector $\bv$. As a reminder,
 $$\bb (\bv) = \bm{\mathcal{R}}^{\pi} + \gamma \bm{\mathcal{P}}^{\pi} \cdot \bv \text{ for any VF vector } \bv \in \mathbb{R}^n$$
 Note that $\bb$ is a linear operator in vector space $\mathbb{R}^n$. So we henceforth denote and treat $\bb$ as an $n \times n$ matrix, representing the linear operator. We've learnt in Chapter [-@sec:mdp-chapter] that $\bvpi$ is the fixed point of $\bb$. Therefore, we can write:
 $$\bb \cdot \bvpi = \bvpi$$
-This means, if we start with an arbitrary Value Function vector $\bv$ and repeatedly apply $\bb$, by Fixed-Point Theorem, we will reach the fixed point $\bvpi$. We've learnt in Chapter [-@sec:mdp-chapter] that this is in fact the Dynamic Programming Policy Evaluation algorithm. Note that Tabular Monte Carlo also converges to $\bvpi$ (albeit slowly).
+\index{fixed-point theory!Banach fixed-point theorem}
+This means, if we start with an arbitrary Value Function vector $\bv$ and repeatedly apply $\bb$, by Banach Fixed-Point Theorem \ref{th:banach_fixed_point_theorem}, we will reach the fixed point $\bvpi$. We've learnt in Chapter [-@sec:mdp-chapter] that this is in fact the Dynamic Programming Policy Evaluation algorithm. Note that Tabular Monte Carlo also converges to $\bvpi$ (albeit slowly).
+
+\index{dynamic programming!policy evaluation}
+\index{projection operator}
 
 Next, we introduce the Projection Operator $\bpi$ for the subspace spanned by the column vectors (feature functions) of $\bphi$. We define $\bpi (\bv)$ as the vector in the subspace spanned by the column vectors of $\bphi$ that represents the orthogonal projection of Value Function vector $\bv$ on the $\bphi$ subspace. To make this precise, we first define "distance" $d(\bm{V_1}, \bm{V_2})$ between Value Function vectors $\bm{V_1}, \bm{V_2}$, weighted by $\bmu$ across the $n$ dimensions of $\bm{V_1}, \bm{V_2}$. Specifically,
 $$d(\bm{V_1}, \bm{V_2}) = \sum_{i=1}^n \bmu(s_i) \cdot  (\bm{V_1}(s_i) - \bm{V_2}(s_i))^2 =  (\bm{V_1} - \bm{V_2})^T \cdot \bd \cdot (\bm{V_1} - \bm{V_2})$$
@@ -912,6 +1041,9 @@ In this section, we cover 4 Value Function vectors of interest in the $\bphi$ su
 
 The first Value Function vector of interest in the $\bphi$ subspace is the Projection $\bpi \cdot \bvpi$, denoted as $\bm{w}_{\pi} = \argmin_{\bw} d(\bvpi, \bvw)$. This is the linear function approximation of the Value Function $\bvpi$ we seek because it is the Value Function vector in the $\bphi$ subspace that is "closest" to $\bvpi$. Monte-Carlo with linear function approximation will (slowly) converge to $\bw_{\pi}$. Figure \ref{fig:vf_geometry} provides the visualization. We've learnt that Monte-Carlo can be slow to converge, so we seek function approximations in the $\bphi$ subspace that are based on Temporal-Difference (TD), i.e., bootstrapped methods. The remaining three Value Function vectors in the $\bphi$ subspace are based on TD methods.
 
+\index{Bellman error|textbf}
+\index{Bellman policy operator}
+
 We denote the second Value Function vector of interest in the $\bphi$ subspace as $\bm{w}_{BE}$. 
 The acronym $BE$ stands for *Bellman Error*. To understand this, consider the application of the Bellman Policy Operator $\bb$ on a Value Function vector $\bvw$ in the $\bphi$ subspace. Applying $\bb$ on $\bvw$ typically throws $\bvw$ out of the $\bphi$ subspace. The idea is to find a Value Function vector $\bvw$ in the $\bphi$ subspace such that the "distance" between $\bvw$ and $\bb \cdot \bvw$ is minimized, i.e. we minimize the "error vector" $BE = \bb \cdot \bvw - \bvw$ (Figure \ref{fig:vf_geometry} provides the visualization). Hence, we say we are minimizing the *Bellman Error* (or simply that we are minimizing $BE$), and we refer to $w_{BE}$ as the Value Function vector in the $\bphi$ subspace for which $BE$ is minimized.  Formally, we define it as:
 \begin{align*}
@@ -925,6 +1057,8 @@ This is a weighted least-squares linear regression of $\brew$ against $\bphi - \
 with weights $\bmu$, whose solution is:
 $$\bm{w}_{BE} = ((\bphi - \gamma \bprob \cdot \bphi)^T \cdot \bd \cdot (\bphi - \gamma \bprob \cdot \bphi))^{-1} \cdot (\bphi - \gamma \bprob \cdot \bphi)^T \cdot \bd \cdot \brew$$
 
+\index{linear regression}
+
 The above formulation can be used to compute $\bm{w}_{BE}$ if we know the model probabilities $\bprob$ and reward function $\brew$. But often, in practice, we don't know $\bprob$ and $\brew$, in which case we seek model-free learning of $\bm{w}_{BE}$, specifically with a TD (bootstrapped) algorithm.
 
 Let us refer to
@@ -934,6 +1068,11 @@ $$(\bphi - \gamma \bprob \cdot \bphi)^T \cdot \bd \cdot \brew$$ as vector $\bm{b
 
 Following policy $\pi$, each time we perform an individual transition from $s$ to $s'$ getting reward $r$, we get a sample estimate of $\bm{A}$ and $\bm{b}$. The sample estimate of $\bm{A}$ is the outer-product of vector $\bm{\phi}(s) - \gamma \cdot \bm{\phi}(s')$ with itself. The sample estimate of $\bm{b}$ is scalar $r$ times vector $\bm{\phi}(s) - \gamma \cdot \bm{\phi}(s')$. We average these sample estimates across many such individual transitions. However, this requires $m$ (the number of features) to be not too large.
 
+\index{outer product}
+
+\index{function approximation!non-linear}
+\index{reinforcement learning!off-policy}
+
 If $m$ is large or if we are doing non-linear function approximation or off-policy, then we seek a gradient-based TD algorithm. We defined $\bm{w}_{BE}$ as the vector in the $\bphi$ subspace for which the Bellman Error is minimized. But Bellman Error for a state is the expectation of the TD error $\delta$ for that state when following policy $\pi$. So we want to do Stochastic Gradient Descent with the gradient of the square of expected TD error, as follows:
 \begin{align*}
 \Delta \bw & = - \alpha \cdot \frac{1}{2} \cdot \nabla_{\bw} (\mathbb{E}_{\pi}[\delta])^2\\
@@ -942,6 +1081,8 @@ If $m$ is large or if we are doing non-linear function approximation or off-poli
 \end{align*}
 This is called the [*Residual Gradient* algorithm, due to Leemon Baird](http://www.cs.utsa.edu/~bylander/cs6243/baird95residual.pdf) [@Baird:95]. It requires two independent samples of $s'$ transitioning from $s$. If we do have that, it converges to $\bm{w}_{BE}$ robustly (even for non-linear function approximations). But this algorithm is slow, and doesn't converge to a desirable place. Another issue is that $\bm{w}_{BE}$ is not learnable if we can only access the features, and not underlying states. These issues led researchers to consider alternative TD algorithms. 
 
+\index{reinforcement learning!residual gradient|textbf}
+
 We denote the third Value Function vector of interest in the $\bphi$ subspace as $\bm{w}_{TDE}$ and define it as the vector in the $\bphi$ subspace for which the expected square of the TD error $\delta$ (when following policy $\pi$) is minimized. Formally,
 $$\bm{w}_{TDE} = \argmin_{\bw} \sum_{s \in \mathcal{S}} \bmu(s) \sum_{r,s'} \mathbb{P}_{\pi}(r, s'|s) \cdot (r + \gamma \cdot \bm{\phi}(s')^T \cdot \bw - \bm{\phi}(s)^T \cdot \bw)^2$$
 To perform Stochastic Gradient Descent, we have to estimate the gradient of the expected square of TD error by sampling. The weight update for each gradient sample in the Stochastic Gradient Descent is:
@@ -949,7 +1090,11 @@ To perform Stochastic Gradient Descent, we have to estimate the gradient of the 
 \Delta \bw & = - \alpha \cdot \frac{1}{2} \cdot \nabla_{\bw} (r + \gamma \cdot \bm{\phi}(s')^T \cdot \bw - \bm{\phi}(s)^T \cdot \bw)^2\\
 & = \alpha \cdot (r + \gamma \cdot \bm{\phi}(s')^T \cdot \bw - \bm{\phi}(s)^T \cdot \bw) \cdot (\bm{\phi}(s) - \gamma \cdot \bm{\phi}(s'))\\
 \end{align*}
+\index{reinforcement learning!naive residual gradient|textbf}
 This algorithm is called [*Naive Residual Gradient*, due to Leemon Baird](http://www.cs.utsa.edu/~bylander/cs6243/baird95residual.pdf)  [@Baird:95]. Naive Residual Gradient converges robustly, but again, not to a desirable place. So researchers had to look even further.
+
+\index{projected Bellman error}
+\index{Bellman policy operator}
 
 This brings us to the fourth (and final) Value Function vector of interest in the $\bphi$ subspace. We denote this Value Function vector as $w_{PBE}$. The acronym $PBE$ stands for *Projected Bellman Error*. To understand this, first consider the composition of the Projection Operator $\bpi$ and the Bellman Policy Operator $\bb$, i.e., $\bpi \cdot \bb$ (we call this composed operator as the *Projected Bellman* operator). Visualize the application of this *Projected Bellman* operator on a Value Function vector $\bvw$ in the $\bphi$ subspace. Applying $\bb$ on $\bvw$ typically throws $\bvw$ out of the $\bphi$ subspace and then further applying $\bpi$ brings it back to the $\bphi$ subspace (call this resultant Value Function vector $\bm{V}_{\bm{w}'}$). The idea is to find a Value Function vector $\bvw$ in the $\bphi$ subspace for which the "distance" between $\bvw$ and $\bm{V}_{\bm{w}'}$ is minimized, i.e. we minimize the "error vector" $PBE = \bpi \cdot \bb \cdot \bvw - \bvw$ (Figure \ref{fig:vf_geometry} provides the visualization). Hence, we say we are minimizing the *Projected Bellman Error* (or simply that we are minimizing $PBE$), and we refer to $w_{PBE}$ as the Value Function vector in the $\bphi$ subspace for which $PBE$ is minimized. It turns out that the minimum of PBE is actually zero, i.e., $\bphi \cdot \bm{w}_{PBE}$ is a fixed point of operator $\bpi \cdot \bb$. Let us write out this statement formally. We know:
 $$\bpi = \bphi \cdot (\bphi^T \cdot \bd \cdot \bphi)^{-1} \cdot \bphi^T \cdot \bd$$
@@ -974,6 +1119,9 @@ and vector
 $$\bm{b} = \bphi^T \cdot \bd \cdot \brew$$
 without a model?
 
+\index{reinforcement learning!least squares!lstd}
+\index{function approximation!semi-gradient}
+
 Following policy $\pi$, each time we perform an individual transition from $s$ to $s'$ getting reward $r$, we get a sample estimate of $\bm{A}$ and $\bm{b}$. The sample estimate of $\bm{A}$ is the outer-product of vectors $\bm{\phi}(s)$ and $\bm{\phi}(s) - \gamma \cdot \bm{\phi}(s')$. The sample estimate of $\bm{b}$ is scalar $r$ times vector $\bm{\phi}(s)$. We average these sample estimates across many such individual transitions. Note that this algorithm is exactly the Least Squares Temporal Difference (LSTD) algorithm we've covered earlier in this chapter. Thus, we now know that LSTD converges to $w_{PBE}$, i.e., minimizes (in fact takes down to 0) $PBE$. If the number of features $m$ is large or if we are doing non-linear function approximation or Off-Policy, then we seek a gradient-based TD algorithm. It turns out that our usual Semi-Gradient TD algorithm converges to $\bm{w}_{PBE}$ in the case of on-policy linear function approximation. Note that the update for the usual Semi-Gradient TD algorithm in the case of on-policy linear function approximation is as follows:
 $$\Delta \bw = \alpha \cdot (r + \gamma \cdot \bm{\phi}(s')^T \cdot \bw - \bm{\phi}(s)^T \cdot \bw) \cdot \bm{\phi}(s)$$
 This converges to $\bm{w}_{PBE}$ because at convergence, we have: $\mathbb{E}_{\pi}[\Delta \bw] = 0$, which can be expressed as:
@@ -982,13 +1130,21 @@ $$ \Rightarrow \bphi^T \cdot \bd \cdot (\bphi - \gamma \bprob \cdot \bphi) \cdot
 
 which is satisfied for $\bw = \bm{w}_{PBE}$ (as seen from Equation \eqref{eq:w-pbe-equation}).
 
+\index{value function!value function geometry|)}
+
 ### Gradient Temporal-Difference (Gradient TD)
 
+\index{reinforcement learning!temporal difference!gradient td|(}
+\index{function approximation!non-linear}
+\index{reinforcement learning!off-policy}
 For on-policy linear function approximation, the semi-gradient TD algorithm gives us $w_{PBE}$. But to obtain $w_{PBE}$ in the case of non-linear function approximation or in the case of Off-Policy, we need a different approach. The different approach is Gradient Temporal-Difference (abbreviated, Gradient TD), the subject of this section.
 
 The [original Gradient TD algorithm, due to Sutton, Szepesvari, Maei](https://proceedings.neurips.cc/paper/2008/file/e0c641195b27425bb056ac56f8953d24-Paper.pdf) [@sutton2008] is typically abbreviated as GTD. [Researchers then came up with a second-generation Gradient TD algorithm](https://cseweb.ucsd.edu//~gary/190-RL/SMPBSSW-09.pdf) [@sutton2009], which is typically abbreviated as GTD-2. [The same researchers also came up with a TD algorithm with Gradient Correction](https://cseweb.ucsd.edu/~gary/190-RL/SMPBSSW-09.pdf) [@sutton2009], which is typically abbreviated as TDC.
 
 We now cover the TDC algorithm. For simplicity of articulation and ease of understanding, we restrict to the case of linear function approximation in our coverage of the TDC algorithm below. However, do bear in mind that much of the concepts below extend to non-linear function approximation (which is where we reap the benefits of Gradient TD).
+
+\index{function approximation!loss function}
+\index{function approximation!gradient descent}
 
 Our first task is to set up the appropriate loss function whose gradient will drive the Stochastic Gradient Descent. 
 $$\bm{w}_{PBE} = \argmin_{\bw} d(\bpi \cdot \bb \cdot \bvw, \bvw) = \argmin_{\bw} d(\bpi \cdot \bb \cdot \bvw, \bpi \cdot \bvw)$$
@@ -1020,13 +1176,22 @@ where $\btheta = (\mathbb{E}[\bm{\phi}(s) \cdot \bm{\phi}(s)^T])^{-1} \cdot \mat
 
 We can perform this gradient descent with a technique known as *Cascade Learning*, which involves simultaneously updating both $\bw$ and $\btheta$ (with $\btheta$ converging faster). The updates are as follows:
 
+\index{cascade learning}
+
 $$\Delta \bw = \alpha \cdot \delta \cdot \bm{\phi}(s)  - \alpha \cdot \gamma \cdot \bm{\phi}(s') \cdot (\bm{\phi}(s)^T \cdot \btheta)$$
 $$\Delta \btheta = \beta \cdot (\delta - \bm{\phi}(s)^T \cdot \btheta) \cdot \bm{\phi}(s)$$
 
 where $\beta$ is the learning rate for $\btheta$. Note that $\bm{\phi}(s)^T \cdot \btheta$ operates as an estimate of the TD error $\delta$ for current state $s$.
 
+\index{reinforcement learning!deadly triad}
+\index{reinforcement learning!off-policy}
+\index{function approximation!non-linear}
+\index{bootstrapping}
 Repeating what we had said in Chapter [-@sec:rl-control-chapter], Gradient TD converges reliably for the Prediction problem even when we are faced with the Deadly Triad of [Bootstrapping, Off-Policy, Non-Linear Function Approximation]. The picture is less rosy for Control. Gradient Q-Learning (Gradient TD for Off-Policy Control) converges reliably for both on-policy and off-policy linear function approximations, but there are divergence issues for non-linear function approximations. For Control problems with non-linear function approximations (especially, neural network approximations with off-policy learning), one can leverage the approach of the DQN algorithm (Experience Replay with fixed Target Network helps overcome the Deadly Triad).
+\index{reinforcement learning!temporal difference!dqn}
 
+\index{reinforcement learning|)}
+\index{reinforcement learning!temporal difference!gradient td|)}
 
 ### Key Takeaways from this Chapter
 

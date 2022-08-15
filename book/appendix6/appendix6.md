@@ -2,6 +2,9 @@
 
 ### Vector Space
 
+\index{vector space|textbf}
+\index{commutative group|textbf}
+
 A Vector space is defined as a [commutative group](https://en.wikipedia.org/wiki/Abelian_group) $\mathcal{V}$ under an addition operation (written as $+$), together with multiplication of elements of $\mathcal{V}$ with elements of a [field](https://en.wikipedia.org/wiki/Field_(mathematics)) $\mathcal{K}$ (known as scalars), expressed as a binary in-fix operation $*: \mathcal{K} \times \mathcal{V} \rightarrow \mathcal{V}$, with the following properties:
 
 * $a * (b * \bm{v}) = (a * b) * \bm{v}$, for all $a, b \in \mathcal{K}$, for all $\bm{v} \in \mathcal{V}$.
@@ -10,6 +13,8 @@ A Vector space is defined as a [commutative group](https://en.wikipedia.org/wiki
 * $(a + b) * \bm{v} = a * \bm{v} + b * \bm{v}$ for all $a, b \in \mathcal{K}$, for all $\bm{v} \in \mathcal{V}$.
 
 ### Function Space
+
+\index{functions!function space|textbf}
 
 The set $\mathcal{F}$ of all functions from an arbitrary generic domain $\mathcal{X}$ to a vector space co-domain $\mathcal{V}$ (over scalars field $\mathcal{K}$) constitutes a vector space (known as function space) over the scalars field $\mathcal{K}$ with addition operation ($+$) defined as:
 
@@ -23,6 +28,8 @@ Hence, addition and scalar multiplication for a function space are defined point
 
 ### Linear Map of Vector Spaces
 
+\index{vector space!linear map|textbf}
+
 A linear map of Vector Spaces is a function $h: \mathcal{V} \rightarrow \mathcal{W}$ where $\mathcal{V}$ is a vector space over a scalars field $\mathcal{K}$ and $\mathcal{W}$ is a vector space over the same scalars field $\mathcal{K}$, having the following two properties:
 
 * $h(\bm{v_1} + \bm{v_2}) = h(\bm{v_1}) + h(\bm{v_2})$ for all $\bm{v_1}, \bm{v_2} \in \mathcal{V}$ (i.e., application of $f$ commutes with the addition operation).
@@ -33,6 +40,8 @@ Then the set of all linear maps with domain $\mathcal{V}$ and co-domain $\mathca
 The specialization of the function space of linear maps to the space $\mathcal{L}(\mathcal{V}, \mathcal{K})$ (i.e., specializing the vector space $\mathcal{W}$ to the scalars field $\mathcal{K}$) is known as the dual vector space and is denoted as $\mathcal{V}^*$.
 
 ### Affine Space
+
+\index{affine space|textbf}
 
 An Affine Space is defined as a set $\mathcal{A}$ associated with a vector space $\mathcal{V}$ and a binary in-fix operation $\oplus: \mathcal{A} \times \mathcal{V} \rightarrow \mathcal{A}$, with the following properties:
 
@@ -46,15 +55,22 @@ A simple way to visualize an affine space is by considering the simple example o
 
 ### Linear Map of Affine Spaces
 
+\index{affine space!linear map|textbf}
+
 A linear map of Affine Spaces is a function $h: \mathcal{A} \rightarrow \mathcal{B}$ where $\mathcal{A}$ is an affine space associated with a vector space $\mathcal{V}$ and $\mathcal{B}$ is an affine space associated with the same vector space $\mathcal{V}$, having the following property:
 
 $$h(\bm{a} \oplus \bm{v}) = h(\bm{a}) \oplus \bm{v} \text{ for all } \bm{a} \in \mathcal{A}, \text{ for all } \bm{v} \in \mathcal{V}$$
 
 ### Function Approximations
 
+\index{function approximation|(}
+
 We represent function approximations by parameterized functions $f: \mathcal{X} \times D[\mathbb{R}] \rightarrow \mathbb{R}$ where $\mathcal{X}$ is the input domain and $D[\mathbb{R}]$ is the parameters domain. The notation $D[Y]$ refers to a generic container data type $D$ over a component generic data type $Y$. The data type $D$ is specified as a generic container data type because we consider generic function approximations here. A specific family of function approximations will customize to a specific container data type for $D$ (eg: linear function approximations will customize $D$ to a Sequence data type, a feed-forward deep neural network will customize $D$ to a Sequence of 2-dimensional arrays). We are interested in viewing Function Approximations as *point*s in an appropriate Affine Space. To explain this, we start by viewing parameters as *point*s in an Affine Space.
 
 #### $D[\mathbb{R}]$ as an Affine Space $\mathcal{P}$
+
+\index{affine space}
+\index{function approximation!gradient descent}
 
 When performing Stochastic Gradient Descent or Batch Gradient Descent, parameters $\bm{p} \in D[\mathbb{R}]$ of a function approximation $f: \mathcal{X} \times D[\mathbb{R}] \rightarrow \mathbb{R}$ are updated using an appropriate linear combination of gradients of $f$ with respect to $\bm{p}$ (at specific values of $x \in \mathcal{X}$). Hence, the parameters domain $D[\mathbb{R}]$ can be treated as an affine space (call it $\mathcal{P}$) whose associated vector space (over scalars field $\mathbb{R}$) is the set of gradients of $f$ with respect to parameters $\bm{p} \in D[\mathbb{R}]$ (denoted as $\nabla_{\bm{p}} f(x, \bm{p})$), evaluated at specific values of $x \in \mathcal{X}$, with addition operation defined as element-wise real-numbered addition and scalar multiplication operation defined as element-wise multiplication with real-numbered scalars. We refer to this Affine Space $\mathcal{P}$ as the *Parameters Space* and we refer to it's associated vector space (of gradients) as the *Gradient Space* $\mathcal{G}$. Since each *point* in $\mathcal{P}$ and each *translation* in $\mathcal{G}$ is an element in $D[\mathbb{R}]$, the $\oplus$ operation is element-wise real-numbered addition.
 
@@ -75,6 +91,8 @@ We refer to this affine space $\mathcal{R}$ as the *Representational Space* to s
 Notice that the `__add__` method of the `Gradient` class in [rl/function_approx.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/function_approx.py) is overloaded. One of the `__add__` methods corresponds to vector addition of two gradients in the Gradient Space $\mathcal{G}$. The other `__add__` method corresponds to the $\oplus$ operation adding a gradient (treated as a *translation* in the vector space of gradients) to a function approximation (treated as a *point* in the affine space of function approximations).
 
 ### Stochastic Gradient Descent
+
+\index{function approximation!gradient descent}
 
 Stochastic Gradient Descent is a function
 
@@ -107,6 +125,9 @@ Updating vector $\bm{p}$ to vector $\bm{p} \oplus U(\bm{p})$ in the Parameters S
 
 ### SGD Update for Linear Function Approximations
 
+\index{function approximation!gradient descent}
+\index{function approximation!linear}
+
 In this section, we restrict to linear function approximations, i.e., for all $x \in \mathcal{X}$,
 $$f(x, \bm{p}) = \bm{\Phi}(x)^T \cdot \bm{p}$$
 where $\bm{p} \in \mathbb{R}^m = \mathcal{P}$ and $\bm{\Phi}: \mathcal{X} \rightarrow \mathbb{R}^m$ represents the feature functions (note: $\bm{\Phi}(x)^T \cdot \bm{p}$ is the usual inner-product in $\mathbb{R}^m$).
@@ -122,3 +143,5 @@ It's useful to note that the change in the evaluation at $z \in \mathcal{X}$ is 
 * Learning rate $\alpha \in \mathbb{R}^+$
 * Prediction Error $y - \bm{\Phi}(x)^T \cdot \bm{p} \in \mathbb{R}$ for the updating data $(x,y) \in \mathcal{X} \times \mathbb{R}$
 * Inner-product of the feature vector $\bm{\Phi}(x) \in \mathbb{R}^m$ of the updating input value $x \in \mathcal{X}$ and the feature vector $\bm{\Phi}(z) \in \mathbb{R}^m$ of the evaluation input value $z \in \mathcal{X}$.
+
+\index{function approximation|)}

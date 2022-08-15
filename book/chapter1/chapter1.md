@@ -689,7 +689,6 @@ We'll see first-class functions used in a number of places throughout the book; 
 
 ##### Lambdas
 \index{lambda@\texttt{lambda}}
-\index{lambda@\texttt{lambda}!|seealso{functions}}
 
 `payoff` itself is a pretty reasonable function: it has a clear name and works as a standalone concept. Often, though, we want to use a first-class function in some specific context where giving the function a name is not needed or even distracting. Even in cases with reasonable names like `payoff`, it might not be worth introducing an extra named function if it will only be used in one place.
 
@@ -796,7 +795,6 @@ Note how we converted the result of `takewhile` into a list — without that, we
 Now that we've seen a few examples of how we can *use* iterators, how do we define our own? In the most general sense, a Python `Iterator` is any object that implements a `__next__()` method, but implementing iterators this way is pretty awkward. Luckily, Python has a more convenient way to create an iterator by creating a *generator* using the `yield` keyword. `yield` acts similar to `return` from a function, except instead of stopping the function altogether, it outputs the yielded value to an iterator and pauses the function until the yielded element is consumed by the caller.
 
 \index{yield@\texttt{yield}}
-\index{yield@\texttt{yield}!|seealso{generators}}
 
 This is a bit of an abstract description, so let's look at how this would apply to our `sqrt` function. Instead of looping and stopping based on some condition, we'll write a version of `sqrt` that returns an iterator with each iteration of the algorithm as a value:
 
@@ -861,3 +859,6 @@ Iterators and generators will come up all throughout this book because they prov
   * Python has type annotations which are required for dataclasses but are also useful for describing interfaces in functions and methods. Additional tools like `mypy` or PyCharm can use these type annotations to catch errors without needing to run the code.
   * Functions are first-class values in Python, meaning that they can be stored in variables and passed to other functions as arguments. Classes abstract over data; functions abstract over computation.
   * Iterators abstract over *iteration*: computations that happen in sequence, producing a value after each iteration. Reinforcement learning focuses primarily on iterative algorithms, so iterators become one of the key abstractions for working with different reinforcement learning algorithms.
+  
+\index{yield@\texttt{yield}|seealso{iteration, generators}}
+\index{lambda@\texttt{lambda}!|seealso{functions}}

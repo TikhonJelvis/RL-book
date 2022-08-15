@@ -3,6 +3,7 @@
 # Appendix {.unnumbered}
 
 ## Moment Generating Function and its Applications {#sec:mgf-appendix}
+\index{moment generating function|(}
 
 The purpose of this Appendix is to introduce the *Moment Generating Function (MGF)* and demonstrate it's utility in several applications in Applied Mathematics. 
 
@@ -32,6 +33,9 @@ Equation \eqref{eq:derivat0} tells us that $f_x^{(n)}(0)$ gives us the $n^{th}$ 
 
 Equation \eqref{eq:derivat1} helps us calculate the often-appearing expectation $\mathbb{E}_x[x^n \cdot e^x]$. In fact, $\mathbb{E}_x[e^x]$ and $\mathbb{E}_x[x \cdot e^x]$ are very common in several areas of Applied Mathematics. Again, note that this holds true for any distribution for $x$.
 
+\index{probability!probability density function}
+\index{probability!cumulative distribution function}
+
 The MGF should be thought of as an alternative specification of a random variable (alternative to specifying it's Probability Distribution). This alternative specification is very valuable because it can sometimes provide better analytical tractability than working with the Probability Density Function or Cumulative Distribution Function (as an example, see the below section on the MGF for linear functions of independent random variables).
 
 ### MGF for Linear Functions of Random Variables
@@ -47,6 +51,9 @@ This means the MGF of $x$ can be calculated as $e^{\alpha_0 t}$ times the produc
 
 
 ### MGF for the Normal Distribution
+
+\index{moment generating function!for normal distribution}
+\index{probability!normal distribution}
 
 Here we assume that the random variables $x$ follows a normal distribution. Let $x \sim \mathcal{N}(\mu, \sigma^2)$.
 
@@ -77,6 +84,8 @@ f_{x\sim \mathcal{N}(\mu, \sigma^2)}'(1) = \mathbb{E}_{x\sim \mathcal{N}(\mu, \s
 f_{x\sim \mathcal{N}(\mu, \sigma^2)}''(1) = \mathbb{E}_{x\sim \mathcal{N}(\mu, \sigma^2)}[x^2\cdot e^x] = ((\mu + \sigma^2)^2 + \sigma^2)e^{\mu+ \frac {\sigma^2} 2}
 \end{equation*}
 
+\index{moment generating function|)}
+ 
 ### Minimizing the MGF
 
 Now let us consider the problem of minimizing the MGF. The problem is to:
@@ -87,7 +96,9 @@ This problem of minimizing $\mathbb{E}_x[e^{tx}]$ shows up a lot in various plac
 Let us denote $t^*$ as the value of $t$ that minimizes the MGF. Specifically,
 $$t^* = \argmin_{t\in \mathbb{R}} f_x(t) = \argmin_{t \in \mathbb{R}} \mathbb{E}_x[e^{tx}]$$
 
+
 #### Minimizing the MGF when $x$ follows a normal distribution {#sec:norm-distrib-mgf-min}
+\index{probability!normal distribution}
 
 Here we consider the fairly typical case where $x$ follows a normal distribution. Let $x\sim \mathcal{N}(\mu, \sigma^2)$. Then we have to solve the problem:
 $$\min_{t\in \mathbb{R}} f_{x\sim \mathcal{N}(\mu, \sigma^2)}(t) = \min_{t\in \mathbb{R}} \mathbb{E}_{x\sim \mathcal{N}(\mu, \sigma^2)}[e^{tx}] = \min_{t\in \mathbb{R}} e^{\mu t + \frac {\sigma^2 t^2} 2}$$
@@ -111,6 +122,7 @@ Substituting $t=t^*$ in $f_{x\sim \mathcal{N}(\mu, \sigma^2)}(t) = e^{\mu t + \f
 \end{equation}
 
 #### Minimizing the MGF when $x$ is a symmetric binary distribution
+\index{probability!binary distribution}
 
 Here we consider the case where $x$ follows a binary distribution: $x$ takes values $\mu + \sigma$ and $\mu - \sigma$ with probability 0.5 each. Let us refer to this distribution as $x \sim \mathcal{B}(\mu + \sigma, \mu - \sigma)$. Note that the mean and variance of $x$ under $\mathcal{B}(\mu + \sigma, \mu - \sigma)$ are $\mu$ and $\sigma^2$ respectively. So we have to solve the problem:
 $$\min_{t\in \mathbb{R}} f_{x\sim \mathcal{B}(\mu + \sigma, \mu - \sigma)}(t) = \min_{t\in \mathbb{R}} \mathbb{E}_{x\sim \mathcal{B}(\mu + \sigma, \mu - \sigma)}[e^{tx}] = \min_{t\in \mathbb{R}} 0.5(e^{(\mu + \sigma)t} + e^{(\mu - \sigma)t})$$

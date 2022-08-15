@@ -2,6 +2,11 @@
 
 This chapter covers the first of five financial applications of Stochastic Control covered in this book. This financial application deals with the topic of investment management for not just a financial company, but more broadly for any corporation or for any individual. The nuances for specific companies and individuals can vary considerably but what is common across these entities is the need to:
 
+\index{finance!investment portfolio}
+\index{finance!asset allocation}
+\index{finance!asset allocation!dynamic|(}
+\index{finance!utility of consumption|(}
+
 * Periodically decide how one's investment portfolio should be split across various choices of investment assets - the key being how much money to invest in more risky assets (which have potential for high returns on investment) versus less risky assets (that tend to yield modest returns on investment). This problem of optimally allocating capital across investment assets of varying risk-return profiles relates to the topic of Utility Theory we covered in Chapter [-@sec:utility-theory-chapter]. However, in this chapter, we deal with the further challenge of adjusting one's allocation of capital across assets, as time progresses. We refer to this feature as *Dynamic Asset Allocation* (the word dynamic refers to the adjustment of capital allocation to adapt to changing circumstances)
 
 * Periodically decide how much capital to leave in one's investment portfolio versus how much money to consume for one's personal needs/pleasures (or for a corporation's operational requirements) by extracting money from one's investment portfolio. Extracting money from one's investment portfolio can mean potentially losing out on investment growth opportunities, but the flip side of this is the Utility of Consumption that a corporation/individual desires. Noting that ultimately our goal is to maximize total utility of consumption over a certain time horizon, this decision of investing versus consuming really amounts to the timing of consumption of one's money over the given time horizon.
@@ -15,20 +20,28 @@ Personal Finances can be very simple for some people (earn a monthly salary, spe
 * *Receiving money*: This could include your periodic salary, which typically remains constant for a period of time, but can change if you get a promotion or if you get a new job. This also includes money you liquidate from your investment portfolio, eg: if you sell some stock, and decide not to re-invest in other investment assets. This also includes interest you earn from your savings account or from some bonds you might own. There are many other ways one can *receive money*, some fixed regular payments and some uncertain in terms of payment quantity and timing, and we won't enumerate all the different ways of *receiving money*. We just want to highlight here that *receiving money* at various points in time is one of the key financial aspects in one's life.
 * *Consuming money*: The word "consume" refers to ""spending". Note that one needs to *consume money* periodically to satisfy basic needs like shelter, food and clothing. The rent or mortgage you pay on your house is one example - it may be a fixed amount every month, but if your mortgage rate is a floating rate, it is subject to variation. Moreover, if you move to a new house, the rent or mortgage can be different. The money you spend on food and clothing also constitutes *consuming money*. This can often be fairly stable from one month to the next, but if you have a newborn baby, it might require additional expenses of the baby's food, clothing and perhaps also toys. Then there is *consumption of money* that are beyond the "necessities" - things like eating out at a fancy restaurant on the weekend, taking a summer vacation, buying a luxury car or an expensive watch etc. One gains "satisfaction"/"happiness" (i.e., *Utility*) from this *consumption of money*. The key point here is that we need to periodically make a decision on how much to spend (*consume money*) on a weekly or monthly basis. One faces a tension in the dynamic decision between *consuming money* (that gives us *Consumption Utility*) and *saving money* (which is the money we put in our investment portfolio in the hope of the money growing, so we can consume potentially larger amounts of money in the future). 
 * *Investing Money*: Let us suppose there are a variety of investment assets you can invest in - simple savings account giving small interest, exchange-traded stocks (ranging from value stocks to growth stocks, with their respective risk-return tradeoffs), real-estate (the house you bought and live in is indeed considered an investment asset), commodities such as gold, paintings etc. We call the composition of money invested in these assets as one's investment portfolio (see Appendix [-@sec:portfoliotheory-appendix] for a quick introduction to Portfolio Theory). Periodically, we need to decide if one should play safe by putting most of one's money in a savings account, or if  we should allocate investment capital mostly in stocks, or if we should be more speculative and invest in an early-stage startup or in a rare painting. Reviewing the composition and potentially re-allocating capital (refered to as re-balancing one's portfolio) is the problem of dynamic asset-allocation. Note also that we can put some of our *received money* into our investment portfolio (meaning we choose to not consume that money right away). Likewise, we can extract some money out of our investment portfolio so we can *consume money*. The decisions of insertion and extraction of money into/from our investment portfolio is essentially the dynamic money-consumption decision we make, which goes together with the dynamic asset-allocation decision.
+\index{finance!investment portfolio}
 
 The above description has hopefully given you a flavor of the dual and dynamic decisioning of asset-allocation and consumption. Ultimately, our personal goal is to maximize the Expected Aggregated Utility of Consumption of Money over our lifetime (and perhaps, also include the Utility of Consumption of Money for one's spouse and children, after one dies). Since investment portfolios are stochastic in nature and since we have to periodically make decisions on asset-allocation and consumption, you can see that this has all the ingredients of a Stochastic Control problem, and hence can be modeled as a Markov Decision Process (albeit typically fairly complicated, since real-life finances have plenty of nuances). Here's a rough and informal sketch of what that MDP might look like (bear in mind that we will formalize the MDP for simplified cases later in this chapter):
 
 * States: The *State* can be quite complex in general, but mainly it consists of one's age (to keep track of the time to reach the MDP horizon), the quantities of money invested in each investment asset, the valuation of the assets invested in, and potentially also other aspects like one's job/career situation (required to make predictions of future salary possibilities).
+\index{Markov decision process!state}
 
 * Actions: The *Action* is two-fold. Firstly, it's the vector of investment amounts one chooses to make at each time step (the time steps are at the periodicity at which we review our investment portfolio for potential re-allocation of capital across assets). Secondly, it's the quantity of money one chooses to consume that is *flexible*/*optional* (i.e., beyond the fixed payments like rent that we are committed to make).
+\index{Markov decision process!action}
 
 * Rewards: The *Reward* is the Utility of Consumption of Money that we deemed as flexible/optional - it corresponds to the second part of the *Action*. 
+\index{Markov decision process!reward}
+\index{finance!utility of consumption}
 
 * Model: The *Model* (probabilities of next state and reward, given current state and action) can be fairly complex in most real-life situations. The hardest aspect is the prediction of what might happen tomorrow in our life and career (we need this prediction since it determines our future likelihood to receive money, consume money and invest money). Moreover, the uncertain movements of investment assets would need to be captured by our model.
+\index{model}
 
 Since our goal here was to simply do a rough and informal sketch, the above coverage of the MDP is very hazy but we hope you get a sense for what the MDP might look like. Now we are ready to take a simple special case of this MDP which does away with many of the real-world frictions and complexities, yet retains the key features (in particular, the dual dynamic decisioning aspect). This simple special case was the subject of [Merton's Portfolio Problem](https://en.wikipedia.org/wiki/Merton%27s_portfolio_problem) [@Merton1969Portfolio] which he formulated and solved in 1969 in a landmark paper. A key feature of his formulation was that time is continuous and so, *state* (based on asset prices) evolves as a continuous-time stochastic process, and actions (asset-allocation and consumption) are made continuously. We cover the important parts of his paper in the next section. Note that our coverage below requires some familiarity with Stochastic Calculus (covered in Appendix [-@sec:stochasticcalculus-appendix]) and with the Hamilton-Jacobi-Bellman Equation (covered in Appendix [-@sec:hjb-appendix]), which is the continuous-time analog of Bellman's Optimality Equation.
+\index{time!continuous-time}
 
 ### Merton's Portfolio Problem and Solution
+\index{finance!Merton's portfolio problem|(}
 
 Now we describe Merton's Portfolio problem and derive its analytical solution, which is one of the most elegant solutions in Mathematical Economics. The solution structure will provide tremendous intuition for how the asset-allocation and consumption decisions depend on not just the state variables but also on the problem inputs.
 
@@ -36,14 +49,22 @@ We denote time as $t$ and say that current time is $t=0$. Assume that you have j
 
 We define wealth at any time $t$ (denoted $W_t$) as the aggregate market value of your investment assets. Note that since no external money is received and since all consumption is optional, $W_t$ is your "net-worth". Assume there are a fixed number $n$ of risky assets and a single riskless asset. Assume that each risky asset has a known normal distribution of returns. Now we make a couple of big assumptions for analytical tractability:
 
+\index{finance!risky asset|(}
+\index{finance!riskless asset|(}
+\index{time!continuous-time}
+
 * You are allowed to buy or sell any fractional quantities of assets at any point in time (i.e., in continuous time).
 * There are no transaction costs with any of the buy or sell transactions in any of the assets.
 
 You start with wealth $W_0$ at time $t=0$. As mentioned earlier, the goal is to maximize your expected lifetime-aggregated Utility of Consumption of money with the actions at any point in time being two-fold: Asset-Allocation and Consumption (Consumption being equal to the capital extracted from the investment portfolio at any point in time). Note that since there is no external source of money and since all capital extracted from the investment portfolio at any point in time is immediately consumed, you are never adding capital to your investment portfolio. The growth of the investment portfolio can happen only from growth in the market value of assets in your investment portfolio. Lastly, we assume that the Consumption Utility function is Constant Relative Risk-Aversion (CRRA), which we covered in Chapter [-@sec:utility-theory-chapter].
+\index{finance!investment portfolio}
+\index{utility theory!constant relative risk-aversion}
 
 For ease of exposition, we formalize the problem setting and derive Merton's beautiful analytical solution for the case of $n=1$ (i.e., only 1 risky asset). The solution generalizes in a straightforward manner to the case of $n > 1$ risky assets, so it pays to keep the notation and explanations simple, emphasizing intuition rather than heavy technical details.
 
 Since we are operating in continuous-time, the risky asset follows a stochastic process (denoted $S$) - specifically an Ito process (introductory background on Ito processes and Ito's Lemma covered in Appendix [-@sec:stochasticcalculus-appendix]), as follows:
+\index{stochastic process!Ito process}
+\index{time!continuous-time}
 
 $$dS_t = \mu \cdot S_t \cdot dt + \sigma \cdot S_t \cdot dz_t$$
 
@@ -54,7 +75,9 @@ The riskless asset has no uncertainty associated with it and has a fixed rate of
 $$dR_t = r \cdot R_t \cdot dt$$
 
 Assume $r \in \mathbb{R}$ is a fixed constant, representing the instantaneous riskless growth of money. We denote the consumption of wealth (equal to extraction of money from the investment portfolio) per unit time (at time $t$) as $c(t, W_t) \geq 0$ to make it clear that the consumption (our decision at any time $t$) will in general depend on both time $t$ and wealth $W_t$. Note that we talk about "rate of consumption in time" because consumption is assumed to be continuous in time. As mentioned earlier, we denote wealth at time $t$ as $W_t$ (note that $W$ is a stochastic process too). We assume that $W_t > 0$ for all $t \geq 0$. This is a reasonable assumption to make as it manifests in constraining the consumption (extraction from investment portfolio) to ensure wealth remains positive. We denote the fraction of wealth allocated to the risky asset at time $t$ as $\pi(t, W_t)$. Just like consumption $c$, risky-asset allocation fraction $\pi$ is a function of time $t$ and wealth $W_t$. Since there is only one risky asset, the fraction of wealth allocated to the riskless asset at time $t$ is $1 - \pi(t, W_t)$. Unlike the constraint $c(t, W_t) \geq 0$, $\pi(t, W_t)$ is assumed to be unconstrained. Note that $c(t, W_t)$ and $\pi(t, W_t)$ together constitute the decision (MDP action) at time $t$. To keep our notation light, we shall write $c_t$ for $c(t, W_t)$ and $\pi_t$ for $\pi(t, W_t)$, but please do recognize throughout the derivation that both are functions of wealth $W_t$ at time $t$ as well as of time $t$ itself. Finally, we assume that the Utility of Consumption function is defined as:
+\index{utility theory!constant relative risk-aversion}
 
+\index{time!continuous-time}
 $$U(x) = \frac {x^{1-\gamma}} {1 - \gamma}$$
 
 for a risk-aversion parameter $\gamma \neq 1$. This Utility function is essentially the CRRA Utility function (ignoring the constant term $\frac {-1} {1 - \gamma}$) that we covered in Chapter [-@sec:utility-theory-chapter] for $\gamma \neq 1$. $\gamma$ is the Coefficient of CRRA equal to  $\frac {-x \cdot U''(x)} {U'(x)}$. We will not cover the case of CRRA Utility function for $\gamma = 1$ (i.e., $U(x) = \log(x)$), but we encourage you to work out the derivation for $U(x) = \log(x)$ as an exercise.
@@ -75,13 +98,23 @@ Therefore, the infinitesimal change in wealth $dW_t$ from time $t$ to time $t + 
 dW_t = ((r + \pi_t \cdot (\mu - r)) \cdot W_t - c_t) \cdot dt + \pi_t \cdot \sigma \cdot W_t \cdot dz_t \label{eq:wealth-process}
 \end{equation}
 
+\index{stochastic process!Ito process}
+
 Note that this is an Ito process defining the stochastic evolution of wealth.
 
+\index{policy!optimal policy}
 Our goal is to determine optimal $(\pi(t,W_t), c(t, W_t))$ at any time $t$ to maximize:
 $$\mathbb{E}[\int_t^T \frac {e^{-\rho (s-t)} \cdot c_s^{1-\gamma}} {1-\gamma} \cdot ds + \frac {e^{-\rho (T-t)} \cdot B(T) \cdot W_T^{1-\gamma}} {1-\gamma} \mid W_t]$$
 where $\rho \geq 0$ is the utility discount rate to account for the fact that future utility of consumption might be less than current utility of consumption, and $B(\cdot)$ is known as the "bequest" function (think of this as the money you will leave for your family when you die at time $T$). We can solve this problem for arbitrary bequest $B(T)$ but for simplicity, we shall consider $B(T) = \epsilon^{\gamma}$ where $0 < \epsilon \ll 1$, meaning "no bequest". We require the bequest to be $\epsilon^{\gamma}$ rather than 0 for technical reasons, that will become apparent later.
 
 We should think of this problem as a continuous-time Stochastic Control problem where the MDP is defined as below:
+\index{time!continuous-time}
+\index{stochastic control}
+\index{Markov decision process!state!continuous}
+\index{Markov decision process!action!continuous}
+\index{Markov decision process!reward}
+\index{Markov decision process!return}
+\index{policy!optimal policy}
 
 * The *State* at time $t$ is $(t, W_t)$
 * The *Action* at time $t$ is $(\pi_t, c_t)$
@@ -94,12 +127,15 @@ The *Return* at time $t$ is the accumulated discounted *Reward*:
 $$\int_t^T e^{-\rho(s-t)} \cdot \frac {c_s^{1-\gamma}} {1-\gamma} \cdot ds + \frac {e^{-\rho (T-t)} \cdot \epsilon^{\gamma} \cdot W_T^{1-\gamma}} {1-\gamma}$$
 Our goal is to find the *Policy* $: (t, W_t) \rightarrow (\pi_t, c_t)$ that maximizes the *Expected Return*. Note the important constraint that $c_t \geq 0$, but $\pi_t$ is unconstrained.
 
+\index{Bellman equations!Hamilton-Jacobi-Bellman equation}
+\index{value function!optimal value function}
 Our first step is to write out the Hamilton-Jacobi-Bellman (HJB) Equation (the analog of the Bellman Optimality Equation in continuous-time). We denote the Optimal Value Function as $V^*$ such that the Optimal Value for wealth $W_t$ at time $t$ is $V^*(t, W_t)$. Note that unlike Section [-@sec:finite-horizon-section] in Chapter [-@sec:dp-chapter] where we denoted the Optimal Value Function as a time-indexed sequence $V^*_t(\cdot)$, here we make $t$ an explicit functional argument of $V^*$. This is because in the continuous-time setting, we are interested in the time-differential of the Optimal Value Function. Appendix [-@sec:hjb-appendix] provides the derivation of the general HJB formulation (Equation \eqref{eq:hjb} in Appendix [-@sec:hjb-appendix]) - this general HJB Equation specializes here to the following:
 
 \begin{equation}
 \max_{\pi_t, c_t} \{ \mathbb{E}_t[dV^*(t, W_t) + \frac {c_t^{1-\gamma}}{1 - \gamma} \cdot dt\} = \rho \cdot V^*(t, W_t) \cdot dt \label{eq:merton-hjb}
 \end{equation}
 Now use Ito's Lemma on $dV^*$, remove the $dz_t$ term since it's a martingale, and divide throughout by $dt$ to produce the HJB Equation in partial-differential form for any $0 \leq t < T$, as follows (the general form of this transformation appears as Equation \eqref{eq:hjb-ito} in Appendix [-@sec:hjb-appendix]):
+\index{stochastic calculus!Ito's lemma}
 
 \begin{equation}
 \max_{\pi_t, c_t} \{ \pdv{V^*}{t} + \pdv{V^*}{W_t} \cdot ((\pi_t (\mu - r) + r)W_t  - c_t) + \pdv[2]{V^*}{W_t} \cdot \frac {\pi_t^2 \cdot \sigma^2 \cdot W_t^2} {2} + \frac {c_t^{1-\gamma}}{1 - \gamma}\} = \rho \cdot V^*(t, W_t) \label{eq:merton-hjb-ito}
@@ -125,13 +161,16 @@ $$-\pdv{V^*}{W_t} +  (c_t^*)^{-\gamma} = 0$$
 \end{equation}
 
 Now substitute $\pi_t^*$ (from Equation \eqref{eq:pi-star-equation})and $c_t^*$ (from Equation \eqref{eq:c-star-equation}) in $\Phi(t, W_t; \pi_t, c_t)$ (in Equation \eqref{eq:merton-hjb-ito}) and equate to $\rho \cdot V^*(t,W_t)$. This gives us the Optimal Value Function Partial Differential Equation (PDE):
+\index{partial differential equation}
 \begin{equation}
 \pdv{V^*}{t} - \frac {(\mu - r)^2}{2 \sigma^2} \cdot \frac {(\pdv{V^*}{W_t})^2} {\pdv[2]{V^*}{W_t}}  + \pdv{V^*}{W_t} \cdot r \cdot W_t + \frac {\gamma} {1 - \gamma} \cdot (\pdv{V^*}{W_t})^{\frac {\gamma-1} {\gamma}} = \rho \cdot V^*(t, W_t) \label{eq:merton-hjb-pde}
 \end{equation}
 The boundary condition for this PDE is:
 $$V^*(T, W_T) = \epsilon^{\gamma} \cdot \frac {W_T^{1-\gamma}} {1- \gamma}$$
 The second-order conditions for $\Phi$ are satisfied under the assumptions: $c^*_t > 0, W_t > 0, \pdv[2]{V^*}{W_t} < 0$ for all $0 \leq t < T$ (we will later show that these are all satisfied in the solution we derive), and for concave $U(\cdot)$, i.e., $\gamma > 0$
+\index{value function!optimal value function}
 
+\index{ordinary differential equation}
 Next, we want to reduce the PDE \eqref{eq:merton-hjb-pde} to an Ordinary Differential Equation (ODE) so we can solve the (simpler) ODE. Towards this goal, we surmise with a guess solution in terms of a deterministic function ($f$) of time:
 \begin{equation}
 V^*(t, W_t) = f(t)^{\gamma} \cdot \frac {W_t^{1-\gamma}} {1-\gamma} \label{eq:v-star-guess}
@@ -165,6 +204,7 @@ T-t+\epsilon & \text{for } \nu = 0 \\
 
 Substituting $V^*$ (from Equation \eqref{eq:v-star-guess}) and its partial derivatives (from Equations \eqref{eq:v-star-guess-tderiv}, \eqref{eq:v-star-guess-wderiv} and \eqref{eq:v-star-guess-wderiv2}) in Equations \eqref{eq:pi-star-equation} and \eqref{eq:c-star-equation}, we get:
 
+\index{policy!optimal policy}
 \begin{equation}
 \pi^*(t, W_t) = \frac {\mu - r} {\sigma^2 \gamma} \label{eq:pi-star-solution}
 \end{equation}
@@ -186,9 +226,12 @@ V^*(t, W_t) =
 \end{cases}
 \label{eq:v-star-solution}
 \end{equation}
+\index{value function!optimal value function}
 
 Note that $f(t) > 0$ for all $0 \leq t < T$ (for all $\nu$) ensures $W_t > 0, $c^*_t > 0, \pdv[2]{V^*}{W_t} < 0$. This ensures the constraints $W_t > 0$ and $c_t \geq 0$ are satisfied and the second-order conditions for $\Phi$ are also satisfied.
 A very important lesson in solving Merton's Portfolio problem is the fact that the HJB Formulation is key and that this solution approach provides a template for similar continuous-time stochastic control problems.
+\index{time!continuous-time}
+\index{stochastic control}
 
 ### Developing Intuition for the Solution to Merton's Portfolio Problem
 
@@ -218,6 +261,7 @@ W_0 \cdot e^{(r + \frac {(\mu - r)^2} {\sigma^2 \gamma})t} \cdot (1 - \frac t {T
 Since we assume no bequest, we should expect the Wealth process to keep growing up to some point in time and then fall all the way down to 0 when time runs out (i.e., when $t=T$). We shall soon write the code for Equation \eqref{eq:expected-wealth} and plot the graph for this rise and fall. An important point to note is that although the wealth process growth varies in time (expected wealth growth rate = $r + \frac {(\mu - r)^2} {\sigma^2 \gamma} - \frac 1 {f(t)}$ as seen from Equation \eqref{eq:optimal-wealth-process}), the variation (in time) of the wealth process growth is only due to the fractional consumption rate varying in time. If we ignore the fractional consumption rate ($=\frac 1 {f(t)}$), then what we get is the Expected Portfolio Annual Return of $r + \frac {(\mu - r)^2} {\sigma^2 \gamma}$ which is a constant (does not depend on either time $t$ or on Wealth $W_t^*$). Now let us write some code to calculate the time-trajectories of Expected Wealth, Fractional Consumption Rate, Expected Wealth Growth Rate and Expected Portfolio Annual Return.
 
 The code should be pretty self-explanatory. We will just provide a few explanations of variables in the code that may not be entirely obvious: `portfolio_return` calculates the Expected Portfolio Annual Return, `nu` calculates the value of $\nu$, `f` represents the function $f(t)$, `wealth_growth_rate` calculates the Expected Wealth Growth Rate as a function of time $t$. The `expected_wealth` method assumes $W_0 = 1$.
+\index{MertonPortfolio@\texttt{MertonPortfolio}}
 
 ```python
 @dataclass(frozen=True)
@@ -280,16 +324,20 @@ A rather interesting observation is that if $r + \frac {(\mu - r)^2} {\sigma^2 \
 <div style="text-align:center" markdown="1">
 ![Portfolio Return and Consumption Rate \label{fig:merton-solution-rate-curves}](./chapter7/portfolio_growth.png "Portfolio Return and Consumption Rate")
 </div>
+\index{finance!return}
 
 Figure \ref{fig:merton-solution-wealth-trajectory} shows the time-trajectory of the expected wealth based on Equation \eqref{eq:expected-wealth} for the same input values as listed above. Notice how the Expected Wealth rises in a convex shape for several years since the consumption during all these years is quite modest, and then the shape of the Expected Wealth curve turns concave at about 12 years, peaks at about 16 years (when Fractional Consumption Rate rises to equal Expected Portfolio Annual Return), and then falls precipitously in the last couple of years (as the Consumption increasingly drains the Wealth down to 0).
 
 <div style="text-align:center" markdown="1">
 ![Expected Wealth Time-Trajectory \label{fig:merton-solution-wealth-trajectory}](./chapter7/wealth_trajectory.png "Expected Wealth Time-Trajectory")
 </div>
+\index{finance!Merton's portfolio problem|)}
 
 ### A Discrete-Time Asset-Allocation Example {#sec:discrete-asset-alloc}
+\index{time!discrete-time}
 
 In this section, we cover a discrete-time version of the problem that lends itself to analytical tractability, much like Merton's Portfolio Problem in continuous-time. We are given wealth $W_0$ at time 0. At each of discrete time steps labeled $t = 0, 1, \ldots, T-1$, we are allowed to allocate the wealth $W_t$ at time $t$ to a portfolio of a risky asset and a riskless asset in an unconstrained manner with no transaction costs. The risky asset yields a random return $\sim \mathcal{N}(\mu, \sigma^2)$ over each single time step (for a given $\mu \in \mathbb{R}$ and a given $\sigma \in \mathbb{R}^+$). The riskless asset yields a constant return denoted by $r$ over each single time step (for a given $r \in \mathbb{R}$).  We assume that there is no consumption of wealth at any time $t < T$, and that we liquidate and consume the wealth $W_T$ at time $T$. So our goal is simply to maximize the Expected Utility of Wealth at the final time step $t=T$ by dynamically allocating $x_t \in \mathbb{R}$ in the risky asset and the remaining $W_t - x_t$ in the riskless asset for each $t = 0, 1, \ldots, T-1$. Assume the single-time-step discount factor is $\gamma$ and that the Utility of Wealth at the final time step $t=T$ is given by the following CARA function:
+\index{utility theory!constant absolute risk-aversion}
 
 $$U(W_T) = \frac {1 - e^{-a W_T}} {a} \text{ for some fixed } a \neq 0$$
 
@@ -306,6 +354,12 @@ Since $\gamma^{T-t}$ and $a$ are constants, this is equivalent to maximizing, fo
 We formulate this problem as a *Continuous States* and *Continuous Actions* discrete-time finite-horizon MDP by specifying it's *State Transitions*, *Rewards* and *Discount Factor* precisely. The problem then is to solve the MDP's Control problem to find the Optimal Policy.
 
 The terminal time for the finite-horizon MDP is $T$ and hence, all the states at time $t=T$ are terminal states. We shall follow the notation of finite-horizon MDPs that we had covered in Section [-@sec:finite-horizon-section] of Chapter [-@sec:dp-chapter]. The *State* $s_t \in \mathcal{S}_t$ at any time step $t = 0, 1, \ldots, T$ consists of the wealth $W_t$. The decision (*Action*) $a_t \in \mathcal{A}_t$ at any time step $t = 0, 1, \ldots, T-1$ is the quantity of investment in the risky asset ($=x_t$). Hence, the quantity of investment in the riskless asset at time $t$ will be $W_t - x_t$. A deterministic policy at time $t$ (for all $t = 0, 1, \ldots T-1$) is denoted as $\pi_t$, and hence, we write: $\pi_t(W_t) = x_t$. Likewise, an optimal deterministic policy at time $t$ (for all $t = 0, 1, \ldots, T-1$) is denoted as $\pi^*_t$, and hence, we write: $\pi^*_t(W_t) = x^*_t$.
+\index{Markov decision process!state!continuous}
+\index{Markov decision process!action!continuous}
+\index{Markov decision process!reward}
+\index{time!discrete-time}
+\index{discount factor}
+\index{model}
 
 Denote the random variable for the single-time-step return of the risky asset from time $t$ to time $t+1$ as $Y_t \sim \mathcal{N}(\mu, \sigma^2)$ for all $t = 0, 1, \ldots T-1$. So,
 
@@ -321,6 +375,9 @@ The MDP *Reward* is 0 for all $t = 0, 1, \ldots, T-1$. As a result of the simpli
 $$\frac {- e^{-a W_T}} {a}$$
 
 We set the MDP discount factor to be $\gamma = 1$ (again, because of the simplified objective \eqref{eq:asset-alloc-discrete-objective} above).
+\index{dynamic programming!finite-horizon|(}
+\index{value function!optimal value function|(}
+\index{Bellman equations!Bellman optimality equation for finite-horizon|(}
 
 We denote the Value Function at time $t$ (for all $t = 0, 1, \ldots, T-1$) for a given policy $\pi = (\pi_0, \pi_1, \ldots, \pi_{T-1})$ as:
 $$V^{\pi}_t(W_t) = \mathbb{E}_{\pi}[\frac {- e^{-a W_T}} a | (t, W_t)]$$
@@ -355,6 +412,7 @@ V^*_t(W_t) = \max_{x_t} \{-b_{t+1} \cdot e^{-c_{t+1} \cdot (1 + r) \cdot W_t - c
 
 Since $V^*_t(W_t) = \max_{x_t} Q^*_t(W_t, x_t)$, from Equation \eqref{eq:bellman-optimality-asset-alloc-discrete}, we can infer the functional form for $Q^*_t(W_t, x_t)$ in terms of $b_{t+1}$ and $c_{t+1}$:
 
+\index{value function!optimal action-value function|(}
 \begin{equation}
 Q^*_t(W_t, x_t) = -b_{t+1} \cdot e^{-c_{t+1} \cdot (1 + r) \cdot W_t - c_{t+1} \cdot (\mu - r) \cdot x_t + c^2_{t+1} \cdot \frac {\sigma^2} {2} \cdot x_t^2} \label{eq:q-star-functional-discrete}
 \end{equation}
@@ -411,6 +469,11 @@ Substituting the solutions for $b_t$ and $c_t$ in Equation \eqref{eq:v-star-func
 V^*_t(W_t) = \frac {- e^{- \frac {(\mu - r)^2 (T-t)} {2 \sigma^2}}} a \cdot e^{- a (1+ r)^{T-t} \cdot W_t} \label{eq:v-star-solution-discrete}
 \end{equation}
 for all $t = 0, 1, \ldots, T-1$.
+\index{dynamic programming!finite-horizon|)}
+\index{value function!optimal value function|)}
+\index{value function!optimal action-value function|)}
+\index{policy!optimal policy|)}
+\index{Bellman equations!Bellman optimality equation for finite-horizon|)}
 
 Substituting the solutions for $b_{t+1}$ and $c_{t+1}$ in Equation \eqref{eq:q-star-functional-discrete} gives us the solution for the Optimal Action-Value Function:
 \begin{equation}
@@ -421,6 +484,10 @@ for all $t = 0, 1, \ldots, T-1$.
 ### Porting to Real-World {#sec:asset-alloc-discrete-code}
 
 We have covered a continuous-time setting  and a discrete-time setting with simplifying assumptions that provide analytical tractability. The specific simplifying assumptions that enabled analytical tractability were:
+\index{time!continuous-time}
+\index{time!discrete-time}
+\index{probability!normal distribution}
+\index{finance!frictionless market}
 
 * Normal distribution of asset returns
 * CRRA/CARA assumptions
@@ -429,6 +496,8 @@ We have covered a continuous-time setting  and a discrete-time setting with simp
 But real-world problems involving dynamic asset-allocation and consumption are not so simple and clean. We have arbitrary, more complex asset price movements. Utility functions don't fit into simple CRRA/CARA formulas. In practice, trading often occurs in discrete space - asset prices, allocation amounts and consumption are often discrete quantities. Moreover, when we change our asset allocations or liquidate a portion of our portfolio to consume, we incur transaction costs. Furthermore, trading doesn't always happen in continuous-time - there are typically specific  windows of time where one is locked-out from trading or there are trading restrictions. Lastly, many investments are illiquid (eg: real-estate) or simply not allowed to be liquidated until a certain horizon (eg: retirement funds), which poses major constraints on extracting money from one's portfolio for consumption. So even though prices/allocation amounts/consumption might be close to being continuous-variables, the other above-mentioned frictions mean that we don't get the benefits of calculus that we obtained in the simple examples we covered.
 
 With the above real-world considerations, we need to tap into Dynamic Programming  - more specifically, Approximate Dynamic Programming since real-world problems have large state spaces and large action spaces (even if these spaces are not continuous, they tend to be close to continuous). Appropriate function approximation of the Value Function is key to solving these problems. Implementing a full-blown real-world investment and consumption management system is beyond the scope of this book, but let us implement an illustrative example that provides sufficient understanding of how a full-blown real-world example would be implemented. We have to keep things simple enough and yet sufficiently general. So here is the setting we will implement for:
+\index{dynamic programming!approximate!finite-horizon|(}
+\index{time!discrete-time}
 
 * One risky asset and one riskless asset.
 * Finite number of time steps (discrete-time setting akin to Section [-@sec:discrete-asset-alloc]).
@@ -445,8 +514,14 @@ The code in the class `AssetAllocDiscrete` below is fairly self-explanatory. We 
 * A `QValueFunctionApprox[float], float]` object, prepared by  `get_qvf_func_approx`. This method sets up a `DNNApprox[Tuple[NonTerminal[float], float]]` object that represents a neural-network function approximation for the optimal Q-Value Function. So the input to this neural network would be a `Tuple[NonTerminal[float], float]` representing a (state, action) pair. 
 * An `NTStateDistribution[float]` object prepared by `get_states_distribution`, which returns a `SampledDistribution[NonTerminal[float]]` representing the distribution of non-terminal states (distribution of portfolio wealth) at each time step. 
 
-    The `SampledDistribution[NonTerminal[float]]` is prepared by `states_sampler_func` that generates a sampling trace by sampling the state-transitions (portfolio wealth transitions) from time 0 to the given time step in a time-incremental manner (invoking the `sample` method of the risky asset's return `Distribution`s and the `sample` method of a uniform distribution over the action choices specified by `risky_alloc_choices`).
+The `SampledDistribution[NonTerminal[float]]` is prepared by `states_sampler_func` that generates a sampling trace by sampling the state-transitions (portfolio wealth transitions) from time 0 to the given time step in a time-incremental manner (invoking the `sample` method of the risky asset's return `Distribution`s and the `sample` method of a uniform distribution over the action choices specified by `risky_alloc_choices`).
 
+\index{value function!optimal action-value function}
+\index{probability!probability distribution}
+\index{probability!sampling}
+\index{function approximation!neural network}
+
+\index{AssetAllocDiscrete@\texttt{AssetAllocDiscrete}}
 
 ```python
 from rl.distribution import Distribution, SampledDistribution, Choose
@@ -579,6 +654,7 @@ $$x^*_t = \frac {1.5} {{1.07}^{4-t}}$$
 Therefore, we set `risky_alloc_choices` (action choices) in the range [1.0, 2.0] in increments of 0.1 to see if our code can hit the correct values within the 0.1 granularity of action choices.
 
 To specify `feature_functions` and `dnn_spec`, we need to leverage the functional form of the closed-form solution for the Action-Value function (i.e., Equation \eqref{eq:q-star-solution-discrete}). We observe that we can write this as:
+\index{value function!optimal action-value function}
 
 $$Q^*_t(W_t, x_t) = - sign(a) \cdot e^{-(\alpha_0 + \alpha_1 \cdot W_t + \alpha_2 \cdot x_t + \alpha_3 \cdot x_t^2)}$$
 where
@@ -593,6 +669,8 @@ $$\phi_1((W_t, x_t)) = 1$$
 $$\phi_2((W_t, x_t)) = W_t$$
 $$\phi_3((W_t, x_t)) = x_t$$
 $$\phi_4((W_t, x_t)) = x_t^2$$
+
+\index{function approximation!feature functions}
 
 We set `initial_wealth_distribution` to be a normal distribution with a mean of `init_wealth` (set equal to 1.0 below) and a standard distribution of `init_wealth_stdev` (set equal to a small value of 0.1 below).
 
@@ -652,6 +730,8 @@ aad: AssetAllocDiscrete = AssetAllocDiscrete(
 ```
 
 Next, we perform the Q-Value backward induction, step through the returned iterator (fetching the Q-Value function for each time step from $t=0$ to $t=T-1$), and evaluate the Q-values at the `init_wealth` (for each time step) for all `alloc_choices`. Performing a $\max$ and $\argmax$ over the `alloc_choices` at the `init_wealth` gives us the Optimal Value function and the Optimal Policy for each time step for wealth equal to `init_wealth`. 
+\index{value function!optimal value function}
+\index{policy!optimal policy}
 
 ```python
 from pprint import pprint
@@ -766,8 +846,16 @@ x_t^2 Weight = -0.020
 
 As mentioned previously, this serves as a good test for the correctness of the implementation of `AssetAllocDiscrete`.   
 We need to point out here that the general case of dynamic asset allocation and consumption for a large number of risky assets will involve a continuous-valued action space of high dimension. This means ADP algorithms will have challenges in performing the $\max/\argmax$ calculation across this large and continuous action space. Even many of the RL algorithms find it challenging to deal with very large action spaces. Sometimes we can take advantage of the specifics of the control problem to overcome this challenge. But in a general setting, these large/continuous action space require special types of RL algorithms that are well suited to tackle such action spaces. One such class of RL algorithms is Policy Gradient Algorithms that we shall learn in Chapter [-@sec:policy-gradient-chapter].
+\index{reinforcement learning!policy gradient}
+\index{dynamic programming!approximate!finite-horizon|)}
 
 ### Key Takeaways from this Chapter
 
 * A fundamental problem in Mathematical Finance is that of jointly deciding on A) optimal investment allocation (among risky and riskless investment assets) and B) optimal consumption, over a finite horizon. Merton, in his landmark paper from 1969, provided an elegant closed-form solution under assumptions of continuous-time, normal distribution of returns on the assets, CRRA utility, and frictionless transactions.
 * In a more general setting of the above problem, we need to model it as an MDP. If the MDP is not too large and if the asset return distributions are known, we can employ finite-horizon ADP algorithms to solve it. However, in typical real-world situations, the action space can be quite large and the asset return distributions are unknown. This points to RL, and specifically RL algorithms that are well suited to tackle large action spaces (such as Policy Gradient Algorithms).
+
+\index{finance!asset allocation!dynamic|)}
+\index{finance!utility of consumption|)}
+\index{finance!risky asset|)}
+\index{finance!riskless asset|)}
+\index{stochastic control|seealso{Markov decision process, control}}

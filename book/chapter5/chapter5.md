@@ -11,15 +11,25 @@ So, in this chapter, we do a quick review of function approximation, write some 
 
 ### Function Approximation
 
+\index{function approximation|(}
+
+\index{probability!probability distribution}
 In this section, we describe function approximation in a fairly generic setting (not specific to approximation of Value Functions or Policies). We denote the predictor variable as $x$, belonging to an arbitrary domain denoted $\mathcal{X}$ and the response variable as $y \in \mathbb{R}$. We treat $x$ and $y$ as unknown random variables and our goal is to estimate the probability distribution function $f$ of the conditional random variable $y|x$ from data provided in the form of a sequence of $(x,y)$ pairs. We shall consider parameterized functions $f$ with the parameters denoted as $w$. The exact data type of $w$ will depend on the specific form of function approximation. We denote the estimated probability of $y$ conditional on $x$ as $f(x; w)(y)$. Assume we are given data in the form of a sequence of $n$ $(x,y)$ pairs, as follows:
 $$[(x_i, y_i)|1 \leq i \leq n]$$
 The notion of estimating the conditional probability $\mathbb{P}[y|x]$ is formalized by solving for $w=w^*$ such that:
+\index{maximum likelihood estimation|textbf}
+\index{probability!empirical probability distribution}
+\index{function approximation!cross-entropy loss function|textbf}
 $$w^* = \argmax_w \{ \prod_{i=1}^n f(x_i; w)(y_i)\} = \argmax_w \{ \sum_{i=1}^n \log f(x_i; w)(y_i)\}$$
 In other words, we shall be operating in the framework of [Maximum Likelihood Estimation](https://en.wikipedia.org/wiki/Maximum_likelihood_estimation). We say that the data $[(x_i, y_i)|1 \leq i \leq n]$ specifies the *empirical probability distribution* $D$ of $y|x$ and the function $f$ (parameterized by $w$) specifies the *model probability distribution* $M$ of $y|x$. With maximum likelihood estimation, we are essentially trying to reconcile the model probability distribution $M$ with the empirical probability distribution $D$. Hence, maximum likelihood estimation is essentially minimization of a loss function defined as the [cross-entropy](https://en.wikipedia.org/wiki/Cross_entropy) $\mathcal{H}(D, M) = -\mathbb{E}_D[\log M]$ between the probability distributions $D$ and $M$. The term *function approximation* refers to the fact that the model probability distribution $M$ serves as an approximation to some true probability distribution that is only partially observed through the empirical probability distribution $D$.
+
+\index{function approximation!incremental estimation}
 
 Our framework will allow for incremental estimation wherein at each iteration $t$ of the incremental estimation (for $t=1, 2, \ldots$), data of the form
 
 $$[(x_{t,i}, y_{t,i})|1 \leq i \leq n_t]$$
+
+\index{function approximation!gradient descent}
 
 is used to update the parameters from $w_{t-1}$ to $w_t$ (parameters initialized at iteration $t=0$ to $w_0$). This framework can be used to update the parameters incrementally with a gradient descent algorithm, either stochastic gradient descent (where a single $(x,y)$ pair is used for each iteration's gradient calculation) or mini-batch gradient descent (where an appropriate subset of the available data is used for each iteration's gradient calculation) or simply re-using the entire data available for each iteration's gradient calculation (and consequent, parameters update). Moreover, the flexibility of our framework, allowing for incremental estimation, is particularly important for Reinforcement Learning algorithms wherein we update the parameters of the function approximation from the new data that is generated from each state transition as a result of interaction with either the real environment or a simulated environment.
 
@@ -55,6 +65,8 @@ The `update` method implements this chain-rule calculation, by setting `obj_deri
 Note that the `Gradient` class contains a single attribute of type `FunctionApprox` so that a `Gradient` object can represent the gradient values in the form of the internal parameters of the `FunctionApprox` attribute (since each gradient value is simply a partial derivative with respect to an internal parameter).
 
 We use the `TypeVar` `F` to refer to a concrete class that would implement the abstract interface of `FunctionApprox`.
+
+\index{FunctionApprox@\texttt{FunctionApprox}}
 
 ```python
 from abc import ABC, abstractmethod
@@ -160,6 +172,9 @@ Now we are ready to cover a concrete but simple function approximation - the cas
 
 ### Linear Function Approximation
 
+\index{function approximation!linear|(}
+\index{function approximation!feature functions}
+
 We define a sequence of feature functions
 $$\phi_j: \mathcal{X} \rightarrow \mathbb{R} \text{ for each } j = 1, 2, \ldots, m$$
 and we define $\bm{\phi}: \mathcal{X} \rightarrow \mathbb{R}^m$ as:
@@ -174,6 +189,8 @@ $$\mathbb{P}[y|x] = f(x;\bm{w})(y) = \frac {1} {\sqrt{2\pi \sigma^2}} \cdot e^{-
 So, the cross-entropy loss function (ignoring constant terms associated with $\sigma^2$) for a given set of data points $[x_i, y_i|1 \leq i \leq n]$ is defined as:
 $$\mathcal{L}(\bm{w}) = \frac 1 {2n} \cdot \sum_{i=1}^n (\bm{\phi}(x_i)^T \cdot \bm{w} - y_i)^2$$
 Note that this loss function is identical to the mean-squared-error of the linear (in $\bm{w}$) predictions $\bm{\phi}(x_i)^T \cdot \bm{w}$ relative to the response values $y_i$ associated with the predictor values $x_i$, over all $1\leq i \leq n$.
+
+\index{function approximation!regularization}
 
 If we include $L^2$ regularization (with $\lambda$ as the regularization coefficient), then the regularized loss function is:
 
@@ -193,6 +210,9 @@ $$\frac {\partial Obj(x_i, y_i)} {\partial Out(x_i)} = \bm{\phi}(x_i)^T \cdot \b
 
 $$\nabla_{\bm{w}} Out(x_i) = \nabla_{\bm{w}} (\bm{\phi}(x_i)^T \cdot \bm{w}) = \bm{\phi}(x_i)$$
 
+\index{function approximation!incremental estimation}
+\index{function approximation!gradient descent}
+
 We can solve for $\bm{w^*}$ by incremental estimation using gradient descent (change in $\bm{w}$ proportional to the gradient estimate of $\mathcal{L}(\bm{w})$ with respect to $\bm{w}$). If the $(x_t, y_t)$ data at time $t$ is:
 
 $$[(x_{t,i}, y_{t,i})|1 \leq i \leq n_t]$$,
@@ -205,6 +225,9 @@ which can be interpreted as the mean (over the data in iteration $t$) of the fea
 Then, the update to the weights vector $\bm{w}$ is given by:
 
 $$\bm{w}_{t+1} = \bm{w}_t - \alpha_t \cdot \mathcal{G}_{(x_t, y_t)}(\bm{w}_t)$$
+
+\index{function approximation!gradient descent!learning rate}
+\index{function approximation!gradient descent!ADAM}
 
 where $\alpha_t$ is the learning rate for the gradient descent at time $t$. To facilitate numerical convergence, we require $\alpha_t$ to be an appropriate function of time $t$. There are a number of numerical algorithms to achieve the appropriate time-trajectory of $\alpha_t$. We shall go with one such numerical algorithm - [ADAM](https://arxiv.org/pdf/1412.6980.pdf) [@KinBa17], which we shall use not just for linear function approximation but later also for the deep neural network function approximation. Before we write code for linear function approximation, we need to write some helper code to implement the ADAM gradient descent algorithm.
 
@@ -287,6 +310,7 @@ With this `Weights` class, we are ready to write the dataclass `LinearFunctionAp
 
 The method `evaluate` (an abstract method in `FunctionApprox`) calculates the prediction $\mathbb{E}_M[y|x]$ for each input $x$ as: $\bm{\phi}(x)^T \cdot \bm{w} = \sum_{j=1}^m \phi_j(x) \cdot w_i$. The method `objective_gradient` (from `FunctionApprox`) performs the calculation $\mathcal{G}_{(x_t, y_t)}(\bm{w}_t)$ shown above: the mean of the feature vectors $\bm{\phi}(x_{t,i})$ weighted by the (scalar) linear prediction errors $\bm{\phi}(x_{t,i})^T \cdot \bm{w}_t - y_{t,i}$ (plus regularization term $\lambda \cdot \bm{w}_t$). The variable `obj_deriv_out` takes the role of the linear prediction errors, when `objective_gradient` is invoked by the `update` method through the method `update_with_gradient`. The method `update_with_gradient` (from `FunctionApprox`) updates the weights using the calculated gradient along with the ADAM cache updates (invoking the `update` method of the `Weights` class to ensure there are no in-place updates), and returns a new `LinearFunctionApprox` object containing the updated weights.
 
+\index{LinearFunctionApprox@\texttt{LinearFunctionApprox}}
 
 ```python
 from dataclasses import replace
@@ -423,8 +447,11 @@ import rl.iterate import iterate
 
 The above code is in the file [rl/function_approx.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/function_approx.py). 
 
-### Neural Network Function Approximation
+\index{function approximation!linear|)}
 
+### Neural Network Function Approximation
+\index{function approximation!neural network|(}
+\index{function approximation!feature functions}
 Now we generalize the linear function approximation to accommodate non-linear functions with a simple deep neural network, specifically a feed-forward fully-connected neural network. We work with the same notation $\bm{\phi}(\cdot) = (\phi_1(\cdot), \phi_2(\cdot), \ldots, \phi_m(\cdot))$ for feature functions that we covered for the case of linear function approximation. Assume we have $L$ hidden layers in the neural network. Layers numbered $l = 0, 1, \ldots, L - 1$ carry the hidden layer neurons and layer $l = L$ carries the output layer neurons.
 
 A couple of things to note about our notation for vectors and matrices when performing linear algebra operations: Vectors will be treated as column vectors (including gradient of a scalar with respect to a vector). The gradient of a vector of dimension $m$ with respect to a vector of dimension $n$ is expressed as a Jacobian matrix with $m$ rows and $n$ columns. We use the notation $dim(\bm{v})$ to refer to the dimension of a vector $\bm{v}$.
@@ -445,21 +472,28 @@ The neurons in layer $l$ define a linear transformation from layer input $\bm{i_
 \label{eq:layer_linearity}
 \end{equation}
 
+\index{function approximation!neural network!activation function}
+
 We denote the activation function of layer $l$ as $g_l: \mathbb{R} \rightarrow \mathbb{R}$ for all $l = 0, 1, \ldots, L$. The activation function $g_l$ applies point-wise on each dimension of vector $\bm{s_l}$, so we take notational liberty with $g_l$ by writing:
 \begin{equation}
 \bm{o_l} = g_l(\bm{s_l}) \text{ for all } l = 0, 1, \ldots, L
 \label{eq:layer_non_linearity}
 \end{equation}
 
+\index{function approximation!neural network!forward propagation|textbf}
+
 Equations \eqref{eq:layers_input_output_connect}, \eqref{eq:layer_linearity} and \eqref{eq:layer_non_linearity} together define the calculation of the neural network prediction $\bm{o_L}$ (associated with the response variable $y$), given the predictor variable $x$. This calculation is known as *forward-propagation* and will define the `evaluate` method of the deep neural network function approximation class we shall soon write.
 
+\index{function approximation!cross-entropy loss function}
 Our goal is to derive an expression for the cross-entropy loss gradient $\nabla_{\bm{w_l}} \mathcal{L}$ for all $l = 0, 1, \ldots, L$. For ease of understanding, our following exposition will be expressed in terms of the cross-entropy loss function for a single predictor variable input $x \in \mathcal{X}$ and it's associated single response variable $y \in \mathbb{R}$ (the code will generalize appropriately to the cross-entropy loss function for a given set of data points $[x_i, y_i|1 \leq i \leq n]$).
 
 We can reduce this problem of calculating the cross-entropy loss gradient to the problem of calculating $\bm{P_l} = \nabla_{\bm{s_l}} \mathcal{L}$ for all $l = 0, 1, \ldots, L$, as revealed by the following chain-rule calculation:
 $$\nabla_{\bm{w_l}} \mathcal{L} = (\nabla_{\bm{s_l}} \mathcal{L})^T \cdot \nabla_{\bm{w_l}} \bm{s_l} = \bm{P_l}^T \cdot \nabla_{\bm{w_l}} \bm{s_l} = \bm{P_l} \cdot \bm{i_l}^T \text{ for all } l = 0, 1, \ldots L$$
+\index{outer product}
 
 Note that $\bm{P_l} \cdot \bm{i_l}^T$ represents the [outer-product](https://en.wikipedia.org/wiki/Outer_product) of the $dim(\bm{o_l})$-size vector $\bm{P_l}$ and the $dim(\bm{i_l})$-size vector $\bm{i_l}$ giving a matrix of size $dim(\bm{o_l}) \times dim(\bm{i_l})$.
 
+\index{function approximation!regularization}
 If we include $L^2$ regularization (with $\lambda_l$ as the regularization coefficient for layer $l$), then:
 
 \begin{equation}
@@ -495,8 +529,11 @@ $\bm{\phi}(x)$ & Feature Vector for predictor variable $x$ \\
 \end{tabular}
 \end{center}
 
+\index{function approximation!neural network!recursive gradient formulation}
+
 Now that we have reduced the loss gradient calculation to calculation of $\bm{P_l}$, we spend the rest of this section deriving the analytical calculation of $\bm{P_l}$. The following theorem tells us that $\bm{P_l}$ has a recursive formulation that forms the core of the *back-propagation* algorithm for a feed-forward fully-connected deep neural network.
 
+\index{hadamard product}
 \begin{theorem}
 For all $l = 0, 1, \ldots, L-1$,
 $$\bm{P_l} = (\bm{w_{l+1}}^T \cdot \bm{P_{l+1}}) \circ g_l'(\bm{s_l})$$
@@ -526,6 +563,7 @@ Now all we need to do is to calculate $\bm{P_L} = \nabla_{\bm{s_L}} \mathcal{L}$
 Firstly, note that $\bm{s_L}, \bm{o_L}, \bm{P_L}$ are all scalars, so let's just write them as $s_L, o_L, P_L$ respectively (without the bold-facing) to make it explicit in the derivation that they are scalars. Specifically, the gradient
 $$\nabla_{\bm{s_L}} \mathcal{L} = \frac {\partial \mathcal{L}}{\partial s_L}$$
 
+\index{probability!probability distribution}
 To calculate $\frac {\partial \mathcal{L}} {\partial s_L}$, we need to assume a functional form for $\mathbb{P}[y|s_L]$. We work with a fairly generic exponential functional form for the probability distribution function:
 
 $$p(y|\theta, \tau) = h(y, \tau) \cdot e^{\frac {\theta \cdot y - A(\theta)} {d(\tau)}}$$
@@ -568,6 +606,7 @@ So to satisfy $o_L = g_L(s_L) = \mathbb{E}_p[y|s_L]$, we require that
 o_L = g_L(s_L) = A'(s_L)
 \label{eq:glm_eqn}
 \end{equation}
+\index{generalized linear models}
 The above equation is important since it tells us that the output layer activation function $g_L(\cdot)$ must be set to be the derivative of the $A(\cdot)$ function. In the theory of generalized linear models, the derivative of the $A(\cdot)$ function serves as the *canonical link function* for a given probability distribution of the response variable conditional on the predictor variable.
 
 Now we are equipped to derive a simple expression for $P_L$.
@@ -591,6 +630,7 @@ $$P_L = \frac {\partial \mathcal{L}}{\partial s_L} = \frac {o_L - y}{d(\tau)}$$
 \end{proof}
 
 At each iteration of gradient descent, we require an estimate of the loss gradient up to a constant factor. So we can ignore the constant $d(\tau)$ and simply say that $P_L = o_L - y$ (up to a constant factor). This is a rather convenient estimate of $P_L$ for a given data point $(x,y)$ since it represents the neural network prediction error for that data point. When presented with a sequence of data points $[(x_{t,i}, y_{t,i})|1\leq i \leq n_t]$ in iteration $t$, we simply average the prediction errors across these presented data points. Then, beginning with this estimate of $P_L$, we can use the recursive formulation of $\bm{P_l}$ (Theorem \ref{th:recursive_gradient_formulation}) to calculate the gradient of the loss function (Equation \eqref{eq:loss_gradient_formula}) with respect to all the parameters of the neural network (this is known as the back-propagation algorithm for a fully-connected feed-forward deep neural network).
+\index{function approximation!neural network!back propagation|textbf}
 
 Here are some common specializations of the functional form for the conditional probability distribution $\mathbb{P}[y|s_L]$, along with the corresponding canonical link function that serves as the activation function $g_L$ of the output layer:
 
@@ -655,6 +695,8 @@ The method `objective_gradient` (from `FunctionApprox`) takes as input an `Itera
 The method `update_with_gradient` (from `FunctionApprox`) takes as input a gradient (eg: $\nabla_{\bm{w_l}} Obj$), updates the weights $\bm{w_l}$ for all $l = 0, 1, \ldots, L$ along with the ADAM cache updates (invoking the `update` method of the `Weights` class to ensure there are no in-place updates), and returns a new instance of `DNNApprox` that contains the updated weights.
 
 Finally, the method `solve` (from `FunctionApprox`) utilizes the method `iterate_updates` (inherited from `FunctionApprox`) along with the method `within` to perform a best-fit of the weights that minimizes the cross-entropy loss function (basically, a series of incremental `update`s based on gradient descent).
+
+\index{DNNApprox@\texttt{DNNApprox}}
 
 ```python
 from dataclasses import replace
@@ -960,7 +1002,11 @@ The plot of `linear_model_rmse_seq` and `dnn_model_rmse_seq` is shown in Figure 
 ![SGD Convergence \label{fig:sgd_convergence}](./chapter5/rmse.png "SGD Convergence")
 </div>
 
+\index{function approximation!neural network|)}
+
 ### Tabular as a form of `FunctionApprox` {#sec:tabular-funcapprox-section}
+
+\index{tabular algorithms|(}
 
 Now we consider a simple case where we have a fixed and finite set of $x$-values $\mathcal{X} = \{x_1, x_2, \ldots, x_n\}$, and any data set of $(x,y)$ pairs made available to us needs to have it's $x$-values from within this finite set $\mathcal{X}$. The prediction $\mathbb{E}[y|x]$ for each $x \in \mathcal{X}$ needs to be calculated only from the $y$-values associated with this $x$ within the data set of $(x,y)$ pairs. In other words, the $y$-values in the data associated with other $x$ should not influence the prediction for $x$. Since we'd like the prediction for $x$ to be $\mathbb{E}[y|x]$, it would make sense for the prediction for a given $x$ to be *some sort of average* of all the $y$-values associated with $x$ within the data set of $(x,y)$ pairs seen so far. This simple case is refered to as *Tabular* because we can store all $x \in \mathcal{X}$ together with their corresponding predictions $\mathbb{E}[y|x]$ in a finite data structure (loosely refered to as a "table").
 
@@ -979,6 +1025,8 @@ So now let us write the code for `@dataclass Tabular` as an implementation of th
 * `count_to_weight_func` which defines a function from number of $y$-values seen so far (associated with a given $x$) to the weight assigned to the most recent $y$. This enables us to do a weighted average of the $y$-values seen so far, controlling the emphasis to be placed on more recent $y$-values relative to previously seen $y$-values (associated with a given $x$).
 
 The `evaluate`, `objective_gradient`, `update_with_gradient`, `solve` and `within` methods should now be self-explanatory.
+
+\index{Tabular@\texttt{Tabular}}
 
 ```python
 from dataclasses import field, replace
@@ -1063,9 +1111,17 @@ We want to emphasize that although tabular algorithms are just a special case of
 
 Now we are ready to write algorithms for Approximate Dynamic Programming (ADP). Before we go there, it pays to emphasize that we have described and implemented a fairly generic framework for gradient-based estimation of function approximations, given arbitrary training data. It can be used for arbitrary objective functions and arbitrary functional forms/neural networks (beyond the concrete classes we implemented). We encourage you to explore implementing and using this function approximation code for other types of objectives and other types of functional forms/neural networks.
 
+\index{function approximation|)}
+\index{tabular algorithms|)}
+
 ### Approximate Policy Evaluation
+\index{dynamic programming!approximate|(}
+\index{dynamic programming!policy evaluation!approximate|(}
 
 The first Approximate Dynamic Programming (ADP) algorithm we cover is Approximate Policy Evaluation, i.e., evaluating the Value Function for a Markov Reward Process (MRP). Approximate Policy Evaluation is fundamentally the same as Tabular Policy Evaluation in terms of repeatedly applying the Bellman Policy Operator $\bm{B^}\pi$ on the Value Function $V: \mathcal{N} \rightarrow \mathbb{R}$. However, unlike Tabular Policy Evaluation algorithm, here the Value Function $V(\cdot)$ is set up and updated as an instance of `FunctionApprox` rather than as a table of values for the non-terminal states. This is because unlike Tabular Policy Evaluation which operates on an instance of a `FiniteMarkovRewardProcess`, Approximate Policy Evaluation algorithm operates on an instance of `MarkovRewardProcess`. So we do not have an enumeration of states of the MRP and we do not have the transition probabilities of the MRP. This is typical in many real-world problems where the state space is either very large or is continuous-valued, and the transitions could be too many or could be continuous-valued transitions. So, here's what we do to overcome these challenges:
+
+\index{probability!sampling}
+\index{probability!probability distribution}
 
 * We specify a sampling probability distribution of non-terminal states (argument `non_terminal_states_distribution` in the code below) from which we shall sample a specified number (`num_state_samples` in the code below) of non-terminal states, and construct a list of those sampled non-terminal states (`nt_states` in the code below) in each iteration. The type of this probability distribution of non-terminal states is aliased as follows (this type will be used not just for Approximate Dynamic Programming algorithms, but also for Reinforcement Learning algorithms):
 ```python
@@ -1078,6 +1134,8 @@ ValueFunctionApprox = FunctionApprox[NonTerminal[S]]
 * The sampled list of non-terminal states $s$ comprise our $x$-values and the associated sampled expectations described above comprise our $y$-values. This list of $(x,y)$ pairs are used to update the approximation of the Value Function in each iteration (producing a new instance of `ValueFunctionApprox` using it's `update` method).
 
 The entire code is shown below. The `evaluate_mrp` method produces an `Iterator` on `ValueFunctionApprox` instances, and the code that calls `evaluate_mrp` can decide when/how to terminate the iterations of Approximate Policy Evaluation.
+
+\index{evaluate mrp@\texttt{evaluate\_mrp}}
 
 ```python
 from rl.iterate import iterate
@@ -1115,10 +1173,15 @@ def extended_vf(vf: ValueFunctionApprox[S], s: State[S]) -> float:
 
 `extended_vf` will be useful not just for Approximate Dynamic Programming algorithms, but also for Reinforcement Learning algorithms.
 
+\index{dynamic programming!policy evaluation!approximate|)}
 
 ### Approximate Value Iteration
 
+\index{dynamic programming!value iteration!approximate|(}
+
 Now that we've understood and coded Approximate Policy Evaluation (to solve the Prediction problem), we can extend the same concepts to Approximate Value Iteration (to solve the Control problem). The code below in `value_iteration` is almost the same as the code above in `evaluate_mrp`, except that instead of a `MarkovRewardProcess`, here we have a `MarkovDecisionProcess`, and instead of the Bellman Policy Operator update, here we have the Bellman Optimality Operator update. Therefore, in the Value Function update, we maximize the $Q$-value function (over all actions $a$) for each non-terminal state $s$. Also, similar to `evaluate_mrp`, `value_iteration` produces an `Iterator` on `ValueFunctionApprox` instances, and the code that calls `value_iteration` can decide when/how to terminate the iterations of Approximate Value Iteration.
+
+\index{value iteration@\texttt{value\_iteration}}
 
 ```python
 from rl.iterate import iterate
@@ -1147,18 +1210,25 @@ def value_iteration(
 
     return iterate(update, approx_0)
 ```
+\index{dynamic programming!value iteration!approximate|)}
 
 ### Finite-Horizon Approximate Policy Evaluation
+
+\index{dynamic programming!approximate!finite-horizon|(}
 
 Next, we move on to Approximate Policy Evaluation in a finite-horizon setting, meaning we perform Approximate Policy Evaluation with a backward induction algorithm, much like how we did backward induction for finite-horizon Tabular Policy Evaluation. We will of course make the same types of adaptations from Tabular to Approximate as we did in the functions `evaluate_mrp` and `value_iteration` above.
 
 In the `backward_evaluate` code below, the input argument `mrp_f0_mu_triples` is a list of triples, with each triple corresponding to each non-terminal time step in the finite horizon. Each triple consists of:
 
+\index{probability!sampling}
+\index{probability!probability distribution}
 * An instance of `MarkovRewardProceess` - note that each time step has it's own instance of `MarkovRewardProcess` representation of transitions from non-terminal states $s$ in a time step $t$ to the (state $s'$, reward $r$) pairs in the next time step $t+1$ (variable `mrp` in the code below).
 * An instance of `ValueFunctionApprox` to capture the approximate Value Function for the time step (variable `approx0` in the code below represents the initial `ValueFunctionApprox` instances).
 * A sampling probability distribution of non-terminal states in the time step (variable `mu` in the code below).
 
 The backward induction code below should be pretty self-explanatory. Note that in backward induction, we don't invoke the `update` method of `FunctionApprox` like we did in the non-finite-horizon cases - here we invoke the `solve` method which internally performs a series of `update`s on the `FunctionApprox` for a given time step (until we converge to within a specified level of `error_tolerance`). In the non-finite-horizon cases, it was okay to simply do a single `update` in each iteration because we revisit the same set of states in further iterations. Here, once we converge to an acceptable `ValueFunctionApprox` (using `solve`) for a specific time step, we won't be performing any more updates to the Value Function for that time step (since we move on to the next time step, in reverse). `backward_evaluate` returns an Iterator over `ValueFunctionApprox` objects, from time step 0 to the horizon time step. We should point out that in the code below, we've taken special care to handle terminal states (that occur either at the end of the horizon or can even occur before the end of the horizon) - this is done using the `extended_vf` function we'd written earlier.
+
+\index{backward evaluate@\texttt{backward\_evaluate}}
 
 ```python
 MRP_FuncApprox_Distribution = Tuple[MarkovRewardProcess[S],
@@ -1193,6 +1263,8 @@ def backward_evaluate(
 ### Finite-Horizon Approximate Value Iteration
 
 Now that we've understood and coded finite-horizon Approximate Policy Evaluation (to solve the finite-horizon Prediction problem), we can extend the same concepts to finite-horizon Approximate Value Iteration (to solve the finite-horizon Control problem). The code below in `back_opt_vf_and_policy` is almost the same as the code above in `backward_evaluate`, except that instead of `MarkovRewardProcess`, here we have `MarkovDecisionProcess`. For each non-terminal time step, we maximize the $Q$-Value function (over all actions $a$) for each non-terminal state $s$. `back_opt_vf_and_policy` returns an Iterator over pairs of `ValueFunctionApprox` and `DeterministicPolicy` objects (representing the Optimal Value Function and the Optimal Policy respectively), from time step 0 to the horizon time step.
+
+\index{back opt vf and policy@\texttt{back\_opt\_vf\_and\_policy}}
 
 ```python
 from rl.distribution import Constant
@@ -1251,6 +1323,8 @@ QValueFunctionApprox = FunctionApprox[Tuple[NonTerminal[S], A]]
 
 The code below in `back_opt_qvf` is quite similar to `back_opt_vf_and_policy` above. The key difference is that we have `QValueFunctionApprox` in the input to the function rather than `ValueFunctionApprox` to reflect the fact that we are approximating $Q_t^*: \mathcal{N}_t \times \mathcal{A}_t \rightarrow \mathbb{R}$ for all time steps $t$ in the finite horizon. For each non-terminal time step, we express the $Q$-value function (for a set of sample non-terminal states $s$ and for all actions $a$) in terms of the $Q$-value function approximation of the next time step. This is essentially the MDP Action-Value Function Bellman Optimality Equation for the finite-horizon case (adapted to function approximation). `back_opt_qvf` returns an Iterator over `QValueFunctionApprox` (representing the Optimal Q-Value Function), from time step 0 to the horizon time step. We can then obtain $V^*_t$ (Optimal State-Value Function) and $\pi^*_t$ for each $t$ by simply performing a $\max/\argmax$ over all actions $a \in \mathcal{A}_t$ of $Q^*_t(s, a)$ for any $s \in \mathcal{N}_t$.
 
+\index{back opt qvf@\texttt{back\_opt\_qvf}}
+
 ```python
 MDP_FuncApproxQ_Distribution = Tuple[
     MarkovDecisionProcess[S, A],
@@ -1292,7 +1366,12 @@ We should also point out here that working with the optimal Q-value function (ra
 
 All of the above code for Approximate Dynamic Programming (ADP) algorithms is in the file [rl/approximate_dynamic_programming.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/approximate_dynamic_programming.py). We encourage you to create instances of `MarkovRewardProcess` and `MarkovDecisionProcess` (including finite-horizon instances) and play with the above ADP code with different choices of function approximations, non-terminal state sampling distributions, and number of samples. A simple but valuable exercise is to reproduce the tabular versions of these algorithms by using the `Tabular` implementation of `FunctionApprox` (note: the `count_to_weights_func` would then need to be lambda _: 1.) in the above ADP functions.
 
+\index{dynamic programming!approximate!finite-horizon|)}
+
 ### How to Construct the Non-Terminal States Distribution
+
+\index{probability!probability distribution}
+\index{probability!sampling}
 
 Each of the above ADP algorithms takes as input probability distribution(s) of non-terminal states. You may be wondering how one constructs the probability distribution of non-terminal states so you can feed it as input to any of these ADP algorithm. There is no simple, crisp answer to this. But we will provide some general pointers in this section on how to construct the probability distribution of non-terminal states.
 
@@ -1301,6 +1380,8 @@ Let us start with Approximate Policy Evaluation and Approximate Value Iteration 
 Next, we consider the backward induction ADP algorithms for finite-horizon MDPs/MRPs. Our job here is to infer the distribution of non-terminal states for each time step in the finite horizon. Sometimes you can take advantage of the mathematical structure of the underlying Markov Process to come up with an analytical expression (exact or approximate) for the probability distribution of non-terminal states at any time step for the underlying Markov Process of the MRP/implied-MRP. For instance, if the Markov Process is described by a stochastic differential equation (SDE) and if we are able to solve the SDE, we would know the analytical expression for the probability distribution of non-terminal states. If we cannot take advantage of any such special properties, then we can generate sampling traces by time-incrementally sampling from the state-transition probability distributions of each of the Markov Reward Processes at each time step (if we are solving a Control problem, then we create implied-MRPs by evaluating the given MDPs with a uniform policy). The states reached by these sampling traces at any fixed time step provide a `SampledDistribution` of non-terminal states for that time step. If the above choices are infeasible or computationally expensive, then a simple and neutral choice is to use a uniform distribution over the non-terminal states for each time step.
 
 We will write some code in Chapter [-@sec:portfolio-chapter] to create a `SampledDistribution` of non-terminal states for each time step of a finite-horizon problem by stitching together samples of state transitions at each time step. If you are curious about this now, you can take a peek at the code in [rl/chapter7/asset_alloc_discrete.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/chapter7/asset_alloc_discrete.py).
+
+\index{dynamic programming!approximate|)}
 
 ### Key Takeaways from this Chapter
 
