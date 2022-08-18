@@ -1,4 +1,4 @@
-## Programming and Design {#sec:python .unnumbered}
+## Programming and Design {#sec:python}
 
 Programming is creative work with few constraints: imagine something and you can probably build it — in *many* different ways. Liberating and gratifying, but also challenging. Just like starting a novel from a blank page or a painting from a blank canvas, a new program is so open that it's a bit intimidating. Where do you start? What will the system look like? How will you get it *right*? How do you split your problem up? How do you prevent your code from evolving into a complete mess?
 
