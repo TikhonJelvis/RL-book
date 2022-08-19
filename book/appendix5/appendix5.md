@@ -1,9 +1,9 @@
-## Black-Scholes Equation and it's Solution for Call/Put Options {#sec:black-scholes-appendix}
+## Black-Scholes Equation and Its Solution for Call/Put Options {#sec:black-scholes-appendix}
 
 \index{finance!Black-Scholes equation|(}
 \index{finance!derivative!pricing|(}
 
-In this Appendix, we sketch the derivation of the [much-celebrated Black-Scholes equation and it's solution for Call and Put Options](https://www.cs.princeton.edu/courses/archive/fall09/cos323/papers/black_scholes73.pdf) [@BlackScholes1973]. As is the norm in the Appendices in this book, we will compromise on some of the rigor and emphasize the intuition to develop basic familiarity with concepts in continuous-time derivatives pricing and hedging.
+In this Appendix, we sketch the derivation of the [much-celebrated Black-Scholes equation and its solution for Call and Put Options](https://www.cs.princeton.edu/courses/archive/fall09/cos323/papers/black_scholes73.pdf) [@BlackScholes1973]. As is the norm in the Appendices in this book, we will compromise on some of the rigor and emphasize the intuition to develop basic familiarity with concepts in continuous-time derivatives pricing and hedging.
 
 ### Assumptions
 The Black-Scholes Model is about pricing and hedging of a derivative on a single underlying asset (henceforth, simply known as "underlying"). The model makes several simplifying assumptions for analytical convenience. Here are the assumptions:
@@ -21,7 +21,7 @@ dS_t = \mu \cdot S_t \cdot dt + \sigma \cdot S_t \cdot dz_t
 
 This process is often refered to as *Geometric Brownian Motion* to reflect the fact that the stochastic increment of the process ($\sigma \cdot S_t \cdot dz_t$) is multiplicative to the level of the process $S_t$.
 * The derivative has a known payoff at time $t=T$, as a function $f: \mathbb{R}^+ \rightarrow \mathbb{R}$ of the underlying price $S_T$ at time $T$.
-* Apart from the underlying, the market also includes a riskless asset (which should be thought of as lending/borrowing money at a constant infinitesimal rate of annual return equal to $r$). The riskless asset (denote it's price as $R_t$ at time $t$) movements can thus be described as:
+* Apart from the underlying, the market also includes a riskless asset (which should be thought of as lending/borrowing money at a constant infinitesimal rate of annual return equal to $r$). The riskless asset (denote its price as $R_t$ at time $t$) movements can thus be described as:
 $$dR_t = r \cdot R_t \cdot dt$$
 * Assume that we can trade in any real-number quantity in the underlying as well as in the riskless asset, in continuous-time, without any transaction costs (i.e., the typical "frictionless" market assumption).
 
@@ -90,7 +90,7 @@ A few key points to note here:
 
 ### Solution of the Black-Scholes Equation for Call/Put Options
 
-The Black–Scholes PDE can be solved numerically using standard methods such as finite-differences. It turns out we can solve this PDE as an exact formula (closed-form solution) for the case of European call and put options, whose payoff functions are $\max(S_T-K, 0)$ and $\max(K-S_T, 0)$ respectively, where $K$ is the option strike. We shall denote the call and put option prices at time $t$ for underlying price of $S_t$ as $C(t, S_t)$  and $P(t, S_t)$ respectively (as specializations of $V(t, S_t)$). We derive the solution below for call option pricing, with put option pricing derived similarly. Note that we could simply use the put-call parity: $C(t, S_t) - P(t, S_t) = S_t - K \cdot e^{-r \cdot (T-t)}$ to obtain the put option price from the call option price. The put-call parity holds because buying a call option and selling a put option is a combined payoff of $S_T - K$ - this means owning the underlying and borrowing $K\cdot e^{-r(T-t)}$ at time $t$, whose value is $S_t - K \cdot e^{-r\cdot (T-t)}$.
+The Black–Scholes PDE can be solved numerically using standard methods such as finite-differences. It turns out we can solve this PDE as an exact formula (closed-form solution) for the case of European call and put options, whose payoff functions are $\max(S_T-K, 0)$ and $\max(K-S_T, 0)$ respectively, where $K$ is the option strike. We shall denote the call and put option prices at time $t$ for underlying price of $S_t$ as $C(t, S_t)$  and $P(t, S_t)$ respectively (as specializations of $V(t, S_t)$). We derive the solution below for call option pricing, with put option pricing derived similarly. Note that we could simply use the put-call parity: $C(t, S_t) - P(t, S_t) = S_t - K \cdot e^{-r \cdot (T-t)}$ to obtain the put option price from the call option price. The put-call parity holds because buying a call option and selling a put option is a combined payoff of $S_T - K$—this means owning the underlying and borrowing $K\cdot e^{-r(T-t)}$ at time $t$, whose value is $S_t - K \cdot e^{-r\cdot (T-t)}$.
 
 To derive the formula for $C(t, S_t)$, we perform the following change-of-variables transformation:
 

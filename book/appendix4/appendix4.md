@@ -3,7 +3,7 @@
 
 In this Appendix, we provide a quick coverage of the Hamilton-Jacobi-Bellman (HJB) Equation, which is the continuous-time version of the Bellman Optimality Equation. Although much of this book covers Markov Decision Processes in a discrete-time setting, we do cover some classical Mathematical Finance Stochastic Control formulations in continuous-time. To understand these formulations, one must first understand the HJB Equation, which is the purpose of this Appendix. As is the norm in the Appendices in this book, we will compromise on some of the rigor and emphasize the intuition to develop basic familiarity with HJB. 
 
-### HJB as a continuous-time version of Bellman Optimality Equation
+### HJB as a Continuous-Time Version of Bellman Optimality Equation
 
 In order to develop the continuous-time setting, we shall consider a (not necessarily time-homogeneous) process where the set of states at time $t$ are denoted as $\mathcal{S}_t$ and the set of allowable actions for each state at time $t$ are denoted as $\mathcal{A}_t$. Since time is continuous, Rewards are represented as a *Reward Rate* function $\mathcal{R}$ 
 such that for any state $s_t \in \mathcal{S}_t$ and for any action $a_t \in \mathcal{A}_t$, $\mathcal{R}(t, s_t, a_t) \cdot dt$ is the *Expected Reward* in the time interval $(t, t + dt]$, conditional on state $s_t$ and action $a_t$ (note the functional dependency of $\mathcal{R}$ on $t$ since we will be integrating $\mathcal{R}$ over time). Instead of the discount factor $\gamma$ as in the case of discrete-time MDPs, here we employ a *discount rate* (akin to interest-rate discounting) $\rho \in \mathbb{R}_{\geq 0}$ so that the discount factor over any time interval $(t, t+dt]$ is $e^{-\rho \cdot dt}$.
@@ -13,7 +13,7 @@ We denote the Optimal Value Function as $V^*$ such that the Optimal Value for st
 
 \index{Bellman equations!Bellman optimality equations}
 
-Now let us write the Bellman Optimality Equation in it's continuous-time version, i.e, let us consider the process $V^*$ over the time interval $(t, t+dt]$ as follows:
+Now let us write the Bellman Optimality Equation in its continuous-time version, i.e, let us consider the process $V^*$ over the time interval $(t, t+dt]$ as follows:
 
 $$V^*(t, s_t) = \max_{a_t \in \mathcal{A}_t} \{ \mathcal{R}(t, s_t, a_t) \cdot dt + \mathbb{E}_{(t, s_t, a_t)}[e^{-\rho \cdot dt} \cdot V^*(t+dt, s_{t+dt})] \}$$
 Multiplying throughout by $e^{-\rho t}$ and re-arranging, we get:
@@ -31,14 +31,14 @@ For a finite-horizon problem terminating at time $T$, the above equation is subj
 $$V^*(T, s_T) = \mathcal{T}(s_T)$$
 for some terminal reward function $\mathcal{T}(\cdot)$.
 
-Equation \eqref{eq:hjb} is known as the Hamilton-Jacobi-Bellman Equation - the continuous-time analog of the Bellman Optimality Equation. In the literature, it is often written in a more compact form that essentially takes the above form and "divides throughout by dt". This requires a few technical details involving the [stochastic differentiation operator](https://en.wikipedia.org/wiki/Infinitesimal_generator_(stochastic_processes)). To keep things simple, we shall stick to the HJB formulation of Equation \eqref{eq:hjb}.
+Equation \eqref{eq:hjb} is known as the Hamilton-Jacobi-Bellman Equation—the continuous-time analog of the Bellman Optimality Equation. In the literature, it is often written in a more compact form that essentially takes the above form and "divides throughout by dt". This requires a few technical details involving the [stochastic differentiation operator](https://en.wikipedia.org/wiki/Infinitesimal_generator_(stochastic_processes)). To keep things simple, we shall stick to the HJB formulation of Equation \eqref{eq:hjb}.
 
 ### HJB with State Transitions as an Ito Process
 
 \index{stochastic process!Ito process}
 \index{stochastic process!brownian motion}
 
-Although we have expressed the HJB Equation for $V^*$, we cannot do anything useful with it unless we know the state transition probabilities (all of which are buried inside the calculation of $\mathbb{E}_{(t, s_t, a_t)}[\cdot]$ in the HJB Equation). In continuous-time, the state transition probabilities are modeled as a stochastic process for states (or of it's features). Let us assume that states are real-valued vectors, i.e, state $\bm{s}_t \in \mathbb{R}^n$ at any time $t \geq 0$ and that the transitions for $\bm{s}$ are given by an Ito process, as follows:
+Although we have expressed the HJB Equation for $V^*$, we cannot do anything useful with it unless we know the state transition probabilities (all of which are buried inside the calculation of $\mathbb{E}_{(t, s_t, a_t)}[\cdot]$ in the HJB Equation). In continuous-time, the state transition probabilities are modeled as a stochastic process for states (or of its features). Let us assume that states are real-valued vectors, i.e, state $\bm{s}_t \in \mathbb{R}^n$ at any time $t \geq 0$ and that the transitions for $\bm{s}$ are given by an Ito process, as follows:
 
 $$d\bm{s}_t = \bm{\mu}(t, \bm{s}_t, a_t) \cdot dt + \bm{\sigma}(t, \bm{s}_t, a_t) \cdot d\bm{z}_t$$
 

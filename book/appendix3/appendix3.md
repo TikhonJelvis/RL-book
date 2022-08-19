@@ -79,7 +79,7 @@ As a two-variable function, if we fix $t$, then we get the random variable $X_t:
 
 Now let us come back to Brownian motion, viewed as a Continuous-Time Stochastic Process.
 
-### Properties of Brownian Motion sample traces
+### Properties of Brownian Motion Sample Traces
 \index{stochastic process!brownian motion}
 
 * Sample traces $z(\omega)$ of Brownian motion $z$ are continuous.
@@ -104,7 +104,7 @@ $$(dz^{(1)}_t) \cdot (dz^{(2)}_t) = \rho \cdot dt$$
 
 where $z^{(1)}$ and $z^{(2)}$ are two different brownian motions with correlation between the random variables $z^{(1)}_t$ and $z^{(2)}_t$ equal to $\rho$ for all $t > 0$.
 
-You should intuitively interpret the formula $(dz_t)^2 = dt$ (and it's generalization) as a deterministic statement, and in fact this statement is used as an algebraic convenience in Brownian motion-based stochastic calculus, forming the core of *Ito Isometry* and *Ito's Lemma* (which we cover shortly, but first we need to define the Ito Integral).
+You should intuitively interpret the formula $(dz_t)^2 = dt$ (and its generalization) as a deterministic statement, and in fact this statement is used as an algebraic convenience in Brownian motion-based stochastic calculus, forming the core of *Ito Isometry* and *Ito's Lemma* (which we cover shortly, but first we need to define the Ito Integral).
 
 ### Ito Integral
 \index{stochastic calculus!Ito integral|textbf}
@@ -151,7 +151,7 @@ We require the same conditions for the stochastic process $\sigma$ as we require
 
 In the context of this Ito process $Y$ described above, we refer to $\mu$ as the *drift* process and we refer to $\sigma$ as the *dispersion* process.
 
-Now, consider a twice-differentiable function $f: [0, T] \times \mathbb{R} \rightarrow \mathbb{R}$. We define a stochastic process whose (random) value at time $t$ is $f(t, Y_t)$. Let's write it's Taylor series with respect to the variables $t$ and $Y_t$.
+Now, consider a twice-differentiable function $f: [0, T] \times \mathbb{R} \rightarrow \mathbb{R}$. We define a stochastic process whose (random) value at time $t$ is $f(t, Y_t)$. Let's write its Taylor series with respect to the variables $t$ and $Y_t$.
 
 $$df(t,Y_t) = \pdv{f(t,Y_t)}{t} \cdot dt + \pdv{f(t,Y_t)}{Y_t} \cdot dY_t + \frac 1 2 \cdot \pdv[2]{f(t,Y_t)}{Y_t} \cdot (dY_t)^2 + \ldots$$
 
@@ -259,7 +259,7 @@ $$x_T \sim \mathcal{N}(x_S \cdot e^{\int_S^T \mu(t) \cdot dt}, e^{\int_0^T 2\mu(
 We call this process "mean-reverting" because with negative $\mu(t)$, the process is "pulled" to a baseline level of 0, at a speed whose expectation is proportional to $-\mu(t)$ and proportional to the distance from the baseline (so we say the process reverts to a baseline of 0 and the strength of mean-reversion is greater if the distance from the baseline is greater). If $\mu(t)$ is positive, then we say that the process is "mean-diverting" to signify that it gets pulled away from the baseline level of 0.
 \index{stochastic process!Ornstein-Uhlenbeck process|textbf}
 
-The special case of $\mu(t) = \mu$ (constant) and $\sigma(t) = \sigma$ (constant) is a fairly common Ito process (again for it's simplicity, tractability as well as practicality), and is known as the [Ornstein-Uhlenbeck Process](https://en.wikipedia.org/wiki/Ornstein%E2%80%93Uhlenbeck_process) with the mean (baseline) level set to 0. If we consider this special case, we get:
+The special case of $\mu(t) = \mu$ (constant) and $\sigma(t) = \sigma$ (constant) is a fairly common Ito process (again for its simplicity, tractability as well as practicality), and is known as the [Ornstein-Uhlenbeck Process](https://en.wikipedia.org/wiki/Ornstein%E2%80%93Uhlenbeck_process) with the mean (baseline) level set to 0. If we consider this special case, we get:
 
 $$x_T \sim \mathcal{N}(x_S \cdot e^{\mu (T-S)}, \frac {\sigma^2} {2 \mu} \cdot (e^{2 \mu (T-S)} - 1))$$
 \index{stochastic calculus|)}
