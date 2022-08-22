@@ -16,10 +16,10 @@ dS_t = \mu \cdot S_t \cdot dt + \sigma \cdot S_t \cdot dz_t
 \label{eq:black-scholes-underlying-process}
 \end{equation}
 
-\index{stochastic process!geometric brownian motion}
+\index{stochastic process!geometric Brownian motion}
 \index{finance!risky asset}
 
-This process is often refered to as *Geometric Brownian Motion* to reflect the fact that the stochastic increment of the process ($\sigma \cdot S_t \cdot dz_t$) is multiplicative to the level of the process $S_t$.
+This process is often referred to as *Geometric Brownian Motion* to reflect the fact that the stochastic increment of the process ($\sigma \cdot S_t \cdot dz_t$) is multiplicative to the level of the process $S_t$.
 * The derivative has a known payoff at time $t=T$, as a function $f: \mathbb{R}^+ \rightarrow \mathbb{R}$ of the underlying price $S_T$ at time $T$.
 * Apart from the underlying, the market also includes a riskless asset (which should be thought of as lending/borrowing money at a constant infinitesimal rate of annual return equal to $r$). The riskless asset (denote its price as $R_t$ at time $t$) movements can thus be described as:
 $$dR_t = r \cdot R_t \cdot dt$$
@@ -41,7 +41,7 @@ dV(t, S_t) = (\pdv{V}{t} + \mu \cdot S_t \cdot \pdv{V}{S_t} + \frac {\sigma^2} 2
 \index{finance!derivative!underlying}
 \index{finance!derivative!riskless portfolio}
 \index{finance!derivative!hedging}
-Now here comes the key idea: create a portfolio comprising of the derivative and the underlying so as to eliminate the incremental uncertainty arising from the brownian motion increment $dz_t$. It's clear from the coefficients of $dz_t$ in Equation \eqref{eq:black-scholes-underlying-process} and \eqref{eq:black-scholes-derivative-process} that this can be accomplished with a portfolio comprising of $\pdv{V}{S_t}$ units of the underlying and -1 units of the derivative (i.e., by selling a derivative contract written on a single unit of the underlying). Let us refer to the value of this portfolio as $\Pi_t$ at time $t$. Thus,
+Now here comes the key idea: create a portfolio comprising of the derivative and the underlying so as to eliminate the incremental uncertainty arising from the Brownian motion increment $dz_t$. It's clear from the coefficients of $dz_t$ in Equation \eqref{eq:black-scholes-underlying-process} and \eqref{eq:black-scholes-derivative-process} that this can be accomplished with a portfolio comprising of $\pdv{V}{S_t}$ units of the underlying and -1 units of the derivative (i.e., by selling a derivative contract written on a single unit of the underlying). Let us refer to the value of this portfolio as $\Pi_t$ at time $t$. Thus,
 
 \begin{equation}
 \Pi_t = - V(t, S_t) + \pdv{V}{S_t} \cdot S_t
@@ -86,7 +86,7 @@ A few key points to note here:
 
 1. The Black-Scholes equation is a partial differential equation (PDE) in $t$ and $S_t$, and it is valid for any derivative with arbitary payoff $f(S_T)$ at a fixed time $t=T$, and the derivative price function $V(t, S_t)$ needs to be twice differentiable with respect to $S_t$ and once differentiable with respect to $t$.
 2. The infinitesimal change in the portfolio value ($=d\Pi_t$) incorporates only the infinitesimal changes in the prices of the underlying and the derivative, and not the changes in the units held in the underlying and the derivative (meaning the portfolio is assumed to be self-financing). The portfolio composition does change continuously though since the units held in the underlying at time $t$ needs to be $\pdv{V}{S_t}$, which in general would change as time evolves and as the price $S_t$ of the underlying changes. Note that $-\pdv{V}{S_t}$ represents the hedge units in the underlying at any time $t$ for any underlying price $S_t$, which nullifies the risk of changes to the derivative price $V(t, S_t)$.
-3. The drift $\mu$ of the underlying price movement (interpreted as expected annual rate of return of the underlying) does not appear in the Black-Scholes Equation and hence, the price of any derivative will be independent of the expected rate of return of the underlying. Note though the prominent appearance of $\sigma$ (refered to as the underlying volatility) and the riskless rate of return $r$ in the Black-Scholes equation.
+3. The drift $\mu$ of the underlying price movement (interpreted as expected annual rate of return of the underlying) does not appear in the Black-Scholes Equation and hence, the price of any derivative will be independent of the expected rate of return of the underlying. Note though the prominent appearance of $\sigma$ (referred to as the underlying volatility) and the riskless rate of return $r$ in the Black-Scholes equation.
 
 ### Solution of the Black-Scholes Equation for Call/Put Options
 

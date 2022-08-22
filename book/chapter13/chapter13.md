@@ -219,7 +219,7 @@ For single-dimensional continuous action spaces (i.e., $\mathcal{A} = \mathbb{R}
 
 \index{probability!normal distribution}
 
-We set the mean of the gaussian distribution for the Policy as a linear combination of state features, i.e.,  $\bm{\phi}(s)^T \cdot \bm{\theta}$, and we set the variance to be a fixed value, say $\sigma^2$. We could make the variance parameterized as well, but let's work with fixed variance to keep things simple.
+We set the mean of the Gaussian distribution for the Policy as a linear combination of state features, i.e.,  $\bm{\phi}(s)^T \cdot \bm{\theta}$, and we set the variance to be a fixed value, say $\sigma^2$. We could make the variance parameterized as well, but let's work with fixed variance to keep things simple.
 
 The Gaussian policy selects an action $a$ as follows:
 
@@ -228,7 +228,7 @@ $$a \sim \mathcal{N}(\bm{\phi}(s)^T \cdot \bm{\theta}, \sigma^2) \mbox{ for a gi
 Then the score function is given by:
 $$\nabla_{\bm{\theta}} \log \pi(s,a; \bm{\theta}) = \frac {(a - \bm{\phi}(s)^T \cdot \bm{\theta}) \cdot \bm{\phi}(s)} {\sigma^2}$$
 
-This is easily extensible to multi-dimensional continuous action spaces by considering a multi-dimensional gaussian distribution for the Policy.
+This is easily extensible to multi-dimensional continuous action spaces by considering a multi-dimensional Gaussian distribution for the Policy.
 
 The intuitive interpretation is that the score function for an action $a$ is proportional to the feature vector for given state $s$ scaled by the "advantage" of the action $a$ over the mean action (note: each $a \in \mathbb{R}$).
 
@@ -267,7 +267,7 @@ To be clear, our code below works with the `@abstractclass FunctionApprox` (mean
 
 $\sigma$ is specified in the code below as `policy_stdev`. The input `policy_mean_approx0:` `FunctionApprox[NonTerminal[S]]` specifies the function approximation we initialize the algorithm with (it is up to the user of `reinforce_gaussian` to configure `policy_mean_approx0` with the appropriate functional form for the function approximation, the hyper-parameter values, and the initial values of the parameters $\bm{\theta}$ that we want to solve for). 
 
-The Gaussian policy (of the type `GaussianPolicyFromApprox`) selects an action $a$ (given state $s$) by sampling from the gaussian distribution defined by mean $g(s;\bm{\theta})$ and variance $\sigma^2$.
+The Gaussian policy (of the type `GaussianPolicyFromApprox`) selects an action $a$ (given state $s$) by sampling from the Gaussian distribution defined by mean $g(s;\bm{\theta})$ and variance $\sigma^2$.
 
 The score function is given by:
 $$\nabla_{\bm{\theta}} \log \pi(s,a; \bm{\theta}) = \frac {(a - g(s;\bm{\theta})) \cdot \nabla_{\bm{\theta}} g(s;\bm{\theta})} {\sigma^2}$$
@@ -1080,4 +1080,4 @@ What is the effectiveness of ES compared to RL? The traditional view has been th
 * Natural Policy Gradient and Deterministic Policy Gradient are specialized PG algorithms that have worked well in practice.
 * Evolutionary Strategies are technically not RL, but they resemble PG Algorithms and can sometimes be quite effective in solving MDP Control problems.
 
-\index{probability!gaussian distribution|see{probability, normal distribution}}
+\index{probability!Gaussian distribution|see{probability, normal distribution}}

@@ -42,7 +42,7 @@ $$\beta_{n+1} = \beta_n + \frac {n (x_{n+1} - \theta_n)^2} {2(n+1)}$$
 
 ### Conjugate Prior for Bernoulli Distribution {#sec:conjugate-prior-bernoulli}
 
-\index{probability!bernoulli distribution}
+\index{probability!Bernoulli distribution}
 \index{probability!beta distribution}
 
 Here we assume that each data point is Bernoulli-distributed. So when we receive the $n$-th data point $x_n$, we assume $x_n = 1$ with probability $p$ and $x_n = 0$ with probability $1-p$. We assume $p$ is an unknown random variable with [Beta Distribution](https://en.wikipedia.org/wiki/Beta_distribution) Conjugate Prior for $p$, i.e, 

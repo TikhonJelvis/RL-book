@@ -36,13 +36,13 @@ Equation \eqref{eq:hjb} is known as the Hamilton-Jacobi-Bellman Equation—the c
 ### HJB with State Transitions as an Ito Process
 
 \index{stochastic process!Ito process}
-\index{stochastic process!brownian motion}
+\index{stochastic process!Brownian motion}
 
 Although we have expressed the HJB Equation for $V^*$, we cannot do anything useful with it unless we know the state transition probabilities (all of which are buried inside the calculation of $\mathbb{E}_{(t, s_t, a_t)}[\cdot]$ in the HJB Equation). In continuous-time, the state transition probabilities are modeled as a stochastic process for states (or of its features). Let us assume that states are real-valued vectors, i.e, state $\bm{s}_t \in \mathbb{R}^n$ at any time $t \geq 0$ and that the transitions for $\bm{s}$ are given by an Ito process, as follows:
 
 $$d\bm{s}_t = \bm{\mu}(t, \bm{s}_t, a_t) \cdot dt + \bm{\sigma}(t, \bm{s}_t, a_t) \cdot d\bm{z}_t$$
 
-where the function $\bm{\mu}$ (drift function) gives an $\mathbb{R}^n$ valued process, the function $\bm{\sigma}$ (dispersion function) gives an $\mathbb{R}^{n \times m}$-valued process and $\bm{z}$ is an $m$-dimensional process consisting of $m$ independent standard brownian motions.
+where the function $\bm{\mu}$ (drift function) gives an $\mathbb{R}^n$ valued process, the function $\bm{\sigma}$ (dispersion function) gives an $\mathbb{R}^{n \times m}$-valued process and $\bm{z}$ is an $m$-dimensional process consisting of $m$ independent standard Brownian motions.
 
 \index{stochastic process!Ito process}
 \index{stochastic calculus!Ito's lemma}

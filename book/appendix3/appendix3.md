@@ -40,7 +40,7 @@ $$[X]_t = \sum_{j=0}^t (X_{j+1} - X_j)^2$$
 Thus, for the simple random walk Markov Process $Z$, we have the succinct formula: $[Z]_t = t$ for all $t$ (i.e., this Quadratic Variation process is a deterministic process).
 
 ### Brownian Motion as Scaled Random Walk
-\index{stochastic process!brownian motion|textbf}
+\index{stochastic process!Brownian motion|textbf}
 
 Now let us take our simple random walk process $Z$, and simultaneously A) speed up time and B) scale down the size of the atomic increments $Y_t$. Specifically, define for any fixed positive integer $n$:
 
@@ -80,7 +80,7 @@ As a two-variable function, if we fix $t$, then we get the random variable $X_t:
 Now let us come back to Brownian motion, viewed as a Continuous-Time Stochastic Process.
 
 ### Properties of Brownian Motion Sample Traces
-\index{stochastic process!brownian motion}
+\index{stochastic process!Brownian motion}
 
 * Sample traces $z(\omega)$ of Brownian motion $z$ are continuous.
 * Sample traces $z(\omega)$ are almost always non-differentiable, meaning:
@@ -93,7 +93,7 @@ The quadratic variation property can be expressed as:
 
 $$\int_S^T (dz_t)^2 = T-S$$
 
-This means each sample random trace of brownian motion has quadratic variation equal to the time interval of the trace. The quadratic variation of $z$ expressed as a process $[z]$ has the deterministic value of $t$ at time $t$. Expressed in infinitesimal terms, we say that:
+This means each sample random trace of Brownian motion has quadratic variation equal to the time interval of the trace. The quadratic variation of $z$ expressed as a process $[z]$ has the deterministic value of $t$ at time $t$. Expressed in infinitesimal terms, we say that:
 
 \index{stochastic calculus!quadratic variation}
 $$(dz_t)^2 = dt$$
@@ -102,7 +102,7 @@ This formula generalizes to:
 
 $$(dz^{(1)}_t) \cdot (dz^{(2)}_t) = \rho \cdot dt$$
 
-where $z^{(1)}$ and $z^{(2)}$ are two different brownian motions with correlation between the random variables $z^{(1)}_t$ and $z^{(2)}_t$ equal to $\rho$ for all $t > 0$.
+where $z^{(1)}$ and $z^{(2)}$ are two different Brownian motions with correlation between the random variables $z^{(1)}_t$ and $z^{(2)}_t$ equal to $\rho$ for all $t > 0$.
 
 You should intuitively interpret the formula $(dz_t)^2 = dt$ (and its generalization) as a deterministic statement, and in fact this statement is used as an algebraic convenience in Brownian motion-based stochastic calculus, forming the core of *Ito Isometry* and *Ito's Lemma* (which we cover shortly, but first we need to define the Ito Integral).
 
@@ -134,7 +134,7 @@ Ito Isometry generalizes to:
 
 $$\mathbb{E}[(\int_S^T X^{(1)}_t \cdot dz^{(1)}_t)(\int_S^T X^{(2)}_t \cdot dz^{(2)}_t)] = \int_S^T \mathbb{E}[X^{(1)}_t\cdot X^{(2)}_t \cdot \rho \cdot dt]$$
 
-where $X^{(1)}$ and $X^{(2)}$ are two different stochastic processes, and $z^{(1)}$ and $z^{(2)}$ are two different brownian motions with correlation between the random variables $z^{(1)}_t$ and $z^{(2)}_t$ equal to $\rho$ for all $t > 0$.
+where $X^{(1)}$ and $X^{(2)}$ are two different stochastic processes, and $z^{(1)}$ and $z^{(2)}$ are two different Brownian motions with correlation between the random variables $z^{(1)}_t$ and $z^{(2)}_t$ equal to $\rho$ for all $t > 0$.
 
 Likewise, the Quadratic Variation formula generalizes to:
 
@@ -170,7 +170,7 @@ df(t, Y_t) = (\pdv{f}{t} + \mu_t \cdot \pdv{f}{Y_t} + \frac {\sigma_t^2} 2 \cdot
 
 Ito's Lemma describes the stochastic process of a function ($f$) of an Ito Process ($Y$) in terms of the partial derivatives of $f$, and in terms of the drift ($\mu$) and dispersion ($\sigma$) processes that define $Y$.
 
-If we generalize $\bm{Y}$ to be an $n$-dimensional stochastic process (as a column vector) with $\bm{\mu}_t$ as an $n$-dimensional (stochastic) column vector, $\bm{\sigma}_t$ as an $n \times m$ (stochastic) matrix, and $\bm{z}_t$ as an $m$-dimensional vector of $m$ independent standard brownian motions (as follows):
+If we generalize $\bm{Y}$ to be an $n$-dimensional stochastic process (as a column vector) with $\bm{\mu}_t$ as an $n$-dimensional (stochastic) column vector, $\bm{\sigma}_t$ as an $n \times m$ (stochastic) matrix, and $\bm{z}_t$ as an $m$-dimensional vector of $m$ independent standard Brownian motions (as follows):
 
 $$d\bm{Y}_t = \bm{\mu}_t \cdot dt + \bm{\sigma}_t \cdot d\bm{z}_t$$
 
@@ -191,7 +191,7 @@ Next, we cover two common Ito processes, and use Ito's Lemma to solve the Stocha
 
 Consider a stochastic process $x$ described in the form of the following Ito process:
 \index{stochastic process!Ito process}
-\index{stochastic process!brownian motion}
+\index{stochastic process!Brownian motion}
 
 $$dx_t = \mu(t) \cdot x_t \cdot dt + \sigma(t) \cdot x_t \cdot dz_t$$
 
@@ -218,7 +218,7 @@ $$y_T = \log(x_T) \sim \mathcal{N}(\log(x_S) + \int_S^T (\mu(t) - \frac {\sigma^
 $$E[x_T|x_S] = x_S \cdot e^{\int_S^T \mu(t) \cdot dt}$$
 $$E[x_T^2|x_S] = x_S^2 \cdot e^{\int_S^T (2 \mu(t) + \sigma^2(t)) \cdot dt}$$
 $$Variance[x_T|x_S] = E[x_T^2|x_S] - (E[x_T|x_S])^2 = x_S^2 \cdot e^{\int_S^T 2 \mu(t) \cdot dt} \cdot (e^{\int_S^T \sigma^2(t) \cdot dt} - 1)$$
-\index{stochastic process!geometric brownian motion|textbf}
+\index{stochastic process!geometric Brownian motion|textbf}
 
 The special case of $\mu(t) = \mu$ (constant) and $\sigma(t) = \sigma$ (constant) is a very common Ito process used all over Finance/Economics (for its simplicity, tractability as well as practicality), and is known as [Geometric Brownian Motion](https://en.wikipedia.org/wiki/Geometric_Brownian_motion),  to reflect the fact that the stochastic increment of the process ($\sigma \cdot x_t \cdot dz_t$) is multiplicative to the level of the process $x_t$. If we consider this special case, we get:
 
@@ -229,7 +229,7 @@ $$Variance[x_T|x_S] = x_S^2 \cdot e^{2 \mu (T-S)} \cdot (e^{\sigma^2 (T-S)} - 1)
 ### A Mean-Reverting Process {#sec:mean-reverting-process-section}
 \index{stochastic process!mean-reverting process|textbf}
 \index{stochastic process!Ito process}
-\index{stochastic process!brownian motion}
+\index{stochastic process!Brownian motion}
 
 Now we consider a stochastic process $x$ described in the form of the following Ito process:
 

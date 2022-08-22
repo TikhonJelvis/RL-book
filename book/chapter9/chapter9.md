@@ -27,9 +27,9 @@ Now let's learn about some of the standard terminology:
 
 * We refer to $P_0^{(b)}$ as *The Best Bid Price* (lightened to *Best Bid* ) to signify that it is the highest offer to buy and hence, the *best* price for a seller to transact with.
 * Likewise, we refer to $P_0^{(a)}$ as *The Ask Price* (lightened to *Best Ask*) to signify that it is the lowest offer to sell and hence, the *best* price for a buyer to transact with.
-* $\frac {P_0^{(a)} + P_0^{(b)}} 2$ is refered to as the *The Mid Price* (lightened to *Mid*).
-* $P_0^{(a)} - P_0^{(b)}$ is refered to as *The Best Bid-Ask Spread* (lightened to *Spread*).
-* $P_{n-1}^{(a)} - P_{m-1}^{(b)}$ is refered to as *The Market Depth* (lightened to *Depth*).
+* $\frac {P_0^{(a)} + P_0^{(b)}} 2$ is referred to as the *The Mid Price* (lightened to *Mid*).
+* $P_0^{(a)} - P_0^{(b)}$ is referred to as *The Best Bid-Ask Spread* (lightened to *Spread*).
+* $P_{n-1}^{(a)} - P_{m-1}^{(b)}$ is referred to as *The Market Depth* (lightened to *Depth*).
 
 \index{finance!order book!mid|textbf}
 \index{finance!order book!spread|textbf}
@@ -840,8 +840,8 @@ Assume there are a finite number of time steps indexed by $t= 0, 1, \ldots, T$. 
 * We refer to $\delta_t^{(b)} = S_t - P_t^{(b)}$ as the market-maker's Bid Spread (relative to OB Mid).
 * We refer to $\delta_t^{(a)} = P_t^{(a)} - S_t$ as the market-maker's Ask Spread (relative to OB Mid).
 * We refer to $\delta_t^{(b)} + \delta_t^{(a)} = P_t^{(a)} - P_t^{(b)}$ as the market-maker's Bid-Ask Spread.
-* Random variable $X_t^{(b)} \in \mathbb{Z}_{\geq 0}$ refers to the total number of market-maker's Bid Shares that have been transacted against (by MOs or by Sell LOs) up to time $t$ ($X_t^{(b)}$ is often refered to as the cumulative "hits" up to time $t$, as in "the market-maker's buy offer has been *hit*").
-* Random variable $X_t^{(a)} \in \mathbb{Z}_{\geq 0}$ refers to the total number of market-maker's Ask Shares that have been transacted against (by MOs or by Buy LOs) up to time $t$ ($X_t^{(a)}$ is often refered to as the cumulative "lifts" up to time $t$, as in "the market-maker's sell offer has been *lifted*").
+* Random variable $X_t^{(b)} \in \mathbb{Z}_{\geq 0}$ refers to the total number of market-maker's Bid Shares that have been transacted against (by MOs or by Sell LOs) up to time $t$ ($X_t^{(b)}$ is often referred to as the cumulative "hits" up to time $t$, as in "the market-maker's buy offer has been *hit*").
+* Random variable $X_t^{(a)} \in \mathbb{Z}_{\geq 0}$ refers to the total number of market-maker's Ask Shares that have been transacted against (by MOs or by Buy LOs) up to time $t$ ($X_t^{(a)}$ is often referred to as the cumulative "lifts" up to time $t$, as in "the market-maker's sell offer has been *lifted*").
 
 With this notation in place, we can write the trading account balance equation for all $t= 0, 1, \ldots, T-1$ as follows:
 
@@ -893,8 +893,8 @@ $$\mathbb{E}[\sum_{t=1}^T R_t] = \mathbb{E}[R_T] = \mathbb{E}[U(W_T + I_T \cdot 
 
 [A landmark paper by Avellaneda and Stoikov](https://www.math.nyu.edu/faculty/avellane/HighFrequencyTrading.pdf) [@Avellaneda2008] formulated this optimal market-making problem in its continuous-time version. Their formulation is conducive to analytical tractability and they came up with a simple, clean and intuitive solution. In this subsection, we go over their formulation and in the next subsection, we show the derivation of their solution. We adapt our discrete-time notation above to their continuous-time setting.
 
-\index{stochastic process!poisson process}
-\index{probability!poisson distribution}
+\index{stochastic process!Poisson process}
+\index{probability!Poisson distribution}
 
 $[(X_t^{(b)} | 0 \leq t < T]$ and $[X_t^{(a)} | 0 \leq t < T]$ are assumed to be continuous-time *Poisson processes* with the *hit rate per unit of time* and the *lift rate per unit of time* denoted as $\lambda_t^{(b)}$ and $\lambda_t^{(a)}$ respectively. Hence, we can write the following:
 
@@ -908,16 +908,16 @@ for decreasing functions $f^{(b)}(\cdot)$ and $f^{(a)}(\cdot)$.
 $$dW_t = P_t^{(a)} \cdot dX_t^{(a)} - P_t^{(b)} \cdot dX_t^{(b)}$$
 $$I_t = X_t^{(b)} - X_t^{(a)} \text{ (note: } I_0 = 0 \text{)}$$
 
-\index{probability!bernoulli distribution}
+\index{probability!Bernoulli distribution}
 Since infinitesimal Poisson random variables $dX_t^{(b)}$ (shares hit in time interval from $t$ to $t + dt$) and $dX_t^{(a)}$ (shares lifted in time interval from $t$ to $t + dt$) are Bernoulli random variables (shares hit/lifted within time interval of duration $dt$ will be 0 or 1), $N_t^{(b)}$ and $N_t^{(a)}$ (number of shares in the submitted LOs for the infinitesimal time interval from $t$ to $t + dt$) can be assumed to be 1.
 
 This simplifies the *Action* at time $t$ to be just the pair:
 
 $$(\delta_t^{(b)}, \delta_t^{(a)})$$
 \index{finance!order book!dynamics}
-\index{stochastic process!brownian motion}
+\index{stochastic process!Brownian motion}
 
-OB Mid Price Dynamics is assumed to be scaled brownian motion:
+OB Mid Price Dynamics is assumed to be scaled Brownian motion:
 
 $$dS_t = \sigma \cdot dz_t$$
 
