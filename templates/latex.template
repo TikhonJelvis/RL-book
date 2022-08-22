@@ -55,6 +55,11 @@ $endif$
 
 \usepackage[english]{babel}
 
+%% The book is separated into several parts that we call "modules" in
+%% the text
+\addto\captionsenglish{%
+ \renewcommand{\partname}{Module}}
+
 \providecommand{\tightlist}{%
   \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
 
@@ -310,7 +315,6 @@ $endif$
 
 \newcommand{\cmark}{\ding{51}}
 \newcommand{\xmark}{\ding{55}}
-
 
 %% Document structure and body content
 \begin{document}
