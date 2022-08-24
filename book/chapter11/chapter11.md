@@ -62,7 +62,7 @@ Q(S_t,A_t) & \leftarrow Q(S_t,A_t) + \frac 1 {Count(S_t,A_t)} \cdot (G_t - Q(S_t
 
 It's important to note that $Count(S_t, A_t)$ is accumulated over the set of all episodes seen thus far. Note that the estimate $Q(S_t,A_t)$ is not an estimate of the Q-Value Function for a single policy—rather, it keeps updating as we encounter new greedy policies across the set of episodes.
 
-So is this now our first Tabular RL Control algorithm? Not quite—there is yet another problem. This problem is more subtle and we illustrate the problem with a simple example. Let's consider a specific state (call it $s$) and assume that there are only two allowable actions $a_1$ and $a_2$ for state $s$. Let's say the true Q-Value Function for state $s$ is: $Q_{true}(s,a_1) = 2, Q_{true}(s,a_2) = 5$. Let's say we initialize the Q-Value Function estimate as: $Q(s,a_1) = Q(s,a_2) = 0$. When we encounter state $s$ for the first time, the action to be taken is arbitrary between $a_1$ and $a_2$ since they both have the same Q-Value estimate (meaning both $a_1$ and $a_2$ yield the same max value for $Q(s,a)$ among the two choices for $a$). Let's say we arbitrarily pick $a_1$ as the action choice and let's say for this first encounter of state $s$ (with the arbitrarily picked action $a_1$), the return obtained is 3. So $Q(s,a_1)$ updates to the value 3. So when the state $s$ is encountered for the second time, we see that $Q(s,a_1) = 3$ and $Q(s,a_2) = 0$ and so, action $a_1$ will be taken according to the greedy policy implied by the estimate of the Q-Value Function. Let's say we now obtain a return of -1, updating $Q(s,a_1)$ to $\frac {3 - 1} 2 = 1$. When $s$ is encountered for the third time, yet again action $a_1$ will be taken according to the greedy policy implied by the estimate of the Q-Value Function. Let's say we now obtain a return of 2, updating $Q(s,a_1)$ to $\frac {3 - 1 + 2} 3 = \frac 4 3$. We see that as long as the returns associated with $a_1$ are not negative enough to make the estimate $Q(s,a_1)$ negative, $a_2$ is "locked out" by $a_1$ because the first few occurrences of $a_1$ happen to yield an average return greater than the initialization of $Q(s,a_2)$. Even if $a_2$ was chosen, it is possible that the first few occurrences of $a_2$ yield an average return smaller than the average return obtained on the first few occurrences of $a_1$, in which case $a_2$ could still get locked-out prematurely. 
+So is this now our first Tabular RL Control algorithm? Not quite—there is yet another problem. This problem is more subtle and we illustrate the problem with a simple example. Let's consider a specific state (call it $s$) and assume that there are only two allowable actions $a_1$ and $a_2$ for state $s$. Let's say the true Q-Value Function for state $s$ is: $Q_{true}(s,a_1) = 2, Q_{true}(s,a_2) = 5$. Let's say we initialize the Q-Value Function estimate as: $Q(s,a_1) = Q(s,a_2) = 0$. When we encounter state $s$ for the first time, the action to be taken is arbitrary between $a_1$ and $a_2$ since they both have the same Q-Value estimate (meaning both $a_1$ and $a_2$ yield the same max value for $Q(s,a)$ among the two choices for $a$). Let's say we arbitrarily pick $a_1$ as the action choice and let's say for this first encounter of state $s$ (with the arbitrarily picked action $a_1$), the return obtained is 3. So $Q(s,a_1)$ updates to the value 3. So when the state $s$ is encountered for the second time, we see that $Q(s,a_1) = 3$ and $Q(s,a_2) = 0$ and so, action $a_1$ will be taken according to the greedy policy implied by the estimate of the Q-Value Function. Let's say we now obtain a return of $-1$, updating $Q(s,a_1)$ to $\frac {3 - 1} 2 = 1$. When $s$ is encountered for the third time, yet again action $a_1$ will be taken according to the greedy policy implied by the estimate of the Q-Value Function. Let's say we now obtain a return of 2, updating $Q(s,a_1)$ to $\frac {3 - 1 + 2} 3 = \frac 4 3$. We see that as long as the returns associated with $a_1$ are not negative enough to make the estimate $Q(s,a_1)$ negative, $a_2$ is "locked out" by $a_1$ because the first few occurrences of $a_1$ happen to yield an average return greater than the initialization of $Q(s,a_2)$. Even if $a_2$ was chosen, it is possible that the first few occurrences of $a_2$ yield an average return smaller than the average return obtained on the first few occurrences of $a_1$, in which case $a_2$ could still get locked-out prematurely. 
 
 This problem goes beyond MC Control and applies to the broader problem of RL Control—updates can get biased by initial random occurrences of returns (or return estimates), which in turn could prevent certain actions from being sufficiently chosen (thus, disallowing accurate estimates of the Q-Values for those actions). While we do want to *exploit* actions that seem to be fetching higher returns, we also want to adequately *explore* all possible actions so we can obtain an accurate-enough estimate of their Q-Values. This is essentially the Explore-Exploit dilemma of the famous [Multi-Armed Bandit Problem](https://en.wikipedia.org/wiki/Multi-armed_bandit). In Chapter [-@sec:multi-armed-bandits-chapter], we will cover the Multi-Armed Bandit problem in detail, along with a variety of techniques to solve the Multi-Armed Bandit problem (which are essentially creative ways of resolving the Explore-Exploit dilemma). We will see in Chapter [-@sec:multi-armed-bandits-chapter] that a simple way of resolving the Explore-Exploit dilemma is with a method known as $\epsilon$-greedy, which essentially means we must be greedy ("exploit") a certain ($1 - \epsilon$) fraction of the time and for the remaining ($\epsilon$) fraction of the time, we explore all possible actions. The term "certain fraction of the time" refers to probabilities of choosing actions, which means an $\epsilon$-greedy policy (generated from a Q-Value Function estimate) will be a stochastic policy. For the sake of simplicity, in this book, we will employ the $\epsilon$-greedy method to resolve the Explore-Exploit dilemma in all RL Control algorithms involving the Explore-Exploit dilemma (although you must understand that we can replace the $\epsilon$-greedy method by the other methods we shall cover in Chapter [-@sec:multi-armed-bandits-chapter] in any of the RL Control algorithms where we run into the Explore-Exploit dilemma). So we need to tweak the Tabular MC Control algorithm described above to perform Policy Improvement with the $\epsilon$-greedy method. The formal definition of the $\epsilon$-greedy stochastic policy $\pi'$ (obtained from the current estimate of the Q-Value Function) for a Finite MDP (since we are focused on Tabular RL Control) is as follows:
 \index{exploration versus exploitation}
@@ -287,7 +287,7 @@ si_mdp: SimpleInventoryMDPCap = SimpleInventoryMDPCap(
 )
 ```
 
-First let's run Value Iteration so we can determine the true Optimal Value Function and Optimal Policy   
+First, let's run Value Iteration so we can determine the true Optimal Value Function and Optimal Policy   
 
 ```python
 from rl.dynamic_programming import value_iteration_result
@@ -624,7 +624,7 @@ As mentioned in Chapter [-@sec:rl-prediction-chapter], because MC and TD have si
 
 ![GLIE MC Control and GLIE SARSA Convergence for SimpleInventoryMDPCap \label{fig:mc_sarsa_convergence}](./chapter11/mc_sarsa_convergence.png "GLIE MC Control and GLIE SARSA Convergence for SimpleInventoryMDPCap")
 
-Figure \ref{fig:mc_sarsa_convergence} depicts the convergence for our implementations of GLIE MC Control and GLIE SARSA for a constant learning rate of $\alpha = 0.05$. We produced this Figure by using data from 500 episodes generated from the same `SimpleInventoryMDPCap` object we had created earlier (with same discount factor $\gamma = 0.9$). We plotted the RMSE after each batch of 10 episodes, hence both curves shown in the Figure have 50 RMSE data points plotted. Firstly, we clearly see that MC Control has significantly more variance as evidenced by the choppy MC Control RMSE progression curve. Secondly, we note that the MC Control RMSE curve progresses quite quickly in the first few episode batches but is slow to converge after the first few episode batches (relative to the progression of SARSA). This results in SARSA reaching fairly small RMSE quicker than MC Control. This behavior of GLIE SARSA outperforming the comparable GLIE MC Control (with constant learning rate) is typical in most MDP Control problems.
+Figure \ref{fig:mc_sarsa_convergence} depicts the convergence for our implementations of GLIE MC Control and GLIE SARSA for a constant learning rate of $\alpha = 0.05$. We produced this figure by using data from 500 episodes generated from the same `SimpleInventoryMDPCap` object we had created earlier (with same discount factor $\gamma = 0.9$). We plotted the RMSE after each batch of 10 episodes, hence both curves shown in the figure have 50 RMSE data points plotted. Firstly, we clearly see that MC Control has significantly more variance as evidenced by the choppy MC Control RMSE progression curve. Secondly, we note that the MC Control RMSE curve progresses quite quickly in the first few episode batches but is slow to converge after the first few episode batches (relative to the progression of SARSA). This results in SARSA reaching fairly small RMSE quicker than MC Control. This behavior of GLIE SARSA outperforming the comparable GLIE MC Control (with constant learning rate) is typical in most MDP Control problems.
 
 Lastly, it's important to recognize that MC Control is not very sensitive to the initial Value Function while SARSA is more sensitive to the initial Value Function. We encourage you to play with the initial Value Function for this `SimpleInventoryMDPCap` example and evaluate how it affects the convergence speeds.
 
@@ -680,7 +680,7 @@ All control algorithms face a tension between wanting to learn Q-Values continge
 \index{policy!target policy|textbf}
 \index{policy!behavior policy|textbf}
 
-In SARSA, at a given time step, we are in a current state $S$, take action $A$, after which we obtain the reward $R$ and next state $S'$, upon which we take the next action $A'$. The action $A$ taken from the current state $S$ is meant to come from an exploratory policy (behavior policy) so that for each state $S$, we have adequate occurrences of all actions in order to accurately estimate the Q-Value Function. The action $A'$ taken from the next state $S'$ is meant to come from the target policy as we aim for *subsequent optimal behavior* ($Q^*(S, A)$ requires optimal behavior subsequent to taking action $A$). However, in the SARSA algorithm, the behavior policy producing $A$ from $S$ and the target policy producing $A'$ from $S'$ are in fact the same policy—the $\epsilon$-greedy policy. Algorithms such as SARSA in which the behavior policy is the same as the target policy are referred to as On-Policy Algorithms to indicate the fact that the behavior used to generate data (experiences) does not deviate from the policy we are aiming for (target policy, which drives towards the optimal policy). 
+In SARSA, at a given time step, we are in a current state $S$, take action $A$, after which we obtain the reward $R$ and next state $S'$, upon which we take the next action $A'$. The action $A$ taken from the current state $S$ is meant to come from an exploratory policy (behavior policy) so that for each state $S$, we have adequate occurrences of all actions in order to accurately estimate the Q-Value Function. The action $A'$ taken from the next state $S'$ is meant to come from the target policy as we aim for *subsequent optimal behavior* ($Q^*(S, A)$ requires optimal behavior subsequent to taking action $A$). However, in the SARSA algorithm, the behavior policy producing $A$ from $S$ and the target policy producing $A'$ from $S'$ are, in fact, the same policy—the $\epsilon$-greedy policy. Algorithms such as SARSA in which the behavior policy is the same as the target policy are referred to as On-Policy Algorithms to indicate the fact that the behavior used to generate data (experiences) does not deviate from the policy we are aiming for (target policy, which drives towards the optimal policy). 
 
 \index{reinforcement learning!on-policy|textbf}
 
@@ -869,7 +869,7 @@ class WindyGrid:
         return {(a, s) for a, s in temp if self.is_valid_state(s)}
 ```
 
-Next we write a method to calculate the transition probabilities. The code below should be self-explanatory and mimics the description of the problem above and the mathematical specification of the transition probabilities given above.
+Next, we write a method to calculate the transition probabilities. The code below should be self-explanatory and mimics the description of the problem above and the mathematical specification of the transition probabilities given above.
 
 ```python
 from rl.distribution import Categorical
@@ -907,7 +907,7 @@ from rl.distribution import Categorical
         return d
 ```
 
-Next we write a method to create the `MarkovDecisionProcess` for the Windy Grid.   
+Next, we write a method to create the `MarkovDecisionProcess` for the Windy Grid.   
 
 ```python
 from rl.markov_decision_process import FiniteMarkovDecisionProcess
@@ -922,7 +922,7 @@ from rl.markov_decision_process import FiniteMarkovDecisionProcess
         )
 ```
 
-Next we write methods for Value Iteration, SARSA and Q-Learning
+Next, we write methods for Value Iteration, SARSA and Q-Learning
 
 ```python
 from rl.markov_decision_process import FiniteDeterministicPolicy
@@ -987,7 +987,7 @@ from rl.chapter11.control_utils import get_vf_and_policy_from_qvf
         )
 ```
 
-The above code is in the file [rl/chapter11/windy_grid.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/chapter11/windy_grid.py). Note that this file also contains some helpful printing functions that pretty-prints the grid, along with the calculated Optimal Value Functions and Optimal Policies. The method `print_wind_and_bumps` prints the column wind probabilities and the cost of bumping into a block/boundary. The method `print_vf_and_policy` prints a given Value Function and a given Deterministic Policy—this method can be used to print the Optimal Value Function and Optimal Policy produced by Value Iteration, by SARSA and by Q-Learning. In the printing of a deterministic policy, "X" represents a block, "T" represents a terminal cell, and the characters "L", "R", "D", "U" represent "Left", "Right", "Down", "Up" moves respectively.
+The above code is in the file [rl/chapter11/windy_grid.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/chapter11/windy_grid.py). Note that this file also contains some helpful printing functions that pretty-prints the grid, along with the calculated Optimal Value Functions and Optimal Policies. The method `print_wind_and_bumps` prints the column wind probabilities and the cost of bumping into a block/boundary. The method `print_vf_and_policy` prints a given Value Function and a given Deterministic Policy—this method can be used to print the Optimal Value Function and Optimal Policy produced by Value Iteration, by SARSA and by Q-Learning. In the printing of a deterministic policy, "X" represents a block, "T" represents a terminal cell, and the characters "L", "R", "D", "U" represent "Left", "Right", "Down", "Up" moves, respectively.
 
 Now let's run our code on a small instance of a Windy Grid.
 
@@ -1187,7 +1187,7 @@ The table in Figure \ref{table:dp_td_linkage} summarizes these RL algorithms, al
  $\mathbb{E}[R + \gamma \max_{a'} Q(S',a')|S,A]$ & sample $R + \gamma \max_{a' } Q(S',a')$ \\ \hline
 \end{tabular} 
 \end{center}
-\caption{Relationship between DP and RL algorithms}
+\caption{Relationship between DP and RL Algorithms}
 \label{table:dp_td_linkage}
 \end{figure}
 

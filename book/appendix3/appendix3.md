@@ -104,7 +104,7 @@ $$(dz^{(1)}_t) \cdot (dz^{(2)}_t) = \rho \cdot dt$$
 
 where $z^{(1)}$ and $z^{(2)}$ are two different Brownian motions with correlation between the random variables $z^{(1)}_t$ and $z^{(2)}_t$ equal to $\rho$ for all $t > 0$.
 
-You should intuitively interpret the formula $(dz_t)^2 = dt$ (and its generalization) as a deterministic statement, and in fact this statement is used as an algebraic convenience in Brownian motion-based stochastic calculus, forming the core of *Ito Isometry* and *Ito's Lemma* (which we cover shortly, but first we need to define the Ito Integral).
+You should intuitively interpret the formula $(dz_t)^2 = dt$ (and its generalization) as a deterministic statement, and in fact, this statement is used as an algebraic convenience in Brownian motion-based stochastic calculus, forming the core of *Ito Isometry* and *Ito's Lemma* (which we cover shortly, but first we need to define the Ito Integral).
 
 ### Ito Integral
 \index{stochastic calculus!Ito integral|textbf}

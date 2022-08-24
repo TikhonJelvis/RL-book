@@ -41,7 +41,7 @@ dV(t, S_t) = (\pdv{V}{t} + \mu \cdot S_t \cdot \pdv{V}{S_t} + \frac {\sigma^2} 2
 \index{finance!derivative!underlying}
 \index{finance!derivative!riskless portfolio}
 \index{finance!derivative!hedging}
-Now here comes the key idea: create a portfolio comprising of the derivative and the underlying so as to eliminate the incremental uncertainty arising from the Brownian motion increment $dz_t$. It's clear from the coefficients of $dz_t$ in Equation \eqref{eq:black-scholes-underlying-process} and \eqref{eq:black-scholes-derivative-process} that this can be accomplished with a portfolio comprising of $\pdv{V}{S_t}$ units of the underlying and -1 units of the derivative (i.e., by selling a derivative contract written on a single unit of the underlying). Let us refer to the value of this portfolio as $\Pi_t$ at time $t$. Thus,
+Now here comes the key idea: create a portfolio comprising of the derivative and the underlying so as to eliminate the incremental uncertainty arising from the Brownian motion increment $dz_t$. It's clear from the coefficients of $dz_t$ in Equation \eqref{eq:black-scholes-underlying-process} and \eqref{eq:black-scholes-derivative-process} that this can be accomplished with a portfolio comprising of $\pdv{V}{S_t}$ units of the underlying and $-1$ units of the derivative (i.e., by selling a derivative contract written on a single unit of the underlying). Let us refer to the value of this portfolio as $\Pi_t$ at time $t$. Thus,
 
 \begin{equation}
 \Pi_t = - V(t, S_t) + \pdv{V}{S_t} \cdot S_t

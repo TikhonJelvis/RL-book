@@ -2,7 +2,7 @@
 
 \index{reinforcement learning|(}
 
-In Chapters [-@sec:rl-prediction-chapter] and [-@sec:rl-control-chapter], we covered the basic RL algorithms for Prediction and Control respectively. Specifically, we covered the basic Monte-Carlo (MC) and Temporal-Difference (TD) techniques. We want to highlight two key aspects of these basic RL algorithms:
+In Chapters [-@sec:rl-prediction-chapter] and [-@sec:rl-control-chapter], we covered the basic RL algorithms for Prediction and Control, respectively. Specifically, we covered the basic Monte-Carlo (MC) and Temporal-Difference (TD) techniques. We want to highlight two key aspects of these basic RL algorithms:
 
   1. The experiences data arrives in the form of a single unit of experience at a time (single unit is a *trace experience* for MC and an *atomic experience* for TD), the unit of experience is used by the algorithm for Value Function learning, and then that unit of experience is not used later in the algorithm (essentially, that unit of experience, once consumed, is *not re-consumed* for further learning later in the algorithm). It doesn't have to be this way—one can develop RL algorithms that re-use experience data—this approach is known as *Experience-Replay* (in fact, we saw a glimpse of Experience-Replay in Section [-@sec:experience-replay-section] of Chapter [-@sec:rl-prediction-chapter]).
 
@@ -37,7 +37,7 @@ The Incremental MC Prediction algorithm performs $n$ updates in sequence for dat
 \bm{w^*} & = \argmin_{\bm{w}} \frac 1 {2n} \cdot \sum_{i=1}^n (V(S_i;\bm{w}) - G_i)^2 \\
 & = \argmin_{\bm{w}} \mathbb{E}_{(S,G) \sim \mathcal{D}} [\frac 1 2 \cdot (V(S; \bm{w}) - G)^2]
 \end{align*}
-This in fact is the `solve` method of `FunctionApprox` on training data $\mathcal{D}$. This approach is called Batch RL because we first collect and store the entire set (batch) of data $\mathcal{D}$ available to us, and then we find the best possible parameters $\bm{w^*}$ fitting this data $\mathcal{D}$. Note that unlike Incremental RL, here we are not updating the MRP Value Function estimate while the data arrives—we simply store the data as it arrives and start the MRP Value Function estimation procedure once we are ready with the entire (batch) data $\mathcal{D}$ in storage. As we know from the implementation of the `solve` method of `FunctionApprox`, finding the best possible parameters $\bm{w^*}$ from the batch $\mathcal{D}$ involves calling the `update` method of `FunctionApprox` with repeated use of the available data pairs $(S,G)$ in the stored data set $\mathcal{D}$. Each of these updates to the parameters $\bm{w}$ is as follows:
+This, in fact, is the `solve` method of `FunctionApprox` on training data $\mathcal{D}$. This approach is called Batch RL because we first collect and store the entire set (batch) of data $\mathcal{D}$ available to us, and then we find the best possible parameters $\bm{w^*}$ fitting this data $\mathcal{D}$. Note that unlike Incremental RL, here we are not updating the MRP Value Function estimate while the data arrives—we simply store the data as it arrives and start the MRP Value Function estimation procedure once we are ready with the entire (batch) data $\mathcal{D}$ in storage. As we know from the implementation of the `solve` method of `FunctionApprox`, finding the best possible parameters $\bm{w^*}$ from the batch $\mathcal{D}$ involves calling the `update` method of `FunctionApprox` with repeated use of the available data pairs $(S,G)$ in the stored data set $\mathcal{D}$. Each of these updates to the parameters $\bm{w}$ is as follows:
 $$\Delta \bm{w} = \alpha \cdot \frac 1 n \cdot \sum_{i=1}^n (G_i - V(S_i; \bm{w})) \cdot \nabla_{\bm{w}} V(S_i; \bm{w})$$
 
 Note that unlike Incremental MC where each update to $\bm{w}$ uses data from a single trace experience, each update to $\bm{w}$ in Batch MC uses all of the trace experiences data (all of the batch data). If we keep doing these updates repeatedly, we will ultimately converge to the desired MRP Value Function $V(s;\bm{w^*})$. The repeated use of the available data in $\mathcal{D}$ means that we are doing Batch MC Prediction using *Experience-Replay*. So we see that this makes more efficient use of the available training data $\mathcal{D}$ due to the re-use of the data pairs in $\mathcal{D}$.
@@ -218,7 +218,7 @@ The code above is in the file [rl/experience_replay.py](https://github.com/Tikho
 
 \index{reinforcement learning!least squares|(}
 
-We've seen how Batch RL Prediction is an iterative process of weight updates until convergence—the MRP Value Function is updated with repeated use of the fixed, finite (batch) data that is made available. However, if we assume that the MRP Value Function approximation $V(s; \bm{w})$ is a linear function approximation (linear in a set of feature functions of the state space), then we can solve for the MRP Value Function with direct and simple linear algebra operations (ie., without the need for iterative weight updates until convergence). Let us see how.
+We've seen how Batch RL Prediction is an iterative process of weight updates until convergence—the MRP Value Function is updated with repeated use of the fixed, finite (batch) data that is made available. However, if we assume that the MRP Value Function approximation $V(s; \bm{w})$ is a linear function approximation (linear in a set of feature functions of the state space), then we can solve for the MRP Value Function with direct and simple linear algebra operations (i.e., without the need for iterative weight updates until convergence). Let us see how.
 
 \index{function approximation!linear}
 
@@ -318,7 +318,7 @@ The code above is in the file [rl/td.py](https://github.com/TikhonJelvis/RL-book
 
 Now let's test this on transitions data sampled from the `RandomWalkMRP` example we had constructed in Chapter [-@sec:rl-prediction-chapter]. As a reminder, this MRP consists of a random walk across states $\{0, 1, 2, \ldots, B\}$ with $0$ and $B$ as the terminal states (think of these as terminating barriers of a random walk) and the remaining states as the non-terminal states. From any non-terminal state $i$, we transition to state $i+1$ with probability $p$ and to state $i-1$ with probability $1-p$. The reward is 0 upon each transition, except if we transition from state $B-1$ to terminal state $B$ which results in a reward of 1. The code for `RandomWalkMRP` is in the file [rl/chapter10/random_walk_mrp.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/chapter10/random_walk_mrp.py). 
 
-First we set up a `RandomWalkMRP` object with $B = 20, p = 0.55$ and calculate its true Value Function (so we can later compare against Incremental TD and LSTD methods).
+First, we set up a `RandomWalkMRP` object with $B = 20, p = 0.55$ and calculate its true Value Function (so we can later compare against Incremental TD and LSTD methods).
 
 ```python
 from rl.chapter10.random_walk_mrp import RandomWalkMRP
@@ -334,7 +334,7 @@ gamma = 1.0
 true_vf: np.ndarray = random_walk.get_value_function_vec(gamma=gamma)
 ```
 
-Let's say we have access to only 10,000 transitions (each transition is an object of the type `TransitionStep`). First we generate these 10,000 sampled transitions from the `RandomWalkMRP` object we created above.
+Let's say we have access to only 10,000 transitions (each transition is an object of the type `TransitionStep`). First, we generate these 10,000 sampled transitions from the `RandomWalkMRP` object we created above.
 
 
 ```python
@@ -854,8 +854,8 @@ We learnt in Chapter [-@sec:derivatives-pricing-chapter] that the American Optio
 In the financial trading industry, it has traditionally not been a common practice to explicitly view the American Options Pricing problem as an MDP. Specialized algorithms have been developed to price American Options. We now provide a quick overview of the common practice in pricing American Options in the financial trading industry. Firstly, we should note that the price of some American Options is equal to the price of the corresponding European Option, for which we have a closed-form solution under the assumption of a lognormal process for the underlying—this is the case for a plain-vanilla American call option whose price (as we proved in Chapter [-@sec:derivatives-pricing-chapter]) is equal to the price of a plain-vanilla European call option. However, this is not the case for a plain-vanilla American put option. Secondly, we should note that if the payoff of an American option is dependent on only the current price of the underlying (and not on the past prices of the underlying)—in which case, we say that the option payoff is not "history-dependent"—and if the dimension of the state space is not large, then we can do a simple backward induction on a binomial tree (as we showed in Chapter [-@sec:derivatives-pricing-chapter]). In practice, a more detailed data structure such as a [trinomial tree](https://en.wikipedia.org/wiki/Trinomial_tree) or a lattice is often used for more accurate backward-induction calculations. However, if the payoff is history-dependent (i.e., payoff depends on past prices of the underlying) or if the payoff depends on the prices of several underlying assets, then the state space is too large for backward induction to handle. In such cases, the standard approach in the financial trading industry is to use the [Longstaff-Schwartz pricing algorithm](https://people.math.ethz.ch/~hjfurrer/teaching/LongstaffSchwartzAmericanOptionsLeastSquareMonteCarlo.pdf) [@LongstaffSchwartz2001]. We won't cover the Longstaff-Schwartz pricing algorithm in detail in this book—it suffices to share here that the Longstaff-Schwartz pricing algorithm combines 3 ideas:
 
 * The Pricing is based on a set of sampling traces of the underlying prices.
-* Function approximation of the continuation value for in-the-money states
-* Backward-recursive determination of early exercise states
+* Function approximation of the continuation value for in-the-money states.
+* Backward-recursive determination of early exercise states.
 
 The goal of this section is to explain how to price American Options with Reinforcement Learning, as an alternative to the Longstaff-Schwartz algorithm.
 
@@ -1019,7 +1019,7 @@ $$\bb (\bv) = \bm{\mathcal{R}}^{\pi} + \gamma \bm{\mathcal{P}}^{\pi} \cdot \bv \
 Note that $\bb$ is a linear operator in vector space $\mathbb{R}^n$. So we henceforth denote and treat $\bb$ as an $n \times n$ matrix, representing the linear operator. We've learnt in Chapter [-@sec:mdp-chapter] that $\bvpi$ is the fixed point of $\bb$. Therefore, we can write:
 $$\bb \cdot \bvpi = \bvpi$$
 \index{fixed-point theory!Banach fixed-point theorem}
-This means, if we start with an arbitrary Value Function vector $\bv$ and repeatedly apply $\bb$, by Banach Fixed-Point Theorem \ref{th:banach_fixed_point_theorem}, we will reach the fixed point $\bvpi$. We've learnt in Chapter [-@sec:mdp-chapter] that this is in fact the Dynamic Programming Policy Evaluation algorithm. Note that Tabular Monte Carlo also converges to $\bvpi$ (albeit slowly).
+This means, if we start with an arbitrary Value Function vector $\bv$ and repeatedly apply $\bb$, by Banach Fixed-Point Theorem \ref{th:banach_fixed_point_theorem}, we will reach the fixed point $\bvpi$. We've learnt in Chapter [-@sec:mdp-chapter] that this is, in fact, the Dynamic Programming Policy Evaluation algorithm. Note that Tabular Monte Carlo also converges to $\bvpi$ (albeit slowly).
 
 \index{dynamic programming!policy evaluation}
 \index{projection operator}
@@ -1122,7 +1122,7 @@ without a model?
 \index{reinforcement learning!least squares!lstd}
 \index{function approximation!semi-gradient}
 
-Following policy $\pi$, each time we perform an individual transition from $s$ to $s'$ getting reward $r$, we get a sample estimate of $\bm{A}$ and $\bm{b}$. The sample estimate of $\bm{A}$ is the outer-product of vectors $\bm{\phi}(s)$ and $\bm{\phi}(s) - \gamma \cdot \bm{\phi}(s')$. The sample estimate of $\bm{b}$ is scalar $r$ times vector $\bm{\phi}(s)$. We average these sample estimates across many such individual transitions. Note that this algorithm is exactly the Least Squares Temporal Difference (LSTD) algorithm we've covered earlier in this chapter. Thus, we now know that LSTD converges to $w_{PBE}$, i.e., minimizes (in fact takes down to 0) $PBE$. If the number of features $m$ is large or if we are doing non-linear function approximation or Off-Policy, then we seek a gradient-based TD algorithm. It turns out that our usual Semi-Gradient TD algorithm converges to $\bm{w}_{PBE}$ in the case of on-policy linear function approximation. Note that the update for the usual Semi-Gradient TD algorithm in the case of on-policy linear function approximation is as follows:
+Following policy $\pi$, each time we perform an individual transition from $s$ to $s'$ getting reward $r$, we get a sample estimate of $\bm{A}$ and $\bm{b}$. The sample estimate of $\bm{A}$ is the outer-product of vectors $\bm{\phi}(s)$ and $\bm{\phi}(s) - \gamma \cdot \bm{\phi}(s')$. The sample estimate of $\bm{b}$ is scalar $r$ times vector $\bm{\phi}(s)$. We average these sample estimates across many such individual transitions. Note that this algorithm is exactly the Least Squares Temporal Difference (LSTD) algorithm we've covered earlier in this chapter. Thus, we now know that LSTD converges to $w_{PBE}$, i.e., minimizes (in fact, takes down to 0) $PBE$. If the number of features $m$ is large or if we are doing non-linear function approximation or Off-Policy, then we seek a gradient-based TD algorithm. It turns out that our usual Semi-Gradient TD algorithm converges to $\bm{w}_{PBE}$ in the case of on-policy linear function approximation. Note that the update for the usual Semi-Gradient TD algorithm in the case of on-policy linear function approximation is as follows:
 $$\Delta \bw = \alpha \cdot (r + \gamma \cdot \bm{\phi}(s')^T \cdot \bw - \bm{\phi}(s)^T \cdot \bw) \cdot \bm{\phi}(s)$$
 This converges to $\bm{w}_{PBE}$ because at convergence, we have: $\mathbb{E}_{\pi}[\Delta \bw] = 0$, which can be expressed as:
 $$ \bphi^T \cdot \bd \cdot (\brew + \gamma \bprob \cdot \bphi \cdot \bw - \bphi \cdot \bw) = 0$$

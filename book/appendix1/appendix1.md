@@ -124,7 +124,7 @@ Substituting $t=t^*$ in $f_{x\sim \mathcal{N}(\mu, \sigma^2)}(t) = e^{\mu t + \f
 #### Minimizing the MGF When $x$ Follows a Symmetric Binary Distribution
 \index{probability!binary distribution}
 
-Here we consider the case where $x$ follows a binary distribution: $x$ takes values $\mu + \sigma$ and $\mu - \sigma$ with probability 0.5 each. Let us refer to this distribution as $x \sim \mathcal{B}(\mu + \sigma, \mu - \sigma)$. Note that the mean and variance of $x$ under $\mathcal{B}(\mu + \sigma, \mu - \sigma)$ are $\mu$ and $\sigma^2$ respectively. So we have to solve the problem:
+Here we consider the case where $x$ follows a binary distribution: $x$ takes values $\mu + \sigma$ and $\mu - \sigma$ with probability 0.5 each. Let us refer to this distribution as $x \sim \mathcal{B}(\mu + \sigma, \mu - \sigma)$. Note that the mean and variance of $x$ under $\mathcal{B}(\mu + \sigma, \mu - \sigma)$ are $\mu$ and $\sigma^2$, respectively. So we have to solve the problem:
 $$\min_{t\in \mathbb{R}} f_{x\sim \mathcal{B}(\mu + \sigma, \mu - \sigma)}(t) = \min_{t\in \mathbb{R}} \mathbb{E}_{x\sim \mathcal{B}(\mu + \sigma, \mu - \sigma)}[e^{tx}] = \min_{t\in \mathbb{R}} 0.5(e^{(\mu + \sigma)t} + e^{(\mu - \sigma)t})$$
 $$f_{x\sim \mathcal{B}(\mu + \sigma, \mu - \sigma)}'(t) = 0.5((\mu + \sigma) \cdot e^{(\mu + \sigma)t} + (\mu - \sigma) \cdot e^{(\mu - \sigma)t})$$
 Note that unless $\mu \in$ open interval $(-\sigma, \sigma)$ (i.e., absolute value of mean is less than standard deviation), $f_{x\sim \mathcal{B}(\mu + \sigma, \mu - \sigma)}'(t)$ will not be 0 for any value of $t$. Therefore, for this minimization to be non-trivial, we will henceforth assume $\mu \in (-\sigma, \sigma)$.
