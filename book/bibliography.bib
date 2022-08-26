@@ -891,7 +891,7 @@ URL = {https://doi.org/10.1214/aoms/1177729893}
   editor = {Armand Prieditis and Stuart Russell},
   booktitle = {Machine Learning Proceedings 1995},
   publisher = {Morgan Kaufmann},
-  address = {San Francisco (CA)},
+  address = {San Francisco, CA},
   pages = {30–37},
   year = {1995},
   isbn = {978-1-55860-377-6},
@@ -953,20 +953,19 @@ URL = {https://doi.org/10.1214/aoms/1177729893}
   volume = 8,
   year = 1992
 }
-@article{journals/corr/abs-1205-4839,
-  author    = {Thomas Degris and
-               Martha White and
-               Richard S. Sutton},
-  title     = {Off-Policy Actor-Critic},
-  journal   = {CoRR},
-  volume    = {abs/1205.4839},
-  year      = {2012},
-  url       = {http://arxiv.org/abs/1205.4839},
-  eprinttype = {arXiv},
-  eprint    = {1205.4839},
-  timestamp = {Mon, 13 Aug 2018 16:49:01 +0200},
-  biburl    = {https://dblp.org/rec/journals/corr/abs-1205-4839.bib},
-  bibsource = {dblp computer science bibliography, https://dblp.org}
+@inproceedings{10.5555/3042573.3042600,
+author = {Degris, Thomas and White, Martha and Sutton, Richard S.},
+title = {Off-Policy Actor-Critic},
+year = {2012},
+isbn = {9781450312851},
+publisher = {Omnipress},
+address = {Madison, WI},
+abstract = {This paper presents the first actor-critic algorithm for off-policy reinforcement learning. Our algorithm is online and incremental, and its per-time-step complexity scales linearly with the number of learned weights. Previous work on actor-critic algorithms is limited to the on-policy setting and does not take advantage of the recent advances in off-policy gradient temporal-difference learning. Off-policy techniques, such as Greedy-GQ, enable a target policy to be learned while following and obtaining data from another (behavior) policy. For many problems, however, actor-critic methods are more practical than action value methods (like Greedy-GQ) because they explicitly represent the policy; consequently, the policy can be stochastic and utilize a large action space. In this paper, we illustrate how to practically combine the generality and learning potential of off-policy learning with the flexibility in action selection given by actor-critic methods. We derive an incremental, linear time and space complexity algorithm that includes eligibility traces, prove convergence under assumptions similar to previous off-policy algorithms, and empirically show better or comparable performance to existing algorithms on standard reinforcement-learning benchmark problems.},
+booktitle = {Proceedings of the 29th International Coference on International Conference on Machine Learning},
+pages = {179–186},
+numpages = {8},
+location = {Edinburgh, Scotland},
+series = {ICML'12}
 }
 @article{gittins1979bandit,
   title	= {Bandit processes and dynamic allocation indices},
