@@ -101,7 +101,6 @@ $$(dz_t)^2 = dt$$
 This formula generalizes to:
 
 $$(dz^{(1)}_t) \cdot (dz^{(2)}_t) = \rho \cdot dt$$
-
 where $z^{(1)}$ and $z^{(2)}$ are two different Brownian motions with correlation between the random variables $z^{(1)}_t$ and $z^{(2)}_t$ equal to $\rho$ for all $t > 0$.
 
 You should intuitively interpret the formula $(dz_t)^2 = dt$ (and its generalization) as a deterministic statement, and in fact, this statement is used as an algebraic convenience in Brownian motion-based stochastic calculus, forming the core of *Ito Isometry* and *Ito's Lemma* (which we cover shortly, but first we need to define the Ito Integral).
@@ -173,7 +172,6 @@ Ito's Lemma describes the stochastic process of a function ($f$) of an Ito Proce
 If we generalize $\bm{Y}$ to be an $n$-dimensional stochastic process (as a column vector) with $\bm{\mu}_t$ as an $n$-dimensional (stochastic) column vector, $\bm{\sigma}_t$ as an $n \times m$ (stochastic) matrix, and $\bm{z}_t$ as an $m$-dimensional vector of $m$ independent standard Brownian motions (as follows):
 
 $$d\bm{Y}_t = \bm{\mu}_t \cdot dt + \bm{\sigma}_t \cdot d\bm{z}_t$$
-
 then we get the multi-variate version of Ito's Lemma, as follows:
 
 \begin{equation}
@@ -181,7 +179,6 @@ df(t, \bm{Y}_t) = (\pdv{f}{t} + (\nabla_{\bm{Y}} f)^T \cdot \bm{\mu}_t + \frac 1
 \label{eq:itos-lemma-multi}
 \end{equation}
 \index{stochastic calculus!Ito's lemma}
-
 where the symbol $\nabla$ represents the gradient of a function, the symbol $\Delta$ represents the [Hessian](https://en.wikipedia.org/wiki/Hessian_matrix) of a function, and the symbol $Tr$ represents the [Trace](https://en.wikipedia.org/wiki/Trace_(linear_algebra)) of a matrix.
 
 Next, we cover two common Ito processes, and use Ito's Lemma to solve the Stochastic Differential Equation represented by these Ito Processes:

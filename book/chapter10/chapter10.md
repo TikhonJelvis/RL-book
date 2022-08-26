@@ -59,11 +59,8 @@ $$S_0, R_1, S_1, R_2, S_2, \ldots$$
 
 \index{value function!value function of Markov reward process}
 Given a stream of atomic experiences or a stream of trace experiences, the RL Prediction problem is to estimate the *Value Function* $V: \mathcal{N} \rightarrow \mathbb{R}$ of the MRP defined as:
-
 $$V(s) = \mathbb{E}[G_t|S_t = s] \text{ for all } s \in \mathcal{N}, \text{ for all } t = 0, 1, 2, \ldots$$
-
 where the *Return* $G_t$ for each $t = 0, 1, 2, \ldots$ is defined as:
-
 $$G_t = \sum_{i=t+1}^{\infty} \gamma^{i-t-1} \cdot R_i = R_{t+1} + \gamma \cdot R_{t+2} + \gamma^2 \cdot R_{t+3} + \ldots = R_{t+1} + \gamma \cdot G_{t+1}$$
 
 We use the above definition of *Return* even for a terminating trace experience (say terminating at $t=T$, i.e., $S_T \in \mathcal{T}$), by treating $R_i = 0$ for all $i > T$.
@@ -226,7 +223,7 @@ This is a standard formula for change in parameters in response to incremental a
 This interpretation of the change in parameters as the product of these three conceptual entities: (Learning rate, Return Residual, Estimate Gradient) is important as this will be a repeated pattern in many of the RL algorithms we will cover.
 \index{reinforcement learning!tabular}
 
-Now we consider a simple case of Monte-Carlo Prediction where the MRP consists of a finite state space with the non-terminal states $\mathcal{N} = \{s_1, s_2, \ldots, s_m\}$. In this case, we represent the Value Function of the MRP in a data structure (dictionary) of (state, expected return) pairs. This is known as "Tabular" Monte-Carlo (more generally as Tabular RL to reflect the fact that we represent the calculated Value Function in a "table" , i.e., dictionary). Note that in this case, Monte-Carlo Prediction reduces to a very simple calculation wherein for each state, we simply maintain the average of the trace experience returns from that state onwards (averaged over state visitations across trace experiences), and the average is updated in an incremental manner. Recall from Section [-@sec:tabular-funcapprox-section] of Chapter [-@sec:funcapprox-chapter] that this is exactly what's done in the `Tabular` class (in file [rl/func_approx.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/func_approx.py)). We also recall from Section [-@sec:tabular-funcapprox-section] of Chapter [-@sec:funcapprox-chapter] that `Tabular` implements the interface of the abstract class `FunctionApprox` and so, we can perform Tabular Monte-Carlo Prediction by passing a `Tabular` instance as the `approx0: FunctionApprox` argument to the `mc_prediction` function above. The implementation of the `update` method in Tabular is exactly as we desire: it performs an incremental averaging of the trace experience returns obtained from each state onwards (over a stream of trace experiences). 
+Now we consider a simple case of Monte-Carlo Prediction where the MRP consists of a finite state space with the non-terminal states $\mathcal{N} = \{s_1, s_2, \ldots, s_m\}$. In this case, we represent the Value Function of the MRP in a data structure (dictionary) of (state, expected return) pairs. This is known as "Tabular" Monte-Carlo (more generally as Tabular RL to reflect the fact that we represent the calculated Value Function in a "table", i.e., dictionary). Note that in this case, Monte-Carlo Prediction reduces to a very simple calculation wherein for each state, we simply maintain the average of the trace experience returns from that state onwards (averaged over state visitations across trace experiences), and the average is updated in an incremental manner. Recall from Section [-@sec:tabular-funcapprox-section] of Chapter [-@sec:funcapprox-chapter] that this is exactly what's done in the `Tabular` class (in file [rl/func_approx.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/func_approx.py)). We also recall from Section [-@sec:tabular-funcapprox-section] of Chapter [-@sec:funcapprox-chapter] that `Tabular` implements the interface of the abstract class `FunctionApprox` and so, we can perform Tabular Monte-Carlo Prediction by passing a `Tabular` instance as the `approx0: FunctionApprox` argument to the `mc_prediction` function above. The implementation of the `update` method in Tabular is exactly as we desire: it performs an incremental averaging of the trace experience returns obtained from each state onwards (over a stream of trace experiences). 
 
 Let us denote $V_n(s_i)$ as the estimate of the Value Function for a state $s_i$ after the $n$-th occurrence of the state $s_i$ (when doing Tabular Monte-Carlo Prediction) and let $Y^{(1)}_i, Y^{(2)}_i, \ldots, Y^{(n)}_i$ be the trace experience returns associated with the $n$ occurrences of state $s_i$. Let us denote the `count_to_weight_func` attribute of `Tabular` as $f$. Then, the `Tabular` update at the $n$-th occurrence of state $s_i$ (with its associated return $Y^{(n)}_i$) is as follows:
 
@@ -476,7 +473,6 @@ Effective use of Tabular TD Prediction requires us to create an appropriate lear
 \alpha_n = \frac {\alpha} {1 + (\frac {n-1} {H})^{\beta}}
 \label{eq:learning-rate-schedule}
 \end{equation}
-
 where $\alpha_n$ is the learning rate to be used at the $n$-th Value Function update for a given state, $\alpha$ is the initial learning rate (i.e. $\alpha = \alpha_1$), $H$ (we call it "half life") is the number of updates for the learning rate to decrease to half the initial learning rate (if $\beta$ is 1), and $\beta$ is the exponent controlling the curvature of the decrease in the learning rate. We shall often set $\beta = 0.5$.
 
 ```python
@@ -854,7 +850,6 @@ We note that this Value Function is vastly different from the Value Function pro
 \mathcal{P}_R(s,r,s') = \frac {\sum_{i=1}^N \mathbb{I}_{S_i=s,R_{i+1}=r,S_{i+1}=s'}} {\sum_{i=1}^N \mathbb{I}_{S_i=s}}
 \label{eq:mrp-mle}
 \end{equation}
-
 where the fixed finite set of atomic experiences are $[(S_i,R_{i+1},S_{i+1})|1\leq i \leq N]$, and $\mathbb{I}$ denotes the indicator function.
 
 So let's write some code to construct this MRP based on the above formula.
@@ -914,8 +909,8 @@ We encourage you to try Experience Replay on larger input data sets, and to code
 We summarize MC, TD and DP in terms of whether they bootstrap (or not) and in terms of whether they experience interactions with an real/simulated environment (or not).
 \index{bootstrapping}
 
-- Bootstrapping: By "bootstrapping" , we mean that an update to the Value Function utilizes a current or prior estimate of the Value Function. MC *does not bootstrap* since its Value Function updates use actual trace experience returns and not any current or prior estimates of the Value Function. On the other hand, TD and DP *do bootstrap*.
-- Experiencing: By "experiencing" , we mean that the algorithm uses experiences obtained by interacting with a real or simulated environment, rather than performing expectation calculations with a model of transition probabilities (the latter doesn't require interactions with an environment and hence, doesn't "experience"). MC and TD *do experience*, while DP *does not experience*.
+- Bootstrapping: By "bootstrapping", we mean that an update to the Value Function utilizes a current or prior estimate of the Value Function. MC *does not bootstrap* since its Value Function updates use actual trace experience returns and not any current or prior estimates of the Value Function. On the other hand, TD and DP *do bootstrap*.
+- Experiencing: By "experiencing", we mean that the algorithm uses experiences obtained by interacting with a real or simulated environment, rather than performing expectation calculations with a model of transition probabilities (the latter doesn't require interactions with an environment and hence, doesn't "experience"). MC and TD *do experience*, while DP *does not experience*.
 
 We illustrate this perspective of bootstrapping (or not) and experiencing (or not) with some very popular diagrams that we are borrowing from [lecture slides from David Silver's RL course](https://www.deepmind.com/learning-resources/introduction-to-reinforcement-learning-with-david-silver) and from [teaching content prepared by Richard Sutton](http://www.incompleteideas.net/).
 
@@ -924,12 +919,12 @@ The first diagram is Figure \ref{fig:mc_backup}, known as the MC *backup* diagra
 
 ![MC Backup Diagram (Image Credit: David Silver's RL Course) \label{fig:mc_backup}](./chapter10/mc_backup.png "MC Backup Diagram (Image Credit: David Silver's RL Course)")
 
-The next diagram is Figure \ref{fig:td_backup}, known as the TD *backup* diagram for an MDP. Again, the highlighting applies to the future states/actions used in updating the Value Function of the current state (root node). The Value Function is "backed up" along this highlighted portion of the tree. Since TD "experiences" , it only considers a single child node from any node (rather than all the child nodes, which would be the case if we considered all probabilistic transitions or considered all actions choices). So the backup is narrow (doesn't go wide across the tree). Since TD "bootstraps" , it uses the Value Function estimate from its child/grandchild node (next time step's state/action) and doesn't utilize rewards at states/actions beyond the next time step's state/action. So the backup is shallow (doesn't work deep into the tree). In summary, the TD backup is narrow and shallow.
+The next diagram is Figure \ref{fig:td_backup}, known as the TD *backup* diagram for an MDP. Again, the highlighting applies to the future states/actions used in updating the Value Function of the current state (root node). The Value Function is "backed up" along this highlighted portion of the tree. Since TD "experiences", it only considers a single child node from any node (rather than all the child nodes, which would be the case if we considered all probabilistic transitions or considered all actions choices). So the backup is narrow (doesn't go wide across the tree). Since TD "bootstraps", it uses the Value Function estimate from its child/grandchild node (next time step's state/action) and doesn't utilize rewards at states/actions beyond the next time step's state/action. So the backup is shallow (doesn't work deep into the tree). In summary, the TD backup is narrow and shallow.
 \index{reinforcement learning!backup diagram}
 
 ![TD Backup Diagram (Image Credit: David Silver's RL Course) \label{fig:td_backup}](./chapter10/td_backup.png "TD Backup Diagram (Image Credit: David Silver's RL Course)")
 
-The next diagram is Figure \ref{fig:dp_backup}, known as the DP *backup* diagram for an MDP. Again, the highlighting applies to the future states/actions used in updating the Value Function of the current state (root node). The Value Function is "backed up" along this highlighted portion of the tree. Since DP does not "experience" and utilizes the knowledge of probabilities of all next states and considers all choices of actions (in the case of Control), it considers all child nodes (all choices of actions) and all grandchild nodes (all probabilistic transitions to next states) from the root node (current state). So the backup goes wide across the tree. Since DP "bootstraps" , it uses the Value Function estimate from its children/grandchildren nodes (next time step's states/actions) and doesn't utilize rewards at states/actions beyond the next time step's states/actions. So the backup is shallow (doesn't work deep into the tree). In summary, the DP backup is wide and shallow.
+The next diagram is Figure \ref{fig:dp_backup}, known as the DP *backup* diagram for an MDP. Again, the highlighting applies to the future states/actions used in updating the Value Function of the current state (root node). The Value Function is "backed up" along this highlighted portion of the tree. Since DP does not "experience" and utilizes the knowledge of probabilities of all next states and considers all choices of actions (in the case of Control), it considers all child nodes (all choices of actions) and all grandchild nodes (all probabilistic transitions to next states) from the root node (current state). So the backup goes wide across the tree. Since DP "bootstraps", it uses the Value Function estimate from its children/grandchildren nodes (next time step's states/actions) and doesn't utilize rewards at states/actions beyond the next time step's states/actions. So the backup is shallow (doesn't work deep into the tree). In summary, the DP backup is wide and shallow.
 
 ![DP Backup Diagram (Image Credit: David Silver's RL Course) \label{fig:dp_backup}](./chapter10/dp_backup.png "DP Backup Diagram (Image Credit: David Silver's RL Course)")
 
@@ -958,9 +953,7 @@ We can generalize this to an update that uses the current estimate of the Value 
 V(S_t) \leftarrow V(S_t) + \alpha \cdot (G_{t,n} - V(S_t))
 \label{eq:n-step-bootstrapping-update}
 \end{equation}
-
 where $G_{t,n}$ (known as $n$-step bootstrapped return) is defined as:
-
 \begin{align*}
 G_{t,n} & = \sum_{i=t+1}^{t+n} \gamma^{i-t-1} \cdot R_i + \gamma^n \cdot V(S_{t+n}) \\
 & = R_{t+1} + \gamma \cdot R_{t+2} + \gamma^2 \cdot R_{t+3} + \ldots + \gamma^{n-1} \cdot R_{t+n} + \gamma^n \cdot V(S_{t+n})
@@ -974,9 +967,7 @@ It is easy to generalize this $n$-step bootstrapping Prediction algorithm to the
 \Delta \bm{w} = \alpha \cdot (G_{t,n} - V(S_t; \bm{w})) \cdot \nabla_{\bm{w}} V(S_t;\bm{w})
 \label{eq:n-step-bootstrapping-funcapprox-params-adj}
 \end{equation}
-
 where the $n$-step bootstrapped return $G_{t,n}$ is now defined in terms of the function approximation for the Value Function (rather than the tabular Value Function), as follows:
-
 \begin{align*}
 G_{t,n} & = \sum_{i=t+1}^{t+n} \gamma^{i-t-1} \cdot R_i + \gamma^n \cdot V(S_{t+n}; \bm{w})\\
 & = R_{t+1} + \gamma \cdot R_{t+2} + \gamma^2 \cdot R_{t+3} + \ldots + \gamma^{n-1} \cdot R_{t+n} + \gamma^n \cdot V(S_{t+n}; \bm{w})
@@ -986,9 +977,9 @@ The nuances we outlined above for when the trace experience terminates naturally
 
 Equation \eqref{eq:n-step-bootstrapping-funcapprox-params-adj} looks similar to the parameters update equations for the MC and TD Prediction algorithms we covered earlier, in terms of conceptualizing the change in parameters as the product of the following 3 entities:
 
-* *Learning Rate* $\alpha$
-* *$n$-step Bootstrapped Error* $G_{t,n} - V(S_t; \bm{w})$
-* *Estimate Gradient* of the conditional expected return $V(S_t;\bm{w})$ with respect to the parameters $\bm{w}$
+* *Learning Rate* $\alpha$.
+* *$n$-step Bootstrapped Error* $G_{t,n} - V(S_t; \bm{w})$.
+* *Estimate Gradient* of the conditional expected return $V(S_t;\bm{w})$ with respect to the parameters $\bm{w}$.
 
 $n$ serves as a parameter taking us across the spectrum from TD to MC. $n=1$ is the case of TD while sufficiently large $n$ is the case of MC. If a trace experience is of length $T$ (i.e., $S_T \in \mathcal{T}$), then $n \geq T$ will not have any bootstrapping (since the bootstrapping target goes beyond the length of the trace experience) and hence, this makes it identical to MC.
 
@@ -1090,7 +1081,6 @@ M(t_n) \cdot \theta^{t - t_n} & \text{ otherwise (i.e., if } t > t_n)
 \end{cases}
 \label{eq:memory-function}
 \end{equation}
-
 where $\mathbb{I}$ denotes the indicator function.
 
 This means the memory function has an uptick of 1 each time the event occurs (at time $t_i$, for each $i = 1, 2, \ldots n$), but then decays by a factor of $\theta^{\Delta t}$ over any interval $\Delta t$ where the event doesn't occur. Thus, the memory function captures the notion of frequency of the events as well as the recency of the events.
@@ -1137,7 +1127,6 @@ Now we are ready to define Eligibility Traces for the Tabular case. We assume a 
 
 $$E_0(s) = \mathbb{I}_{S_0=s}, \text{ for all } s \in \mathcal{N}$$
 $$E_t(s) = \gamma \cdot \lambda \cdot E_{t-1}(s) + \mathbb{I}_{S_t=s}, \text{ for all } s \in \mathcal{N}, \text{ for all } t = 1, 2, \ldots$$
-
 where $\mathbb{I}$ denotes the indicator function.
 
 \index{reinforcement learning!temporal difference$(\lambda)$!for prediction|(}
@@ -1151,7 +1140,6 @@ Note the similarities and differences relative to the TD update we have seen ear
 V(s) \leftarrow V(s) + \alpha \cdot \delta_t \cdot E_t(s), \text{ {\em for all} } s \in \mathcal{N}
 \label{eq:td-lambda-update}
 \end{equation}
-
 where $\alpha$ is the learning rate.
 
 This is it—this is the Tabular TD($\lambda$) Prediction algorithm! Now the question is—how is this linked to the Tabular $\lambda$-Return Prediction algorithm? It turns out that if we made all the updates of Equation \eqref{eq:td-lambda-update} in an offline manner (at the end of each trace experience), then the sum of the changes in the Value Function for any specific state $s \in \mathcal{N}$ over the course of the entire trace experience is equal to the change in the Value Function for $s$ in the Tabular $\lambda$-Return Prediction algorithm as a result of its offline update for state $s$. Concretely,
@@ -1196,7 +1184,6 @@ Now assume that a specific non-terminal state $s$ appears at time steps $t_1, t_
 If we set $\lambda = 0$ in this Tabular TD($\lambda$) Prediction algorithm, we note that $E_t(s)$ reduces to $\mathbb{I}_{S_t=s}$ and so, the Tabular TD($\lambda$) prediction algorithm's update for $\lambda=0$ at each time step $t$ reduces to:
 
 $$V(S_t) \leftarrow V(S_t) + \alpha \cdot \delta_t$$
-
 which is exactly the update of the Tabular TD Prediction algorithm. Therefore, TD algorithms are often referred to as TD(0).
 
 If we set $\lambda=1$ in this Tabular TD($\lambda$) Prediction algorithm with episodic traces (i.e., all trace experiences terminating), Theorem \ref{th:td-lambda-validity} tells us that the sum of all changes in the Value Function for any specific state $s \in \mathcal{N}$ over the course of the entire trace experience ($=\sum_{t=0}^{T-1} \alpha \cdot \delta_t \cdot E_t(s)$) is equal to the change in the Value Function for $s$ in the Every-Visit MC Prediction algorithm as a result of its offline update for state $s$ ($=\sum_{t=0}^{T-1} \alpha \cdot (G_t - V(S_t) \cdot \mathbb{I}_{S_t=s})$). Hence, TD(1) is considered to be "equivalent" to Every-Visit MC.
@@ -1213,7 +1200,6 @@ $$\Delta \bm{w} = \alpha \cdot (R_{t+1} + \gamma \cdot V(S_{t+1}; \bm{w}) - V(S_
 The update to the parameters $\bm{w}$ can be expressed more succinctly as: 
 
 $$\Delta \bm{w} = \alpha \cdot \delta_t \cdot \bm{E}_t$$
-
 where $\delta_t$ now denotes the TD Error based on the function approximation for the Value Function.
 
 The idea of Eligibility Traces has its origins in a [seminal book by Harry Klopf](https://www.semanticscholar.org/paper/Brain-Function-and-Adaptive-Systems%3A-A-Heterostatic-Klopf/0c1accd2ef7218534a1726a8de7d6e7c14271a75) [@klopf1972brain] that greatly influenced Richard Sutton and Andrew Barto to pursue the idea of Eligibility Traces further, after which they published several papers on Eligibility Traces, much of whose content is covered in [their RL book](http://www.incompleteideas.net/book/the-book.html) [@Sutton1998].

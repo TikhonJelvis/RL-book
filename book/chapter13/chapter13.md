@@ -246,9 +246,7 @@ Now we are ready to write our first Policy Gradient algorithm. As ever, the simp
 We've already explained that we can calculate the Score function using an analytical derivative of a specified functional form for $\pi(S_t,A_t;\bm{\theta})$ for each atomic experience $(S_t, A_t, R_t, S_{t+1})$. What remains is to obtain an estimate of $Q^{\pi}(S_t,A_t)$ for each atomic experience $(S_t, A_t, R_t, S_{t+1})$. REINFORCE uses the trace experience return $G_t$ for $(S_t, A_t)$, while following policy $\pi$, as an unbiased sample of $Q^{\pi}(S_t,A_t)$. Thus, at every time step (i.e., at every atomic experience) in each episode, we estimate $\nabla_{\bm{\theta}} J(\bm{\theta})$ by calculating $\gamma^t \cdot (\nabla_{\bm{\theta}} \log{\pi(S_t, A_t; \bm{\theta})}) \cdot G_t$ (noting that the state occurrence probabilities and action occurrence probabilities are implicit in the trace experiences), and update the parameters $\bm{\theta}$ at the end of each episode (using each atomic experience's $\nabla_{\bm{\theta}} J(\bm{\theta})$ estimate) according to Stochastic Gradient Ascent as follows:
 
 $$\Delta \bm{\theta} = \alpha \cdot \gamma^t \cdot (\nabla_{\bm{\theta}} \log{\pi(S_t,A_t;\bm{\theta})}) \cdot G_t$$
-
 where $\alpha$ is the learning rate.
-
 
 This Policy Gradient algorithm is Monte-Carlo because it is not bootstrapped (complete returns are used as an unbiased sample of $Q^{\pi}$, rather than a bootstrapped estimate). In terms of our previously-described classification of RL algorithms as Value Function-based or Policy-based or Actor-Critic, REINFORCE is a Policy-based algorithm since REINFORCE does not involve learning a Value Function.
 
@@ -930,7 +928,6 @@ Amari showed that for a supervised learning problem of estimating the conditiona
 Kakade specialized this idea of Natural Gradient to the case of Policy Gradient (naming it Natural Policy Gradient) with the objective function $f(\bm{\theta})$ equal to the negative of the Expected Returns $J(\bm{\theta})$. This gives the Natural Policy Gradient $\nabla_{\bm{\theta}}^{nat} J(\bm{\theta})$ defined as:
 
 $$\nabla_{\bm{\theta}}^{nat} J(\bm{\theta}) = \bm{FIM}_{\rho^{\pi}, \pi}^{-1}(\bm{\theta}) \cdot \nabla_{\bm{\theta}} J({\bm{\theta}})$$
-
 where $\bm{FIM}_{\rho_{\pi}, \pi}$ denotes the Fisher Information Matrix with respect to $s \sim \rho^{\pi}, a \sim \pi$.
 
 We've noted in the previous section that if we enable Compatible Function Approximation with a linear function approximation for $Q^{\pi}(s,a)$, then we have Equation \eqref{eq:pgt-fisher-information}, i.e.,
@@ -979,11 +976,8 @@ J(\bm{\theta}) & = \mathbb{E}_{\pi_D}[\sum_{t=0}^\infty \gamma^t \cdot R_{t+1}]\
 & = \sum_{s \in \mathcal{N}} \rho^{\pi_D}(s) \cdot \mathcal{R}_s^{\pi_D(s;\bm{\theta})} \\
 & = \mathbb{E}_{s \sim \rho^{\pi_D}}[\mathcal{R}_s^{\pi_D(s;\bm{\theta})}]
 \end{align*}
-
 where
-
 $$\rho^{\pi_D}(s) = \sum_{S_0 \in \mathcal{N}}  \sum_{t=0}^\infty \gamma^t \cdot p_0(S_0) \cdot p(S_0 \rightarrow s, t, \pi_D)$$
-
 is the Discounted-Aggregate State-Visitation Measure when following deterministic policy $\pi_D(s; \bm{\theta})$.
 
 With a derivation similar to the proof of the PGT, we have the DPGT, as follows:

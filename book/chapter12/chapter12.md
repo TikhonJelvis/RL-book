@@ -246,7 +246,6 @@ To implement this algorithm, we can simply call `batch_mc_prediction` that we ha
 \index{Sherman-Morrison incremental inverse}
 
 $$(\bm{A} + \bm{\phi}(S_i) \cdot \bm{\phi}(S_i)^T)^{-1} = \bm{A}^{-1} - \frac {\bm{A}^{-1} \cdot \bm{\phi}(S_i) \cdot \bm{\phi}(S_i)^T \cdot \bm{A}^{-1}} {1 + \bm{\phi}(S_i)^T \cdot \bm{A}^{-1} \cdot \bm{\phi}(S_i)}$$
-
 with $\bm{A}^{-1}$ initialized to $\frac 1 {\epsilon} \cdot \bm{I}_m$, where $\bm{I}_m$ is the $m \times m$ identity matrix, and $\epsilon \in \mathbb{R}^+$ is a small number provided as a parameter to the algorithm. $\frac 1 \epsilon$ should be considered to be a proxy for the step-size $\alpha$ which is not required for least-squares algorithms. If $\epsilon$ is too small, the sequence of inverses of $\bm{A}$ can be quite unstable and if $\epsilon$ is too large, the learning is slowed.
 
 This brings down the computational complexity of this algorithm to $O(m^2)$. We won't implement the Sherman-Morrison incremental inverse for LSMC, but in the next subsection we shall implement it for Least-Squares Temporal Difference (LSTD).
@@ -1127,7 +1126,6 @@ $$\Delta \bw = \alpha \cdot (r + \gamma \cdot \bm{\phi}(s')^T \cdot \bw - \bm{\p
 This converges to $\bm{w}_{PBE}$ because at convergence, we have: $\mathbb{E}_{\pi}[\Delta \bw] = 0$, which can be expressed as:
 $$ \bphi^T \cdot \bd \cdot (\brew + \gamma \bprob \cdot \bphi \cdot \bw - \bphi \cdot \bw) = 0$$
 $$ \Rightarrow \bphi^T \cdot \bd \cdot (\bphi - \gamma \bprob \cdot \bphi) \cdot \bw = \bphi^T \cdot \bd \cdot \brew$$ 
-
 which is satisfied for $\bw = \bm{w}_{PBE}$ (as seen from Equation \eqref{eq:w-pbe-equation}).
 
 \index{value function!value function geometry|)}
@@ -1171,7 +1169,6 @@ $$ = \alpha \cdot \mathbb{E}[(\bm{\phi}(s) - \gamma \cdot \bm{\phi}(s')) \cdot \
 $$ = \alpha \cdot (\mathbb{E}[\bm{\phi}(s) \cdot \bm{\phi}(s)^T] - \gamma \cdot \mathbb{E}[\bm{\phi}(s') \cdot \bm{\phi}(s)^T]) \cdot (\mathbb{E}[\bm{\phi}(s) \cdot \bm{\phi}(s)^T])^{-1} \cdot \mathbb{E}[\delta \cdot \bm{\phi}(s)]$$
 $$ = \alpha \cdot (\mathbb{E}[\delta \cdot \bm{\phi}(s)] - \gamma \cdot \mathbb{E}[\bm{\phi}(s') \cdot \bm{\phi}(s)^T] \cdot(\mathbb{E}[\bm{\phi}(s) \cdot \bm{\phi}(s)^T])^{-1} \cdot \mathbb{E}[\delta \cdot \bm{\phi}(s)])$$
 $$ = \alpha \cdot (\mathbb{E}[\delta \cdot \bm{\phi}(s)] - \gamma \cdot \mathbb{E}[\bm{\phi}(s') \cdot \bm{\phi}(s)^T] \cdot \btheta)$$
-
 where $\btheta = (\mathbb{E}[\bm{\phi}(s) \cdot \bm{\phi}(s)^T])^{-1} \cdot \mathbb{E}[\delta \cdot \bm{\phi}(s)]$ is the solution to the weighted least-squares linear regression of $\bb \cdot \bv - \bv$ against $\bphi$, with weights as $\mu_{\pi}$.
 
 We can perform this gradient descent with a technique known as *Cascade Learning*, which involves simultaneously updating both $\bw$ and $\btheta$ (with $\btheta$ converging faster). The updates are as follows:
@@ -1180,7 +1177,6 @@ We can perform this gradient descent with a technique known as *Cascade Learning
 
 $$\Delta \bw = \alpha \cdot \delta \cdot \bm{\phi}(s)  - \alpha \cdot \gamma \cdot \bm{\phi}(s') \cdot (\bm{\phi}(s)^T \cdot \btheta)$$
 $$\Delta \btheta = \beta \cdot (\delta - \bm{\phi}(s)^T \cdot \btheta) \cdot \bm{\phi}(s)$$
-
 where $\beta$ is the learning rate for $\btheta$. Note that $\bm{\phi}(s)^T \cdot \btheta$ operates as an estimate of the TD error $\delta$ for current state $s$.
 
 \index{reinforcement learning!deadly triad}

@@ -107,11 +107,9 @@ U'(\bar{x}) \cdot (x_{CE} - \bar{x}) \approx \frac 1 2 \cdot U''(\bar{x}) \cdot 
 From Equation \eqref{eq:ce-equation}, Absolute Risk-Premium
 $$\pi_A = \bar{x} - x_{CE} \approx - \frac 1 2 \cdot \frac {U''(\bar{x})} {U'(\bar{x})} \cdot \sigma_x^2$$
 
+\index{utility theory!risk-aversion!absolute risk-aversion|textbf}
 We refer to the function:
 $$A(x) = -\frac {U''(x)} {U'(x)}$$
-
-\index{utility theory!risk-aversion!absolute risk-aversion|textbf}
-
 as the *Absolute Risk-Aversion* function. Therefore,
 $$\pi_A \approx \frac 1 2 \cdot A(\bar{x}) \cdot \sigma_x^2$$
 

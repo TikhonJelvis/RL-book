@@ -76,7 +76,6 @@ $$\text{Improved Stochastic Policy } \pi'(s,a) =
 \frac {\epsilon} {|\mathcal{A}|} & \text{ otherwise}
 \end{cases}
 $$
-
 where $\mathcal{A}$ denotes the set of allowable actions and $\epsilon \in [0, 1]$ is the specification of the degree of exploration.
 
 This says that with probability $1 - \epsilon$, we select the action that maximizes the Q-Value Function estimate for a given state, and with probability $\epsilon$, we uniform-randomly select each of the allowable actions (including the maximizing action). Hence, the maximizing action is chosen with probability $\frac {\epsilon} {|\mathcal{A}|} + 1 - \epsilon$. Note that if $\epsilon$ is zero, $\pi'$ reduces to the deterministic greedy policy $\pi_D'$ that we had defined earlier. So the greedy policy can be considered to be a special case of $\epsilon$-greedy policy with $\epsilon = 0$.
@@ -175,7 +174,6 @@ The extension from Tabular to Function Approximation of the Q-Value Function is 
 \Delta \bm{w} = \alpha \cdot (G_t - Q(S_t, A_t;\bm{w})) \cdot \nabla_{\bm{w}} Q(S_t, A_t;\bm{w})
 \label{eq:mc-control-funcapprox-params-adj}
 \end{equation}
-
 where $\alpha$ is the learning rate in the stochastic gradient descent and $G_t$ is the trace experience return from state $S_t$ upon taking action $A_t$ at time $t$ on a trace experience.
 
 Now let us write some code to implement the above description of GLIE Monte-Carlo Control, generalized to handle Function Approximation of the Q-Value Function. As you shall see in the code below, there are a couple of other generalizations from the algorithm outline described above. Let us start by understanding the various arguments to the below function `glie_mc_control`.
@@ -666,8 +664,7 @@ Finally, we create the SARSA($\lambda)$ Algorithm, which is the online "version"
 $$\delta_t = R_{t+1} + \gamma \cdot Q(S_{t+1},A_{t+1};\bm{w}) - Q(S_t,A_t;\bm{w})$$
 $$\bm{E}_t = \gamma \lambda \cdot \bm{E}_{t-1} + \nabla_{\bm{w}} Q(S_t,A_t;\bm{w})$$
 $$\Delta \bm{w} = \alpha \cdot \delta_t \cdot \bm{E}_t$$
-
-with the eligiblity traces initialized at time 0 for each trace experience as $\bm{E}_0 = \nabla_{\bm{w}} V(S_0; \bm{w})$. Note that just like in SARSA, the $\epsilon$-greedy policy improvement is automatic from the updated Q-Value Function estimate after each time step.
+with the eligibility traces initialized at time 0 for each trace experience as $\bm{E}_0 = \nabla_{\bm{w}} V(S_0; \bm{w})$. Note that just like in SARSA, the $\epsilon$-greedy policy improvement is automatic from the updated Q-Value Function estimate after each time step.
 
 We leave the implementation of SARSA($\lambda$) in Python code as an exercise for you to do.
 

@@ -13,7 +13,6 @@ We've said before that this book is about "sequential decisioning" under "sequen
 When we covered the simple inventory example in Chapter [-@sec:mrp-chapter] as a Markov Reward Process, the ordering policy was:
 
 $$\theta = \max(C - (\alpha + \beta), 0)$$
-
 where $\theta \in \mathbb{Z}_{\geq 0}$ is the order quantity, $C \in \mathbb{Z}_{\geq 0}$ is the space capacity (in bicycle units) at the store, $\alpha$ is the On-Hand Inventory and $\beta$ is the On-Order Inventory ($(\alpha, \beta)$ comprising the *State*). We calculated the Value Function for the Markov Reward Process that results from following this policy. Now we ask the question: Is this Value Function good enough? More importantly, we ask the question: Can we improve this Value Function by following a different ordering policy?  Perhaps by ordering less than that implied by the above formula for $\theta$? This leads to the natural question—Can we identify the ordering policy that yields the *Optimal* Value Function (one with the highest expected returns, i.e., lowest expected accumulated costs, from each state)? Let us get an intuitive sense for this optimization problem by considering a concrete example.
 
 \index{probability!Poisson distribution}
@@ -74,7 +73,7 @@ A {\em Markov Decision Process} comprises of:
 
 \item A time-indexed sequence of environment-generated random states $S_t \in \mathcal{S}$ for time steps $t=0, 1, 2, \ldots$, a time-indexed sequence of environment-generated {\em Reward} random variables $R_t \in \mathcal{D}$ (a countable subset of $\mathbb{R}$) for time steps $t=1, 2, \ldots$, and a time-indexed sequence of agent-controllable actions $A_t \in \mathcal{A}$ for time steps $t=0, 1, 2, \ldots$. (Sometimes we restrict the set of actions allowable from specific states, in which case, we abuse the $\mathcal{A}$ notation to refer to a function whose domain is $\mathcal{N}$ and range is $\mathcal{A}$, and we say that the set of actions allowable from a state $s\in \mathcal{N}$ is $\mathcal{A}(s)$.)
 
-\item Markov Property: $$\mathbb{P}[(R_{t+1}, S_{t+1}) | (S_t, A_t, S_{t-1}, A_{t-1}, \ldots, S_0, A_0)] = \mathbb{P}[(R_{t+1}, S_{t+1}) | (S_t, A_t)] \text{ for all} t \geq 0$$
+\item Markov Property: $$\mathbb{P}[(R_{t+1}, S_{t+1}) | (S_t, A_t, S_{t-1}, A_{t-1}, \ldots, S_0, A_0)] = \mathbb{P}[(R_{t+1}, S_{t+1}) | (S_t, A_t)] \text{ for all } t \geq 0$$
 
 \item Termination: If an outcome for $S_T$ (for some time step $T$) is a state in the set $\mathcal{T}$, then this sequence outcome terminates at time step $T$.
 
@@ -86,7 +85,6 @@ A {\em Markov Decision Process} comprises of:
 
 As in the case of Markov Reward Processes, we denote the set of non-terminal states $\mathcal{S} - \mathcal{T}$ as $\mathcal{N}$ and refer to any state in $\mathcal{N}$ as a non-terminal state. The sequence:
 $$S_0, A_0, R_1, S_1, A_1, R_1, S_2, \ldots$$
-
 terminates at time step $T$ if $S_T \in \mathcal{T}$ (i.e., the final reward is $R_T$ and the final action is $A_{T-1}$).
 
 In the more general case, where states or rewards are uncountable, the same concepts apply except that the mathematical formalism needs to be more detailed and more careful. Specifically, we'd end up with integrals instead of summations, and probability density functions (for continuous probability distributions) instead of probability mass functions (for discrete probability distributions). For ease of notation and more importantly, for ease of understanding of the core concepts (without being distracted by heavy mathematical formalism), we've chosen to stay with discrete-time, countable $\mathcal{S}$, countable $\mathcal{A}$ and countable $\mathcal{D}$ (by default). However, there will be examples of Markov Decision Processes in this book involving continuous-time and uncountable $\mathcal{S}$, $\mathcal{A}$ and $\mathcal{D}$ (please adjust the definitions and formulas accordingly).
@@ -107,11 +105,9 @@ As in the case of Markov Processes and Markov Reward Processes, we shall (by def
 \index{Markov decision process!state-reward transition probability function|textbf}
 
 $$\mathcal{P}_R: \mathcal{N} \times \mathcal{A} \times \mathcal{D} \times \mathcal{S} \rightarrow [0,1]$$
-
 defined as:
-
 $$\mathcal{P}_R(s,a,r,s') = \mathbb{P}[(R_{t+1}=r, S_{t+1}=s') |(S_t=s, A_t=a)]$$
-$$\text{for time steps } t = 0, 1, 2, \ldots, \text{ for all } s \in \mathcal{N}, a \in \mathcal{A}, r \in \mathcal{D}, s' \in \mathcal{N} \text{ such that}$$
+for time steps $t = 0, 1, 2, \ldots$, for all $s \in \mathcal{N}, a \in \mathcal{A}, r \in \mathcal{D}, s' \in \mathcal{N}$ such that:
 $$\sum_{s'\in \mathcal{S}} \sum_{r \in \mathcal{D}} \mathcal{P}_R(s,a,r,s') = 1 \text{ for all } s \in \mathcal{N}, a \in \mathcal{A}$$
 
 Henceforth, any time we say Markov Decision Process, assume we are referring to a Discrete-Time, Time-Homogeneous Markov Decision Process with countable spaces and countable transitions (unless explicitly specified otherwise), which in turn can be characterized by the state-reward transition probability function $\mathcal{P}_R$. Given a specification of $\mathcal{P}_R$, we can construct:
@@ -120,34 +116,29 @@ Henceforth, any time we say Markov Decision Process, assume we are referring to 
 \index{Markov decision process!reward transition function|textbf}
 
 * The state transition probability function
-
 $$\mathcal{P}: \mathcal{N} \times \mathcal{A} \times \mathcal{S} \rightarrow [0,1]$$
-
 defined as:
-
 $$\mathcal{P}(s, a, s') = \sum_{r\in \mathcal{D}} \mathcal{P}_R(s,a, r,s')$$
-
 * The reward transition function:
-
 $$\mathcal{R}_T: \mathcal{N} \times \mathcal{A} \times \mathcal{S} \rightarrow \mathbb{R}$$
-
 defined as:
-
-$$\mathcal{R}_T(s,a,s') = \mathbb{E}[R_{t+1}|(S_{t+1}=s',S_t=s,A_t=a)]$$
-
-$$ = \sum_{r\in \mathcal{D}} \frac {\mathcal{P}_R(s,a,r,s')} {\mathcal{P}(s,a,s')} \cdot r = \sum_{r\in \mathcal{D}} \frac {\mathcal{P}_R(s,a,r,s')} {\sum_{r\in \mathcal{D}} \mathcal{P}_R(s,a,r,s')} \cdot r$$
+\begin{align*}
+\mathcal{R}_T(s,a,s') &= \mathbb{E}[R_{t+1}|(S_{t+1}=s',S_t=s,A_t=a)] \\
+&= \sum_{r\in \mathcal{D}} \frac {\mathcal{P}_R(s,a,r,s')} {\mathcal{P}(s,a,s')} \cdot r \\
+&= \sum_{r\in \mathcal{D}} \frac {\mathcal{P}_R(s,a,r,s')} {\sum_{r\in \mathcal{D}} \mathcal{P}_R(s,a,r,s')} \cdot r
+\end{align*}
 
 The Rewards specification of most Markov Decision Processes we encounter in practice can be directly expressed as the reward transition function $\mathcal{R}_T$ (versus the more general specification of $\mathcal{P}_R$). Lastly, we want to highlight that we can transform either of $\mathcal{P}_R$ or $\mathcal{R}_T$ into a "more compact" reward function that is sufficient to perform key calculations involving Markov Decision Processes. This reward function
 
 \index{Markov decision process!reward function|textbf}
 
 $$\mathcal{R}: \mathcal{N} \times \mathcal{A} \rightarrow \mathbb{R}$$
-
 is defined as:
-
-$$\mathcal{R}(s,a) = \mathbb{E}[R_{t+1}|(S_t=s, A_t=a)]$$
-
-$$= \sum_{s' \in \mathcal{S}} \mathcal{P}(s,a,s') \cdot \mathcal{R}_T(s,a,s') = \sum_{s'\in \mathcal{S}} \sum_{r\in \mathcal{D}} \mathcal{P}_R(s,a,r,s') \cdot r$$
+\begin{align*}
+\mathcal{R}(s,a) &= \mathbb{E}[R_{t+1}|(S_t=s, A_t=a)] \\
+&= \sum_{s' \in \mathcal{S}} \mathcal{P}(s,a,s') \cdot \mathcal{R}_T(s,a,s') \\
+&= \sum_{s'\in \mathcal{S}} \sum_{r\in \mathcal{D}} \mathcal{P}_R(s,a,r,s') \cdot r
+\end{align*}
 
 ### Policy
 \index{policy|textbf}
@@ -157,10 +148,10 @@ $$= \sum_{s' \in \mathcal{S}} \mathcal{P}(s,a,s') \cdot \mathcal{R}_T(s,a,s') = 
 Having understood the dynamics of a Markov Decision Process, we now move on to the specification of the *Agent*'s actions as a function of the current state. In the general case, we assume that the Agent will perform a random action $A_t$, according to a probability distribution that is a function of the current state $S_t$. We refer to this function as a *Policy*. Formally, a *Policy* is a function
 
 $$\pi: \mathcal{N} \times \mathcal{A} \rightarrow [0,1]$$
-
 defined as:
-
-$$\pi(s, a) = \mathbb{P}[A_t = a|S_t = s] \text{ for time steps } t = 0, 1, 2, \ldots, \text{ for all } s \in \mathcal{N}, a \in \mathcal{A}$$ such that $$\sum_{a \in \mathcal{A}} \pi(s,a) = 1 \text{ for all } s \in \mathcal{N}$$
+$$\pi(s, a) = \mathbb{P}[A_t = a|S_t = s] \text{ for time steps } t = 0, 1, 2, \ldots, \text{ for all } s \in \mathcal{N}, a \in \mathcal{A}$$
+such that:
+$$\sum_{a \in \mathcal{A}} \pi(s,a) = 1 \text{ for all } s \in \mathcal{N}$$
 
 \index{policy!Markovian policy|textbf}
 \index{policy!stationary policy|textbf}
@@ -690,11 +681,10 @@ The above code is in the file [rl/chapter3/simple_inventory_mdp_cap.py](https://
 
 Now we are ready to talk about the Value Function for an MDP evaluated with a fixed policy $\pi$ (also known as the MDP *Prediction* problem). The term *Prediction* refers to the fact that this problem is about forecasting the expected future returns when the agent follows a specific policy. Just like in the case of MRP, we define the Return $G_t$ at time step $t$ for an MDP as:
 $$G_t = \sum_{i=t+1}^{\infty} \gamma^{i-t-1} \cdot R_i = R_{t+1} + \gamma \cdot R_{t+2} + \gamma^2 \cdot R_{t+3} + \ldots$$
+where $\gamma \in [0, 1]$ is a specified discount factor.
 
 \index{Markov decision process!return|textbf}
 \index{discount factor}
-
-where $\gamma \in [0, 1]$ is a specified discount factor.
 
 We use the above definition of *Return* even for a terminating sequence (say terminating at $t=T$, i.e., $S_T \in \mathcal{T}$), by treating $R_i = 0$ for all $i > T$.
 
@@ -779,11 +769,8 @@ Finally, we arrive at the main purpose of a Markov Decision Process—to identif
 \index{V@$V^*$|see{value function, optimal value function}}
 
 $$V^*: \mathcal{N} \rightarrow \mathbb{R}$$
-
 is defined as:
-
 $$V^*(s) = \max_{\pi \in \Pi} V^{\pi}(s) \text{ for all } s \in \mathcal{N}$$
-
 where $\Pi$ is the set of stationary (stochastic) policies over the spaces of $\mathcal{N}$ and $\mathcal{A}$.
 
 The way to read the above definition is that for each non-terminal state $s$, we consider all possible stochastic stationary policies $\pi$, and maximize $V^{\pi}(s)$ across all these choices of $\pi$. Note that the maximization over choices of $\pi$ is done separately for each $s$, so it's conceivable that different choices of $\pi$ might maximize $V^{\pi}(s)$ for different $s\in \mathcal{N}$. Thus, from the above definition of $V^*$, we can't yet talk about the notion of "An Optimal Policy". So, for now, let's just focus on the notion of Optimal Value Function, as defined above.  Note also that we haven't yet talked about how to achieve the above-defined maximization through an algorithm—we have simply *defined* the Optimal Value Function.
@@ -794,9 +781,7 @@ Likewise, the Optimal Action-Value Function
 \index{Q@$Q^*$|see{value function, optimal action-value function}}
 
 $$Q^*: \mathcal{N} \times \mathcal{A} \rightarrow \mathbb{R}$$
-
 is defined as:
-
 $$Q^*(s, a) = \max_{\pi \in \Pi} Q^{\pi}(s, a) \text{ for all } s \in \mathcal{N}, a \in \mathcal{A}$$
 
 $V^*$ is often referred to as the Optimal State-Value Function to distinguish it from the Optimal Action-Value Function $Q^*$ (although, for succinctness, $V^*$ is often also referred to as simply the Optimal Value Function). To be clear, if someone says, Optimal Value Function, by default, they'd be referring to the Optimal State-Value Function $V^*$ (not $Q^*$).
@@ -874,9 +859,7 @@ For any two Optimal Policies $\pi_1^*$ and $\pi_2^*$, $V^{\pi_1^*}(s) = V^{\pi_2
 \begin{proof}
 Since $\pi_1^*$ is an Optimal Policy, from the Optimal Policy definition, we have: $V^{\pi_1^*}(s) \geq V^{\pi_2^*}(s)$ for all $s \in \mathcal{N}$. Likewise, since $\pi_2^*$ is an Optimal Policy, from the Optimal Policy definition, we have: $V^{\pi_2^*}(s) \geq V^{\pi_1^*}(s)$ for all $s \in \mathcal{N}$. This implies: $V^{\pi_1^*}(s) = V^{\pi_2^*}(s)$ for all $s \in \mathcal{N}$.
 \end{proof}
-
 Now we are ready to prove Theorem \eqref{th:mdp-optimal-policy-existence}
-
 \begin{proof}
 As a consequence of the above Lemma, all we need to do to prove Theorem \eqref{th:mdp-optimal-policy-existence} is to establish an Optimal Policy that achieves the Optimal Value Function and the Optimal Action-Value Function. We construct a Deterministic Policy (as a candidate Optimal Policy) $\pi_D^* : \mathcal{N} \rightarrow \mathcal{A}$ as follows:
 \begin{equation}

@@ -62,12 +62,11 @@ You start with wealth $W_0$ at time $t=0$. As mentioned earlier, the goal is to 
 
 For ease of exposition, we formalize the problem setting and derive Merton's beautiful analytical solution for the case of $n=1$ (i.e., only 1 risky asset). The solution generalizes in a straightforward manner to the case of $n > 1$ risky assets, so it pays to keep the notation and explanations simple, emphasizing intuition rather than heavy technical details.
 
-Since we are operating in continuous-time, the risky asset follows a stochastic process (denoted $S$)—specifically an Ito process (introductory background on Ito processes and Ito's Lemma covered in Appendix [-@sec:stochasticcalculus-appendix]), as follows:
+Since we are operating in continuous-time, the risky asset follows a stochastic process (denoted $S$)—specifically an Ito Process (introductory background on Ito Processes and Ito's Lemma covered in Appendix [-@sec:stochasticcalculus-appendix]), as follows:
 \index{stochastic process!Ito process}
 \index{time!continuous-time}
 
 $$dS_t = \mu \cdot S_t \cdot dt + \sigma \cdot S_t \cdot dz_t$$
-
 where $\mu \in \mathbb{R}, \sigma \in \mathbb{R}^+$ are fixed constants (note that for $n$ assets, we would instead work with a vector for $\mu$ and a matrix for $\sigma$). 
 
 The riskless asset has no uncertainty associated with it and has a fixed rate of growth in continuous-time, so the valuation of the riskless asset $R_t$ at time $t$ is given by:
@@ -79,7 +78,6 @@ Assume $r \in \mathbb{R}$ is a fixed constant, representing the instantaneous ri
 
 \index{time!continuous-time}
 $$U(x) = \frac {x^{1-\gamma}} {1 - \gamma}$$
-
 for a risk-aversion parameter $\gamma \neq 1$. This Utility function is essentially the CRRA Utility function (ignoring the constant term $\frac {-1} {1 - \gamma}$) that we covered in Chapter [-@sec:utility-theory-chapter] for $\gamma \neq 1$. $\gamma$ is the Coefficient of CRRA equal to  $\frac {-x \cdot U''(x)} {U'(x)}$. We will not cover the case of CRRA Utility function for $\gamma = 1$ (i.e., $U(x) = \log(x)$), but we encourage you to work out the derivation for $U(x) = \log(x)$ as an exercise.
 
 Due to our assumption of no addition of money to our investment portfolio of the risky asset $S_t$ and riskless asset $R_t$ and due to our assumption of no transaction costs of buying/selling any fractional quantities of risky as well as riskless assets, the time-evolution for wealth should be conceptualized as a continuous adjustment of the allocation $\pi_t$ and continuous extraction from the portfolio (equal to continuous consumption $c_t$). 
@@ -191,7 +189,6 @@ Substituting the guess solution in the PDE, we get the simple ODE:
 f'(t) = \nu \cdot f(t) - 1 \label{eq:merton-hjb-ode}
 \end{equation}
 where $$\nu = \frac {\rho - (1 - \gamma) \cdot (\frac {(\mu - r)^2} {2 \sigma^2 \gamma} + r)} {\gamma}$$
-
 We note that the bequest function $B(T) = \epsilon^{\gamma}$ proves to be convenient in order to fit the guess solution for $t=T$. This means the boundary condition for this ODE is: $f(T) = \epsilon$. Consequently, this ODE together with this boundary condition has a simple enough solution, as follows:
 \begin{equation}
 f(t) =
@@ -367,7 +364,6 @@ Denote the random variable for the single-time-step return of the risky asset fr
 W_{t+1} = x_t \cdot (1 + Y_t) + (W_t - x_t) \cdot (1 + r) = x_t \cdot (Y_t - r) + W_t \cdot (1 + r)
 \label{eq:asset-alloc-discrete-wealth-recursive}
 \end{equation}
-
 for all $t = 0, 1, \ldots, T-1$.
 
 The MDP *Reward* is 0 for all $t = 0, 1, \ldots, T-1$. As a result of the simplified objective \eqref{eq:asset-alloc-discrete-objective} above, the MDP *Reward* for $t=T$ is the following random quantity:
@@ -383,15 +379,10 @@ We denote the Value Function at time $t$ (for all $t = 0, 1, \ldots, T-1$) for a
 $$V^{\pi}_t(W_t) = \mathbb{E}_{\pi}[\frac {- e^{-a W_T}} a | (t, W_t)]$$
 We denote the Optimal Value Function at time $t$ (for all $t=0, 1, \ldots, T-1$) as:
 $$V^*_t(W_t) = \max_{\pi} V^{\pi}_t(W_t) = \max_{\pi} \{ \mathbb{E}_{\pi}[\frac {- e^{-a W_T}} a | (t, W_t)] \}$$
-
 The Bellman Optimality Equation is:
-
 $$V^*_t(W_t) = \max_{x_t} Q^*_t(W_t, x_t) = \max_{x_t} \{\mathbb{E}_{Y_t \sim \mathcal{N}(\mu, \sigma^2)}[V^*_{t+1}(W_{t+1})]\}$$
-
 for all $t=0, 1, \ldots, T-2$, and
-
 $$V^*_{T-1}(W_{T-1}) = \max_{x_{T-1}} Q^*_{T-1}(W_{T-1}, x_{T-1}) = \max_{x_{T-1}} \{ \mathbb{E}_{Y_{T-1} \sim \mathcal{N}(\mu, \sigma^2)}[\frac {- e^{-a W_T}} a] \}$$
-
 where $Q^*_t$ is the Optimal Action-Value Function at time $t$ for all $t=0, 1, \ldots, T-1$.
 
 We make an educated guess for the functional form of the Optimal Value Function as:

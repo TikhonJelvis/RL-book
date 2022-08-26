@@ -158,7 +158,6 @@ We consider algorithms that estimate a Q-Value $\hat{Q}_t(a)$ for each $a\in \ma
 A natural way of estimating $\hat{Q}_t(a)$ is by *rewards-averaging*, i.e.,
 
 $$\hat{Q}_t(a) = \frac 1 {N_t(a)} \sum_{s=1}^t R_s \cdot \mathbb{I}_{A_s=a}$$
-
 where $\mathbb{I}$ refers to the indicator function.
 
 #### Greedy and $\epsilon$-Greedy
@@ -436,7 +435,7 @@ This posterior calculation can be performed in an incremental manner by updating
 \index{probability!prior distribution}
 \index{probability!posterior distribution}
 
-Given this posterior distribution for $\mu_a$ and $\sigma_a^2$ for all $a \in \mathcal{A}$ after each time step $t$, we select the action that maximizes the Expectation of "$c$ standard-errors above mean" , i.e., 
+Given this posterior distribution for $\mu_a$ and $\sigma_a^2$ for all $a \in \mathcal{A}$ after each time step $t$, we select the action that maximizes the Expectation of "$c$ standard-errors above mean", i.e., 
 $$A_{t+1} = \argmax_{a\in\mathcal{A}} \mathbb{E}_{\mathbb{P}[\mu_a,\sigma_a^2|H_t]}[\mu_a + \frac {c \cdot \sigma_a} {\sqrt{N_t(a)}}]$$
 
 ### Probability Matching
@@ -465,7 +464,6 @@ Generalizing this Probability Matching method to an arbitrary number of actions 
 \mathbb{P}[A_{t+1}|H_t] = \mathbb{P}_{\mathcal{D}_t \sim \mathbb{P}[\mathcal{R}|H_t]}[\mathbb{E}_{\mathcal{D}_t}[r|A_{t+1}] > \mathbb{E}_{\mathcal{D}_t}[r|a] \text{ for all } a \neq A_{t+1}]
 \label{eq:probability-matching}
 \end{equation}
-
 where $\mathcal{D}_t$ refers to a particular random outcome of a distribution of rewards for each action, drawn from the posterior distribution $\mathbb{P}[\mathcal{R}|H_t]$. As ever, ties between actions are broken with an arbitrary rule prioritizing actions.
 
 Note that the Probability Matching method is also based on the principle of *Optimism in the Face of Uncertainty* because an action with more uncertainty in its mean reward is more likely to have the highest mean reward among all actions (all else being equal), and hence deserves to be selected more frequently.
@@ -481,7 +479,6 @@ We can reformulate the right-hand-side of Equation \ref{eq:probability-matching}
 \mathbb{P}[A_{t+1}|H_t] & = \mathbb{P}_{\mathcal{D}_t \sim \mathbb{P}[\mathcal{R}|H_t]}[\mathbb{E}_{\mathcal{D}_t}[r|A_{t+1}] > \mathbb{E}_{\mathcal{D}_t}[r|a] \text{for all } a \neq A_{t+1}] \\
 & =\mathbb{E}_{\mathcal{D}_t \sim \mathbb{P}[\mathcal{R}|H_t]}[\mathbb{I}_{A_{t+1}=\argmax_{a\in\mathcal{A}} \mathbb{E}_{\mathcal{D}_t}[r|a]}]
 \end{align*}
-
 where $\mathbb{I}$ refers to the indicator function. This reformulation in terms of an *Expectation* is convenient because we can estimate the Expectation by sampling various $\mathcal{D}_t$ probability distributions and for each sample of $\mathcal{D}_t$, we simply check if an action has the best mean reward (compared to other actions) under the distribution $\mathcal{D}_t$. This sampling-based approach to Probability Matching is known as *Thompson Sampling*. Specifically, Thompson Sampling performs the following calculations for time step $t+1$:
 
 * Compute the posterior distribution $\mathbb{P}[\mathcal{R}|H_t]$ by performing Bayesian updates of the hyperparameters that govern the estimated probability distributions of the parameters of the reward distributions for each action.
@@ -617,9 +614,7 @@ Now we cover a MAB algorithm that is similar to Policy Gradient for MDPs. This M
 The basic idea is that we have $m$ *Score* parameters (to be optimized), one for each action, denoted as $\{s_a|a \in \mathcal{A}\}$ that define the action-selection probabilities, which in turn defines an *Expected Reward* Objective function to be maximized, as follows:
 
 $$J(s_{a_1}, \ldots, s_{a_m}) = \sum_{a\in\mathcal{A}} \pi(a) \cdot \mathbb{E}[r|a]$$
-
 where $\pi: \mathcal{A} \rightarrow [0, 1]$ refers to the function for action-selection probabilities, that is defined as follows:
-
 $$\pi(a) = \frac {e^{s_a}} {\sum_{b\in \mathcal{A}} e^{s_b}} \text{ for all } a \in \mathcal{A}$$
 
 \index{probability!score}

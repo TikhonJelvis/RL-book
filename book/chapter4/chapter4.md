@@ -206,7 +206,6 @@ in the form of a data structure (since the states are finite, and the pairs of n
 We know from Chapters [-@sec:mrp-chapter] and [-@sec:mdp-chapter] that by extracting (from $\mathcal{P}_R^{\pi}$) the transition probability function $\mathcal{P}^{\pi}: \mathcal{N} \times \mathcal{S} \rightarrow [0, 1]$ of the implicit Markov Process and the reward function $\mathcal{R}^{\pi}: \mathcal{N} \rightarrow \mathbb{R}$, we can perform the following calculation for the Value Function $V^{\pi}: \mathcal{N} \rightarrow \mathbb{R}$ (expressed as a column vector $\bvpi \in \mathbb{R}^m$) to solve this Prediction problem:
 
 $$\bvpi = (\bm{I_m} - \gamma \bm{\mathcal{P}}^{\pi})^{-1} \cdot \bm{\mathcal{R}}^{\pi}$$
-
 where $\bm{I_m}$ is the $m \times m$ identity matrix, column vector $\bm{\mathcal{R}}^{\pi} \in \mathbb{R}^m$ represents $\mathcal{R}^{\pi}$, and $\bm{\mathcal{P}}^{\pi}$ is an $m \times m$ matrix representing $\mathcal{P}^{\pi}$ (rows and columns corresponding to the non-terminal states). However, when $m$ is large, this calculation won't scale. So, we look for a numerical algorithm that would solve (for $\bvpi$) the following MRP Bellman Equation (for a larger number of finite states).
 
 \index{Bellman equations!Bellman equation of Markov reward process}
@@ -225,7 +224,6 @@ We define the *Bellman Policy Operator* $\bbpi: \mathbb{R}^m \rightarrow \mathbb
 So, the MRP Bellman Equation can be expressed as:
 
 $$\bvpi = \bbpi(\bvpi)$$
-
 which means $\bvpi \in \mathbb{R}^m$ is a Fixed-Point of the *Bellman Policy Operator* $\bbpi: \mathbb{R}^m \rightarrow \mathbb{R}^m$. Note that the Bellman Policy Operator can be generalized to the case of non-finite MDPs and $V^{\pi}$ is still a Fixed-Point for various generalizations of interest. However, since this chapter focuses on developing algorithms for finite MDPs, we will work with the above narrower (Equation \eqref{eq:bellman_policy_operator}) definition. Also, for proofs of correctness of the DP algorithms (based on Fixed-Point) in this chapter, we shall assume the discount factor $\gamma < 1$.
 
 \index{functions!affine}
@@ -333,9 +331,7 @@ We shall use Equation \eqref{eq:greedy_policy_function1} in our mathematical exp
  G(\bv)(s) = \argmax_{a\in \mathcal{A}} \{\sum_{s'\in \mathcal{S}} \sum_{r \in \mathcal{D}} \mathcal{P}_R(s,a,r,s') \cdot (r  + \gamma \cdot \bm{W}(s'))\} \text{ for all } s\in \mathcal{N}
 \label{eq:greedy_policy_function2}
 \end{equation}
-
 where $\bm{W} \in \mathbb{R}^n$ is defined as:
-
 $$\bm{W}(s') =
 \begin{cases}
 \bv(s') & \text{ if } s' \in \mathcal{N} \\
@@ -417,7 +413,6 @@ $$\lim_{i\rightarrow \infty} (\bm{B}^{\pi_D'})^i(\bvpi) = \bm{V}^{\pi_D'}$$
 So the proof is complete if we prove that:
 
 $$(\bm{B}^{\pi_D'})^{i+1}(\bvpi) \geq (\bm{B}^{\pi_D'})^i(\bvpi) \text{ for all } i = 0, 1, 2, \ldots$$
-
 which means we get a non-decreasing sequence of Value Functions $[(\bm{B}^{\pi_D'})^i(\bvpi)|i = 0, 1, 2, \ldots]$ with repeated applications of $\bm{B}^{\pi_D'}$ starting with the Value Function $\bvpi$. 
 
 Let us prove this by induction. The base case (for $i=0$) of the induction is to prove that:
@@ -594,9 +589,7 @@ Much like how the Bellman Policy Operator $\bbpi$ was motivated by the MDP Bellm
 $$\bvs(s) = \max_{a \in \mathcal{A}} \{ \mathcal{R}(s,a) + \gamma \sum_{s' \in \mathcal{N}} \mathcal{P}(s,a,s') \cdot \bvs(s') \} \text{ for all } s \in \mathcal{N}$$
 
 Therefore, we can express the MDP State-Value Function Bellman Optimality Equation succinctly as:
-
 $$\bvs = \bbs(\bvs)$$
-
 which means $\bvs \in \mathbb{R}^m$ is a Fixed-Point of the Bellman Optimality Operator $\bbs: \mathbb{R}^m \rightarrow \mathbb{R}^m$.
 
 \index{value function!optimal value function}
@@ -916,11 +909,8 @@ As usual, the set of non-terminal states is denoted as $\mathcal{N} = \mathcal{S
 We denote the set of rewards receivable by the AI agent at time $t$ as $\mathcal{D}_t$ (countable subset of $\mathbb{R}$), and we denote the allowable actions for states in $\mathcal{N}_t$ as $\mathcal{A}_t$. In a more generic setting, as we shall represent in our code, each non-terminal state $(t, s_t)$  has its own set of allowable actions, denoted $\mathcal{A}(s_t)$, However, for ease of exposition, here we shall treat all non-terminal states at a particular time step to have the same set of allowable actions $\mathcal{A}_t$. Let us denote the entire action space $\mathcal{A}$ of the MDP as the union of all the $\mathcal{A}_t$ over all $t = 0, 1, \ldots, T-1$.
 
 The state-reward transition probability function
-
 $$\mathcal{P}_R: \mathcal{N} \times \mathcal{A} \times \mathcal{D} \times \mathcal{S} \rightarrow [0, 1]$$
-
 is given by:
-
 $$
 \mathcal{P}_R((t, s_t), a_t, r_{t'}, (t', s_{t'})) =
 \begin{cases}
@@ -929,26 +919,18 @@ $$
 \end{cases}
 $$
 for all $t = 0, 1, \ldots T-1,  s_t \in \mathcal{N}_t, a_t \in \mathcal{A}_t, t' = 0, 1, \ldots, T$ where
-
 $$(\mathcal{P}_R)_t: \mathcal{N}_t \times \mathcal{A}_t \times \mathcal{D}_{t+1} \times \mathcal{S}_{t+1} \rightarrow [0, 1]$$
-
 are the separate state-reward transition probability functions for each of the time steps $t = 0, 1, \ldots, T-1$ such that
-
 $$\sum_{s_{t+1} \in \mathcal{S}_{t+1}} \sum_{r_{t+1} \in \mathcal{D}_{t+1}} (\mathcal{P}_R)_t(s_t, a_t, r_{t+1}, s_{t+1}) = 1$$
 for all $t = 0, 1, \ldots, T-1, s_t \in \mathcal{N}_t, a_t \in \mathcal{A}_t$.
 
 So it is convenient to represent a finite-horizon MDP with separate state-reward transition probability functions $(\mathcal{P}_R)_t$ for each time step. Likewise, it is convenient to represent any policy of the MDP
 
 $$\pi: \mathcal{N} \times \mathcal{A} \rightarrow [0, 1]$$
-
 as:
-
 $$\pi((t, s_t), a_t) = \pi_t(s_t, a_t)$$
-
 where
-
 $$\pi_t: \mathcal{N}_t \times \mathcal{A}_t \rightarrow [0, 1]$$
-
 are the separate policies for each of the time steps $t = 0, 1, \ldots, T-1$
 
 So essentially we interpret $\pi$ as being composed of the sequence $(\pi_0, \pi_1, \ldots, \pi_{T-1})$.
@@ -958,13 +940,9 @@ So essentially we interpret $\pi$ as being composed of the sequence $(\pi_0, \pi
 Consequently, the Value Function for a given policy $\pi$ (equivalently, the Value Function for the $\pi$-implied MRP)
 
 $$V^{\pi}: \mathcal{N} \rightarrow \mathbb{R}$$
-
 can be conveniently represented in terms of a sequence of Value Functions
-
 $$V^{\pi}_t: \mathcal{N}_t \rightarrow \mathbb{R}$$
-
 for each of time steps $t = 0, 1, \ldots, T-1$, defined as:
-
 $$V^{\pi}((t, s_t)) = V^{\pi}_t(s_t) \text{ for all } t = 0, 1, \ldots, T-1, s_t \in \mathcal{N}_t$$
 
 Then, the Bellman Policy Equation can be written as:
@@ -978,9 +956,7 @@ V^{\pi}_t(s_t) = \sum_{s_{t+1} \in \mathcal{S}_{t+1}} \sum_{r_{t+1} \in \mathcal
 \end{split}
 \label{eq:bellman_policy_equation_finite_horizon}
 \end{equation}
-
 where
-
 $$
 W^{\pi}_t(s_t) = 
 \begin{cases}
@@ -989,9 +965,7 @@ V^{\pi}_t(s_t) & \text{ if } s_t \in \mathcal{N}_t \\
 \end{cases}
 \text{ for all } t = 1, 2, \ldots, T
 $$
-
 and where $(\mathcal{P}_R^{\pi_t})_t: \mathcal{N}_t \times \mathcal{D}_{t+1} \times \mathcal{S}_{t+1}$ for all $t = 0, 1, \ldots, T-1$ represent the $\pi$-implied MRP's state-reward transition probability functions for the time steps, defined as:
-
 $$(\mathcal{P}_R^{\pi_t})_t(s_t, r_{t+1}, s_{t+1}) = \sum_{a_t \in \mathcal{A}_t} \pi_t(s_t, a_t) \cdot (\mathcal{P}_R)_t(s_t, a_t, r_{t+1}, s_{t+1}) \text{ for all } t = 0, 1, \ldots, T-1$$
 
 So for a Finite MDP, this yields a simple algorithm to calculate $V^{\pi}_t$ for all $t$ by simply decrementing down from $t=T-1$ to $t=0$ and using Equation \eqref{eq:bellman_policy_equation_finite_horizon} to calculate $V^{\pi}_t$ for all $t = 0, 1, \ldots, T-1$ from the known values of $W^{\pi}_{t+1}$ (since we are decrementing in time index $t$).
@@ -1072,13 +1046,9 @@ Now we move on to the Control problem—to calculate the Optimal Value Function 
 \index{value function!optimal value function}
 
 $$V^*: \mathcal{N} \rightarrow \mathbb{R}$$
-
 can be conveniently represented in terms of a sequence of Value Functions
-
 $$V^*_t: \mathcal{N}_t \rightarrow \mathbb{R}$$
-
 for each of time steps $t = 0, 1, \ldots, T-1$, defined as:
-
 $$V^*((t, s_t)) = V^*_t(s_t) \text{ for all } t = 0, 1, \ldots, T-1, s_t \in \mathcal{N}_t$$
 
 Thus, the MDP State-Value Function Bellman Optimality Equation can be written as:
@@ -1092,7 +1062,6 @@ V^*_t(s_t) = \max_{a_t \in \mathcal{A}_t} \{\sum_{s_{t+1} \in \mathcal{S}_{t+1}}
 \end{split}
 \label{eq:bellman_optimality_equation_finite_horizon}
 \end{equation}
-
 where
 $$
 W^*_t(s_t) =
@@ -1106,7 +1075,6 @@ $$
 The associated Optimal (Deterministic) Policy
 $$(\pi^*_D)_t: \mathcal{N}_t \rightarrow \mathcal{A}_t$$
 is defined as:
-
 \begin{equation}
 \begin{split}
 (\pi^*_D)_t(s_t) = \argmax_{a_t \in \mathcal{A}_t} \{\sum_{s_{t+1} \in \mathcal{S}_{t+1}} \sum_{r_{t+1} \in \mathcal{D}_{t+1}} & (\mathcal{P}_R)_t(s_t, a_t, r_{t+1}, s_{t+1}) \cdot (r_{t+1} + \gamma \cdot W^*_{t+1}(s_{t+1}))\} \\

@@ -177,7 +177,7 @@ However, in typical real-world situations, one doesn't really know the transitio
 
 \index{reinforcement learning!deep reinforcement learning}
 
-We believe the current promise of A.I. is dependent on the success of Deep RL. The next decade will be exciting as RL research will likely yield improved algorithms and its pairing with Deep Learning will hopefully enable us to solve fairly complex real-world stochastic control problems. 
+We believe the current promise of A.I. is dependent on the success of Deep RL. The next decade will be exciting as RL research will likely yield improved algorithms, and its pairing with Deep Learning will hopefully enable us to solve fairly complex real-world stochastic control problems. 
 \index{value function|)}
 \index{dynamic programming|)}
 \index{planning|)}

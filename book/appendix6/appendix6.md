@@ -19,9 +19,7 @@ A Vector space is defined as a [commutative group](https://en.wikipedia.org/wiki
 The set $\mathcal{F}$ of all functions from an arbitrary generic domain $\mathcal{X}$ to a vector space co-domain $\mathcal{V}$ (over scalars field $\mathcal{K}$) constitutes a vector space (known as function space) over the scalars field $\mathcal{K}$ with addition operation ($+$) defined as:
 
 $$(f + g)(x) = f(x) + g(x) \text{ for all } f, g \in \mathcal{F}, \text{ for all } x \in \mathcal{X}$$
-
 and scalar multiplication operation ($*$) defined as:
-
 $$(a * f)(x) = a * f(x) \text{ for all } f \in \mathcal{F}, \text{ for all } a \in \mathcal{K}, \text{ for all } x \in \mathcal{X}$$
 
 Hence, addition and scalar multiplication for a function space are defined point-wise.
@@ -97,7 +95,6 @@ Notice that the `__add__` method of the `Gradient` class in [rl/function_approx.
 Stochastic Gradient Descent is a function
 
 $$SGD: \mathcal{X} \times \mathbb{R} \rightarrow (\mathcal{P} \rightarrow \mathcal{P})$$
-
 representing a mapping from (predictor, response) data to a "parameters-update" function (in order to improve the function approximation), defined as:
 
 $$SGD(x, y)(\bm{p}) = \bm{p} \oplus (\alpha * ((y - f(x, \bm{p})) * G(x)(\bm{p})))$$

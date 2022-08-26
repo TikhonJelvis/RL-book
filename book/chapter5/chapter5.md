@@ -26,11 +26,9 @@ In other words, we shall be operating in the framework of [Maximum Likelihood Es
 \index{function approximation!incremental estimation}
 
 Our framework will allow for incremental estimation wherein at each iteration $t$ of the incremental estimation (for $t=1, 2, \ldots$), data of the form
-
-$$[(x_{t,i}, y_{t,i})|1 \leq i \leq n_t]$$
-
 \index{function approximation!gradient descent}
 
+$$[(x_{t,i}, y_{t,i})|1 \leq i \leq n_t]$$
 is used to update the parameters from $w_{t-1}$ to $w_t$ (parameters initialized at iteration $t=0$ to $w_0$). This framework can be used to update the parameters incrementally with a gradient descent algorithm, either stochastic gradient descent (where a single $(x,y)$ pair is used for each iteration's gradient calculation) or mini-batch gradient descent (where an appropriate subset of the available data is used for each iteration's gradient calculation) or simply re-using the entire data available for each iteration's gradient calculation (and consequent, parameters update). Moreover, the flexibility of our framework, allowing for incremental estimation, is particularly important for Reinforcement Learning algorithms wherein we update the parameters of the function approximation from the new data that is generated from each state transition as a result of interaction with either the real environment or a simulated environment.
 
 Among other things, the estimate $f$ (parameterized by $w$) gives us the model-expected value of $y$ conditional on $x$, i.e.
@@ -214,21 +212,16 @@ $$\nabla_{\bm{w}} Out(x_i) = \nabla_{\bm{w}} (\bm{\phi}(x_i)^T \cdot \bm{w}) = \
 \index{function approximation!gradient descent}
 
 We can solve for $\bm{w^*}$ by incremental estimation using gradient descent (change in $\bm{w}$ proportional to the gradient estimate of $\mathcal{L}(\bm{w})$ with respect to $\bm{w}$). If the $(x_t, y_t)$ data at time $t$ is:
-
-$$[(x_{t,i}, y_{t,i})|1 \leq i \leq n_t]$$,
-
+$$[(x_{t,i}, y_{t,i})|1 \leq i \leq n_t],$$
 then the gradient estimate $\mathcal{G}_{(x_t,y_t)}(\bm{w}_t)$ at time $t$ is given by:
-
 $$\mathcal{G}_{(x_t, y_t)}(\bm{w}_t) = \frac 1 n \cdot (\sum_{i=1}^{n_t} \bm{\phi}(x_{t,i}) \cdot (\bm{\phi}(x_{t,i})^T \cdot \bm{w}_t - y_{t,i})) + \lambda \cdot \bm{w}_t$$
 which can be interpreted as the mean (over the data in iteration $t$) of the feature vectors $\bm{\phi}(x_{t,i})$ weighted by the (scalar) linear prediction errors $\bm{\phi}(x_{t,i})^T \cdot \bm{w}_t - y_{t,i}$ (plus regularization term $\lambda \cdot \bm{w}_t$).
-
-Then, the update to the weights vector $\bm{w}$ is given by:
-
-$$\bm{w}_{t+1} = \bm{w}_t - \alpha_t \cdot \mathcal{G}_{(x_t, y_t)}(\bm{w}_t)$$
 
 \index{function approximation!gradient descent!learning rate}
 \index{function approximation!gradient descent!ADAM}
 
+Then, the update to the weights vector $\bm{w}$ is given by:
+$$\bm{w}_{t+1} = \bm{w}_t - \alpha_t \cdot \mathcal{G}_{(x_t, y_t)}(\bm{w}_t)$$
 where $\alpha_t$ is the learning rate for the gradient descent at time $t$. To facilitate numerical convergence, we require $\alpha_t$ to be an appropriate function of time $t$. There are a number of numerical algorithms to achieve the appropriate time-trajectory of $\alpha_t$. We shall go with one such numerical algorithm—[ADAM](https://arxiv.org/pdf/1412.6980.pdf) [@KinBa17], which we shall use not just for linear function approximation but later also for the deep neural network function approximation. Before we write code for linear function approximation, we need to write some helper code to implement the ADAM gradient descent algorithm.
 
 We create an `@dataclass Weights` to represent and update the weights (i.e., internal parameters) of a function approximation. The `Weights` dataclass has 5 attributes: `adam_gradient` that captures the ADAM parameters, including the base learning rate and the decay parameters, `time` that represents how many times the weights have been updated, `weights` that represents the weight parameters of the function approximation as a numpy array (1-D array for linear function approximation and 2-D array for each layer of deep neural network function approximation), and the two ADAM cache parameters. The `@staticmethod create` serves as a factory method to create a new instance of the `Weights` dataclass. The `update` method of this `Weights` dataclass produces an updated instance of the `Weights` dataclass that represents the updated weight parameters together with the incremented `time` and the updated ADAM cache parameters. We will follow a programming design pattern wherein we don't update anything in-place—rather, we create a new object with updated values (using the `dataclasses.replace` function). This ensures we don't get unexpected/undesirable updates in-place, which are typically the cause of bugs in numerical code. Finally, we write the `within` method which will be required to implement the `within` method in the linear function approximation class as well as in the deep neural network function approximation class.
@@ -567,7 +560,6 @@ $$\nabla_{\bm{s_L}} \mathcal{L} = \frac {\partial \mathcal{L}}{\partial s_L}$$
 To calculate $\frac {\partial \mathcal{L}} {\partial s_L}$, we need to assume a functional form for $\mathbb{P}[y|s_L]$. We work with a fairly generic exponential functional form for the probability distribution function:
 
 $$p(y|\theta, \tau) = h(y, \tau) \cdot e^{\frac {\theta \cdot y - A(\theta)} {d(\tau)}}$$
-
 where $\theta$ should be thought of as the "center" parameter (related to the mean) of the probability distribution and $\tau$ should be thought of as the "dispersion" parameter (related to the variance) of the distribution. $h(\cdot, \cdot), A(\cdot), d(\cdot)$ are general functions whose specializations define the family of distributions that can be modeled with this fairly generic exponential functional form (note that this structure is adopted from the framework of [Generalized Linear Models](https://en.wikipedia.org/wiki/Generalized_linear_model)). 
 
 For our neural network function approximation, we assume that $\tau$ is a constant, and we set $\theta$ to be $s_L$. So,
@@ -661,7 +653,6 @@ class DNNSpec:
     output_activation: Callable[[np.ndarray], np.ndarray]
     output_activation_deriv: Callable[[np.ndarray], np.ndarray]
 ```
-
 `neurons` is a sequence of length $L$ specifying $dim(O_0), dim(O_1), \ldots, dim(O_{L-1})$ (note $dim(o_L)$ doesn't need to be specified since we know $dim(o_L) = 1$). If `bias` is set to be `True`, then $dim(I_l) = dim(O_{l-1}) + 1$ for all $l=1, 2, \ldots L$ and so in the code below, when `bias` is `True`, we'll need to prepend the matrix representing $I_l$ with a vector consisting of all 1s (to incorporate the bias term). Note that along with specifying the hidden and output layers activation functions $g_l(\cdot)$ defined as $g_l(\bm{s_l}) = \bm{o_l}$, we also specify the hidden layers activation function derivative (`hidden_activation_deriv`) and the output layer activation function derivative (`output_activation_deriv`) in the form of functions $h_l(\cdot)$ defined as $h_l(g(\bm{s_l})) = h_l(\bm{o_l}) = g_l'(\bm{s_l})$ (as we know, this derivative is required in the back-propagation calculation). We shall soon see that in the code, $h_l(\cdot)$ is a more convenient specification than the direct specification of $g_l'(\cdot)$.
 
 Now we write the `@dataclass DNNApprox` that implements the abstract base class `FunctionApprox`. It has attributes:
@@ -680,7 +671,6 @@ The method `evaluate` (from `FunctionApprox`) returns the last element ($o_L = \
 The method `backward_propagation` is the most important method of `DNNApprox`, calculating $\nabla_{\bm{w_l}} Obj$ for all $l = 0, 1, \ldots, L$, for some objective function $Obj$. We had said previously that for each concrete function approximation that we'd want to implement, if the Objective $Obj(x_i, y_i)$ is the cross-entropy loss function, we can identify a model-computed value $Out(x_i)$ (either the output of the model or an intermediate computation of the model) such that $\frac {\partial Obj(x_i, y_i)} {\partial Out(x_i)}$ is equal to the prediction error $\mathbb{E}_M[y|x_i] - y_i$ (for each training data point $(x_i, y_i)$), and we can come up with a numerical algorithm to compute $\nabla_w Out(x_i)$, so that by chain-rule, we have the required gradient $\nabla_w Obj(x_i, y_i)$ (without regularization). In the case of this DNN function approximation, the model-computed value $Out(x_i)$ is $s_L$. Thus,
 
 $$\frac {\partial Obj(x_i, y_i)} {\partial Out(x_i)} = \frac {\partial \mathcal{L}} {\partial s_L} = P_L = o_L - y_i = \mathbb{E}_M[y|x_i] - y_i$$
-
 `backward_propagation` takes two inputs:
 
 1. `fwd_prop: Sequence[np.ndarray]` which represents the output of `forward_propagation` except for the last element (which is the final output of the neural network), i.e., a sequence of $L+1$ 2-D numpy arrays representing the inputs to layers $l = 0, 1, \ldots L$ (for each of the `Iterable` of $x$-values provided as input to the neural network).
@@ -1170,7 +1160,6 @@ Notice the function `extended_vf` used to evaluate the Value Function for the ne
 def extended_vf(vf: ValueFunctionApprox[S], s: State[S]) -> float:
     return s.on_non_terminal(vf, 0.0)
 ```
-
 `extended_vf` will be useful not just for Approximate Dynamic Programming algorithms, but also for Reinforcement Learning algorithms.
 
 \index{dynamic programming!policy evaluation!approximate|)}

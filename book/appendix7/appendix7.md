@@ -10,18 +10,15 @@ The setting for this Appendix is that we receive data incrementally as $x_1, x_2
 Here we assume that each data point is Gaussian-distributed in $\mathbb{R}$. So when we receive the $n$-th data point $x_n$, we assume:
 
 $$x_n \sim \mathcal{N}(\mu, \sigma^2)$$
-
 and we assume both $\mu$ and $\sigma^2$ are unknown random variables with [Gaussian-Inverse-Gamma Probability Distribution](https://en.wikipedia.org/wiki/Normal-inverse-gamma_distribution) Conjugate Prior for $\mu$ and $\sigma^2$, i.e.,
 
 \index{probability!inverse-gamma distribution}
 
 $$\mu | x_1, \ldots, x_n \sim \mathcal{N}(\theta_n, \frac {\sigma^2} n)$$
 $$\sigma^2 | x_1, \ldots, x_n \sim IG(\alpha_n, \beta_n)$$
-
 where $IG(\alpha_n, \beta_n)$ refers to the Inverse Gamma distribution with parameters $\alpha_n$ and $\beta_n$. This means $\frac 1 {\sigma^2} | x_1, \ldots, x_n$ follows a Gamma distribution with parameters $\alpha_n$ and $\beta_n$, i.e., the probability of $\frac 1 {\sigma^2}$ having a value $y \in \mathbb{R}^+$ is:
 
 $$\frac {\beta^{\alpha} \cdot y^{\alpha - 1} \cdot e^{- \beta y}} {\Gamma(\alpha)}$$
-
 where $\Gamma(\cdot)$ is the [Gamma Function](https://en.wikipedia.org/wiki/Gamma_function). 
 
 \index{functions!gamma function}
@@ -46,15 +43,11 @@ $$\beta_{n+1} = \beta_n + \frac {n (x_{n+1} - \theta_n)^2} {2(n+1)}$$
 \index{probability!beta distribution}
 
 Here we assume that each data point is Bernoulli-distributed. So when we receive the $n$-th data point $x_n$, we assume $x_n = 1$ with probability $p$ and $x_n = 0$ with probability $1-p$. We assume $p$ is an unknown random variable with [Beta Distribution](https://en.wikipedia.org/wiki/Beta_distribution) Conjugate Prior for $p$, i.e, 
-
-$$p | x_1, \ldots, x_n \sim Beta(\alpha_n, \beta_n)$$
-
 \index{functions!gamma function}
 
+$$p | x_1, \ldots, x_n \sim Beta(\alpha_n, \beta_n)$$
 where $Beta(\alpha_n, \beta_n)$ refers to the Beta distribution with parameters $\alpha_n$ and $\beta_n$, i.e., the probability of $p$ having a value $y \in [0, 1]$ is:
-
 $$\frac {\Gamma(\alpha + \beta)} {\Gamma(\alpha) \cdot \Gamma(\beta)} \cdot y^{\alpha - 1} \cdot (1 - y)^{\beta - 1}$$
-
 where $\Gamma(\cdot)$ is the [Gamma Function](https://en.wikipedia.org/wiki/Gamma_function). 
 
 \index{functions!gamma function}
@@ -65,7 +58,6 @@ $\alpha_n, \beta_n$ are hyperparameters determining the probability distribution
 Then, the posterior distribution is given by:
 
 $$p | x_1, \ldots, x_{n+1} \sim Beta(\alpha_n + \mathbb{I}_{x_{n+1} = 1}, \beta_n + \mathbb{I}_{x_{n+1} = 0})$$
-
 where $\mathbb{I}$ refers to the indicator function.
 
 This means upon receipt of the data point $x_{n+1}$, the hyperparameters can be updated as:

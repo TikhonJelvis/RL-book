@@ -223,7 +223,6 @@ $$\sum_{j=0}^m \theta_j^{(k)} \cdot S_j^{(0)} = V_{\theta^{(k)}}^{(0)} = \frac 1
 We note that the above equation is satisfied for a unique $\pi: \Omega \rightarrow [0, 1]$, defined as:
 
 $$\pi(\omega_k) = (1 + r) \cdot \sum_{j=0}^m \theta_j^{(k)} \cdot S_j^{(0)} \text{ for all } k = 1, \ldots, n$$
-
 which implies that we have a unique risk-neutral probability measure.
 \index{finance!risk-neutral probability measure}
 \index{finance!derivative!replicating portfolio}
@@ -475,7 +474,6 @@ To develop some intuition for what this solution looks like, let us now write so
 \index{utility theory!constant absolute risk-aversion}
 
 $$U(y) = \frac {1 - e^{-a\cdot y}} {a}$$
-
 where $a$ is the CARA coefficient of risk-aversion.
 
 We refer to the units of investment in the risky asset as $\alpha$ and the units of investment in the riskless asset as $\beta$. Let $S_0$ be the spot ($t=0$) value of the risky asset (riskless asset value at $t=0$ is 1). Let $f(S)$ be the payoff of the derivative $D$ at $t=1$. So, the price of derivative $D$ is the breakeven value $x^*$ such that:

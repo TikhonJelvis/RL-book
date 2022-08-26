@@ -529,7 +529,6 @@ Now we consider a special case of the above-described MDP—a simple linear Pric
 We assume simple linear price dynamics as follows:
 
 $$P_{t+1} = f_t(P_t, N_t, \epsilon) = P_t - \alpha \cdot N_t + \epsilon_t$$
-
 where $\alpha \in \mathbb{R}$ and $\epsilon_t$ for all $t=0, 1, \ldots, T-1$ are independent and identically distributed (i.i.d.) with $\mathbb{E}[\epsilon_t|N_t, P_t] = 0$. Therefore, the Permanent Price Impact (as an Expectation) is $\alpha \cdot N_t$. 
 
 \index{finance!price impact!temporary}
@@ -537,7 +536,6 @@ where $\alpha \in \mathbb{R}$ and $\epsilon_t$ for all $t=0, 1, \ldots, T-1$ are
 As for the Temporary Price Impact, we know that $g_t$ needs to be a non-decreasing function of $N_t$. We assume a simple linear form for $g_t$ as follows:
 
 $$g_t(P_t, N_t) = \beta \cdot N_t \text{ for all } t = 0, 1, \ldots, T-1$$
-
 for some constant $\beta \in \mathbb{R}_{\geq 0}$. So, $Q_t = P_t - \beta N_t$. As mentioned above, we assume no risk-aversion, i.e., the Utility function $U(\cdot)$ is assumed to be the identity function. Also, we assume that the MDP discount factor $\gamma = 1$.
 
 Note that all of these assumptions are far too simplistic and hence, an unrealistic model of the real-world, but starting with this simple model helps build good intuition and enables us to develop more realistic models by incrementally adding complexity/nuances from this simple base model.
@@ -912,15 +910,11 @@ $$I_t = X_t^{(b)} - X_t^{(a)} \text{ (note: } I_0 = 0 \text{)}$$
 Since infinitesimal Poisson random variables $dX_t^{(b)}$ (shares hit in time interval from $t$ to $t + dt$) and $dX_t^{(a)}$ (shares lifted in time interval from $t$ to $t + dt$) are Bernoulli random variables (shares hit/lifted within time interval of duration $dt$ will be 0 or 1), $N_t^{(b)}$ and $N_t^{(a)}$ (number of shares in the submitted LOs for the infinitesimal time interval from $t$ to $t + dt$) can be assumed to be 1.
 
 This simplifies the *Action* at time $t$ to be just the pair:
-
-$$(\delta_t^{(b)}, \delta_t^{(a)})$$
 \index{finance!order book!dynamics}
 \index{stochastic process!Brownian motion}
-
+$$(\delta_t^{(b)}, \delta_t^{(a)})$$
 OB Mid Price Dynamics is assumed to be scaled Brownian motion:
-
 $$dS_t = \sigma \cdot dz_t$$
-
 for some $\sigma \in \mathbb{R}^+$.
 \index{utility theory!constant absolute risk-aversion}
 
@@ -991,7 +985,6 @@ Next, we make an *educated guess* for the functional form of $V^*(t,S_t,W_t,I_t)
 \begin{equation}
 V^*(t,S_t,W_t,I_t) = -e^{-\gamma \cdot (W_t + \theta(t,S_t,I_t))} \label{eq:thetaform}
 \end{equation}
-
 to reduce the problem to a Partial Differential Equation (PDE) in terms of $\theta(t,S_t,I_t)$. Substituting this guessed functional form into the above PDE for $V^*(t,S_t,W_t,I_t)$ gives:
 \index{partial differential equation}
 
