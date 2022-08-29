@@ -18,7 +18,7 @@ $\log(x)$ & {\em Natural Logarithm} (to the base $e$) of $x$ \\
 \hline
 $|x|$ & {\em Absolute Value} of $x$ \\
 \hline
-$sign(x)$ & +1 if $x > 0$, -1 if $x < 0$, 0 if $x=0$ \\
+$sign(x)$ & $+1$ if $x > 0$, $-1$ if $x < 0$, $0$ if $x=0$ \\
 \hline
 $[a,b]$ & Set of real numbers that are $\geq a$ and $\leq b$. The notation $x \in [a,b]$ is shorthand for $x \in \mathbb{R}$ and $a \leq x \leq b$ \\
 \hline

@@ -7,14 +7,14 @@ It's time to take stock of what we have learnt so far to set up context for this
 
 \index{generalized policy iteration}
 
-In this chapter, we cover RL Control algorithms that take a vastly different approach. These Control algorithms are still based on GPI, but the Policy Improvement of their GPI is not based on consulting the Q-Value Function, as has been the case with Control algorithms we covered in the previous two chapters. Rather, the approach in the class of algorithms we cover in this chapter is to directly find the Policy that fetches the "Best Expected Returns". Specifically, the algorithms of this chapter perform a Gradient Ascent on "Expected Returns" with the gradient defined with respect to the parameters of a Policy function approximation. We shall work with a stochastic policy of the form $\pi(s,a; \bm{\theta})$, with $\bm{\theta}$ denoting the parameters of the policy function approximation $\pi$. So we are basically learning this parameterized policy that selects actions without consulting a Value Function. Note that we might still engage a Value Function approximation (call it $Q(s;a; \bm{w})$) in our algorithm, but it's role is to only help learn the policy parameters $\bm{\theta}$ and not to identify the action with the best action-value for each state. So the two function approximations $\pi(s,a;\bm{\theta})$ and $Q(s,a;\bm{w})$ collaborate to improve the policy using gradient ascent (based on gradient of "expected returns" with respect to $\bm{\theta}$). $\pi(s,a;\bm{\theta})$ is the primary worker here (known as *Actor*) and $Q(s,a;\bm{w})$ is the support worker (known as *Critic*). The Critic parameters $\bm{w}$ are optimized by minimizing a suitable loss function defined in terms of $Q(s, a; \bm{w})$ while the Actor parameters $\bm{\theta}$ are optimized by maximizing a suitable "Expected Returns" function". Note that we still haven't defined what this "Expected Returns" function is (we will do so shortly), but we already see that this idea is appealing for large/continuous action spaces where sweeping through actions is infeasible. We will soon dig into the details of this new approach to RL Control (known as *Policy Gradient*, abbreviated as PG) - for now, it's important to recognize the big picture that PG is basically GPI with Policy Improvement done as a *Policy Gradient Ascent*.
+In this chapter, we cover RL Control algorithms that take a vastly different approach. These Control algorithms are still based on GPI, but the Policy Improvement of their GPI is not based on consulting the Q-Value Function, as has been the case with Control algorithms we covered in the previous two chapters. Rather, the approach in the class of algorithms we cover in this chapter is to directly find the Policy that fetches the "Best Expected Returns". Specifically, the algorithms of this chapter perform a Gradient Ascent on "Expected Returns" with the gradient defined with respect to the parameters of a Policy function approximation. We shall work with a stochastic policy of the form $\pi(s,a; \bm{\theta})$, with $\bm{\theta}$ denoting the parameters of the policy function approximation $\pi$. So we are basically learning this parameterized policy that selects actions without consulting a Value Function. Note that we might still engage a Value Function approximation (call it $Q(s;a; \bm{w})$) in our algorithm, but its role is to only help learn the policy parameters $\bm{\theta}$ and not to identify the action with the best action-value for each state. So the two function approximations $\pi(s,a;\bm{\theta})$ and $Q(s,a;\bm{w})$ collaborate to improve the policy using gradient ascent (based on gradient of "expected returns" with respect to $\bm{\theta}$). $\pi(s,a;\bm{\theta})$ is the primary worker here (known as *Actor*) and $Q(s,a;\bm{w})$ is the support worker (known as *Critic*). The Critic parameters $\bm{w}$ are optimized by minimizing a suitable loss function defined in terms of $Q(s, a; \bm{w})$ while the Actor parameters $\bm{\theta}$ are optimized by maximizing a suitable "Expected Returns" function. Note that we still haven't defined what this "Expected Returns" function is (we will do so shortly), but we already see that this idea is appealing for large/continuous action spaces where sweeping through actions is infeasible. We will soon dig into the details of this new approach to RL Control (known as *Policy Gradient*, abbreviated as PG)—for now, it's important to recognize the big picture that PG is basically GPI with Policy Improvement done as a *Policy Gradient Ascent*.
 
 \index{reinforcement learning!policy gradient!actor}
 \index{reinforcement learning!policy gradient!critic}
 
 The contrast between the RL Control algorithms covered in the previous two chapters and the algorithms of this chapter actually is part of the following bigger-picture classification of learning algorithms for Control:
 
-* Value Function-based: Here we learn the Value Function (typically with a function approximation for the Value Function) and the Policy is implicit, readily derived from the Value Function (eg: $\epsilon$-greedy).
+* Value Function-based: Here we learn the Value Function (typically with a function approximation for the Value Function) and the Policy is implicit, readily derived from the Value Function (e.g., $\epsilon$-greedy).
 * Policy-based: Here we learn the Policy (with a function approximation for the Policy), and there is no need to learn a Value Function.
 * Actor-Critic: Here we primarily learn the Policy (with a function approximation for the Policy, known as *Actor*), and secondarily learn the Value Function (with a function approximation for the Value Function, known as *Critic*).
 
@@ -75,7 +75,7 @@ $$A^{\pi}(s,a) = Q^{\pi}(s,a) - V^{\pi}(s)$$
 
 The advantage function captures how much more value does a particular action provide relative to the average value across actions (for a given state). The advantage function plays an important role in reducing the variance in PG Algorithms.
 
-Also, $p(s \rightarrow s', t, \pi)$ will be a key function for us in the PGT proof - it denotes the probability of going from state $s$ to $s'$ in $t$ steps by following policy $\pi$.
+Also, $p(s \rightarrow s', t, \pi)$ will be a key function for us in the PGT proof—it denotes the probability of going from state $s$ to $s'$ in $t$ steps by following policy $\pi$.
 
 We express the "Expected Returns" Objective $J(\bm{\theta})$ as follows:
 
@@ -127,7 +127,7 @@ Thus, the PGT enables a numerical estimate of $\nabla_{\bm{\theta}} J(\bm{\theta
 
 We begin the proof by noting that:
 $$J(\bm{\theta}) = \sum_{S_0 \in \mathcal{N}} p_0(S_0) \cdot V^{\pi}(S_0)  = \sum_{S_0 \in \mathcal{N}} p_0(S_0) \cdot \sum_{A_0 \in \mathcal{A}} \pi(S_0, A_0; \bm{\theta}) \cdot Q^{\pi}(S_0, A_0)$$
-Calculate $\nabla_{\bm{\theta}} J(\bm{\theta})$ by it's product parts $\pi(S_0, A_0; \bm{\theta})$ and $Q^{\pi}(S_0, A_0)$.
+Calculate $\nabla_{\bm{\theta}} J(\bm{\theta})$ by its product parts $\pi(S_0, A_0; \bm{\theta})$ and $Q^{\pi}(S_0, A_0)$.
 \begin{align*}
 \nabla_{\bm{\theta}} J(\bm{\theta}) & = \sum_{S_0 \in \mathcal{N}} p_0(S_0) \cdot  \sum_{A_0 \in \mathcal{A}} \nabla_{\bm{\theta}} \pi(S_0, A_0; \bm{\theta}) \cdot Q^{\pi}(S_0, A_0) \\
 & + \sum_{S_0 \in \mathcal{N}} p_0(S_0) \cdot \sum_{A_0 \in \mathcal{A}} \pi(S_0, A_0; \bm{\theta}) \cdot \nabla_{\bm{\theta}} Q^{\pi}(S_0, A_0)
@@ -191,7 +191,7 @@ Note that using the "Expected Value" notation under the improper distribution im
 As explained earlier, since the state occurrence probabilities and action occurrence probabilities are implicit in the trace experiences, we can sample-estimate $\nabla_{\bm{\theta}} J(\bm{\theta})$ by calculating $\gamma^t \cdot (\nabla_{\bm{\theta}} \log{\pi(S_t,A_t; \bm{\theta})}) \cdot Q^{\pi}(S_t,A_t)$ at each time step in each trace experience, and update the parameters $\bm{\theta}$ (according to Stochastic Gradient Ascent) with this calculation.
 
 
-### Score function for Canonical Policy Functions {#sec:canonical-policy-functions}
+### Score Function for Canonical Policy Functions {#sec:canonical-policy-functions}
 
 \index{reinforcement learning!policy gradient!score|(}
 
@@ -219,7 +219,7 @@ For single-dimensional continuous action spaces (i.e., $\mathcal{A} = \mathbb{R}
 
 \index{probability!normal distribution}
 
-We set the mean of the gaussian distribution for the Policy as a linear combination of state features, i.e.,  $\bm{\phi}(s)^T \cdot \bm{\theta}$, and we set the variance to be a fixed value, say $\sigma^2$. We could make the variance parameterized as well, but let's work with fixed variance to keep things simple.
+We set the mean of the Gaussian distribution for the Policy as a linear combination of state features, i.e.,  $\bm{\phi}(s)^T \cdot \bm{\theta}$, and we set the variance to be a fixed value, say $\sigma^2$. We could make the variance parameterized as well, but let's work with fixed variance to keep things simple.
 
 The Gaussian policy selects an action $a$ as follows:
 
@@ -228,7 +228,7 @@ $$a \sim \mathcal{N}(\bm{\phi}(s)^T \cdot \bm{\theta}, \sigma^2) \mbox{ for a gi
 Then the score function is given by:
 $$\nabla_{\bm{\theta}} \log \pi(s,a; \bm{\theta}) = \frac {(a - \bm{\phi}(s)^T \cdot \bm{\theta}) \cdot \bm{\phi}(s)} {\sigma^2}$$
 
-This is easily extensible to multi-dimensional continuous action spaces by considering a multi-dimensional gaussian distribution for the Policy.
+This is easily extensible to multi-dimensional continuous action spaces by considering a multi-dimensional Gaussian distribution for the Policy.
 
 The intuitive interpretation is that the score function for an action $a$ is proportional to the feature vector for given state $s$ scaled by the "advantage" of the action $a$ over the mean action (note: each $a \in \mathbb{R}$).
 
@@ -246,9 +246,7 @@ Now we are ready to write our first Policy Gradient algorithm. As ever, the simp
 We've already explained that we can calculate the Score function using an analytical derivative of a specified functional form for $\pi(S_t,A_t;\bm{\theta})$ for each atomic experience $(S_t, A_t, R_t, S_{t+1})$. What remains is to obtain an estimate of $Q^{\pi}(S_t,A_t)$ for each atomic experience $(S_t, A_t, R_t, S_{t+1})$. REINFORCE uses the trace experience return $G_t$ for $(S_t, A_t)$, while following policy $\pi$, as an unbiased sample of $Q^{\pi}(S_t,A_t)$. Thus, at every time step (i.e., at every atomic experience) in each episode, we estimate $\nabla_{\bm{\theta}} J(\bm{\theta})$ by calculating $\gamma^t \cdot (\nabla_{\bm{\theta}} \log{\pi(S_t, A_t; \bm{\theta})}) \cdot G_t$ (noting that the state occurrence probabilities and action occurrence probabilities are implicit in the trace experiences), and update the parameters $\bm{\theta}$ at the end of each episode (using each atomic experience's $\nabla_{\bm{\theta}} J(\bm{\theta})$ estimate) according to Stochastic Gradient Ascent as follows:
 
 $$\Delta \bm{\theta} = \alpha \cdot \gamma^t \cdot (\nabla_{\bm{\theta}} \log{\pi(S_t,A_t;\bm{\theta})}) \cdot G_t$$
-
 where $\alpha$ is the learning rate.
-
 
 This Policy Gradient algorithm is Monte-Carlo because it is not bootstrapped (complete returns are used as an unbiased sample of $Q^{\pi}$, rather than a bootstrapped estimate). In terms of our previously-described classification of RL algorithms as Value Function-based or Policy-based or Actor-Critic, REINFORCE is a Policy-based algorithm since REINFORCE does not involve learning a Value Function.
 
@@ -267,7 +265,7 @@ To be clear, our code below works with the `@abstractclass FunctionApprox` (mean
 
 $\sigma$ is specified in the code below as `policy_stdev`. The input `policy_mean_approx0:` `FunctionApprox[NonTerminal[S]]` specifies the function approximation we initialize the algorithm with (it is up to the user of `reinforce_gaussian` to configure `policy_mean_approx0` with the appropriate functional form for the function approximation, the hyper-parameter values, and the initial values of the parameters $\bm{\theta}$ that we want to solve for). 
 
-The Gaussian policy (of the type `GaussianPolicyFromApprox`) selects an action $a$ (given state $s$) by sampling from the gaussian distribution defined by mean $g(s;\bm{\theta})$ and variance $\sigma^2$.
+The Gaussian policy (of the type `GaussianPolicyFromApprox`) selects an action $a$ (given state $s$) by sampling from the Gaussian distribution defined by mean $g(s;\bm{\theta})$ and variance $\sigma^2$.
 
 The score function is given by:
 $$\nabla_{\bm{\theta}} \log \pi(s,a; \bm{\theta}) = \frac {(a - g(s;\bm{\theta})) \cdot \nabla_{\bm{\theta}} g(s;\bm{\theta})} {\sigma^2}$$
@@ -426,7 +424,7 @@ from rl.distribution import SampledDistribution
         return AssetAllocMDP()
 ```
 
-The methods `start_states_distribution` and `policy_mean_approx` below create the `SampledDistribution` of start states and the `DNNApprox` representing the mean action for a given state respectively. Finally, the `reinforce` method below simply collects all the ingredients and passes along to `reinforce_gaussian` to solve this asset allocation problem.
+The methods `start_states_distribution` and `policy_mean_approx` below create the `SampledDistribution` of start states and the `DNNApprox` representing the mean action for a given state, respectively. Finally, the `reinforce` method below simply collects all the ingredients and passes along to `reinforce_gaussian` to solve this asset allocation problem.
 
 ```python
 from rl.function_approx import AdamGradient, DNNApprox
@@ -506,7 +504,7 @@ Time 3: Optimal Risky Allocation = 1.402
 Time 4: Optimal Risky Allocation = 1.500
 ```
 
-Next we set up an instance of `AssetAllocPG` with the above parameters. Note that the `policy_mean_dnn_spec` argument to the constructor of `AssetAllocPG` is set up as a trivial neural network with no hidden layers and the identity function as the output layer activation function. Note also that the `policy_feature_funcs` argument to the constructor is set up with the single feature function $(1+r)^t$.
+Next, we set up an instance of `AssetAllocPG` with the above parameters. Note that the `policy_mean_dnn_spec` argument to the constructor of `AssetAllocPG` is set up as a trivial neural network with no hidden layers and the identity function as the output layer activation function. Note also that the `policy_feature_funcs` argument to the constructor is set up with the single feature function $(1+r)^t$.
 
 ```python
 from rl.distribution import Gaussian
@@ -899,7 +897,7 @@ $$\Delta \bm{\theta} = \alpha_{\bm{\theta}} \cdot \gamma^t \cdot \bm{SC}(S_t,A_t
 The update for $\bm{w}$ after each atomic experience is the usual Q-Value Function Approximation update with Q-Value loss function gradient for the atomic experience calculated as:
 $$\Delta \bm{w} = \alpha_{\bm{w}} \cdot (R_{t+1} + \gamma \cdot \bm{SC}(S_{t+1}, A_{t+1}; \bm{\theta})^T \cdot \bm{w} - \bm{SC}(S_t,A_t; \bm{\theta})^T \cdot \bm{w}) \cdot \bm{SC}(S_t,A_t;\bm{\theta})$$
 
-This completes our coverage of the basic Policy Gradient Methods. Next, we cover a couple of special Policy Gradient Methods that have worked well in practice - Natural Policy Gradient and Deterministic Policy Gradient.
+This completes our coverage of the basic Policy Gradient Methods. Next, we cover a couple of special Policy Gradient Methods that have worked well in practice—Natural Policy Gradient and Deterministic Policy Gradient.
 
 \index{reinforcement learning!policy gradient!compatible function approximation|)}
 
@@ -913,7 +911,7 @@ Natural Policy Gradient (abbreviated NPG) is due to [a paper by Kakade](https://
 
 \index{function approximation!natural gradient}
 
-The core motivation for Natural Gradient is that when the parameters space has a certain underlying structure (as is the case with the parameters space of $\bm{\theta}$ in the context of maximizing $J(\bm{\theta})$), the usual gradient does not represent it's steepest descent direction, but the Natural Gradient does. The steepest descent direction of an arbitrary function $f(\bm{\theta})$ to be minimized is defined as the vector $\Delta \bm{\theta}$ that minimizes $f(\bm{\theta} + \Delta \bm{\theta})$ under the constraint that the length $|\Delta \bm{\theta}|$ is a constant. In general, the length $|\Delta \bm{\theta}|$ is defined with respect to some positive-definite matrix $\bm{G}(\bm{\theta})$ governed by the underlying structure of the $\bm{\theta}$ parameters space, i.e.,
+The core motivation for Natural Gradient is that when the parameters space has a certain underlying structure (as is the case with the parameters space of $\bm{\theta}$ in the context of maximizing $J(\bm{\theta})$), the usual gradient does not represent its steepest descent direction, but the Natural Gradient does. The steepest descent direction of an arbitrary function $f(\bm{\theta})$ to be minimized is defined as the vector $\Delta \bm{\theta}$ that minimizes $f(\bm{\theta} + \Delta \bm{\theta})$ under the constraint that the length $|\Delta \bm{\theta}|$ is a constant. In general, the length $|\Delta \bm{\theta}|$ is defined with respect to some positive-definite matrix $\bm{G}(\bm{\theta})$ governed by the underlying structure of the $\bm{\theta}$ parameters space, i.e.,
 $$|\Delta \bm{\theta}|^2 = (\Delta \bm{\theta})^T \cdot \bm{G}(\bm{\theta}) \cdot \Delta \bm{\theta}$$
 We can show that under the length metric defined by the matrix $\bm{G}$, the steepest descent direction is:
 
@@ -930,7 +928,6 @@ Amari showed that for a supervised learning problem of estimating the conditiona
 Kakade specialized this idea of Natural Gradient to the case of Policy Gradient (naming it Natural Policy Gradient) with the objective function $f(\bm{\theta})$ equal to the negative of the Expected Returns $J(\bm{\theta})$. This gives the Natural Policy Gradient $\nabla_{\bm{\theta}}^{nat} J(\bm{\theta})$ defined as:
 
 $$\nabla_{\bm{\theta}}^{nat} J(\bm{\theta}) = \bm{FIM}_{\rho^{\pi}, \pi}^{-1}(\bm{\theta}) \cdot \nabla_{\bm{\theta}} J({\bm{\theta}})$$
-
 where $\bm{FIM}_{\rho_{\pi}, \pi}$ denotes the Fisher Information Matrix with respect to $s \sim \rho^{\pi}, a \sim \pi$.
 
 We've noted in the previous section that if we enable Compatible Function Approximation with a linear function approximation for $Q^{\pi}(s,a)$, then we have Equation \eqref{eq:pgt-fisher-information}, i.e.,
@@ -970,7 +967,7 @@ where $\rho^{\mu}$ is the same Discounted-Aggregate State-Visitation Measure we 
 Using chain-rule, the above expression can be written as:
 $$\mathbb{E}_{s \sim \rho^{\mu}}[\nabla_{\bm{\theta}} \pi_D(s; \bm{\theta}) \cdot \nabla_a Q^{\pi_D}(s,a) \Bigr\rvert_{a=\pi_D(s;\bm{\theta})}]$$
 
-Note that $\nabla_{\bm{\theta}} \pi_D(s;\bm{\theta})$ is a Jacobian matrix as it takes the partial derivatives of a potentially multi-dimensional action $a = \pi_D(s; \bm{\theta})$ with respect to each parameter in $\bm{\theta}$. As we've pointed out during the coverage of (stochastic) PG, when $\bm{\theta}$ changes, policy $\pi_D$ changes, which changes the state distribution $\rho^{\pi_D}$. So it's not clear that this calculation indeed guarantees improvement - it doesn't take into account the effect of changing $\bm{\theta}$ on $\rho^{\pi_D}$. However, as was the case in PGT, Deterministic Policy Gradient Theorem (abbreviated DPGT) ensures that there is no need to compute the gradient of $\rho^{\pi_D}$ with respect to $\bm{\theta}$, and that the update described above indeed follows the gradient of the Expected Return objective function. We formalize this now by stating the DPGT.
+Note that $\nabla_{\bm{\theta}} \pi_D(s;\bm{\theta})$ is a Jacobian matrix as it takes the partial derivatives of a potentially multi-dimensional action $a = \pi_D(s; \bm{\theta})$ with respect to each parameter in $\bm{\theta}$. As we've pointed out during the coverage of (stochastic) PG, when $\bm{\theta}$ changes, policy $\pi_D$ changes, which changes the state distribution $\rho^{\pi_D}$. So it's not clear that this calculation indeed guarantees improvement—it doesn't take into account the effect of changing $\bm{\theta}$ on $\rho^{\pi_D}$. However, as was the case in PGT, Deterministic Policy Gradient Theorem (abbreviated DPGT) ensures that there is no need to compute the gradient of $\rho^{\pi_D}$ with respect to $\bm{\theta}$, and that the update described above indeed follows the gradient of the Expected Return objective function. We formalize this now by stating the DPGT.
 
 Analogous to the Expected Returns Objective defined for (stochastic) PG, we define the Expected Returns Objective $J(\bm{\theta})$ for DPG as:
 
@@ -979,11 +976,8 @@ J(\bm{\theta}) & = \mathbb{E}_{\pi_D}[\sum_{t=0}^\infty \gamma^t \cdot R_{t+1}]\
 & = \sum_{s \in \mathcal{N}} \rho^{\pi_D}(s) \cdot \mathcal{R}_s^{\pi_D(s;\bm{\theta})} \\
 & = \mathbb{E}_{s \sim \rho^{\pi_D}}[\mathcal{R}_s^{\pi_D(s;\bm{\theta})}]
 \end{align*}
-
 where
-
 $$\rho^{\pi_D}(s) = \sum_{S_0 \in \mathcal{N}}  \sum_{t=0}^\infty \gamma^t \cdot p_0(S_0) \cdot p(S_0 \rightarrow s, t, \pi_D)$$
-
 is the Discounted-Aggregate State-Visitation Measure when following deterministic policy $\pi_D(s; \bm{\theta})$.
 
 With a derivation similar to the proof of the PGT, we have the DPGT, as follows:
@@ -997,7 +991,7 @@ Given an MDP with action space $\mathbb{R}^k$, with appropriate gradient existen
 \label{th:deterministic-policy-gradient-theorem}
 \end{theorem}
 
-In practice, we use an Actor-Critic algorithm with a function approximation $Q(s,a;\bm{w})$ for the Q-Value Function as the Critic. Since the policy approximated is Deterministic, we need to address the issue of exploration - this is typically done with Off-Policy Control wherein we employ an exploratory (stochastic) behavior policy, while the policy being approximated (and learnt with DPG) is the target (deterministic) policy. The Expected Return Objective is a bit different in the case of Off-Policy - it is the Expected Q-Value for the target policy under state-occurrence probabilities while following the behavior policy, and the Off-Policy Deterministic Policy Gradient is an approximate (not exact) formula. We avoid importance sampling in the Actor because DPG doesn't involve an integral over actions, and we avoid importance sampling in the Critic by employing Q-Learning. As a result, for Off-Policy Actor-Critic DPG, we update the Critic parameters $\bm{w}$ and the Actor parameters $\bm{\theta}$ after each atomic experience in a trace experience generated by the behavior policy.
+In practice, we use an Actor-Critic algorithm with a function approximation $Q(s,a;\bm{w})$ for the Q-Value Function as the Critic. Since the policy approximated is Deterministic, we need to address the issue of exploration—this is typically done with Off-Policy Control wherein we employ an exploratory (stochastic) behavior policy, while the policy being approximated (and learnt with DPG) is the target (deterministic) policy. The Expected Return Objective is a bit different in the case of Off-Policy—it is the Expected Q-Value for the target policy under state-occurrence probabilities while following the behavior policy, and the Off-Policy Deterministic Policy Gradient is an approximate (not exact) formula. We avoid importance sampling in the Actor because DPG doesn't involve an integral over actions, and we avoid importance sampling in the Critic by employing Q-Learning. As a result, for Off-Policy Actor-Critic DPG, we update the Critic parameters $\bm{w}$ and the Actor parameters $\bm{\theta}$ after each atomic experience in a trace experience generated by the behavior policy.
 
 $$\Delta \bm{w} = \alpha_{\bm{w}} \cdot (R_{t+1} + \gamma \cdot Q(S_{t+1}, \pi_D(S_{t+1}; \bm{\theta}); \bm{w}) - Q(S_t,A_t;\bm{w})) \cdot \nabla_{\bm{w}} Q(S_t,A_t; \bm{w})$$
 $$\Delta \bm{\theta} = \alpha_{\bm{\theta}} \cdot \nabla_{\bm{\theta}} \pi_D(S_t; \bm{\theta}) \cdot \nabla_a Q(S_t,a;\bm{w}) \Bigr\rvert_{a=\pi_D(S_t;\bm{\theta})}$$
@@ -1015,7 +1009,7 @@ Critic Bias can be resolved with a Compatible Function Approximation Theorem for
 
 \index{evolutionary strategies}
 
-We conclude this chapter with a section on Evolutionary Strategies - a class of algorithms to solve MDP Control problems. We want to highlight right upfront that Evolutionary Strategies are technically not RL algorithms (for reasons we shall illuminate once we explain the technique of Evolutionary Strategies). However, Evolutionary Strategies can sometimes be quite effective in solving MDP Control problems and so, we give them appropriate coverage as part of a wide range of approaches to solve MDP Control. We cover them in this chapter because of their superficial resemblance to Policy Gradient Algorithms (again, they are not RL algorithms and hence, not Policy Gradient algorithms).
+We conclude this chapter with a section on Evolutionary Strategies—a class of algorithms to solve MDP Control problems. We want to highlight right upfront that Evolutionary Strategies are technically not RL algorithms (for reasons we shall illuminate once we explain the technique of Evolutionary Strategies). However, Evolutionary Strategies can sometimes be quite effective in solving MDP Control problems and so, we give them appropriate coverage as part of a wide range of approaches to solve MDP Control. We cover them in this chapter because of their superficial resemblance to Policy Gradient Algorithms (again, they are not RL algorithms and hence, not Policy Gradient algorithms).
 
 Evolutionary Strategies (abbreviated as ES) actually refers to a technique/approach that is best understood as a type of Black-Box Optimization. It was popularized in the 1970s as *Heuristic Search Methods*. It is loosely inspired by natural evolution of living beings. We focus on a subclass of ES known as Natural Evolutionary Strategies (abbreviated as NES).
 
@@ -1071,7 +1065,7 @@ What is the effectiveness of ES compared to RL? The traditional view has been th
 
 \index{evolutionary strategies!natural|)}
 
-### Key Takeaways from this Chapter
+### Key Takeaways from This Chapter
 
 * Policy Gradient Algorithms are based on GPI with Policy Improvement as a Stochastic Gradient Ascent for "Expected Returns" Objective $J(\bm{\theta})$ where $\bm{\theta}$ are the parameters of the function approximation for the Policy.
 * Policy Gradient Theorem gives us a simple formula for $\nabla_{\bm{\theta}} J(\bm{\theta})$ in terms of the score of the policy function approximation (i.e., gradient of the log of the policy with respect to the policy parameters $\bm{\theta}$).
@@ -1080,4 +1074,4 @@ What is the effectiveness of ES compared to RL? The traditional view has been th
 * Natural Policy Gradient and Deterministic Policy Gradient are specialized PG algorithms that have worked well in practice.
 * Evolutionary Strategies are technically not RL, but they resemble PG Algorithms and can sometimes be quite effective in solving MDP Control problems.
 
-\index{probability!gaussian distribution|see{probability, normal distribution}}
+\index{probability!Gaussian distribution|see{probability, normal distribution}}
