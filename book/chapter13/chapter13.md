@@ -801,7 +801,7 @@ Now let's compare these methods on the `AssetAllocPG` instance we had created ea
 
 ![Progress of PG Algorithms \label{fig:pg_convergence}](./chapter13/pg_convergence.png "Progress of PG Algorithms")
 
-Actor-Critic methods were developed in the late 1970s and 1980s, but not paid attention to in the 1990s. In the past two decades, there has been a revival of Actor-Critic methods. For a more detailed coverage of Actor-Critic methods, see the [paper by Degris, White, Sutton](https://arxiv.org/abs/1205.4839) [@journals/corr/abs-1205-4839].
+Actor-Critic methods were developed in the late 1970s and 1980s, but not paid attention to in the 1990s. In the past two decades, there has been a revival of Actor-Critic methods. For a more detailed coverage of Actor-Critic methods, see the [paper by Degris, White, Sutton](https://arxiv.org/abs/1205.4839) [@10.5555/3042573.3042600].
 
 
 ### Overcoming Bias with Compatible Function Approximation
