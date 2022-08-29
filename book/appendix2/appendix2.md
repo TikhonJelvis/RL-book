@@ -12,7 +12,6 @@ Assume there are $n$ assets in the economy and that their mean returns are repre
 We consider arbitrary portfolios $p$ comprised of investment quantities in these $n$ assets that are normalized to sum up to 1. Denoting column vector $X_p \in \mathbb{R}^n$ as the investment quantities in the $n$ assets for portfolio $p$, we can write the normality of the investment quantities in vector notation as:
 
 $$X_p^T \cdot 1_n = 1$$
-
 where $1_n \in \mathbb{R}^n$ is a column vector comprising of all 1's.
 
 We shall drop the subscript $p$ in $X_p$ whenever the reference to portfolio $p$ is clear.
@@ -28,7 +27,7 @@ We shall drop the subscript $p$ in $X_p$ whenever the reference to portfolio $p$
 \index{portfolio theory!efficient frontier}
 \index{portfolio theory!efficient portfolio}
 
-An asset which has no variance in terms of how it's value evolves in time is known as a riskless asset.  The Efficient Frontier is defined for a world with no riskless assets. The Efficient Frontier is the set of portfolios with minimum variance of return for each level of portfolio mean return (we refer to a portfolio in the Efficient Frontier as an *Efficient Portfolio*). Hence, to determine the Efficient Frontier, we solve for $X$ so as to minimize portfolio variance $X^T \cdot V \cdot X$ subject to constraints:
+An asset which has no variance in terms of how its value evolves in time is known as a riskless asset.  The Efficient Frontier is defined for a world with no riskless assets. The Efficient Frontier is the set of portfolios with minimum variance of return for each level of portfolio mean return (we refer to a portfolio in the Efficient Frontier as an *Efficient Portfolio*). Hence, to determine the Efficient Frontier, we solve for $X$ so as to minimize portfolio variance $X^T \cdot V \cdot X$ subject to constraints:
 $$X^T \cdot 1_n = 1$$
 $$X^T \cdot R = r_p$$
 where $r_p$ is the mean return for Efficient Portfolio $p$.
@@ -59,7 +58,7 @@ $$r_z = \frac {a - b r_p} {b - c r_p}$$
 
 $z$ always lies on the opposite side of $p$ on the (efficient frontier) parabola. If we treat the Efficient Frontier as a curve of mean (y-axis) versus variance (x-axis), the straight line from $p$ to GMVP intersects the mean axis (y-axis) at $r_z$. If we treat the Efficient Frontier as a curve of mean (y-axis) versus standard deviation (x-axis), the tangent to the efficient frontier at $p$ intersects the mean axis (y-axis) at $r_z$. Moreover, all portfolios on one side of the efficient frontier are positively correlated with each other.
 
-### Two-fund Theorem
+### Two-Fund Theorem
 \index{portfolio theory!two-fund theorem}
 
 The $X$ vector (normalized investment quantities in assets) of any efficient portfolio is a linear combination of the $X$ vectors of two other efficient portfolios. Notationally,
@@ -71,7 +70,7 @@ Varying $\alpha$ from $-\infty$ to $+\infty$ basically traces the entire efficie
 
 The orthogonal portfolio to SEP has mean $r_z = \frac {a - b \frac a b} {b - c \frac a b} = 0$
 
-### An example of the Efficient Frontier for 16 assets
+### An Example of the Efficient Frontier for 16 Assets
 \index{portfolio theory!efficient frontier}
 
 Figure \ref{fig:efficient_frontier} shows a plot of the mean daily returns versus the standard deviation of daily returns collected over a 3-year period for 16 assets. The curve is the Efficient Frontier for these 16 assets. Note the special portfolios GMVP and SEP on the Efficient Frontier. This curve was generated from the code at [rl/appendix2/efficient_frontier.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/appendix2/efficient_frontier.py). We encourage you to play with different choices (and count) of assets, and to also experiment with different time ranges as well as to try weekly and monthly returns.
@@ -84,9 +83,7 @@ Figure \ref{fig:efficient_frontier} shows a plot of the mean daily returns versu
 \index{portfolio theory!capital asset pricing model}
 
 **Important Theorem**: The covariance vector of individual assets with a portfolio (note: covariance vector $= V \cdot X \in \mathbb{R}^n$) can be expressed as an exact linear function of the individual assets' mean returns vector if and only if the portfolio is efficient. If the efficient portfolio is $p$ (and its orthogonal portfolio $z$), then:
-
 $$R = r_z 1_n + \frac {r_p - r_z} {\sigma_p^2} (V \cdot X_p) = r_z 1_n +  (r_p - r_z) \beta_p$$
-
 where $\beta_p = \frac {V \cdot X_p} {\sigma_p^2} \in \mathbb{R}^n$ is the vector of slope coefficients of regressions where the explanatory variable is the portfolio mean return $r_p \in \mathbb{R}$ and the $n$ dependent variables are the asset mean returns $R \in \mathbb{R}^n$.
 
 The linearity of $\beta_p$ w.r.t. mean returns $R$ is famously known as the Capital Asset Pricing Model (CAPM).
@@ -112,7 +109,7 @@ $$R = r_p \beta_p = \frac {r_p} {\sigma_p^2} \cdot V \cdot X_p$$
 
 If we have a riskless asset with return $r_F$, then $V$ is singular. So we first form the Efficient Frontier without the riskless asset. The Efficient Set (including the riskless asset) is defined as the tangent to this Efficient Frontier (without the riskless asset) from the point $(0, r_F)$ when the Efficient Frontier is considered to be a curve of mean returns (y-axis) against standard deviation of returns (x-axis).
 
-Let's say the tangent touches the Efficient Frontier at the point (Portfolio) $T$ and let it's return be $r_T$. Then:
+Let's say the tangent touches the Efficient Frontier at the point (Portfolio) $T$ and let its return be $r_T$. Then:
 
 * If $r_F < r_0, r_T > r_F$.
 * If $r_F > r_0, r_T < r_F$.

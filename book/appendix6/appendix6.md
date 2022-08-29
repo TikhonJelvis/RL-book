@@ -19,9 +19,7 @@ A Vector space is defined as a [commutative group](https://en.wikipedia.org/wiki
 The set $\mathcal{F}$ of all functions from an arbitrary generic domain $\mathcal{X}$ to a vector space co-domain $\mathcal{V}$ (over scalars field $\mathcal{K}$) constitutes a vector space (known as function space) over the scalars field $\mathcal{K}$ with addition operation ($+$) defined as:
 
 $$(f + g)(x) = f(x) + g(x) \text{ for all } f, g \in \mathcal{F}, \text{ for all } x \in \mathcal{X}$$
-
 and scalar multiplication operation ($*$) defined as:
-
 $$(a * f)(x) = a * f(x) \text{ for all } f \in \mathcal{F}, \text{ for all } a \in \mathcal{K}, \text{ for all } x \in \mathcal{X}$$
 
 Hence, addition and scalar multiplication for a function space are defined point-wise.
@@ -65,14 +63,14 @@ $$h(\bm{a} \oplus \bm{v}) = h(\bm{a}) \oplus \bm{v} \text{ for all } \bm{a} \in 
 
 \index{function approximation|(}
 
-We represent function approximations by parameterized functions $f: \mathcal{X} \times D[\mathbb{R}] \rightarrow \mathbb{R}$ where $\mathcal{X}$ is the input domain and $D[\mathbb{R}]$ is the parameters domain. The notation $D[Y]$ refers to a generic container data type $D$ over a component generic data type $Y$. The data type $D$ is specified as a generic container data type because we consider generic function approximations here. A specific family of function approximations will customize to a specific container data type for $D$ (eg: linear function approximations will customize $D$ to a Sequence data type, a feed-forward deep neural network will customize $D$ to a Sequence of 2-dimensional arrays). We are interested in viewing Function Approximations as *point*s in an appropriate Affine Space. To explain this, we start by viewing parameters as *point*s in an Affine Space.
+We represent function approximations by parameterized functions $f: \mathcal{X} \times D[\mathbb{R}] \rightarrow \mathbb{R}$ where $\mathcal{X}$ is the input domain and $D[\mathbb{R}]$ is the parameters domain. The notation $D[Y]$ refers to a generic container data type $D$ over a component generic data type $Y$. The data type $D$ is specified as a generic container data type because we consider generic function approximations here. A specific family of function approximations will customize to a specific container data type for $D$ (e.g., linear function approximations will customize $D$ to a Sequence data type, a feed-forward deep neural network will customize $D$ to a Sequence of 2-dimensional arrays). We are interested in viewing Function Approximations as *point*s in an appropriate Affine Space. To explain this, we start by viewing parameters as *point*s in an Affine Space.
 
 #### $D[\mathbb{R}]$ as an Affine Space $\mathcal{P}$
 
 \index{affine space}
 \index{function approximation!gradient descent}
 
-When performing Stochastic Gradient Descent or Batch Gradient Descent, parameters $\bm{p} \in D[\mathbb{R}]$ of a function approximation $f: \mathcal{X} \times D[\mathbb{R}] \rightarrow \mathbb{R}$ are updated using an appropriate linear combination of gradients of $f$ with respect to $\bm{p}$ (at specific values of $x \in \mathcal{X}$). Hence, the parameters domain $D[\mathbb{R}]$ can be treated as an affine space (call it $\mathcal{P}$) whose associated vector space (over scalars field $\mathbb{R}$) is the set of gradients of $f$ with respect to parameters $\bm{p} \in D[\mathbb{R}]$ (denoted as $\nabla_{\bm{p}} f(x, \bm{p})$), evaluated at specific values of $x \in \mathcal{X}$, with addition operation defined as element-wise real-numbered addition and scalar multiplication operation defined as element-wise multiplication with real-numbered scalars. We refer to this Affine Space $\mathcal{P}$ as the *Parameters Space* and we refer to it's associated vector space (of gradients) as the *Gradient Space* $\mathcal{G}$. Since each *point* in $\mathcal{P}$ and each *translation* in $\mathcal{G}$ is an element in $D[\mathbb{R}]$, the $\oplus$ operation is element-wise real-numbered addition.
+When performing Stochastic Gradient Descent or Batch Gradient Descent, parameters $\bm{p} \in D[\mathbb{R}]$ of a function approximation $f: \mathcal{X} \times D[\mathbb{R}] \rightarrow \mathbb{R}$ are updated using an appropriate linear combination of gradients of $f$ with respect to $\bm{p}$ (at specific values of $x \in \mathcal{X}$). Hence, the parameters domain $D[\mathbb{R}]$ can be treated as an affine space (call it $\mathcal{P}$) whose associated vector space (over scalars field $\mathbb{R}$) is the set of gradients of $f$ with respect to parameters $\bm{p} \in D[\mathbb{R}]$ (denoted as $\nabla_{\bm{p}} f(x, \bm{p})$), evaluated at specific values of $x \in \mathcal{X}$, with addition operation defined as element-wise real-numbered addition and scalar multiplication operation defined as element-wise multiplication with real-numbered scalars. We refer to this Affine Space $\mathcal{P}$ as the *Parameters Space* and we refer to its associated vector space (of gradients) as the *Gradient Space* $\mathcal{G}$. Since each *point* in $\mathcal{P}$ and each *translation* in $\mathcal{G}$ is an element in $D[\mathbb{R}]$, the $\oplus$ operation is element-wise real-numbered addition.
 
 We define the gradient function
 $$G: \mathcal{X} \rightarrow (\mathcal{P} \rightarrow \mathcal{G})$$
@@ -97,7 +95,6 @@ Notice that the `__add__` method of the `Gradient` class in [rl/function_approx.
 Stochastic Gradient Descent is a function
 
 $$SGD: \mathcal{X} \times \mathbb{R} \rightarrow (\mathcal{P} \rightarrow \mathcal{P})$$
-
 representing a mapping from (predictor, response) data to a "parameters-update" function (in order to improve the function approximation), defined as:
 
 $$SGD(x, y)(\bm{p}) = \bm{p} \oplus (\alpha * ((y - f(x, \bm{p})) * G(x)(\bm{p})))$$
