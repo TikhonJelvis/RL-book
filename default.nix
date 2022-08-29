@@ -1,5 +1,6 @@
 { sources ? import nix/sources.nix
 , pkgs ? import sources.nixpkgs {}
+, pkgs-unstable ? import sources.nixpkgs-unstable {}
 , python ? pkgs.python38
 }:
 
@@ -39,10 +40,14 @@ let
   packages = with pkgs;
     [ fontconfig
       graphviz
-      pandoc
       watchexec
 
-      haskellPackages.pandoc-crossref
+      # we need a newer version of pandoc to fix bibliography sorting
+      #
+      # pandoc-crossref needs to be built with the matching version of
+      # pandoc
+      pkgs-unstable.pandoc
+      pkgs-unstable.haskellPackages.pandoc-crossref
 
       (texlive.combine tex-packages)
     ];
