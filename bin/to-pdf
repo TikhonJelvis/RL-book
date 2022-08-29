@@ -96,6 +96,8 @@ def run_pandoc(target, *, out, to, tf_format, index):
                 "--output",
                 out,
                 "--metadata",
+                "lang=en-GB",  # stop citeproc from moving commas inside quotes
+                "--metadata",
                 "chapters",
                 "--metadata",
                 "numbersections",

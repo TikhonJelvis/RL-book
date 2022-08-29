@@ -1,4 +1,4 @@
-## Overview {#sec:overview .unnumbered}
+## Overview {#sec:overview}
 
 ### Learning Reinforcement Learning {#sec:learning-rl}
 
