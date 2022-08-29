@@ -5,7 +5,7 @@
 \index{vector space|textbf}
 \index{commutative group|textbf}
 
-A Vector space is defined as a [commutative group](https://en.wikipedia.org/wiki/Abelian_group) $\mathcal{V}$ under an addition operation (written as $+$), together with multiplication of elements of $\mathcal{V}$ with elements of a [field](https://en.wikipedia.org/wiki/Field_(mathematics)) $\mathcal{K}$ (known as scalars), expressed as a binary in-fix operation $*: \mathcal{K} \times \mathcal{V} \rightarrow \mathcal{V}$, with the following properties:
+A Vector space is defined as a [commutative group](https://en.wikipedia.org/wiki/Abelian_group) $\mathcal{V}$ under an addition operation (written as $+$), together with multiplication of elements of $\mathcal{V}$ with elements of a [field](https://en.wikipedia.org/wiki/Field_(mathematics)) $\mathcal{K}$ (known as scalars field), expressed as a binary in-fix operation $*: \mathcal{K} \times \mathcal{V} \rightarrow \mathcal{V}$, with the following properties:
 
 * $a * (b * \bm{v}) = (a * b) * \bm{v}$, for all $a, b \in \mathcal{K}$, for all $\bm{v} \in \mathcal{V}$.
 * $1 * \bm{v} = \bm{v}$ for all $\bm{v} \in \mathcal{V}$ where $1$ denotes the multiplicative identity of $\mathcal{K}$.
@@ -30,8 +30,8 @@ Hence, addition and scalar multiplication for a function space are defined point
 
 A linear map of Vector Spaces is a function $h: \mathcal{V} \rightarrow \mathcal{W}$ where $\mathcal{V}$ is a vector space over a scalars field $\mathcal{K}$ and $\mathcal{W}$ is a vector space over the same scalars field $\mathcal{K}$, having the following two properties:
 
-* $h(\bm{v_1} + \bm{v_2}) = h(\bm{v_1}) + h(\bm{v_2})$ for all $\bm{v_1}, \bm{v_2} \in \mathcal{V}$ (i.e., application of $f$ commutes with the addition operation).
-* $h(a * \bm{v}) = a * h(\bm{v})$ for all $\bm{v} \in \mathcal{V}$, for all $a \in \mathcal{K}$ (i.e., application of $f$ commutes with the scalar multiplication operation).
+* $h(\bm{v_1} + \bm{v_2}) = h(\bm{v_1}) + h(\bm{v_2})$ for all $\bm{v_1}, \bm{v_2} \in \mathcal{V}$ (i.e., application of $h$ commutes with the addition operation).
+* $h(a * \bm{v}) = a * h(\bm{v})$ for all $\bm{v} \in \mathcal{V}$, for all $a \in \mathcal{K}$ (i.e., application of $h$ commutes with the scalar multiplication operation).
 
 Then the set of all linear maps with domain $\mathcal{V}$ and co-domain $\mathcal{W}$ constitute a function space (restricted to just this subspace of all linear maps, rather than the space of all $\mathcal{V} \rightarrow \mathcal{W}$ functions) that we denote as $\mathcal{L}(\mathcal{V}, \mathcal{W})$.
 
@@ -49,13 +49,13 @@ An Affine Space is defined as a set $\mathcal{A}$ associated with a vector space
 
 The elements of an affine space are called *points* and the elements of the vector space associated with an affine space are called *translations*. The idea behind affine spaces is that unlike a vector space, an affine space doesn't have a notion of a zero element and one cannot add two *point*s in the affine space. Instead one adds a *translation* (from the associated vector space) to a *point* (from the affine space) to yield another *point* (in the affine space). The term *translation* is used to signify that we "translate" (i.e. shift) a point to another point in the affine space with the shift being effected by a *translation* in the associated vector space. This means there is a notion of "subtracting" one *point* of the affine space from another *point* of the affine space (denoted with the operation $\ominus$), yielding a *translation* in the associated vector space.
 
-A simple way to visualize an affine space is by considering the simple example of the affine space of all 3-D points on the plane defined by the equation $z=1$, i.e., the set of all points $(x,y,1)$ for all $x \in \mathbb{R}, y \in \mathbb{R}$. The associated vector space is the set of all 3-D points on the plane defined by the equation $z=0$, i.e., the set of all points $(x,y,0)$ for all $x \in \mathbb{R}, y \in \mathbb{R}$ (with the usual addition and scalar multiplication operations). We see that any point $(x,y,1)$ on the affine space is *translated* to the point $(x+x',y+y',1)$ by the translation $(x',y',0)$ in the vector space. Note that the translation $(0,0,0)$ (zero vector) results in the point $(x,y,1)$ remaining unchanged. Note that translations $(x',y',0)$ and $(x'',y'',0)$ applied one after the other is the same as the single translation $(x'+x'',y'+y'',0)$. Finally, note that for any fixed point $(x,y,1)$, we have a bijective mapping from the vector space $z=0$ to the affine space $z=1$ that maps any translation $(x',y',0)$ to the point $(x+x',y+y',1)$.
+A simple way to visualize an affine space is by considering the simple example of the affine space of all 3-D points on the plane defined by the equation $z=1$, i.e., the set of all points $(x,y,1)$ for all $x \in \mathbb{R}, y \in \mathbb{R}$. The associated vector space is the set of all 3-D points on the plane defined by the equation $z=0$, i.e., the set of all points $(x,y,0)$ for all $x \in \mathbb{R}, y \in \mathbb{R}$ (with element-wise addition and scalar multiplication operations). The $\oplus$ operation is element-wise addition. We see that any point $(x,y,1)$ on the affine space is *translated* to the point $(x+x',y+y',1)$ by the translation $(x',y',0)$ in the vector space. Note that the translation $(0,0,0)$ (zero vector) results in the point $(x,y,1)$ remaining unchanged. Note that translations $(x',y',0)$ and $(x'',y'',0)$ applied one after the other is the same as the single translation $(x'+x'',y'+y'',0)$. Finally, note that for any fixed point $(x,y,1)$, we have a bijective mapping from the vector space $z=0$ to the affine space $z=1$ that maps any translation $(x',y',0)$ to the point $(x+x',y+y',1)$.
 
-### Linear Map of Affine Spaces
+### Affine Map
 
-\index{affine space!linear map|textbf}
+\index{affine map|textbf}
 
-A linear map of Affine Spaces is a function $h: \mathcal{A} \rightarrow \mathcal{B}$ where $\mathcal{A}$ is an affine space associated with a vector space $\mathcal{V}$ and $\mathcal{B}$ is an affine space associated with the same vector space $\mathcal{V}$, having the following property:
+An Affine Map is a function $h: \mathcal{A} \rightarrow \mathcal{B}$ where $\mathcal{A}$ is an affine space associated with a vector space $\mathcal{V}$ and $\mathcal{B}$ is an affine space associated with the same vector space $\mathcal{V}$, having the following property:
 
 $$h(\bm{a} \oplus \bm{v}) = h(\bm{a}) \oplus \bm{v} \text{ for all } \bm{a} \in \mathcal{A}, \text{ for all } \bm{v} \in \mathcal{V}$$
 
@@ -84,7 +84,7 @@ We consider a function $I: \mathcal{P} \rightarrow (\mathcal{X} \rightarrow \mat
 
 $$I(\bm{p}) \oplus \bm{v} = I(\bm{p} \oplus \bm{v}) \text{ for all } \bm{p} \in \mathcal{P}, \bm{v} \in \mathcal{G}$$
 
-We refer to this affine space $\mathcal{R}$ as the *Representational Space* to signify the fact that the $\oplus$ operation for $\mathcal{R}$ simply "delegates" to the $\oplus$ operation for $\mathcal{P}$ and so, the parameters $\bm{p} \in \mathcal{P}$ basically serve as the internal representation of the function approximation $I(\bm{p}): \mathcal{X} \rightarrow \mathbb{R}$. This "delegation" from $\mathcal{R}$ to $\mathcal{P}$ implies that $I$ is a linear map from Parameters Space $\mathcal{P}$ to Representational Space $\mathcal{R}$.
+We refer to this affine space $\mathcal{R}$ as the *Representational Space* to signify the fact that the $\oplus$ operation for $\mathcal{R}$ simply "delegates" to the $\oplus$ operation for $\mathcal{P}$ and so, the parameters $\bm{p} \in \mathcal{P}$ basically serve as the internal representation of the function approximation $I(\bm{p}): \mathcal{X} \rightarrow \mathbb{R}$. This "delegation" from $\mathcal{R}$ to $\mathcal{P}$ implies that $I$ is an affine map from Parameters Space $\mathcal{P}$ to Representational Space $\mathcal{R}$.
 
 Notice that the `__add__` method of the `Gradient` class in [rl/function_approx.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/function_approx.py) is overloaded. One of the `__add__` methods corresponds to vector addition of two gradients in the Gradient Space $\mathcal{G}$. The other `__add__` method corresponds to the $\oplus$ operation adding a gradient (treated as a *translation* in the vector space of gradients) to a function approximation (treated as a *point* in the affine space of function approximations).
 
@@ -116,7 +116,7 @@ So, we can conceptualize the parameters change function $U$ as the product of:
 * Prediction error function $e: \mathcal{P} \rightarrow \mathbb{R}$
 * Gradient operator $G(x): \mathcal{P} \rightarrow \mathcal{G}$
 
-Note that the product of functions $e$ and $G(x)$ above is element-wise in their common domain $\mathcal{P} = D[\mathbb{R}]$, resulting in the scalar ($\mathbb{R}$) multiplication of vectors in $\mathcal{G}$.
+Note that the product of functions $e$ and $G(x)$ above is point-wise in their common domain $\mathcal{P} = D[\mathbb{R}]$, resulting in the scalar ($\mathbb{R}$) multiplication of vectors in $\mathcal{G}$.
 
 Updating vector $\bm{p}$ to vector $\bm{p} \oplus U(\bm{p})$ in the Parameters Space $\mathcal{P}$ results in updating function $I(\bm{p}): \mathcal{X} \rightarrow \mathbb{R}$ to function $I(\bm{p} \oplus U(\bm{p})): \mathcal{X} \rightarrow \mathbb{R}$ in the Representational Space $\mathcal{R}$. This is rather convenient since we can view the $\oplus$ operation for the Parameters Space $\mathcal{P}$ as effectively the $\oplus$ operation in the Representational Space $\mathcal{R}$.
 
@@ -133,9 +133,9 @@ Then the gradient function $G: \mathcal{X} \rightarrow (\mathbb{R}^m \rightarrow
 $$G(x)(\bm{p}) = \nabla_{\bm{p}} (\bm{\Phi}(x)^T \cdot \bm{p}) = \bm{\Phi}(x)$$
 for all $x \in \mathcal{X}$, for all $\bm{p} \in \mathbb{R}^m$.
 
-When SGD-updating vector $\bm{p}$ to vector $\bm{p} \oplus (\alpha * ((y - \bm{\Phi}(x)^T \cdot \bm{p}) * \bm{\Phi}(x)))$ in the Parameters Space $\mathcal{P} = \mathbb{R}^m$, applying the linear map $I: \mathbb{R}^m \rightarrow \mathcal{R}$ correspondingly updates functions in $\mathcal{R}$.  Concretely, a linear function approximation $g: \mathcal{X} \rightarrow \mathbb{R}$ defined as $g(z) = \bm{\Phi}(z)^T \cdot \bm{p}$ for all $z \in \mathcal{X}$ updates correspondingly to the function $g^{(x,y)}: \mathcal{X} \rightarrow \mathbb{R}$ defined as $g^{(x,y)}(z) = \bm{\Phi}(z)^T \cdot \bm{p} + \alpha \cdot (y - \bm{\Phi}(x)^T \cdot \bm{p}) \cdot (\bm{\Phi}(z)^T \cdot \bm{\Phi}(x))$ for all $z \in \mathcal{X}$.
+When SGD-updating vector $\bm{p}$ to vector $\bm{p} \oplus (\alpha * ((y - \bm{\Phi}(x)^T \cdot \bm{p}) * \bm{\Phi}(x)))$ in the Parameters Space $\mathcal{P} = \mathbb{R}^m$, applying the affine map $I: \mathbb{R}^m \rightarrow \mathcal{R}$ correspondingly updates functions in $\mathcal{R}$.  Concretely, a linear function approximation $g: \mathcal{X} \rightarrow \mathbb{R}$ defined as $g(z) = \bm{\Phi}(z)^T \cdot \bm{p}$ for all $z \in \mathcal{X}$ updates correspondingly to the function $g^{(x,y)}: \mathcal{X} \rightarrow \mathbb{R}$ defined as $g^{(x,y)}(z) = \bm{\Phi}(z)^T \cdot \bm{p} + \alpha \cdot (y - \bm{\Phi}(x)^T \cdot \bm{p}) \cdot (\bm{\Phi}(z)^T \cdot \bm{\Phi}(x))$ for all $z \in \mathcal{X}$.
 
-It's useful to note that the change in the evaluation at $z \in \mathcal{X}$ is simply the product of:
+It's useful to note that the change in the evaluation at $z \in \mathcal{X}$, i.e., $g^{(x,y)}(z) - g(z)$, is simply the product of:
 
 * Learning rate $\alpha \in \mathbb{R}^+$
 * Prediction Error $y - \bm{\Phi}(x)^T \cdot \bm{p} \in \mathbb{R}$ for the updating data $(x,y) \in \mathcal{X} \times \mathbb{R}$
