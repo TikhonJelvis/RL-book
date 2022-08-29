@@ -342,6 +342,7 @@ $if(biblatex)$
 $endif$
 
 $if(index)$
+\chapter*{Index}
 \printindex
 $endif$
 

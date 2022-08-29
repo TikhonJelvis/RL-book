@@ -669,6 +669,7 @@ With the same inputs of $S_0 = 100, r = 5\%, \mu = 110, \sigma = 25$, and for th
 We note that the sale price demand for the call option is quite low (6.31) when the risk-aversion is low at $a=0.3$ (relative to the complete market price of 11.43) but the sale price demand for the call option rises sharply to 32.32 and 44.24 for $a=0.6$ and $a=0.9$, respectively. This makes sense since if you are more risk-averse (high $a$), then you'd be less willing to take the risk of selling a call option and hence, would want to charge more for the sale of the call option. Note how the risky asset hedge units are less (~52\% – 53\%) compared to the risky asset hedge units (60\%) in the case of a complete market. The varying riskless borrowing amounts (as a function of the risk-aversion $a$) essentially account for the variation in option prices (as a function of $a$). Figure \ref{fig:sell_call_option_hedges} provides the visual intuition on how the hedges work for the 3 choices of risk-aversion parameters (along with the hedges for the complete market, for reference). 
 
 ![Hedges When Selling a Call Option \label{fig:sell_call_option_hedges}](./chapter8/sell_call_option_hedges.png "Hedges When Selling a Call Option")
+
 \index{finance!derivative!call option}
 \index{finance!derivative!hedging}
 

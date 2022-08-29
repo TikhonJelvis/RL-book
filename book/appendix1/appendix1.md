@@ -1,7 +1,5 @@
 \appendix
 
-# Appendix {.unnumbered}
-
 ## Moment Generating Function and Its Applications {#sec:mgf-appendix}
 \index{moment generating function|(}
 

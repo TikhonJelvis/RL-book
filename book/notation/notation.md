@@ -1,4 +1,4 @@
-## Summary of Notation {.unnumbered}
+## Summary of Notation {.unnumbered .unlisted}
 
 \begin{longtable}{|p{0.2\linewidth}|p{0.7\linewidth}|}
 \hline

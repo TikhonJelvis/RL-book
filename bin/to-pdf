@@ -105,8 +105,6 @@ def run_pandoc(target, *, out, to, tf_format, index):
                 "title=Foundations of Reinforcement Learning with Applications in Finance",
                 "--metadata",
                 "author=Ashwin Rao, Tikhon Jelvis",
-                "--metadata",
-                "reference-section-title=Bibliography",
                 "--filter",
                 "pandoc-crossref",
                 "--pdf-engine",
@@ -119,7 +117,7 @@ def run_pandoc(target, *, out, to, tf_format, index):
                 "../bin/alon-style-quotes.lua",
                 "--citeproc",
                 "--bibliography",
-                "bibliography.bib",
+                "bibliography/bibliography.bib",
             ]
             + do_index
             + toc
