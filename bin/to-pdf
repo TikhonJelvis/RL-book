@@ -169,21 +169,22 @@ def main(
     """
     Usage: bin/to-pdf [chapter] [--tf-format] [--out|-o=<out-path>] [--to=pdf|tex]
 
-    Compile either the entire book or a single chapter. Needs to run
+    Compile either the entire book or a single chapter.  Needs to run
     in a Nix shell and from the top-level directory fo the repo.
 
-    :param target: Optional chapter name. Generates entire book by
+    :param target: Optional chapter name.  Generates entire book by
         default.
-    :param out: Path to save output (optional). Uses chapter or book
+    :param out: Path to save output (optional).  Uses chapter or book
         name with appropriate file extension if not specified.
     :param tf_format: If set, try to use proprietary T&F .cls file
         (default: False)
-    :param to: Format to generate. Can be "tex", "latex", "pdf" or
-        any other format supported by pandoc. (Default: "pdf")
-    :param gray: If set, generate grayscale version of PDF. Only
-        works with to="pdf". (Default: False)
-    :param index: If set, generate an index. Requires two xelatex
-        compiles when to=pdf (might be slow). (Default: False)
+    :param to: Format to generate.  Can be "tex", "latex", "pdf" or
+        any other format supported by pandoc.  (Default: "pdf")
+    :param gray: If set, generate grayscale version of PDF.  Only
+        works with to="pdf".  (Default: False)
+    :param index: If set, generate an index.  Requires multiple
+        xelatex compiles when to=pdf (might be slow).  (Default:
+        False)
     """
     if "DEJA_VU_DIRECTORY" not in os.environ:
         print("DEJA_VU_DIRECTORY variable not set.")
@@ -229,9 +230,22 @@ def main(
             cwd = os.getcwd()
             try:
                 os.chdir(os.path.join(tmp, "book"))
-                subprocess.run(["xelatex", "tmp.tex"])  # generate .idx file
-                subprocess.run(["makeindex", "tmp"])  # generate .ind file
-                subprocess.run(["xelatex", "tmp.tex"])  # generate pdf with index
+
+                print("\n\nxelatex\n\n")
+                subprocess.run(["xelatex", "tmp.tex"])
+
+                # run again for references + page numbers in ToC
+                print("\n\nxelatex\n\n")
+                subprocess.run(["xelatex", "tmp.tex"])
+
+                # generate .ind file
+                print("\n\nmakeindex\n\n")
+                subprocess.run(["makeindex", "tmp"])
+
+                # run again to include index
+                print("\n\nxelatex\n\n")
+                subprocess.run(["xelatex", "tmp.tex"])
+
                 shutil.copyfile("tmp.pdf", out)
             finally:
                 os.chdir(cwd)
