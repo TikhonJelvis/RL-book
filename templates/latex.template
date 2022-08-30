@@ -353,7 +353,7 @@ $if(biblatex)$
 $endif$
 
 $if(index)$
-\chapter*{Index}
+\addcontentsline{toc}{fm}{Index}
 \printindex
 $endif$
 
