@@ -102,7 +102,7 @@ Next, we cover an extremely important concept in Mathematical Economics/Finance�
 Thus, with an Arbitrage Portfolio, we never end up (at $t=0$) with less value than what we start with (at $t=1$), and we end up with expected value strictly greater than what we start with. This is the formalism of the notion of [*arbitrage*](https://en.wikipedia.org/wiki/Arbitrage), i.e., "making money from nothing". Arbitrage allows market participants to make infinite returns. In an [efficient market](https://en.wikipedia.org/wiki/Efficient-market_hypothesis), arbitrage would disappear as soon as it appears since market participants would immediately exploit it and through the process of exploiting the arbitrage, immediately eliminate the arbitrage. Hence, Finance Theory typically assumes "arbitrage-free" markets (i.e., financial markets with no arbitrage opportunities).
 \index{finance!arbitrage-free market}
 
-Next, we describe another very important concept in Mathematical Economics/Finance—the concept of a *Risk-Neutral Probability Measure*. Consider a Probability Distribution $\pi : \Omega \rightarrow [0,1]$ such that 
+Next, we describe another important concept in Mathematical Economics/Finance—the concept of a *Risk-Neutral Probability Measure*. Consider a Probability Distribution $\pi : \Omega \rightarrow [0,1]$ such that 
 $$\pi(\omega_i) = 0 \mbox{ if and only if } \mu(\omega_i) = 0 \mbox{ for all } i = 1, \ldots, n$$
 Then, $\pi$ is said to be a Risk-Neutral Probability Measure if:
 \begin{equation}
