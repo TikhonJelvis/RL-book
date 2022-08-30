@@ -255,6 +255,17 @@ $endif$
 \let\Oldincludegraphics\includegraphics
 \renewcommand{\includegraphics}[1]{\Oldincludegraphics[width=\maxwidth]{#1}}
 
+$if(tf-format)$
+%% fix figure floating/positioning
+\let\origfigure\figure
+\let\endorigfigure\endfigure
+\renewenvironment{figure}[1][2] {
+    \expandafter\origfigure\expandafter[h]
+} {
+    \endorigfigure
+}
+$endif$
+
 % Section numbering.
 % Here again is a variable you can specify on the commandline
 % `markdown2pdf my.txt --number-sections --xetex --template=/wherever/this/is -o my.pdf`
