@@ -47,17 +47,24 @@ An Affine Space is defined as a set $\mathcal{A}$ associated with a vector space
 * For all $\bm{v_1}, \bm{v_2} \in \mathcal{V}$, for all $\bm{a} \in \mathcal{A}, (\bm{a} \oplus \bm{v_1}) \oplus \bm{v_2} = \bm{a} \oplus (\bm{v_1} + \bm{v_2})$ (this is known as the associativity property).
 * For each $\bm{a} \in \mathcal{A}$, the mapping $f_{\bm{a}} : \mathcal{V} \rightarrow \mathcal{A}$ defined as $f_{\bm{a}}(\bm{v}) = \bm{a} \oplus \bm{v}$ for all $\bm{v} \in \mathcal{V}$ is a bijection (i.e., one-to-one and onto mapping).
 
-The elements of an affine space are called *points* and the elements of the vector space associated with an affine space are called *translations*. The idea behind affine spaces is that unlike a vector space, an affine space doesn't have a notion of a zero element and one cannot add two *point*s in the affine space. Instead one adds a *translation* (from the associated vector space) to a *point* (from the affine space) to yield another *point* (in the affine space). The term *translation* is used to signify that we "translate" (i.e. shift) a point to another point in the affine space with the shift being effected by a *translation* in the associated vector space. This means there is a notion of "subtracting" one *point* of the affine space from another *point* of the affine space (denoted with the operation $\ominus$), yielding a *translation* in the associated vector space.
-
+The elements of an affine space are called *points* and the elements of the vector space associated with an affine space are called *translations*. The idea behind affine spaces is that unlike a vector space, an affine space doesn't have a notion of a zero element and one cannot add two *point*s in the affine space. Instead one adds a *translation* (from the associated vector space) to a *point* (from the affine space) to yield another *point* (in the affine space). The term *translation* is used to signify that we "translate" (i.e. shift) a point to another point in the affine space with the shift being effected by a *translation* in the associated vector space. The bijection property defined above implies that there is a notion of "subtracting" one *point* of the affine space from another *point* of the affine space (denoted with the operation $\ominus$), yielding a *translation* in the associated vector space. Formally, $\ominus$ is defined as:
+$$\text{For each } \bm{a_1}, \bm{a_2} \in \mathcal{A}, \text{ there exists a unique } \bm{v} \in \mathcal{V}, \text{ denoted } \bm{a_2} \ominus \bm{a_1}, \text{ such that } \bm{a_2} = \bm{a_1} \oplus \bm{v}$$
 A simple way to visualize an affine space is by considering the simple example of the affine space of all 3-D points on the plane defined by the equation $z=1$, i.e., the set of all points $(x,y,1)$ for all $x \in \mathbb{R}, y \in \mathbb{R}$. The associated vector space is the set of all 3-D points on the plane defined by the equation $z=0$, i.e., the set of all points $(x,y,0)$ for all $x \in \mathbb{R}, y \in \mathbb{R}$ (with element-wise addition and scalar multiplication operations). The $\oplus$ operation is element-wise addition. We see that any point $(x,y,1)$ on the affine space is *translated* to the point $(x+x',y+y',1)$ by the translation $(x',y',0)$ in the vector space. Note that the translation $(0,0,0)$ (zero vector) results in the point $(x,y,1)$ remaining unchanged. Note that translations $(x',y',0)$ and $(x'',y'',0)$ applied one after the other is the same as the single translation $(x'+x'',y'+y'',0)$. Finally, note that for any fixed point $(x,y,1)$, we have a bijective mapping from the vector space $z=0$ to the affine space $z=1$ that maps any translation $(x',y',0)$ to the point $(x+x',y+y',1)$.
 
 ### Affine Map
 
 \index{affine map|textbf}
 
-An Affine Map is a function $h: \mathcal{A} \rightarrow \mathcal{B}$ where $\mathcal{A}$ is an affine space associated with a vector space $\mathcal{V}$ and $\mathcal{B}$ is an affine space associated with the same vector space $\mathcal{V}$, having the following property:
+An Affine Map is a function $h: \mathcal{A} \rightarrow \mathcal{B}$, associated with a linear map $l: \mathcal{V} \rightarrow \mathcal{W}$, where $\mathcal{A}$ is an affine space associated with vector space $\mathcal{V}$ and $\mathcal{B}$ is an affine space associated with vector space $\mathcal{W}$, having the following property:
+$$h(\bm{a_1}) \ominus h(\bm{a_2}) = l(\bm{a_1} \ominus \bm{a_2}) \text{ for all } \bm{a_1}, \bm{a_2} \in \mathcal{A}$$
+This implies:
+$$h(\bm{a} \oplus \bm{v}) = h(\bm{a}) \oplus l(\bm{v}) \text{ for all } \bm{a} \in \mathcal{A}, \text{ for all } \bm{v} \in \mathcal{V}$$
+The intuitive way of thinking about an affine map $h$ is that it's completely defined by the image $h(\bm{a})$ of *any single point* $\bm{a} \in \mathcal{A}$ and by it's associated linear map $l$.
 
+Later in this appendix, we consider a specialization of affine maps—when $\mathcal{V} = \mathcal{W}$ and $l$ is the identity function. For this specialization, we have:
 $$h(\bm{a} \oplus \bm{v}) = h(\bm{a}) \oplus \bm{v} \text{ for all } \bm{a} \in \mathcal{A}, \text{ for all } \bm{v} \in \mathcal{V}$$
+The way to think about this is that $\oplus: \mathcal{A} \times \mathcal{V} \rightarrow \mathcal{A}$ simply delegates to $\oplus: \mathcal{B} \times \mathcal{V} \rightarrow \mathcal{B}$. So we shall refer to such a specialization of affine maps as *Delegating Map* and the corresponding affine spaces $\mathcal{A}$ and $\mathcal{B}$ as *Delegator Space* and *Delegate Space*, respectively.
+
 
 ### Function Approximations
 
@@ -78,13 +85,13 @@ as:
 $$G(x)(\bm{p}) = \nabla_{\bm{p}} f(x, \bm{p})$$
 for all $x \in \mathcal{X}$, for all $\bm{p} \in \mathcal{P}$.
 
-#### Representational Space $\mathcal{R}$
+#### Delegator Space $\mathcal{R}$
 
 We consider a function $I: \mathcal{P} \rightarrow (\mathcal{X} \rightarrow \mathbb{R})$ defined as $I(\bm{p}) = g: \mathcal{X} \rightarrow \mathbb{R}$ for all $\bm{p} \in \mathcal{P}$ such that $g(x) = f(x, \bm{p})$ for all $x \in \mathcal{X}$. The *Range* of this function $I$ forms an affine space $\mathcal{R}$ whose associated vector space is the Gradient Space $\mathcal{G}$, with the $\oplus$ operation defined as: 
 
 $$I(\bm{p}) \oplus \bm{v} = I(\bm{p} \oplus \bm{v}) \text{ for all } \bm{p} \in \mathcal{P}, \bm{v} \in \mathcal{G}$$
 
-We refer to this affine space $\mathcal{R}$ as the *Representational Space* to signify the fact that the $\oplus$ operation for $\mathcal{R}$ simply "delegates" to the $\oplus$ operation for $\mathcal{P}$ and so, the parameters $\bm{p} \in \mathcal{P}$ basically serve as the internal representation of the function approximation $I(\bm{p}): \mathcal{X} \rightarrow \mathbb{R}$. This "delegation" from $\mathcal{R}$ to $\mathcal{P}$ implies that $I$ is an affine map from Parameters Space $\mathcal{P}$ to Representational Space $\mathcal{R}$.
+We refer to this affine space $\mathcal{R}$ as the *Delegator Space* to signify the fact that the $\oplus$ operation for $\mathcal{R}$ simply "delegates" to the $\oplus$ operation for $\mathcal{P}$ and so, the parameters $\bm{p} \in \mathcal{P}$ basically serve as the internal representation of the function approximation $I(\bm{p}): \mathcal{X} \rightarrow \mathbb{R}$. This "delegation" from $\mathcal{R}$ to $\mathcal{P}$ implies that $I$ is a *Delegating Map* (as defined earlier) from Parameters Space $\mathcal{P}$ to Delegator Space $\mathcal{R}$.
 
 Notice that the `__add__` method of the `Gradient` class in [rl/function_approx.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/function_approx.py) is overloaded. One of the `__add__` methods corresponds to vector addition of two gradients in the Gradient Space $\mathcal{G}$. The other `__add__` method corresponds to the $\oplus$ operation adding a gradient (treated as a *translation* in the vector space of gradients) to a function approximation (treated as a *point* in the affine space of function approximations).
 
@@ -118,7 +125,7 @@ So, we can conceptualize the parameters change function $U$ as the product of:
 
 Note that the product of functions $e$ and $G(x)$ above is point-wise in their common domain $\mathcal{P} = D[\mathbb{R}]$, resulting in the scalar ($\mathbb{R}$) multiplication of vectors in $\mathcal{G}$.
 
-Updating vector $\bm{p}$ to vector $\bm{p} \oplus U(\bm{p})$ in the Parameters Space $\mathcal{P}$ results in updating function $I(\bm{p}): \mathcal{X} \rightarrow \mathbb{R}$ to function $I(\bm{p} \oplus U(\bm{p})): \mathcal{X} \rightarrow \mathbb{R}$ in the Representational Space $\mathcal{R}$. This is rather convenient since we can view the $\oplus$ operation for the Parameters Space $\mathcal{P}$ as effectively the $\oplus$ operation in the Representational Space $\mathcal{R}$.
+Updating vector $\bm{p}$ to vector $\bm{p} \oplus U(\bm{p})$ in the Parameters Space $\mathcal{P}$ results in updating function $I(\bm{p}): \mathcal{X} \rightarrow \mathbb{R}$ to function $I(\bm{p} \oplus U(\bm{p})): \mathcal{X} \rightarrow \mathbb{R}$ in the Delegator Space $\mathcal{R}$. This is rather convenient since we can view the $\oplus$ operation for the Parameters Space $\mathcal{P}$ as effectively the $\oplus$ operation in the Delegator Space $\mathcal{R}$.
 
 ### SGD Update for Linear Function Approximations
 
