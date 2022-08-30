@@ -639,7 +639,7 @@ So invoking Banach Fixed-Point Theorem proves the following Theorem:
 \begin{theorem}[Value Iteration Convergence Theorem]
 For a Finite MDP with $|\mathcal{N}| = m$ and $\gamma < 1$, if $\bvs \in \mathbb{R}^m$ is the Optimal Value Function, then $\bvs$ is the unique Fixed-Point of the Bellman Optimality Operator $\bbs: \mathbb{R}^m \rightarrow \mathbb{R}^m$, and
 $$\lim_{i\rightarrow \infty} (\bbs)^i(\bm{V_0}) \rightarrow \bvs \text{ for all starting Value Functions } \bm{V_0} \in \mathbb{R}^m$$
-\label{eq:policy_evaluation_convergence_theorem}
+\label{eq:value_iteration_convergence_theorem}
 \end{theorem}
 
 This gives us the following iterative algorithm, known as the *Value Iteration* algorithm, [due to Richard Bellman](http://www.iumj.indiana.edu/IUMJ/fulltext.php?artid=56038&year=1957&volume=6) [@bellman1957markovian]:

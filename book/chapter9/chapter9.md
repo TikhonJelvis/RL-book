@@ -98,7 +98,7 @@ The purchase bill for this MO is:
 
 \begin{equation}
 \sum_{i=0}^{n-1} P_i^{(a)} \cdot (\min(N_i^{(a)}, \max(0, N - \sum_{j=0}^{i-1} N_j^{(a)})))
-\label{eq:mo_sell_proceeds}
+\label{eq:mo_buy_proceeds}
 \end{equation}
 
 If $N$ is large, the purchase bill for this MO can be significantly higher than the best possible purchase bill ($=N \cdot P_0^{(a)}$), which happens only if $N \leq N_0^{(a)}$. All that we wrote above in terms of Temporary and Permanent Price Impact naturally apply in the opposite direction for a Buy MO.
