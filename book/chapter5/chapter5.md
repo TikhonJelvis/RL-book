@@ -989,7 +989,7 @@ dnn_model_rmse_seq: Sequence[float] = \
 The plot of `linear_model_rmse_seq` and `dnn_model_rmse_seq` is shown in Figure \ref{fig:sgd_convergence}.
 
 <div style="text-align:center" markdown="1">
-![SGD Convergence \label{fig:sgd_convergence}](./chapter5/rmse.png "SGD Convergence")
+![SGD Convergence \label{fig:sgd_convergence}](./chapter5/rmse.png "SGD Convergence"){height=7cm}
 </div>
 
 \index{function approximation!neural network|)}

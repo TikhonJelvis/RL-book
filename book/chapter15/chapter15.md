@@ -39,7 +39,7 @@ In the first approach (*Planning* the solution of Prediction/Control), we first 
 \index{supervised learning}
 \index{reinforcement learning!model-based}
 
-![Planning with a Supervised-Learnt Model \label{fig:planning}](./chapter15/planning.png "Planning with a Supervised-Learnt Model")
+![Planning with a Supervised-Learnt Model \label{fig:planning}](./chapter15/planning.png "Planning with a Supervised-Learnt Model"){height=6cm}
 
 Figure \ref{fig:planning} depicts the above-described approach of *Planning* the solution of Prediction/Control. We start with an arbitrary Policy that is used to interact with the Environment $E$ (upward-pointing arrow in the figure). These interactions generate Experiences, which are used to perform Supervised Learning (rightward-pointing arrow in the figure) to learn a model $M$. This model $M$ is used to plan the requisite Value Function/Policy (leftward-pointing arrow in the figure). The Policy produced through this process of Planning is then used to further interact with the Environment $E$, which in turn generates a fresh set of Experiences, which in turn are used to update the Model $M$ (incremental supervised learning), which in turn is used to plan an updated Value Function/Policy, and so the cycle repeats.
 
@@ -62,7 +62,7 @@ The disadvantage of *Planning* is that we have two sources of approximation erro
 
 #### Blending Planning and Learning
 
-![Blending Planning and Learning \label{fig:planning_learning}](./chapter15/planning_learning.png "Blending Planning and Learning")
+![Blending Planning and Learning \label{fig:planning_learning}](./chapter15/planning_learning.png "Blending Planning and Learning"){height=6cm}
 
 In this subsection, we show a rather creative and practically powerful approach to solve real-world Prediction and Control problems. We basically extend Figure \ref{fig:planning} to Figure \ref{fig:planning_learning}. As you can see in Figure \ref{fig:planning_learning}, the change is that there is a downward-pointing arrow from the *Experiences* node to the *Policy* node. This downward-pointing arrow refers to *Model-Free Reinforcement Learning*, i.e., learning the Value Function/Policy directly from experiences obtained by interacting with Environment $E$, i.e., Model-Free RL. This means we obtain the requisite Value Function/Policy through the collaborative approach of *Planning* (using the model $M$) and *Learning* (using Model-Free RL).
 

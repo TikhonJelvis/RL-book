@@ -5,7 +5,7 @@ In this chapter, we venture into the world of Algorithmic Trading and specifical
 
 For a deeper study on the topics of Order Book, Price Impact, Order Execution, Market-Making (and related topics), we refer you to the comprehensive treatment in [Olivier Gueant's book](https://www.amazon.com/Financial-Mathematics-Market-Liquidity-Execution/dp/1498725473) [@Gueant2016].
 
-![Trading Order Book (Image Credit: \protect\url{https://nms.kcl.ac.uk/rll/enrique-miranda/index.html}) \label{fig:trading_order_book}](./chapter9/order_book.png "Trading Order Book (Image Credit: \protect\url{https://nms.kcl.ac.uk/rll/enrique-miranda/index.html})")
+![Trading Order Book (Image Credit: \protect\url{https://nms.kcl.ac.uk/rll/enrique-miranda/index.html}) \label{fig:trading_order_book}](./chapter9/order_book.png "Trading Order Book (Image Credit: \protect\url{https://nms.kcl.ac.uk/rll/enrique-miranda/index.html})"){height=5cm}
 
 ### Basics of Order Book and Price Impact
 
@@ -257,7 +257,7 @@ ob0: OrderBook = OrderBook(descending_bids=bids, ascending_asks=asks)
 
 The above code creates an `OrderBook` in the price range [91, 114] with a bid-ask spread of 5. Figure \ref{fig:order_book_0} depicts this `OrderBook` visually.
 
-![Starting Order Book \label{fig:order_book_0}](./chapter9/order_book_0.png "Starting Order Book")
+![Starting Order Book \label{fig:order_book_0}](./chapter9/order_book_0.png "Starting Order Book"){height=7cm}
 
 Let's submit a Sell LO that says we'd like to sell 40 shares as long as the transacted price is greater than or equal to 107. Our Sell LO should simply get added to the Sell LOs side of the OB.
 
@@ -267,7 +267,7 @@ d_s1, ob1 = ob0.sell_limit_order(107, 40)
 
 The new `OrderBook` `ob1` has 40 more shares at the price level of 107, as depicted in Figure \ref{fig:order_book_1}.
 
-![Order Book after Sell LO\label{fig:order_book_1}](./chapter9/order_book_1.png "Order Book after Sell LO")
+![Order Book after Sell LO\label{fig:order_book_1}](./chapter9/order_book_1.png "Order Book after Sell LO"){height=7cm}
 
 Now let's submit a Sell MO that says we'd like to sell 120 shares at the "best price". Our Sell MO should transact with 120 shares at "best prices" of 100 and 99 as well (since the OB does not have enough Buy LO shares at the price of 100). 
 ```python
@@ -276,7 +276,7 @@ d_s2, ob2 = ob1.sell_market_order(120)
 
 The new `OrderBook` `ob2` has 120 less shares on the Buy LOs side of the OB, as depicted in Figure \ref{fig:order_book_2}.   
 
-![Order Book after Sell MO\label{fig:order_book_2}](./chapter9/order_book_2.png "Order Book after Sell MO")
+![Order Book after Sell MO\label{fig:order_book_2}](./chapter9/order_book_2.png "Order Book after Sell MO"){height=7cm}
 
 Now let's submit a Buy LO that says we'd like to buy 80 shares as long as the transacted price is less than or equal to 100. Our Buy LO should get added to the Buy LOs side of the OB.
 
@@ -286,7 +286,7 @@ d_s3, ob3 = ob2.buy_limit_order(100, 80)
 
 The new `OrderBook` `ob3` has re-introduced a Buy LO at the price level of 100 (now with 80 shares), as depicted in Figure \ref{fig:order_book_3}.
 
-![Order Book after Buy LO\label{fig:order_book_3}](./chapter9/order_book_3.png "Order Book after Buy LO")
+![Order Book after Buy LO\label{fig:order_book_3}](./chapter9/order_book_3.png "Order Book after Buy LO"){height=7cm}
 
 Now let's submit a Sell LO that says we'd like to sell 60 shares as long as the transacted price is greater than or equal to 104. Our Sell LO should get added to the Sell LOs side of the OB.
 
@@ -296,7 +296,7 @@ d_s4, ob4 = ob3.sell_limit_order(104, 60)
 
 The new `OrderBook` `ob4` has introduced a Sell LO at a price of 104 with 60 shares, as depicted in Figure \ref{fig:order_book_4}.
 
-![Order Book after 2nd Sell LO\label{fig:order_book_4}](./chapter9/order_book_4.png "Order Book after 2nd Sell LO")
+![Order Book after 2nd Sell LO\label{fig:order_book_4}](./chapter9/order_book_4.png "Order Book after 2nd Sell LO"){height=7cm}
 
 Now let's submit a Buy MO that says we'd like to buy 150 shares at the "best price". Our Buy MO should transact with 150 shares at "best prices" on the Sell LOs side of the OB.
 
@@ -306,7 +306,7 @@ d_s5, ob5 = ob4.buy_market_order(150)
 
 The new `OrderBook` `ob5` has 150 less shares on the Sell LOs side of the OB, wiping out all the shares at the price level of 104 and almost wiping out all the shares at the price level of 105, as depicted in Figure \ref{fig:order_book_5}.
 
-![Order Book after Buy MO\label{fig:order_book_5}](./chapter9/order_book_5.png "Order Book after Buy MO")
+![Order Book after Buy MO\label{fig:order_book_5}](./chapter9/order_book_5.png "Order Book after Buy MO"){height=7cm}
    
 This has served as a good test of our code (transactions working as we'd like) and we encourage you to write more code of this sort to interact with the `OrderBook`, and to produce graphs of evolution of the `OrderBook` as this will help develop stronger intuition and internalize the concepts we've learnt above. All of the above code is in the file [rl/chapter9/order_book.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/chapter9/order_book.py).
 

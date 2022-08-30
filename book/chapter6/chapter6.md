@@ -44,7 +44,7 @@ The last two properties above enable us to establish the Risk-Premium. Now let u
 
 \index{utility theory!diminishing marginal utility}
 <div style="text-align:center" markdown="1">
-![Utility Curve \label{fig:diminishing-marginal-utility}](./chapter6/utility.png "Utility Curve")
+![Utility Curve \label{fig:diminishing-marginal-utility}](./chapter6/utility.png "Utility Curve"){height=7cm}
 </div>
 
 So, we see that the marginal utility function is a decreasing function. Hence, accumulated utility function is a concave function. The accumulated utility function is the Utility of Consumption function (call it $U$) that we've been discussing so far. Let us denote the number of cookies eaten as $x$, and so the total "satisfaction" (utility) after eating $x$ cookies is referred to as $U(x)$. In our financial examples, $x$ would be amount of money one has at one's disposal and is typically an uncertain outcome, i.e., $x$ is a random variable with an associated probability distribution. The extent of asymmetry in utility assignments for gains versus losses that we saw earlier manifests as extent of concavity of the $U(\cdot)$ function (which as we've discussed earlier, determines the extent of Risk-Aversion).
@@ -71,7 +71,7 @@ $$x_{CE} = U^{-1}(\mathbb{E}[U(x)])$$
 Certainty-Equivalent Value represents the certain amount we'd pay to consume an uncertain outcome. This is the amount of \$180 you were willing to pay to play the casino game of the previous section.
 
 <div style="text-align:center" markdown="1">
-![Certainty-Equivalent Value \label{fig:certainty-equivalent}](./chapter6/ce.png "Certainty-Equivalent Value")
+![Certainty-Equivalent Value \label{fig:certainty-equivalent}](./chapter6/ce.png "Certainty-Equivalent Value"){height=7cm}
 </div>
 
 Figure \ref{fig:certainty-equivalent} illustrates this concept of Certainty-Equivalent Value in graphical terms. Next, we define Risk-Premium in two different conventions:

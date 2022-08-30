@@ -278,7 +278,7 @@ class EpsilonGreedy(MABBase):
 
 The above code is in the file [rl/chapter14/epsilon_greedy.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/chapter14/epsilon_greedy.py).
 
-![Total Regret Curves \label{fig:exp_cum_regret}](./chapter14/exp_cum_regret.png "Total Regret Curves")
+![Total Regret Curves \label{fig:exp_cum_regret}](./chapter14/exp_cum_regret.png "Total Regret Curves"){height=7cm}
 
 Figure \ref{fig:exp_cum_regret} shows the results of running the above code for 1000 time steps over 500 episodes, with $N_0$ and $\hat{Q}_0$ both set to 0. This graph was generated (see `__main__` in [rl/chapter14/epsilon_greedy.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/chapter14/epsilon_greedy.py)) by creating 3 instances of `EpsilonGreedy`—the first with `epsilon` set to 0 (i.e., Greedy), the second with `epsilon` set to 0.12 and `epsilon_half_life` set to a very high value (i.e, $\epsilon$-Greedy, with no decay for $\epsilon$), and the third with `epsilon` set to 0.12 and `epsilon_half_life` set to 150 (i.e., Decaying $\epsilon_t$-Greedy). We can see that Greedy produces Linear Total Regret since it locks to a suboptimal value. We can also see that $\epsilon$-Greedy has higher total regret than Greedy initially because of exploration, and then settles in with Linear Total Regret, commensurate with the constant amount of exploration ($\epsilon = 0.12$ in this case). Lastly, we can see that Decaying $\epsilon_t$-Greedy produces Sublinear Total Regret as the initial effort spent in exploration helps identify the best action and as time elapses, the exploration keeps reducing so as to keep reducing the single-step regret.
 
@@ -309,13 +309,13 @@ This makes intuitive sense because it would be hard for an algorithm to have low
 
 Now we come to an important idea that is central to many algorithms for MAB. This idea goes by the catchy name of *Optimism in the Face of Uncertainty*. As ever, this idea is best understood with intuition first, followed by mathematical rigor. To develop intuition, imagine you are given 3 arms. You'd like to develop an estimate of $Q(a) = \mathbb{E}[r|a]$ for each of the 3 arms $a$. After playing the arms a few times, you start forming beliefs in your mind of what the $Q(a)$ might be for each arm. Unlike the simple algorithms we've seen so far where one averaged the sample rewards for each arm to maintain a $\hat{Q}(a)$ estimate for each $a$, here we maintain the sampling distribution of the mean rewards (for each $a$) that represents our (probabilistic) beliefs of what $Q(a)$ might be for each arm $a$.
 
-![Q-Value Distributions \label{fig:q_value_distribution1}](./chapter14/q_value_distribution1.png "Q-Value Distributions")
+![Q-Value Distributions \label{fig:q_value_distribution1}](./chapter14/q_value_distribution1.png "Q-Value Distributions"){height=7cm}
 
 To keep things simple, let's assume the sampling distribution of the mean reward is a Gaussian distribution (for each $a$), and so we maintain an estimate of $\mu_a$ and $\sigma_a$ for each arm $a$ to represent the mean and standard deviation of the sampling distribution of mean reward for $a$. $\mu_a$ would be calculated as the average of the sample rewards seen so far for an arm $a$. $\sigma_a$ would be calculated as the standard error of the mean reward estimate, i.e., the sample standard deviation of the rewards seen so far, divided by the square root of the number of samples (for a given arm $a$). Let us say that after playing the arms a few times, we arrive at the Gaussian sampling distribution of mean reward for each of the 3 arms, as illustrated in Figure \ref{fig:q_value_distribution1}. Let's refer to the three arms as red, blue and green. The normal distributions in Figure \ref{fig:q_value_distribution1} show the red arm as the solid curve, the blue arm as the dashed curve and the green arm as the dotted-and-dashed curve. The blue arm has the highest $\sigma_a$. This could be either because the sample standard deviation is high or it could be because we have played the blue arm just a few times (remember the square root of number of samples appears in the denominator of the standard error calculation). Now looking at this figure, we have to decide which arm to select next. The intuition behind *Optimism in the Face of Uncertainty* is that the more uncertain we are about the $Q(a)$ for an arm $a$, the more important it is to play that arm. This is because more uncertainty on $Q(a)$ makes it more likely to be the best arm (all else being equal on the arms). The rough heuristic then would be to select the arm with the highest value of $\mu_a + c \cdot \sigma_a$ across the arms (for some fixed $c \in \mathbb{R}^+$). Thus, we are comparing (across actions) $c$ standard errors higher than the mean reward estimate (i.e., the upper-end of an appropriate confidence interval for the mean reward). In this figure, let's say $\mu_a + c \cdot \sigma_a$ is highest for the blue arm. So we play the blue arm, and let's say we get a somewhat low reward for the blue arm. This might do two things to the blue arm's sampling distribution—it can move blue's $\mu_a$ lower and it can also also lower blue's $\sigma_a$ (simply due to the fact that the number of blue arm samples has grown). With the new $\mu_a$ and $\sigma_a$ for the blue arm, let's say the updated sampling distributions are as shown in Figure \ref{fig:q_value_distribution2}. With the blue arm's sampling distribution of the mean reward narrower, let's say the red arm now has the highest $\mu_a + c \cdot \sigma_a$, and so we play the red arm. This process goes on until the sampling distributions get narrow enough to give us adequate confidence in the mean rewards for the actions (i.e., obtain confident estimates of $Q(a)$) so we can home in on the action with highest $Q(a)$.
 
 It pays to emphasize that *Optimism in the Face of Uncertainty* is a great approach to resolve the Explore-Exploit dilemma because you gain regardless of whether the exploration due to Optimism produces large rewards or not. If it does produce large rewards, you gain immediately by collecting the large rewards. If it does not produce large rewards, you still gain by acquiring the knowledge that certain actions (that you have explored) might not be the best actions, which helps you in the long-run by focusing your attention on other actions.
 
-![Q-Value Distributions \label{fig:q_value_distribution2}](./chapter14/q_value_distribution2.png "Q-Value Distributions")
+![Q-Value Distributions \label{fig:q_value_distribution2}](./chapter14/q_value_distribution2.png "Q-Value Distributions"){height=7cm}
 
 
 A formalization of the above intuition on *Optimism in the Face of Uncertainty* is the idea of *Upper Confidence Bounds* (abbreviated as UCB). The idea of UCB is that along with an estimate $\hat{Q}_t(a)$ (for each $a$ after $t$ time steps), we also maintain an estimate $\hat{U}_t(a)$ representing the upper confidence interval width for the mean reward of $a$ (after $t$ time steps) such that $Q(a) < \hat{Q}_t(a) + \hat{U}_t(a)$ with high probability. This naturally depends on the number of times that $a$ has been selected so far (call it $N_t(a)$). A small value of $N_t(a)$ would imply a large value of $\hat{U}_t(a)$ since the estimate of the mean reward would be fairly uncertain. On the other hand, a large value of $N_t(a)$ would imply a small value of $\hat{U}_t(a)$ since the estimate of the mean reward would be fairly certain. We refer to $\hat{Q}_t(a) + \hat{U}_t(a)$ as the *Upper Confidence Bound* (or simply UCB). The idea is to select the action that maximizes the UCB. Formally, the action $A_{t+1}$ selected for the next ($t+1$) time step is as follows:
@@ -410,7 +410,7 @@ class UCB1(MABBase):
 
 The above code is in the file [rl/chapter14/ucb1.py](https://github.com/TikhonJelvis/RL-book/tree/master/rl/chapter14/ucb1.py). The code in `__main__` sets up a `UCB1` instance with 6 arms, each having a binomial distribution with $n=10$ and $p = \{0.4, 0.8, 0.1, 0.5, 0.9, 0.2\}$ for the 6 arms. When run with 1000 time steps, 500 episodes and $\alpha = 4$, we get the Total Regret Curve as shown in Figure \ref{fig:ucb1_total_regret_curve}.
 
-![UCB1 Total Regret Curve \label{fig:ucb1_total_regret_curve}](./chapter14/ucb1_total_regret_curve.png "UCB1 Total Regret Curve")
+![UCB1 Total Regret Curve \label{fig:ucb1_total_regret_curve}](./chapter14/ucb1_total_regret_curve.png "UCB1 Total Regret Curve"){height=7cm}
 
 We encourage you to modify the code in `__main__` to model other distributions for the arms, examine the results obtained, and develop more intuition for the UCB1 Algorithm.
 
@@ -551,7 +551,7 @@ class ThompsonSamplingGaussian(MABBase):
 
 The above code is in the file [rl/chapter14/ts_gaussian.py](https://github.com/TikhonJelvis/RL-book/tree/master/rl/chapter14/ts_gaussian.py). The code in `__main__` sets up a `ThompsonSamplingGaussian` instance with 6 arms, each having a Gaussian rewards distribution. When run with 1000 time steps and 500 episodes, we get the Total Regret Curve as shown in Figure \ref{fig:ts_gaussian_total_regret_curve}.
 
-![Thompson Sampling (Gaussian) Total Regret Curve \label{fig:ts_gaussian_total_regret_curve}](./chapter14/ts_gaussian_total_regret_curve.png "Thompson Sampling (Gaussian) Total Regret Curve")
+![Thompson Sampling (Gaussian) Total Regret Curve \label{fig:ts_gaussian_total_regret_curve}](./chapter14/ts_gaussian_total_regret_curve.png "Thompson Sampling (Gaussian) Total Regret Curve"){height=7cm}
 
 We encourage you to modify the code in `__main__` to try other mean and variance settings for the Gaussian reward distributions of the arms, examine the results obtained, and develop more intuition for Thompson Sampling for Gaussians.
 
@@ -601,7 +601,7 @@ class ThompsonSamplingBernoulli(MABBase):
 
 The above code is in the file [rl/chapter14/ts_bernoulli.py](https://github.com/TikhonJelvis/RL-book/tree/master/rl/chapter14/ts_bernoulli.py). The code in `__main__` sets up a `ThompsonSamplingBernoulli` instance with 6 arms, each having a Bernoulli rewards distribution. When run with 1000 time steps and 500 episodes, we get the Total Regret Curve as shown in Figure \ref{fig:ts_bernoulli_total_regret_curve}.
 
-![Thompson Sampling (Bernoulli) Total Regret Curve \label{fig:ts_bernoulli_total_regret_curve}](./chapter14/ts_bernoulli_total_regret_curve.png "Thompson Sampling (Bernoulli) Total Regret Curve")
+![Thompson Sampling (Bernoulli) Total Regret Curve \label{fig:ts_bernoulli_total_regret_curve}](./chapter14/ts_bernoulli_total_regret_curve.png "Thompson Sampling (Bernoulli) Total Regret Curve"){height=7cm}
 
 We encourage you to modify the code in `__main__` to try other mean settings for the Bernoulli reward distributions of the arms, examine the results obtained, and develop more intuition for Thompson Sampling for Bernoullis.
 
@@ -710,7 +710,7 @@ class GradientBandits(MABBase):
 
 The above code is in the file [rl/chapter14/gradient_bandits.py](https://github.com/TikhonJelvis/RL-book/tree/master/rl/chapter14/gradient_bandits.py). The code in `__main__` sets up a `GradientBandits` instance with 6 arms, each having a Gaussian reward distribution. When run with 1000 time steps and 500 episodes, we get the Total Regret Curve as shown in Figure \ref{fig:gradient_bandits_total_regret_curve}.
 
-![Gradient Algorithm Total Regret Curve \label{fig:gradient_bandits_total_regret_curve}](./chapter14/gradient_bandits_total_regret_curve.png "Gradient Algorithm Total Regret Curve")
+![Gradient Algorithm Total Regret Curve \label{fig:gradient_bandits_total_regret_curve}](./chapter14/gradient_bandits_total_regret_curve.png "Gradient Algorithm Total Regret Curve"){height=7cm}
 
 We encourage you to modify the code in `__main__` to try other mean and standard deviation settings for the Gaussian reward distributions of the arms, examine the results obtained, and develop more intuition for this Gradient Algorithm.
 
@@ -728,11 +728,11 @@ The code in the file [rl/chapter14/plot_mab_graphs.py](https://github.com/Tikhon
 * Thompson Sampling
 * Gradient Bandit
 
-![Gaussian Horse Race—Total Regret Curves \label{fig:gaussian_horse_race_total_regret}](./chapter14/gaussian_horse_race_total_regret.png "Gaussian Horse Race—Total Regret Curves")
+![Gaussian Horse Race—Total Regret Curves \label{fig:gaussian_horse_race_total_regret}](./chapter14/gaussian_horse_race_total_regret.png "Gaussian Horse Race—Total Regret Curves"){height=7cm}
 
 Running this horse race for 7 Gaussian arms with 500 time steps, 500 episodes and the settings as specified in the file rl/chapter14/plot_mab_graphs.py, we obtain Figure \ref{fig:gaussian_horse_race_total_regret} for the Total Regret Curves for each of these algorithms.
 
-![Gaussian Horse Race—Arms Count \label{fig:gaussian_horse_race_arms_count}](./chapter14/gaussian_horse_race_arms_count.png "Gaussian Horse Race—Arms Count")
+![Gaussian Horse Race—Arms Count \label{fig:gaussian_horse_race_arms_count}](./chapter14/gaussian_horse_race_arms_count.png "Gaussian Horse Race—Arms Count"){height=7cm}
 
 Figure \ref{fig:gaussian_horse_race_arms_count} shows the number of times each arm is pulled (for each of these algorithms). The X-axis is sorted by the mean of the reward distributions of the arms. For each arm, the left-to-right order of the arm-pulls count is the order in which the 5 MAB algorithms are listed above. As we can see, the arms with low means are pulled only a few times and the arms with high means are pulled often.
 
@@ -745,11 +745,11 @@ The file rl/chapter14/plot_mab_graphs.py also has a function to run a horse race
 * Thompson Sampling
 * Gradient Bandit
 
-![Bernoulli Horse Race—Total Regret Curves \label{fig:bernoulli_horse_race_total_regret}](./chapter14/bernoulli_horse_race_total_regret.png "Bernoulli Horse Race—Total Regret Curves")
+![Bernoulli Horse Race—Total Regret Curves \label{fig:bernoulli_horse_race_total_regret}](./chapter14/bernoulli_horse_race_total_regret.png "Bernoulli Horse Race—Total Regret Curves"){height=7cm}
 
 Running this horse race for 9 Bernoulli arms with 500 time steps, 500 episodes and the settings as specified in the file rl/chapter14/plot_mab_graphs.py, we obtain Figure \ref{fig:bernoulli_horse_race_total_regret} for the Total Regret Curves for each of these algorithms.
 
-![Bernoulli Horse Race—Arms Count \label{fig:bernoulli_horse_race_arms_count}](./chapter14/bernoulli_horse_race_arms_count.png "Bernoulli Horse Race—Arms Count")
+![Bernoulli Horse Race—Arms Count \label{fig:bernoulli_horse_race_arms_count}](./chapter14/bernoulli_horse_race_arms_count.png "Bernoulli Horse Race—Arms Count"){height=7cm}
 
 Figure \ref{fig:bernoulli_horse_race_arms_count} shows the number of times each arm is pulled (for each of the algorithms). The X-axis is sorted by the mean of the reward distributions of the arms. For each arm, the left-to-right order of the arm-pulls count is the order in which the 6 MAB algorithms are listed above. As we can see, the arms with low means are pulled only a few times and the arms with high means are pulled often.
 

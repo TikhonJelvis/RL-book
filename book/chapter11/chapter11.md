@@ -17,7 +17,7 @@ We shall soon see that all RL Control algorithms are based on the fundamental id
 
 To summarize, the key concept in GPI is that we can evaluate the Value Function for a policy with *any* Policy Evaluation method, and we can improve a policy with *any* Policy Improvement method (not necessarily the methods used in the classical Policy Iteration DP algorithm). The word *any* does not simply mean alternative algorithms for Policy Evaluation and/or Policy Improvements—the word *any* also refers to the fact that we can do a "partial" Policy Evaluation or a "partial" Policy Improvement. The word "partial" is used quite generically here—any set of calculations that simply take us *towards* a complete Policy Evaluation or *towards* a complete Policy Improvement qualify. This means GPI allows us to switch from Policy Evaluation to Policy Improvements without doing a complete Policy Evaluation or complete Policy Improvement (for instance, we don't have to take Policy Evaluation calculations all the way to convergence). Figure \ref{fig:generalized_policy_iteration_lines_repeat} illustrates Generalized Policy Iteration as the shorter-length arrows (versus the longer-length arrows seen in Figure \ref{fig:vf_policy_intersecting_lines} for the usual Policy Iteration algorithm). Note how these shorter-length arrows don't go all the way to either the "value function line" or the "policy line" but the shorter-length arrows do go some part of the way towards the line they are meant to go towards at that stage in the algorithm.
 
-![Progression Lines of Value Function and Policy in Generalized Policy Iteration (Image Credit: [Coursera Course on Fundamentals of RL](https://www.coursera.org/learn/fundamentals-of-reinforcement-learning)) \label{fig:generalized_policy_iteration_lines_repeat}](./chapter4/gpi.png "Progression Lines of Value Function and Policy in Policy Iteration and Generalized Policy Iteration (Image Credit: [Coursera Course on Fundamentals of RL](https://www.coursera.org/learn/fundamentals-of-reinforcement-learning))")
+![Progression Lines of Value Function and Policy in Generalized Policy Iteration (Image Credit: [Coursera Course on Fundamentals of RL](https://www.coursera.org/learn/fundamentals-of-reinforcement-learning)) \label{fig:generalized_policy_iteration_lines_repeat}](./chapter4/gpi.png "Progression Lines of Value Function and Policy in Policy Iteration and Generalized Policy Iteration (Image Credit: [Coursera Course on Fundamentals of RL](https://www.coursera.org/learn/fundamentals-of-reinforcement-learning))"){height=4cm}
 
 As has been our norm in the book so far, our approach to RL Control algorithms is to first cover the simple case of Tabular RL Control algorithms to illustrate the core concepts in a simple and intuitive manner. In many Tabular RL Control algorithms (especially Tabular TD Control), GPI consists of the Policy Evaluation step for just a single state (versus for all states in usual Policy Iteration) and the Policy Improvement step is also done for just a single state. So essentially these RL Control algorithms are an alternating sequence of single-state policy evaluation and single-state policy improvement (where the single-state is the state produced by sampling or the state that is encountered in a real-world environment interaction). Similar to the case of Prediction, we first cover Monte-Carlo (MC) Control and then move on to Temporal-Difference (TD) Control. 
 
@@ -442,7 +442,7 @@ Note that Equation \eqref{eq:td-control-funcapprox-params-adj} has the entities
 which prompted this TD Control algorithm to be named SARSA (for **S**tate-**A**ction-**R**eward-**S**tate-**A**ction). Following our convention from Chapter [-@sec:mdp-chapter], we depict the SARSA algorithm in Figure \ref{fig:sarsa_figure} with states as elliptical-shaped nodes, actions as rectangular-shaped nodes, and the edges as samples from transition probability distribution and $\epsilon$-greedy policy distribution. 
 
 <div style="text-align:center" markdown="1">
-![Visualization of SARSA Algorithm \label{fig:sarsa_figure}](./chapter11/sarsa.png "Visualization of SARSA Algorithm")
+![Visualization of SARSA Algorithm \label{fig:sarsa_figure}](./chapter11/sarsa.png "Visualization of SARSA Algorithm"){height=5cm}
 </div>
 
 Now let us write some code to implement the above-described SARSA algorithm. Let us start by understanding the various arguments to the below function `glie_sarsa`.
@@ -620,7 +620,7 @@ Now let's compare GLIE MC Control and GLIE SARSA. This comparison is analogous t
 
 As mentioned in Chapter [-@sec:rl-prediction-chapter], because MC and TD have significant differences in their usage of data, nature of updates, and frequency of updates, it is not even clear how to create a level-playing field when comparing MC and TD for speed of convergence or for efficiency in usage of limited experiences data. The typical comparisons between MC and TD are done with constant learning rates, and it's been determined that practically GLIE SARSA learns faster than GLIE MC Control with constant learning rates. We illustrate this by running GLIE MC Control and GLIE SARSA on `SimpleInventoryMDPCap`, and plot the root-mean-squared-errors (RMSE) of the Q-Value Function estimates as a function of batches of episodes (i.e., visualize how the RMSE of the Q-Value Function evolves as the two algorithms progress). This is done by calling the function `compare_mc_sarsa_ql` which is in the file [rl/chapter11/control_utils.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/chapter11/control_utils.py).
 
-![GLIE MC Control and GLIE SARSA Convergence for SimpleInventoryMDPCap \label{fig:mc_sarsa_convergence}](./chapter11/mc_sarsa_convergence.png "GLIE MC Control and GLIE SARSA Convergence for SimpleInventoryMDPCap")
+![GLIE MC Control and GLIE SARSA Convergence for SimpleInventoryMDPCap \label{fig:mc_sarsa_convergence}](./chapter11/mc_sarsa_convergence.png "GLIE MC Control and GLIE SARSA Convergence for SimpleInventoryMDPCap"){height=7cm}
 
 Figure \ref{fig:mc_sarsa_convergence} depicts the convergence for our implementations of GLIE MC Control and GLIE SARSA for a constant learning rate of $\alpha = 0.05$. We produced this figure by using data from 500 episodes generated from the same `SimpleInventoryMDPCap` object we had created earlier (with same discount factor $\gamma = 0.9$). We plotted the RMSE after each batch of 10 episodes, hence both curves shown in the figure have 50 RMSE data points plotted. Firstly, we clearly see that MC Control has significantly more variance as evidenced by the choppy MC Control RMSE progression curve. Secondly, we note that the MC Control RMSE curve progresses quite quickly in the first few episode batches but is slow to converge after the first few episode batches (relative to the progression of SARSA). This results in SARSA reaching fairly small RMSE quicker than MC Control. This behavior of GLIE SARSA outperforming the comparable GLIE MC Control (with constant learning rate) is typical in most MDP Control problems.
 
@@ -707,7 +707,7 @@ where
 Following our convention from Chapter [-@sec:mdp-chapter], we depict the Q-Learning algorithm in Figure \ref{fig:q_learning_figure} with states as elliptical-shaped nodes, actions as rectangular-shaped nodes, and the edges as samples from transition probability distribution and action choices.
 
 <div style="text-align:center" markdown="1">
-![Visualization of Q-Learning Algorithm \label{fig:q_learning_figure}](./chapter11/q_learning.png "Visualization of Q-Learning Algorithm")
+![Visualization of Q-Learning Algorithm \label{fig:q_learning_figure}](./chapter11/q_learning.png "Visualization of Q-Learning Algorithm"){height=5cm}
 </div>
 
 Although we have highlighted some attractive features of Q-Learning (on account of being Off-Policy), it turns out that Q-Learning when combined with function approximation of the Q-Value Function leads to convergence issues (more on this later). However, Tabular Q-Learning converges under the usual appropriate conditions. There is considerable literature on convergence of Tabular Q-Learning and we won't go over those convergence theorems in this book—here it suffices to say that the convergence proofs for Tabular Q-Learning require infinite exploration of all (state, action) pairs and appropriate stochastic approximation conditions for step sizes.
@@ -1095,9 +1095,9 @@ Now let's explore SARSA and Q-Learning's speed of convergence to the Optimal Val
 
 We first run GLIE SARSA and Q-Learning for the above settings of bump cost = 4.0, GLIE SARSA $\epsilon(k) = \frac 1 k$, Q-Learning $\epsilon = 0.2$. Figure \ref{fig:windy_grid_convergence1} depicts the trajectory of Root-Mean-Squared-Error (RMSE) of the Q-Values relative to the Q-Values obtained by Value Iteration. The RMSE is plotted as a function of progressive batches of 10 episodes. We can see that GLIE SARSA and Q-Learning have roughly the same convergence trajectory.
 
-![GLIE SARSA and Q-Learning Convergence for Windy Grid (Bump Cost = 4) \label{fig:windy_grid_convergence1}](./chapter11/windy_grid_convergence1.png "GLIE SARSA and Q-Learning Convergence for Windy Grid (Bump Cost = 4)")
+![GLIE SARSA and Q-Learning Convergence for Windy Grid (Bump Cost = 4) \label{fig:windy_grid_convergence1}](./chapter11/windy_grid_convergence1.png "GLIE SARSA and Q-Learning Convergence for Windy Grid (Bump Cost = 4)"){height=7cm}
 
-![GLIE SARSA and Q-Learning Convergence for Windy Grid (Bump Cost = 100,000) \label{fig:windy_grid_convergence2}](./chapter11/windy_grid_convergence2.png "GLIE SARSA and Q-Learning Convergence for Windy Grid (Bump Cost = 100,000)")
+![GLIE SARSA and Q-Learning Convergence for Windy Grid (Bump Cost = 100,000) \label{fig:windy_grid_convergence2}](./chapter11/windy_grid_convergence2.png "GLIE SARSA and Q-Learning Convergence for Windy Grid (Bump Cost = 100,000)"){height=7cm}
 
 Now let us set the bump cost to a very high value of 100,000. Figure \ref{fig:windy_grid_convergence2} depicts the convergence trajectory for bump cost of 100,000. We see that Q-Learning converges much faster than GLIE SARSA (we kept GLIE SARSA $\epsilon(k) = \frac 1 k$ and Q-Learning $\epsilon = 0.2$). So why does Q-Learning do better? Q-Learning has two advantages over GLIE SARSA here: Firstly, its behavior policy is exploring at the constant amount of 20\% whereas GLIE SARSA's exploration declines to 10\% after just the 10th episode. This means Q-Learning gets sufficient data quicker than GLIE SARSA for the entire set of (state, action) pairs. Secondly, Q-Learning's target policy is greedy, versus GLIE SARSA's declining-$\epsilon$-greedy. This means GLIE SARSA's Optimal Q-Value estimation is compromised due to the exploration of actions in its target policy (rather than a pure exploitation with $\max$ over actions, as is the case with Q-Learning). Thus, the separation between behavior policy and target policy in Q-Learning fetches it the best of both worlds and enables it to perform better than GLIE SARSA in this example.
 
@@ -1154,21 +1154,51 @@ Since the modifications from On-Policy algorithms to Off-Policy algorithms based
 
 It's worthwhile placing RL algorithms in terms of their conceptual relationship to DP algorithms. Let's start with the Prediction problem, whose solution is based on the Bellman Expectation Equation. Figure \ref{fig:td_prediction_sample_backup} depicts TD Prediction, which is the sample backup version of Policy Evaluation, depicted in Figure \ref{fig:policy_evaluation_full_backup} as a full backup DP algorithm.
 
-![Policy Evaluation (DP Algorithm with Full Backup) \label{fig:policy_evaluation_full_backup}](./chapter3/mdp_bellman_policy_tree_vv.png)
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth,height=4.5cm]{./chapter3/mdp_bellman_policy_tree_vv.png}
+\caption{Policy Evaluation (DP Algorithm with Full Backup)
+\label{fig:policy_evaluation_full_backup}}
+\end{figure}
 
-![TD Prediction (RL Algorithm with Sample Backup) \label{fig:td_prediction_sample_backup}](./chapter11/td.png)
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth,height=3.5cm]{./chapter11/td.png}
+\caption{TD Prediction (RL Algorithm with Sample Backup)
+\label{fig:td_prediction_sample_backup}}
+\end{figure}
 
 Likewise, Figure \ref{fig:sarsa_sample_backup} depicts SARSA, which is the sample backup version of Q-Policy Iteration (Policy Iteration on Q-Value), depicted in Figure \ref{fig:q_policy_iteration_full_backup} as a full backup DP algorithm.
 
-![Q-Policy Iteration (DP Algorithm with Full Backup) \label{fig:q_policy_iteration_full_backup}](./chapter3/mdp_bellman_policy_tree_qq.png)
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth,height=4.5cm]{./chapter3/mdp_bellman_policy_tree_qq.png}
+\caption{Q-Policy Iteration (DP Algorithm with Full Backup)
+\label{fig:q_policy_iteration_full_backup}}
+\end{figure}
 
-![SARSA (RL Algorithm with Sample Backup) \label{fig:sarsa_sample_backup}](./chapter11/sarsa.png)
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth,height=3.5cm]{./chapter11/sarsa.png}
+\caption{SARSA (RL Algorithm with Sample Backup)
+\label{fig:sarsa_sample_backup}}
+\end{figure}
 
 Finally, Figure \ref{fig:q_learning_sample_backup} depicts Q-Learning, which is the sample backup version of Q-Value Iteration (Value Iteration on Q-Value), depicted in Figure \ref{fig:q_value_iteration_full_backup} as a full backup DP algorithm.
 
-![Q-Value Iteration (DP Algorithm with Full Backup) \label{fig:q_value_iteration_full_backup}](./chapter3/mdp_bellman_opt_tree_qq.png)
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth,height=4.5cm]{./chapter3/mdp_bellman_opt_tree_qq.png}
+\caption{Q-Value Iteration (DP Algorithm with Full Backup)
+\label{fig:q_value_iteration_full_backup}}
+\end{figure}
 
-![Q-Learning (RL Algorithm with Sample Backup) \label{fig:q_learning_sample_backup}](./chapter11/q_learning.png)
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth,height=3.5cm]{./chapter11/q_learning.png}
+\caption{Q-Learning (RL Algorithm with Sample Backup)
+\label{fig:q_learning_sample_backup}}
+\end{figure}
 
 The table in Figure \ref{table:dp_td_linkage} summarizes these RL algorithms, along with their corresponding DP algorithms, showing the expectation targets of the DP algorithms' updates along with the corresponding sample targets of the RL algorithms' updates.
 

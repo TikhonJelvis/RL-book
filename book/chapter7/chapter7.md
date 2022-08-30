@@ -319,14 +319,14 @@ The above code is in the file [rl/chapter7/merton_solution_graph.py](https://git
 A rather interesting observation is that if $r + \frac {(\mu - r)^2} {\sigma^2 \gamma} > \frac 1 {f(0)}$ and $\epsilon < \frac 1 {\nu}$, then the Fractional Consumption Rate is initially less than the Expected Portfolio Annual Return and over time, the Fractional Consumption Rate becomes greater than the Expected Portfolio Annual Return. This illustrates how the optimal behavior is to consume modestly and invest more when one is younger, then to gradually increase the consumption as one ages, and finally to ramp up the consumption sharply when one is close to the end of one's life. Figure \ref{fig:merton-solution-rate-curves} shows the visual for this (along with the Expected Wealth Growth Rate) using the above code for input values of: $T = 20, \mu = 10\%, \sigma = 10\%, r = 2\%, \rho = 1\%, \gamma = 2.0$.
 
 <div style="text-align:center" markdown="1">
-![Portfolio Return and Consumption Rate \label{fig:merton-solution-rate-curves}](./chapter7/portfolio_growth.png "Portfolio Return and Consumption Rate")
+![Portfolio Return and Consumption Rate \label{fig:merton-solution-rate-curves}](./chapter7/portfolio_growth.png "Portfolio Return and Consumption Rate"){height=7cm}
 </div>
 \index{finance!return}
 
 Figure \ref{fig:merton-solution-wealth-trajectory} shows the time-trajectory of the expected wealth based on Equation \eqref{eq:expected-wealth} for the same input values as listed above. Notice how the Expected Wealth rises in a convex shape for several years since the consumption during all these years is quite modest, and then the shape of the Expected Wealth curve turns concave at about 12 years, peaks at about 16 years (when Fractional Consumption Rate rises to equal Expected Portfolio Annual Return), and then falls precipitously in the last couple of years (as the Consumption increasingly drains the Wealth down to 0).
 
 <div style="text-align:center" markdown="1">
-![Expected Wealth Time-Trajectory \label{fig:merton-solution-wealth-trajectory}](./chapter7/wealth_trajectory.png "Expected Wealth Time-Trajectory")
+![Expected Wealth Time-Trajectory \label{fig:merton-solution-wealth-trajectory}](./chapter7/wealth_trajectory.png "Expected Wealth Time-Trajectory"){height=7cm}
 </div>
 \index{finance!Merton's portfolio problem|)}
 

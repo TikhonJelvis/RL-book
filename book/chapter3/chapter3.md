@@ -49,7 +49,7 @@ Using the language of AI, we say that at each time step $t$, the *Agent* (the al
 
 The MDP framework was formalized in [a paper by Richard Bellman](http://www.iumj.indiana.edu/IUMJ/fulltext.php?artid=56038&year=1957&volume=6) [@bellman1957markovian] and the MDP theory was developed further in [Richard Bellman's book named *Dynamic Programming*](https://press.princeton.edu/books/paperback/9780691146683/dynamic-programming) [@Bellman1957] and in [Ronald Howard's book named *Dynamic Programming and Markov Processes*](https://www.tandfonline.com/doi/abs/10.1080/00401706.1961.10489934?journalCode=utch20) [@howard:dp].
 
-![Markov Decision Process \label{fig:mdp_cycle}](./chapter3/mdp.png "Agent-Environment interaction in a Markov Decision Process")
+![Markov Decision Process \label{fig:mdp_cycle}](./chapter3/mdp.png "Agent-Environment interaction in a Markov Decision Process"){height=3cm}
 
 ### Formal Definition of a Markov Decision Process
 
@@ -748,11 +748,11 @@ Q^{\pi}(s, a) = \mathcal{R}(s,a) + \gamma \cdot \sum_{s'\in \mathcal{N}} \mathca
 Equation \eqref{eq:mdp_bellman_policy_eqn_vv} is known as the MDP State-Value Function Bellman Policy Equation (Figure \ref{fig:mdp_bellman_policy_tree_vv} serves as a visualization aid for this Equation).  Equation \eqref{eq:mdp_bellman_policy_eqn_qq} is known as the MDP Action-Value Function Bellman Policy Equation (Figure \ref{fig:mdp_bellman_policy_tree_qq} serves as a visualization aid for this Equation).  Note that Equation \eqref{eq:mdp_bellman_policy_eqn_vq} and Equation \eqref{eq:mdp_bellman_policy_eqn_qv} are embedded in Figure \ref{fig:mdp_bellman_policy_tree_vv} as well as in Figure \ref{fig:mdp_bellman_policy_tree_qq}. Equations \eqref{eq:mdp_bellman_policy_eqn_vv}, \eqref{eq:mdp_bellman_policy_eqn_vq}, \eqref{eq:mdp_bellman_policy_eqn_qv} and \eqref{eq:mdp_bellman_policy_eqn_qq} are collectively known as the MDP Bellman Policy Equations.
 
 <div style="text-align:center" markdown="1">
-![Visualization of MDP State-Value Function Bellman Policy Equation \label{fig:mdp_bellman_policy_tree_vv}](./chapter3/mdp_bellman_policy_tree_vv.png "Visualization of MDP State-Value Function Bellman Policy Equation")
+![Visualization of MDP State-Value Function Bellman Policy Equation \label{fig:mdp_bellman_policy_tree_vv}](./chapter3/mdp_bellman_policy_tree_vv.png "Visualization of MDP State-Value Function Bellman Policy Equation"){height=6cm}
 </div>
 
 <div style="text-align:center" markdown="1">
-![Visualization of MDP Action-Value Function Bellman Policy Equation \label{fig:mdp_bellman_policy_tree_qq}](./chapter3/mdp_bellman_policy_tree_qq.png "Visualization of MDP Action-Value Function Bellman Policy Equation")
+![Visualization of MDP Action-Value Function Bellman Policy Equation \label{fig:mdp_bellman_policy_tree_qq}](./chapter3/mdp_bellman_policy_tree_qq.png "Visualization of MDP Action-Value Function Bellman Policy Equation"){height=6cm}
 </div>
 
 For the rest of the book, in these MDP transition figures, we shall always depict states as elliptical-shaped nodes and actions as rectangular-shaped nodes. Notice that transition from a state node to an action node is associated with a probability represented by $\pi$ and transition from an action node to a state node is associated with a probability represented by $\mathcal{P}$.
@@ -818,12 +818,12 @@ Equation \eqref{eq:mdp_bellman_opt_eqn_qq} is known as the MDP Action-Value Func
 
 
 <div style="text-align:center" markdown="1">
-![Visualization of MDP State-Value Function Bellman Optimality Equation \label{fig:mdp_bellman_opt_tree_vv}](./chapter3/mdp_bellman_opt_tree_vv.png "Visualization of MDP State-Value Function Bellman Optimality Equation")
+![Visualization of MDP State-Value Function Bellman Optimality Equation \label{fig:mdp_bellman_opt_tree_vv}](./chapter3/mdp_bellman_opt_tree_vv.png "Visualization of MDP State-Value Function Bellman Optimality Equation"){height=6cm}
 </div>
 
 
 <div style="text-align:center" markdown="1">
-![Visualization of MDP Action-Value Function Bellman Optimality Equation \label{fig:mdp_bellman_opt_tree_qq}](./chapter3/mdp_bellman_opt_tree_qq.png "Visualization of MDP Action-Value Function Bellman Optimality Equation")
+![Visualization of MDP Action-Value Function Bellman Optimality Equation \label{fig:mdp_bellman_opt_tree_qq}](./chapter3/mdp_bellman_opt_tree_qq.png "Visualization of MDP Action-Value Function Bellman Optimality Equation"){height=6cm}
 </div>
 
 Note that Equation \eqref{eq:mdp_bellman_opt_eqn_vq} and Equation \eqref{eq:mdp_bellman_opt_eqn_qv} are embedded in Figure \ref{fig:mdp_bellman_opt_tree_vv} as well as in Figure \ref{fig:mdp_bellman_opt_tree_qq}. Equations \eqref{eq:mdp_bellman_opt_eqn_vv}, \eqref{eq:mdp_bellman_opt_eqn_vq}, \eqref{eq:mdp_bellman_opt_eqn_qv} and \eqref{eq:mdp_bellman_opt_eqn_qq} are collectively known as the MDP Bellman Optimality Equations. We should highlight that when someone says MDP Bellman Equation or simply Bellman Equation, unless they explicit state otherwise, they'd be referring to the MDP Bellman Optimality Equations (and typically specifically the MDP State-Value Function Bellman Optimality Equation). This is because the MDP Bellman Optimality Equations address the ultimate purpose of Markov Decision Processes—to identify the Optimal Value Function and the associated policy/policies that achieve the Optimal Value Function (i.e., enabling us to solve the MDP *Control* problem).
@@ -969,7 +969,7 @@ In our definition of MDP, note that we implicitly assumed that $S_t^{(e)} = S_t^
 $$O_t = S_t^{(e)} = S_t^{(a)} \text{ for all time steps } t = 0, 1, 2, \ldots$$
 The above statement specialized the framework to that of Markov Decision Processes, which we can now name more precisely as Fully-Observable Markov Decision Processes (when viewed from the lens of the more generic framework described above, that permits partial observability or full observability).
 
-![Partially-Observable Markov Decision Process \label{fig:pomdp_cycle}](./chapter3/pomdp.png "Agent-Environment interaction in a Partially-Observable Markov Decision Process")
+![Partially-Observable Markov Decision Process \label{fig:pomdp_cycle}](./chapter3/pomdp.png "Agent-Environment interaction in a Partially-Observable Markov Decision Process"){height=3cm}
 
 In practice, you will often find that the agent doesn't know the true internal representation ($S_t^{(e)}$) of the environment (i.e, partial observability). Think about what it would take to know what drives a stock price from time step $t$ to $t+1$—the agent would need to have access to pretty much every little detail of trading activity in the entire world, and more!. However, since the MDP framework is simple and convenient, and since we have tractable Dynamic Programming and Reinforcement Learning algorithms to solve MDPs, we often do pretend that $O_t = S_t^{(e)} = S_t^{(a)}$ and carry on with our business of solving the assumed/modeled MDP. Often, this assumption of $O_t = S_t^{(e)} = S_t^{(a)}$ turns out to be a reasonable approximate model of the real-world but there are indeed situations where this assumption is far-fetched. These are situations where we have access to too little information pertaining to the key aspects of the internal state representation ($S_t^{(e)}$) of the environment. It turns out that we have a formal framework for these situations—this framework is known as Partially-Observable Markov Decision Process (POMDP for short). By default, the acronym MDP will refer to a Fully-Observable Markov Decision Process (i.e. corresponding to the MDP definition we have given earlier in this chapter). So let's now define a POMDP. 
 

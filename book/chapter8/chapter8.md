@@ -651,7 +651,7 @@ We note that the call option price is quite high (23.28) when the risk-aversion 
 \index{finance!derivative!call option}
 \index{finance!derivative!hedging}
 
-![Hedges When Buying a Call Option \label{fig:buy_call_option_hedges}](./chapter8/buy_call_option_hedges.png "Hedges When Buying a Call Option")
+![Hedges When Buying a Call Option \label{fig:buy_call_option_hedges}](./chapter8/buy_call_option_hedges.png "Hedges When Buying a Call Option"){height=7cm}
 
 Now let us consider the case of selling the same call option. In our code, the only change we make is to make the payoff function `lambda x: - max(x - 105.0, 0)` instead of `lambda x: max(x - 105.0, 0)` to reflect the fact that we are now selling the call option and so, our payoff will be the negative of that of an owner of the call option.
 
@@ -668,7 +668,7 @@ With the same inputs of $S_0 = 100, r = 5\%, \mu = 110, \sigma = 25$, and for th
 
 We note that the sale price demand for the call option is quite low (6.31) when the risk-aversion is low at $a=0.3$ (relative to the complete market price of 11.43) but the sale price demand for the call option rises sharply to 32.32 and 44.24 for $a=0.6$ and $a=0.9$, respectively. This makes sense since if you are more risk-averse (high $a$), then you'd be less willing to take the risk of selling a call option and hence, would want to charge more for the sale of the call option. Note how the risky asset hedge units are less (~52\% – 53\%) compared to the risky asset hedge units (60\%) in the case of a complete market. The varying riskless borrowing amounts (as a function of the risk-aversion $a$) essentially account for the variation in option prices (as a function of $a$). Figure \ref{fig:sell_call_option_hedges} provides the visual intuition on how the hedges work for the 3 choices of risk-aversion parameters (along with the hedges for the complete market, for reference). 
 
-![Hedges When Selling a Call Option \label{fig:sell_call_option_hedges}](./chapter8/sell_call_option_hedges.png "Hedges When Selling a Call Option")
+![Hedges When Selling a Call Option \label{fig:sell_call_option_hedges}](./chapter8/sell_call_option_hedges.png "Hedges When Selling a Call Option"){height=7cm}
 
 \index{finance!derivative!call option}
 \index{finance!derivative!hedging}
@@ -755,7 +755,7 @@ where $\sigma$ is the lognormal dispersion (often referred to as "lognormal vola
 
 The Binomial Options Pricing Model serves as a discrete-time, finite-horizon, finite-states approximation to this continuous-time process, and is essentially an extension of the single-period model we had covered earlier for the case of a single fundamental risky asset. We've learnt previously that in the single-period case for a single fundamental risky asset, in order to be a complete market, we need to have exactly two random outcomes. We basically extend this "two random outcomes" pattern to each outcome at each time step, by essentially growing out a "binary tree". But there is a caveat—with a binary tree, we end up with an exponential ($2^i$) number of outcomes after $i$ time steps. To contain the exponential growth, we construct a "recombining tree", meaning an "up move" followed by a "down move" ends up in the same underlying price outcome as a "down move" followed by an "up move" (as illustrated in Figure \ref{fig:binomial-tree}). Thus, we have $i+1$ price outcomes after $i$ time steps in this "recombining tree". We conceptualize the ascending-sorted sequence of $i+1$ price outcomes as the (time step $=i$) states $\mathcal{S}_i = \{0, 1, \ldots, i\}$ (since the price movements form a discrete-time, finite-states Markov Process). Since we are modeling a lognormal process, we model the discrete-time price moves as multiplicative to the price. We denote $S_{i,j}$ as the price after $i$ time steps in state $j$ (for any $i \in \mathbb{Z}_{\geq 0}$ and for any $0 \leq j \leq i$). So the two random prices resulting from $S_{i,j}$ are $S_{i+1,j+1} = S_{i,j} \cdot u$ and $S_{i+1,j} = S_{i,j} \cdot d$ for some constants $u$ and $d$ (that are calibrated). The important point is that $u$ and $d$ remain constant across time steps $i$ and across states $j$ at each time step $i$ (as seen in Figure \ref{fig:binomial-tree}). 
 
-![Binomial Option Pricing Model (Binomial Tree) \label{fig:binomial-tree}](./chapter8/binomial_tree.png "Binomial Options Pricing Model (Binomial Tree)")
+![Binomial Option Pricing Model (Binomial Tree) \label{fig:binomial-tree}](./chapter8/binomial_tree.png "Binomial Options Pricing Model (Binomial Tree)"){height=7cm}
 
 Let $q$ be the probability of the "up move" (typically, we use $p$ to denote real-world probability and $q$ to denote the risk-neutral probability) so that $1-q$ is the probability of the "down move". Just like $u$ and $d$, the value of $q$ is kept constant across time steps $i$ and across states $j$ at each time step $i$ (as seen in Figure \ref{fig:binomial-tree}). $q, u$ and $d$ need to be calibrated so that the probability distribution of log-price-ratios $\{\log(\frac {S_{i,0}} {S_{0,0}}), \log(\frac {S_{i,1}} {S_{0,0}}), \ldots, \log(\frac {S_{i,i}} {S_{0,0}})\}$ after $i$ time steps (with each time step of interval $\frac T n$ for a given expiry time $T\in \mathbb{R}^+$ and a fixed number of time steps $n \in \mathbb{Z}^+$) serves as a good approximation to $\mathcal{N}((r - \frac {\sigma^2} {2}) \frac {iT} n, \frac {\sigma^2 iT} n)$ (that we know to be the risk-neutral probability distribution of $\log(\frac {S_{\frac {iT} n}} {S_0})$ in the continuous-time process defined by Equation \eqref{eq:risk-neutral-lognormal-process}, as derived in Section [-@sec:lognormal-process-section] in Appendix [-@sec:stochasticcalculus-appendix]), for all $i = 0, 1, \ldots, n$. Note that the starting price $S_{0,0}$ of this discrete-time approximation process is equal to the starting price $S_0$ of the continuous-time process.
 
@@ -945,7 +945,7 @@ European Price = 7.459
 American Price = 7.971
 ```
 
-![Put Option Exercise Boundary \label{fig:put_option_exercise_boundary}](./chapter8/put_option_ex_boundary.png "Put Option Exercise Boundary")
+![Put Option Exercise Boundary \label{fig:put_option_exercise_boundary}](./chapter8/put_option_ex_boundary.png "Put Option Exercise Boundary"){height=7cm}
 
 So we can see that the price of this American Put Option is significantly higher than the price of the corresponding European Put Option. The exercise boundary produced by this code is shown in Figure \ref{fig:put_option_exercise_boundary}. The locally-jagged nature of the exercise boundary curve is because of the "diamond-like" local-structure of the underlying prices at the nodes in the binomial tree. We can see that when the time to expiry is large, it is not optimal to exercise unless the underlying price drops significantly. It is only when the time to expiry becomes quite small that the optimal exercise boundary rises sharply towards the strike price value.
 

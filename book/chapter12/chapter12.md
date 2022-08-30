@@ -405,7 +405,7 @@ lstd_vf: np.ndarray = lstd_func.evaluate(nt_states)
 
 Figure \ref{fig:lstd_vf_comparison} depicts how the LSTD Value Function estimate (for 10,000 transitions) `lstd_vf` compares against Incremental Tabular TD Value Function estimate (for 10,000 transitions) `td_vf` and against the true value function `true_vf` (obtained using the linear-algebra-solver-based calculation of the MRP Value Function). We encourage you to modify the parameters used in the code above to see how it alters the results—specifically play around with `this_barrier`, `this_p`, `gamma`, `num_transitions`, the learning rate trajectory for Incremental Tabular TD, the number of Laguerre polynomials, and `epsilon`. The above code is in the file [rl/chapter12/random_walk_lstd.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/random_walk_lstd.py).
 
-![LSTD and Tabular TD Value Functions \label{fig:lstd_vf_comparison}](./chapter12/lstd_vf_comparison.png "LSTD and Tabular TD Value Functions")
+![LSTD and Tabular TD Value Functions \label{fig:lstd_vf_comparison}](./chapter12/lstd_vf_comparison.png "LSTD and Tabular TD Value Functions"){height=7cm}
 
 \index{reinforcement learning!least squares!lstd|)}
 
@@ -811,11 +811,11 @@ The above code should be self-explanatory. The main challenge with LSPI is that 
 
 Figure \ref{fig:lspi_opt_vf_comparison} shows the plot of the True Optimal Value Function (from Value Iteration) versus the LSPI-estimated Optimal Value Function. 
 
-![True versus LSPI Optimal Value Function \label{fig:lspi_opt_vf_comparison}](./chapter12/vampire_lspi_opt_vf.png "True versus LSPI Optimal Value Function")
+![True versus LSPI Optimal Value Function \label{fig:lspi_opt_vf_comparison}](./chapter12/vampire_lspi_opt_vf.png "True versus LSPI Optimal Value Function"){height=7cm}
 
 Figure \ref{fig:lspi_opt_policy_comparison} shows the plot of the True Optimal Policy (from Value Iteration) versus the LSPI-estimated Optimal Policy. 
 
-![True versus LSPI Optimal Policy \label{fig:lspi_opt_policy_comparison}](./chapter12/vampire_lspi_opt_policy.png "True versus LSPI Optimal Policy")
+![True versus LSPI Optimal Policy \label{fig:lspi_opt_policy_comparison}](./chapter12/vampire_lspi_opt_policy.png "True versus LSPI Optimal Policy"){height=7cm}
 
 The above code is in the file [rl/chapter12/vampire.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/chapter12/vampire.py). As ever, we encourage you to modify some of the parameters in this code (including choices of feature functions, nature and number of atomic transitions used, number of GPI iterations, choice of $\epsilon$, and perhaps even a different dynamic for the vampire behavior), and see how the results change.
 
@@ -1036,7 +1036,7 @@ $$\bpi = \bphi \cdot (\bphi^T \cdot \bd \cdot \bphi)^{-1} \cdot \bphi^T \cdot \b
 
 In this section, we cover 4 Value Function vectors of interest in the $\bphi$ subspace, as candidate linear function approximations of the Value Function $\bvpi$. To lighten notation, we will refer to the $\bphi$-subspace Value Function vectors by their corresponding weights $\bw$. All 4 of these Value Function vectors are depicted in Figure \ref{fig:vf_geometry}, an image we are borrowing from [Sutton and Barto's RL book](http://incompleteideas.net/book/the-book-2nd.html) [@Sutton1998]. We spend the rest of this section going over these 4 Value Function vectors in detail.
 
-![Value Function Geometry (Image Credit: Sutton-Barto's RL Book) \label{fig:vf_geometry}](./chapter12/vf_geometry.jpg "Value Function Geometry (Image Credit: Sutton-Barto's RL Book)")
+![Value Function Geometry (Image Credit: Sutton-Barto's RL Book) \label{fig:vf_geometry}](./chapter12/vf_geometry.jpg "Value Function Geometry (Image Credit: Sutton-Barto's RL Book)"){height=8cm}
 
 The first Value Function vector of interest in the $\bphi$ subspace is the Projection $\bpi \cdot \bvpi$, denoted as $\bm{w}_{\pi} = \argmin_{\bw} d(\bvpi, \bvw)$. This is the linear function approximation of the Value Function $\bvpi$ we seek because it is the Value Function vector in the $\bphi$ subspace that is "closest" to $\bvpi$. Monte-Carlo with linear function approximation will (slowly) converge to $\bw_{\pi}$. Figure \ref{fig:vf_geometry} provides the visualization. We've learnt that Monte-Carlo can be slow to converge, so we seek function approximations in the $\bphi$ subspace that are based on Temporal-Difference (TD), i.e., bootstrapped methods. The remaining three Value Function vectors in the $\bphi$ subspace are based on TD methods.
 

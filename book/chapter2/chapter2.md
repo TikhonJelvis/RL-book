@@ -27,7 +27,7 @@ where $L$ is an arbitrary reference level and $\alpha_1 \in \mathbb{R}_{\geq 0}$
 \index{functions!logistic function|textbf}
 
 <div style="text-align:center" markdown="1">
-![Logistic Curves \label{fig:logistic}](./chapter2/logistic_curves.png "Logistic Curves")
+![Logistic Curves \label{fig:logistic}](./chapter2/logistic_curves.png "Logistic Curves"){height=7cm}
 </div>
  The way to interpret this logistic function of $L-X_t$ is that if $X_t$ is greater than the reference level $L$ (making $\mathbb{P}[X_{t+1} = X_t + 1] < 0.5$), then there is more of a down-pull than an up-pull. Likewise, if $X_t$ is less than $L$, then there is more of an up-pull. The extent of the pull is controlled by the magnitude of the parameter $\alpha_1$. We refer to this behavior as *mean-reverting behavior*\index{mean-reverting}, meaning the stock price tends to revert to the "mean" (i.e., to the reference level $L$).
 
@@ -177,7 +177,7 @@ where $f: [0, 1] \rightarrow [0, 1]$ is a sigmoid-shaped function
  whose steepness at $x=0.5$ is controlled by the parameter $\alpha$ (note: values of $\alpha < 1$ will produce an inverse sigmoid as seen in Figure \ref{fig:unit_sigmoid}, which shows unit-sigmoid functions \index{functions!unit-sigmoid function|textbf} $f$ for different values of $\alpha$). 
 
 <div style="text-align:center" markdown="1">
-![Unit-Sigmoid Curves \label{fig:unit_sigmoid}](./chapter2/unit_sigmoid_curves.png "Unit-Sigmoid Curves")
+![Unit-Sigmoid Curves \label{fig:unit_sigmoid}](./chapter2/unit_sigmoid_curves.png "Unit-Sigmoid Curves"){height=7cm}
 </div>
  The probability of next up-movement is fundamentally dependent on the quantity $\frac {D_t} {U_t + D_t}$ (the function $f$ simply serves to control the extent of the "reverse pull"). $\frac {D_t} {U_t + D_t}$ is the fraction of past time steps when there was a down-move. So, if number of down-moves in history are greater than number of up-moves in history, then there will be more of an up-pull than a down-pull for the next price movement $X_{t+1} - X_t$ (likewise, the other way round when $U_t > D_t$). The extent of this "reverse pull" is controlled by the "pull strength" parameter $\alpha_3$ (governed by the sigmoid-shaped function $f$).
 
@@ -246,11 +246,11 @@ As suggested for Process 1, you can plot graphs of sampling traces of the stock 
  Figure \ref{fig:single_trace_mp} shows a single sampling trace of stock prices for each of the 3 processes. Figure \ref{fig:terminal_distribution_mp} shows the probability distribution of the stock price at terminal time $T=100$ over 1000 traces.
 
 <div style="text-align:center" markdown="1">
-![Single Sampling Trace \label{fig:single_trace_mp}](./chapter2/single_traces.png "Single Sampling Trace")
+![Single Sampling Trace \label{fig:single_trace_mp}](./chapter2/single_traces.png "Single Sampling Trace"){height=7cm}
 </div>
 
 <div style="text-align:center" markdown="1">
-![Terminal Distribution \label{fig:terminal_distribution_mp}](./chapter2/terminal_distribution.png "Terminal Distribution")
+![Terminal Distribution \label{fig:terminal_distribution_mp}](./chapter2/terminal_distribution.png "Terminal Distribution"){height=7cm}
 </div>
 
 Having developed the intuition for the Markov Property of States, we are now ready to formalize the notion of Markov Processes (some of the literature refers to Markov Processes as Markov Chains, but we will stick with the term Markov Processes).
@@ -514,7 +514,7 @@ from rl.distribution import Categorical
 It is common to view this Markov Process representation as a directed graph, as depicted in Figure \ref{fig:weather_mp}. The nodes are the states and the directed edges are the probabilistic state transitions, with the transition probabilities labeled on them.
 
 <div style="text-align:center" markdown="1">
-![Weather Markov Process \label{fig:weather_mp}](./chapter2/weather_mp.png "Weather Markov Process")
+![Weather Markov Process \label{fig:weather_mp}](./chapter2/weather_mp.png "Weather Markov Process"){height=5cm}
 </div>
 
 Our goal now is to define a `FiniteMarkovProcess` class that is a concrete class implementation of the abstract class `MarkovProcess`. This requires us to wrap the states in the keys/values of the `FiniteMarkovProcess` dictionary with the appropriate `Terminal` or `NonTerminal` wrapping. Let's create an alias called `Transition` for this wrapped dictionary data structure since we will use this wrapped data structure often:
@@ -689,7 +689,7 @@ From State InventoryState(on_hand=2, on_order=0):
 For a graphical view of this Markov Process, see Figure \ref{fig:inventory_mp}. The nodes are the states, labeled with their corresponding $\alpha$ and $\beta$ values. The directed edges are the probabilistic state transitions from 6pm on a day to 6pm on the next day, with the transition probabilities labeled on them.
 
 <div style="text-align:center" markdown="1">
-![Simple Inventory Markov Process \label{fig:inventory_mp}](./chapter2/simple_inv_mp.png "Simple Inventory Markov Process")
+![Simple Inventory Markov Process \label{fig:inventory_mp}](./chapter2/simple_inv_mp.png "Simple Inventory Markov Process"){height=7cm}
 </div>
 
 We can perform a number of interesting experiments and calculations with this simple Markov Process, and we encourage you to play with this code (specifically varying the capacity $C$ and Poisson mean $\lambda$) to run simulations and probabilistic calculations of natural curiosity for a store owner.
@@ -1193,7 +1193,7 @@ Note that although the transitions to random states $s',s'', \ldots$ are in the 
 We refer to this recursive equation \eqref{eq:mrp_bellman_eqn} for the Value Function as the Bellman Equation for Markov Reward Processes. Figure \ref{fig:mrp_bellman_tree} is a convenient visualization aid of this important equation. In the rest of the book, we will depict quite a few of these type of state-transition visualizations to aid with creating mental models of key concepts.
 
 <div style="text-align:center" markdown="1">
-![Visualization of MRP Bellman Equation \label{fig:mrp_bellman_tree}](./chapter2/mrp_bellman_tree.png "Visualization of MRP Bellman Equation")
+![Visualization of MRP Bellman Equation \label{fig:mrp_bellman_tree}](./chapter2/mrp_bellman_tree.png "Visualization of MRP Bellman Equation"){height=4cm}
 </div>
 
 For the case of Finite Markov Reward Processes, assume $\mathcal{S} = \{s_1, s_2, \ldots, s_n\}$ and assume $\mathcal{N}$ has $m \leq n$ states. Below we use bold-face notation to represent functions as column vectors and matrices since we have finite states/transitions. So, $\bv$ is a column vector of length $m$, $\bm{\mathcal{P}}$ is an $m \times m$ matrix, and $\bm{\mathcal{R}}$ is a column vector of length $m$ (rows/columns corresponding to states in $\mathcal{N}$), so we can express the above equation in vector and matrix notation as follows:

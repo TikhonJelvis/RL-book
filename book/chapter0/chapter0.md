@@ -67,7 +67,7 @@ More importantly, the class of problems RL aims to solve can be described with a
 
 ### Introduction to the Markov Decision Process (MDP) framework
 
-![The MDP Framework \label{fig:mdp_framework}](./chapter0/MDP.png "Agent-Environment Interaction in a MDP")
+![The MDP Framework \label{fig:mdp_framework}](./chapter0/MDP.png "Agent-Environment Interaction in a MDP"){height=4cm}
 
 The framework of a Markov Decision Process\index{Markov decision process|(} is depicted in Figure \ref{fig:mdp_framework}. As the figure indicates, the *Agent*\index{Markov decision process!agent|(} and the *Environment*\index{Markov decision process!environment|(} interact in a time-sequenced loop. The term *Agent* refers to an algorithm (AI algorithm) and the term *Environment* refers to an abstract entity that serves up uncertain outcomes to the Agent. It is important to note that the Environment is indeed abstract in this framework and can be used to model all kinds of real-world situations such as the financial market serving up random stock prices or customers of a company serving up random demand or a chess opponent serving up random moves (from the perspective of the Agent), or really anything at all you can imagine that serves up something random at each time step (it is up to us to model an Environment appropriately to fit the MDP framework).
 
