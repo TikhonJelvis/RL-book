@@ -101,16 +101,16 @@ Now we move on to the key concept of *contraction*. A function $f: \mathcal{X} \
 
 We use the notation $f^i: \mathcal{X} \rightarrow \mathcal{X}$ for $i = 0, 1, 2, \ldots$ as follows:
 
- $$f^{i+1}(x) = f(f^i(x)) \text{ for all } i = 0, 1, 2, \ldots, \text{ for all } x \in \mathcal{X}$$
- $$f^0(x) = x \text{ for all } x \in \mathcal{X}$$
+$$f^{i+1}(x) = f(f^i(x)) \text{ for all } i = 0, 1, 2, \ldots, \text{ for all } x \in \mathcal{X}$$
+$$f^0(x) = x \text{ for all } x \in \mathcal{X}$$
 
- With this notation, the computation of the fixed-point can be expressed as:
+With this notation, the computation of the fixed-point can be expressed as:
 
- $$\lim_{i \rightarrow \infty} f^i(x_0) = x^* \text{ for all } x_0 \in \mathcal{X}$$
+$$\lim_{i \rightarrow \infty} f^i(x_0) = x^* \text{ for all } x_0 \in \mathcal{X}$$
 
- The algorithm, in iterative form, is:
+The algorithm, in iterative form, is:
 
- $$x_{i+1} = f(x_i) \text{ for all } i = 0, 2, \ldots$$
+$$x_{i+1} = f(x_i) \text{ for all } i = 0, 2, \ldots$$
 
 We stop the algorithm when $x_i$ and $x_{i+1}$ are close enough based on the distance-metric $d$.
 
@@ -257,8 +257,7 @@ This gives us the following iterative algorithm (known as the *Policy Evaluation
 * Start with any Value Function $\bm{V_0} \in \mathbb{R}^m$
 * Iterating over $i = 0, 1, 2, \ldots$, calculate in each iteration:
 $$\bm{V_{i+1}} = \bbpi(\bm{V_i}) = \bm{\mathcal{R}}^{\pi} + \gamma \bm{\mathcal{P}}^{\pi} \cdot \bm{V_i}$$
-
-We stop the algorithm when $d(\bm{V_i}, \bm{V_{i+1}}) = \max_{s \in \mathcal{N}} |(\bm{V_i} - \bm{V_{i+1}})(s)|$ is adequately small.
+* Stop the algorithm when $d(\bm{V_i}, \bm{V_{i+1}}) = \max_{s \in \mathcal{N}} |(\bm{V_i} - \bm{V_{i+1}})(s)|$ is adequately small.
 
 It pays to emphasize that Banach Fixed-Point Theorem not only assures convergence to the unique solution $\bvpi$ (no matter what Value Function $\bm{V_0}$ we start the algorithm with), it also assures a reasonable speed of convergence (dependent on the choice of starting Value Function $\bm{V_0}$ and the choice of $\gamma$). Now let's write the code for Policy Evaluation.
 
@@ -464,10 +463,11 @@ The proof of the Policy Improvement Theorem has shown us how to start with the V
 * Iterating over $j = 0, 1, 2, \ldots$, calculate in each iteration:
 $$\text{ Deterministic Policy } \pi_{j+1} = G(\bm{V_j})$$
 $$\text{ Value Function } \bm{V_{j+1}} = \lim_{i\rightarrow \infty} (\bm{B}^{\pi_{j+1}})^i(\bm{V_j})$$
+* Stop the algorithm when $d(\bm{V_j}, \bm{V_{j+1}}) = \max_{s \in \mathcal{N}} |(\bm{V_j} - \bm{V_{j+1}})(s)|$ is adequately small.
 
 ![Policy Iteration Loop \label{fig:policy_iteration_loop}](./chapter4/policy_iteration_loop.png "Policy Iteration as a loop of Policy Evaluation and Policy Improvement"){height=5cm}
 
-We perform these iterations (over $j$) until $\bm{V_{j+1}}$ is identical to $\bm{V_j}$ (i.e., there is no further improvement to the Value Function). When this happens, the following should hold:
+So, the algorithm terminates when there is no further improvement to the Value Function. When this happens, the following should hold:
 $$\bm{V_j} = (\bm{B}^{G(\bm{V_j})})^i(\bm{V_j}) = \bm{V_{j+1}} \text{ for all } i = 0, 1, 2, \ldots$$
 In particular, this equation should hold for $i = 1$:
 
@@ -546,7 +546,6 @@ By making a small tweak to the definition of Greedy Policy Function in Equation 
 \index{Bellman optimality operator|textbf}
 
 $$\bbs: \mathbb{R}^m \rightarrow \mathbb{R}^m$$
-
 as the following (non-linear) transformation of a vector (representing a Value Function) in the vector space $\mathbb{R}^m$
 
 \begin{equation}
@@ -554,14 +553,11 @@ as the following (non-linear) transformation of a vector (representing a Value F
 \label{eq:bellman_optimality_operator1}
 \end{equation}
 We shall use Equation \eqref{eq:bellman_optimality_operator1} in our mathematical exposition but we require a different (but equivalent) expression for $\bbs(\bv)(s)$ to guide us with our code since the interface for `FiniteMarkovDecisionProcess` operates on $\mathcal{P}_R$, rather than $\mathcal{R}$ and $\mathcal{P}$. The equivalent expression for $\bbs(\bv)(s)$ is as follows:
-
 \begin{equation}
  \bbs(\bv)(s) = \max_{a\in \mathcal{A}} \{\sum_{s' \in \mathcal{S}} \sum_{r \in \mathcal{D}} \mathcal{P}_R(s,a,r,s') \cdot (r + \gamma \cdot \bm{W}(s'))\} \text{ for all } s \in \mathcal{N}
 \label{eq:bellman_optimality_operator2}
 \end{equation}
-
 where $\bm{W} \in \mathbb{R}^n$ is defined (same as in the case of Equation \eqref{eq:greedy_policy_function2}) as:
-
 $$\bm{W}(s') =
 \begin{cases}
 \bv(s') & \text{ if } s' \in \mathcal{N} \\
@@ -630,9 +626,7 @@ Since $\bbs$ has the constant shift property,
 $$\bbs(\bm{X})(s) - \gamma c \leq \bbs(\bm{Y})(s) \leq \bbs(\bm{X})(s) + \gamma c \text{ for all } s \in \mathcal{N}$$
 In other words,
 $$\max_{s \in \mathcal{N}} |(\bbs(\bm{X}) - \bbs(\bm{Y}))(s)| \leq \gamma c  = \gamma \cdot \max_{s\in \mathcal{N}} |(\bm{X} - \bm{Y})(s)|$$
-
-
-So invoking Banach Fixed-Point Theorem proves the following Theorem:
+So, invoking Banach Fixed-Point Theorem proves the following Theorem:
 
 \index{dynamic programming!value iteration!convergence theorem}
 
@@ -649,8 +643,7 @@ This gives us the following iterative algorithm, known as the *Value Iteration* 
 * Start with any Value Function $\bm{V_0} \in \mathbb{R}^m$
 * Iterating over $i = 0, 1, 2, \ldots$, calculate in each iteration:
 $$\bm{V_{i+1}}(s) = \bbs(\bm{V_i})(s) \text{ for all } s \in \mathcal{N}$$
-
-We stop the algorithm when $d(\bm{V_i}, \bm{V_{i+1}}) = \max_{s \in \mathcal{N}} |(\bm{V_i} - \bm{V_{i+1}})(s)|$ is adequately small.
+* Stop the algorithm when $d(\bm{V_i}, \bm{V_{i+1}}) = \max_{s \in \mathcal{N}} |(\bm{V_i} - \bm{V_{i+1}})(s)|$ is adequately small.
 
 It pays to emphasize that Banach Fixed-Point Theorem not only assures convergence to the unique solution $\bvs$ (no matter what Value Function $\bm{V_0}$ we start the algorithm with), it also assures a reasonable speed of convergence (dependent on the choice of starting Value Function $\bm{V_0}$ and the choice of $\gamma$).
 
@@ -658,19 +651,16 @@ It pays to emphasize that Banach Fixed-Point Theorem not only assures convergenc
 ### Optimal Policy from Optimal Value Function
 
 \index{policy!optimal policy from optimal value function}
+\index{value function!optimal value function}
+\index{policy!optimal policy}
 
 Note that the Policy Iteration algorithm produces a policy together with a Value Function in each iteration. So, in the end, when we converge to the Optimal Value Function $\bm{V_j} = \bvs$ in iteration $j$, the Policy Iteration algorithm has a deterministic policy $\pi_j$ associated with $\bm{V_j}$ such that:
 $$\bm{V_j} = \bm{V}^{\pi_j} = \bvs$$
 and we refer to $\pi_j$ as the Optimal Policy $\pi^*$, one that yields the Optimal Value Function $\bvs$, i.e.,
 $$\bm{V}^{\pi^*} = \bvs$$
-
 But Value Iteration has no such policy associated with it since the entire algorithm is devoid of a policy representation and operates only with Value Functions. So now the question is: when Value Iteration converges to the Optimal Value Function 
 $\bm{V_i} = \bvs$ in iteration $i$, how do we get hold of an Optimal Policy $\pi^*$ such that:
 $$\bm{V}^{\pi^*} = \bm{V_i} = \bvs$$
-
-\index{value function!optimal value function}
-\index{policy!optimal policy}
-
 The answer lies in the Greedy Policy function $G$. Equation \eqref{eq:greedy_improvement_optimality_operator} told us that:
 $$\bm{B}^{G(\bv)}(\bv) = \bbs(\bv) \text{ for all } \bv \in \mathbb{R}^m$$
 Specializing $\bv$ to be $\bvs$, we get:

@@ -64,6 +64,7 @@ $z$ always lies on the opposite side of $p$ on the (efficient frontier) parabola
 The $X$ vector (normalized investment quantities in assets) of any efficient portfolio is a linear combination of the $X$ vectors of two other efficient portfolios. Notationally,
 $$X_p = \alpha X_{p_1} + (1-\alpha) X_{p_2} \mbox{ for some scalar } \alpha$$
 Varying $\alpha$ from $-\infty$ to $+\infty$ basically traces the entire efficient frontier. So to construct all efficient portfolios, we just need to identify two canonical efficient portfolios. One of them is GMVP. The other is a portfolio we call Special Efficient Portfolio (SEP) with:
+
 * Mean $r_1  = \frac a b$.
 * Variance $\sigma_1^2 = \frac a {b^2}$.
 * Investment proportions $X_1 = \frac {V^{-1} \cdot R} {b}$.
@@ -102,7 +103,9 @@ $$R = r_p \beta_p = \frac {r_p} {\sigma_p^2} \cdot V \cdot X_p$$
 * The cross-sectional variance in $\beta$s (variance in $\beta$s across assets for a fixed efficient portfolio) is zero when the efficient portfolio is GMVP and is also zero when the efficient portfolio has infinite mean.
 * The cross-sectional variance in $\beta$s is maximum for the two efficient portfolios with means: $r_0 + \sigma_0^2 \sqrt{|A|}$ and $r_0 - \sigma_0^2 \sqrt{|A|}$ where $A$ is the 2 $\times$ 2 symmetric matrix consisting of $a,b,b,c$.
 * These two portfolios lie symmetrically on opposite sides of the efficient frontier (their $\beta$s are equal and of opposite signs), and are the only two orthogonal efficient portfolios with the same variance ( $= 2 \sigma_0^2$).
+
 \index{portfolio theory!efficient portfolio}
+
 ### Efficient Set with a Risk-Free Asset
 \index{portfolio theory!efficient set}
 \index{finance!riskless asset}

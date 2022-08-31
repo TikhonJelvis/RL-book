@@ -13,6 +13,7 @@ $$Z_{t+1} = Z_t + Y_t \mbox{ and } \mathbb{P}[Y_t = 1] = \mathbb{P}[Y_t = -1] = 
 A quick point on notation: We refer to the random state at time $t$ as $Z_t$ (i.e., as a random variable at time $t$), whereas we refer to the Markov Process for this simple random walk as $Z$ (i.e., without any subscript).
 
 Since the random variables $\{Y_t|t = 0, 1, \ldots\}$ are i.i.d, the *increments* $Z_{t_{i+1}} - Z_{t_i}$ (for $i = 0, 1, \ldots n-1$) in the random walk states for any set of time steps $t_0 < t_1 < \ldots < t_n$ have the following properties:
+
 * **Independent Increments**: Increments $Z_{t_1} - Z_{t_0}, Z_{t_2} - Z_{t_1}, \ldots, Z_{t_n} - Z_{t_{n-1}}$ are independent of each other.
 * **Martingale (i.e., Zero-Drift) Property**: Expected Value of any Increment is 0.
 $$\mathbb{E}[Z_{t_{i+1}} - Z_{t_i}] = \sum_{j=t_i}^{t_{i+1} - 1} \mathbb{E}[Z_{j+1} - Z_j] = 0 \text{ for all } i = 0, 1, \ldots, n-1$$

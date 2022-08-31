@@ -9,16 +9,14 @@ In this Appendix, we sketch the derivation of the [much-celebrated Black-Scholes
 The Black-Scholes Model is about pricing and hedging of a derivative on a single underlying asset (henceforth, simply known as "underlying"). The model makes several simplifying assumptions for analytical convenience. Here are the assumptions:
 \index{finance!Black-Scholes model}
 \index{finance!derivative!underlying}
+\index{stochastic process!geometric Brownian motion}
+\index{finance!risky asset}
 
 * The underlying (whose price we denote as $S_t$ as time $t$) follows a special case of the lognormal process we covered in Section [-@sec:lognormal-process-section] of Appendix [-@sec:stochasticcalculus-appendix], where the drift $\mu(t)$ is a constant (call it $\mu \in \mathbb{R}$) and the dispersion $\sigma(t)$ is also a constant (call it $\sigma \in \mathbb{R}^+$):
 \begin{equation}
 dS_t = \mu \cdot S_t \cdot dt + \sigma \cdot S_t \cdot dz_t
 \label{eq:black-scholes-underlying-process}
 \end{equation}
-
-\index{stochastic process!geometric Brownian motion}
-\index{finance!risky asset}
-
 This process is often referred to as *Geometric Brownian Motion* to reflect the fact that the stochastic increment of the process ($\sigma \cdot S_t \cdot dz_t$) is multiplicative to the level of the process $S_t$.
 * The derivative has a known payoff at time $t=T$, as a function $f: \mathbb{R}^+ \rightarrow \mathbb{R}$ of the underlying price $S_T$ at time $T$.
 * Apart from the underlying, the market also includes a riskless asset (which should be thought of as lending/borrowing money at a constant infinitesimal rate of annual return equal to $r$). The riskless asset (denote its price as $R_t$ at time $t$) movements can thus be described as:
@@ -27,6 +25,7 @@ $$dR_t = r \cdot R_t \cdot dt$$
 
 \index{finance!frictionless market}
 \index{finance!riskless asset}
+
 ### Derivation of the Black-Scholes Equation
 
 We denote the price of the derivative at any time $t$ for any price $S_t$ of the underlying as $V(t, S_t)$. Thus, $V(T, S_T)$ is equal to the payoff $f(S_T)$. Applying Ito's Lemma on $V(t, S_t)$ (see Equation \eqref{eq:itos-lemma} in Appendix [-@sec:stochasticcalculus-appendix]), we get:

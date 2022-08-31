@@ -765,8 +765,8 @@ This calibration of $q, u$ and $d$ can be done in a variety of ways and there ar
 $$\log^2(u) = \frac {\sigma^2 T} n \Rightarrow u = e^{\sigma \sqrt{\frac T n}}$$
 * As a second step, $q$ needs to be calibrated to account for the drift term $r \cdot S_t \cdot dt$ in the lognormal process under the risk-neutral probability measure. Specifically, $q$ is adjusted so that for any $i \in \mathbb{Z}_{\geq 0}$, for any $0 \leq j \leq i$, the mean of the two random outcomes $\frac {S_{i+1, j+1}} {S_{i, j}} = u$ and $\frac {S_{i+1,j}} {S_{i,j}} = \frac 1 u$ is equal to the mean $e^{\frac {rT} n}$ of the lognormally-distributed random variable $\frac {S_{t + \frac T n}} {S_t}$ for any $t \geq 0$ (assuming the process $dS_t = r \cdot S_t \cdot dt + \sigma \cdot S_t \cdot dz_t$). This yields:
 $$q u + \frac {1-q} u = e^{\frac {rT} n} \Rightarrow q = \frac {u \cdot e^{\frac {rT} n} - 1} {u^2 - 1} = \frac {e^{\frac {rT} n + \sigma \sqrt{\frac T n}} - 1} {e^{2\sigma \sqrt{\frac T n}} - 1}$$
-\index{finance!risk-neutral probability measure}
 
+\index{finance!risk-neutral probability measure}
 \index{probability!binomial distribution}
 This calibration for $u$ and $q$ ensures that as $n \rightarrow \infty$ (i.e., time step interval $\frac T n \rightarrow 0$), the mean and variance of the binomial distribution after $i$ time steps matches the mean $(r - \frac {\sigma^2} {2}) \frac {iT} n$ and variance $\frac {\sigma^2 iT} n$ of the normally-distributed random variable $\log(\frac {S_{\frac {iT} n}} {S_0})$ in the continuous-time process defined by Equation \eqref{eq:risk-neutral-lognormal-process}, for all $i = 0, 1, \ldots n$. Note that $\log(\frac {S_{i,j}} {S_{0,0}})$ follows a random walk Markov Process (reminiscent of the random walk examples in Chapter [-@sec:mrp-chapter]) with each movement in state space scaled by a factor of $\log(u)$.
 

@@ -1211,7 +1211,7 @@ In the `backward_evaluate` code below, the input argument `mrp_f0_mu_triples` is
 
 \index{probability!sampling}
 \index{probability!probability distribution}
-* An instance of `MarkovRewardProceess`—note that each time step has its own instance of `MarkovRewardProcess` representation of transitions from non-terminal states $s$ in a time step $t$ to the (state $s'$, reward $r$) pairs in the next time step $t+1$ (variable `mrp` in the code below).
+* An instance of `MarkovRewardProcess`—note that each time step has its own instance of `MarkovRewardProcess` representation of transitions from non-terminal states $s$ in a time step $t$ to the (state $s'$, reward $r$) pairs in the next time step $t+1$ (variable `mrp` in the code below).
 * An instance of `ValueFunctionApprox` to capture the approximate Value Function for the time step (variable `approx0` in the code below represents the initial `ValueFunctionApprox` instances).
 * A sampling probability distribution of non-terminal states in the time step (variable `mu` in the code below).
 
