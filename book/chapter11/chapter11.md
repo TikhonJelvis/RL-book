@@ -433,12 +433,17 @@ Just like in the case of RL Prediction, the disadvantage of the TD Target being 
 \index{Markov decision process!reward}
 Note that Equation \eqref{eq:td-control-funcapprox-params-adj} has the entities
 
-* **S**tate $S_t$
-* **A**ction $A_t$
-* **R**eward $R_t$
-* **S**tate $S_{t+1}$
-* **A**ction $A_{t+1}$
+  * **S**tate $S_t$
 
+  * **A**ction $A_t$
+
+  * **R**eward $R_t$
+
+  * **S**tate $S_{t+1}$
+
+  * **A**ction $A_{t+1}$
+
+\noindent
 which prompted this TD Control algorithm to be named SARSA (for **S**tate-**A**ction-**R**eward-**S**tate-**A**ction). Following our convention from Chapter [-@sec:mdp-chapter], we depict the SARSA algorithm in Figure \ref{fig:sarsa_figure} with states as elliptical-shaped nodes, actions as rectangular-shaped nodes, and the edges as samples from transition probability distribution and $\epsilon$-greedy policy distribution. 
 
 <div style="text-align:center" markdown="1">
