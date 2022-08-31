@@ -1211,9 +1211,12 @@ In the `backward_evaluate` code below, the input argument `mrp_f0_mu_triples` is
 
 \index{probability!sampling}
 \index{probability!probability distribution}
-* An instance of `MarkovRewardProcess`—note that each time step has its own instance of `MarkovRewardProcess` representation of transitions from non-terminal states $s$ in a time step $t$ to the (state $s'$, reward $r$) pairs in the next time step $t+1$ (variable `mrp` in the code below).
-* An instance of `ValueFunctionApprox` to capture the approximate Value Function for the time step (variable `approx0` in the code below represents the initial `ValueFunctionApprox` instances).
-* A sampling probability distribution of non-terminal states in the time step (variable `mu` in the code below).
+
+  * An instance of `MarkovRewardProcess`—note that each time step has its own instance of `MarkovRewardProcess` representation of transitions from non-terminal states $s$ in a time step $t$ to the (state $s'$, reward $r$) pairs in the next time step $t+1$ (variable `mrp` in the code below).
+
+  * An instance of `ValueFunctionApprox` to capture the approximate Value Function for the time step (variable `approx0` in the code below represents the initial `ValueFunctionApprox` instances).
+
+  * A sampling probability distribution of non-terminal states in the time step (variable `mu` in the code below).
 
 The backward induction code below should be pretty self-explanatory. Note that in backward induction, we don't invoke the `update` method of `FunctionApprox` like we did in the non-finite-horizon cases—here we invoke the `solve` method which internally performs a series of `update`s on the `FunctionApprox` for a given time step (until we converge to within a specified level of `error_tolerance`). In the non-finite-horizon cases, it was okay to simply do a single `update` in each iteration because we revisit the same set of states in further iterations. Here, once we converge to an acceptable `ValueFunctionApprox` (using `solve`) for a specific time step, we won't be performing any more updates to the Value Function for that time step (since we move on to the next time step, in reverse). `backward_evaluate` returns an Iterator over `ValueFunctionApprox` objects, from time step 0 to the horizon time step. We should point out that in the code below, we've taken special care to handle terminal states (that occur either at the end of the horizon or can even occur before the end of the horizon)—this is done using the `extended_vf` function we'd written earlier.
 
