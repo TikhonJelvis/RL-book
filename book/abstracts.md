@@ -12,7 +12,7 @@ Chapter author: Tikhon Jelvis (https://orcid.org/0000-0002-2532-3215)
 
 ## Abstract
 
-Machine learning—like scientific computing in general—requires a substantial amount of programming. Programming effectively is not only a matter of writing code that works, but also organizing code along conceptual lines so that it is easier to understand, modify and debug. This chapter introduces software engineering concepts useful for writing higher-quality code, focused on designing domain-specific abstractions and interfaces. Each concept is illustrated with Python code, which also introduces core Python features used throughout the rest of the book: classes, inheritance, abstract classes, static types, generic programming, dataclasses, immutability, first-class functions, lambdas, iterators and generators.
+Machine learning—like scientific computing in general—requires a substantial amount of programming. Programming effectively is not only a matter of writing code that works but also organizing code along conceptual lines so that it is easier to understand, modify and debug. This chapter introduces software engineering concepts useful for writing higher-quality code, focused on designing domain-specific abstractions and interfaces. Each concept is illustrated with Python code, which also introduces core Python features used throughout the rest of the book: classes, inheritance, abstract classes, static types, generic programming, dataclasses, immutability, first-class functions, lambdas, iterators and generators.
 
 # Chapter 3: Markov Processes
 
@@ -61,7 +61,7 @@ Chapter author: Ashwin Rao (https://orcid.org/0000-0003-0620-3100)
 
 ## Abstract
 
-Dynamic asset allocation is the problem of periodically deciding how to split investments across assets with different risk-return profiles—an important problem that applies for both companies and individuals. Dynamic consumption is the problem of periodically deciding how much of one's wealth to consume (versus invest). This chapter formalizes the joint problem of dynamic asset allocation and consumption, covers Merton's portfolio problem and solution, which provides an optimal closed-form solution under certain simplifying assumptions. A general form of the dynamic asset allocation and consumption problem can be modeled as a Markov decision process and solved with finite-horizon dynamic programming algorithms. However, in typical real-world situations, the state space of this formulation is too large to be feasible and the distributions of asset returns are unknown, which points to using reinforcement learning algorithms suited for large state spaces rather than dynamic programming.
+Dynamic asset allocation is the problem of periodically deciding how to split investments across assets with different risk-return profiles—an important problem that applies for both companies and individuals. Dynamic consumption is the problem of periodically deciding how much of one's wealth to consume (versus invest). This chapter formalizes the joint problem of dynamic asset allocation and consumption, covers Merton's portfolio problem and solution, which provides an optimal closed-form solution under certain simplifying assumptions. A general form of the dynamic asset allocation and consumption problem can be modeled as a Markov decision process and solved with finite-horizon dynamic programming algorithms. However, in typical real-world situations, the state space of this formulation is too large to be feasible, and the distributions of asset returns are unknown, which points to using reinforcement learning algorithms suited for large state spaces rather than dynamic programming.
 
 # Chapter 9: Derivatives Pricing and Hedging
 
@@ -69,9 +69,9 @@ Chapter author: Ashwin Rao (https://orcid.org/0000-0003-0620-3100)
 
 ## Abstract
 
-The theory of pricing and hedging of financial derivatives is an important topic in Mathematical Finance, and this chapter starts with an overview of financial derivatives. A significant portion of this chapter covers derivatives pricing and hedging theory in a simple single-period setting by developing the concepts of arbitrage, replication, market completeness, risk-neutral measure, and proving the two fundamental theorems of asset pricing (in this simple setting). A brief overview of the theory in the general setting is also provided. This is followed by coverage of the problem of optimal exercise of American options, tackled as a special case of the optimal stopping problem modeled as an MDP. A backward induction algorithm is developed to solve this MDP. Finally, this chapter covers an MDP formulation of the problem of pricing and hedging of derivatives when incorporating real-world frictions (technically known as an incomplete market).
+The theory of pricing and hedging of financial derivatives is an important topic in Mathematical Finance, and this chapter starts with an overview of financial derivatives. A significant portion of this chapter covers derivatives pricing and hedging theory in a simple single-period setting by developing the concepts of arbitrage, replication, market completeness, risk-neutral measure, and proving the two fundamental theorems of asset pricing (in this simple setting). A brief overview of the theory in the general setting is also provided. This is followed by coverage of the problem of optimal exercise of american options, tackled as a special case of the optimal stopping problem modeled as an MDP. A backward induction algorithm is developed to solve this MDP. Finally, this chapter covers an MDP formulation of the problem of pricing and hedging of derivatives when incorporating real-world frictions (technically known as an incomplete market).
 
-# Chapter 10: Order-book Trading Algorithms
+# Chapter 10: Order-Book Trading Algorithms
 
 Chapter author: Ashwin Rao (https://orcid.org/0000-0003-0620-3100)
 
@@ -85,7 +85,7 @@ Chapter author: Ashwin Rao (https://orcid.org/0000-0003-0620-3100)
 
 ## Abstract
 
-This chapter provides the entry into the world of Reinforcement Learning (RL) algorithms. The chapter starts by restricting the RL problem to a very simple one—one where the state space is small and manageable as a table enumeration (known as tabular RL) and where one has to calculate the Value Function for a Fixed Policy (known as the Prediction problem). The restriction to Tabular Prediction makes it very easy to understand the core concepts of Monte-Carlo (MC) and Temporal-Difference (TD). This is then extended to the problem of Prediction with function approximation, enabling handling of large state spaces. Comparisons and contrasts are made between the MC and TD techniques. The chapter ends with coverage of the TD(lambda) algorithm, which enables one to find a continuum of algorithms between MC and TD by tuning the lambda parameter and playing the bias-variance tradeoff. 
+This chapter provides the entry into the world of Reinforcement Learning (RL) algorithms. The chapter starts by restricting the RL problem to a very simple one—where the state space is small and manageable as a table enumeration (known as tabular RL) and where one has to calculate the Value Function for a Fixed Policy (known as the Prediction problem). The restriction to Tabular Prediction makes it very easy to understand the core concepts of Monte-Carlo (MC) and Temporal-Difference (TD). This is then extended to the problem of Prediction with function approximation, enabling the handling of large state spaces. Comparisons and contrasts are made between the MC and TD techniques. The chapter ends with coverage of the TD(lambda) algorithm, which enables one to find a continuum of algorithms between MC and TD by tuning the lambda parameter and playing the bias-variance tradeoff. 
 
 # Chapter 12: Monte-Carlo and Temporal-Difference for Control
 
@@ -93,7 +93,7 @@ Chapter author: Ashwin Rao (https://orcid.org/0000-0003-0620-3100)
 
 ## Abstract
 
-This chapter makes the natural extension from RL Prediction to RL Control (finding the optimal policy), while initially remaining in the tabular setting. The previous chapter's investments made in understanding the core concepts of MC and TD bear fruit in this chapter as important Control Algorithms such as SARSA and Q-learning emerge with enormous clarity along with implementations of these algorithms from scratch in Python. This chapter also introduces a very important concept for the future success of RL in the real world: off-policy learning (Q-Learning is the simplest off-policy learning algorithm, and it has had good success in various applications). Importance Sampling (an off-policy technique) is briefly covered. The chapter ends with a summary of convergence of RL Prediction and Control algorithms: MC versus TD, on-policy versus off-policy, tabular versus function approximation. 
+This chapter makes the natural extension from RL Prediction to RL Control (finding the optimal policy), while initially remaining in the tabular setting. The previous chapter's investments made in understanding the core concepts of MC and TD bear fruit in this chapter as important Control Algorithms such as SARSA and Q-learning emerge with enormous clarity along with implementations of these algorithms from scratch in Python. This chapter also introduces a very important concept for the future success of RL in the real world: off-policy learning (Q-Learning is the simplest off-policy learning algorithm, and it has had good success in various applications). Importance Sampling (an off-policy technique) is briefly covered. The chapter ends with a summary of the convergence of RL Prediction and Control algorithms: MC versus TD, on-policy versus off-policy, tabular versus function approximation. 
 
 # Chapter 13: Batch RL, Experience-Replay, DQN, LSPI, Gradient TD
 
@@ -109,7 +109,7 @@ Chapter author: Ashwin Rao (https://orcid.org/0000-0003-0620-3100)
 
 ## Abstract
 
-This chapter introduces a very different class of RL algorithms that are based on improving the policy using the gradient of the policy function approximation. When action spaces are large or continuous, policy gradient tends to be the only option and so, this chapter is useful to overcome many real-world challenges (including those in many financial applications) where the action space is indeed large. The policy gradient theorem is proved and a few policy gradient algorithms are implemented from scratch. The chapter covers state-of-the-art Actor-Critic methods and a couple of specialized algorithms (Natural PG and Deterministic PG) that have worked well in practice. The chapter ends with coverage of evolutionary strategies, an important algorithm that looks quite similar to policy gradient algorithms but is technically not an RL Algorithm.
+This chapter introduces a very different class of RL algorithms that are based on improving the policy using the gradient of the policy function approximation. When action spaces are large or continuous, policy gradient tends to be the only option, and so, this chapter is useful to overcome many real-world challenges (including those in many financial applications) where the action space is indeed large. The policy gradient theorem is proved, and a few policy gradient algorithms are implemented from scratch. The chapter covers state-of-the-art Actor-Critic methods and a couple of specialized algorithms (Natural PG and Deterministic PG) that have worked well in practice. The chapter ends with coverage of evolutionary strategies, an important algorithm that looks quite similar to policy gradient algorithms but is technically not an RL Algorithm.
 
 # Chapter 15: Multi-Armed Bandits: Exploration versus Exploitation
 
@@ -135,7 +135,7 @@ Chapter author: Ashwin Rao (https://orcid.org/0000-0003-0620-3100)
 
 This concluding chapter summarizes the key learnings from this book and provides some commentary on how to take the learnings from this book into practice. The chapter specifically focuses on the challenges one faces in the real-world—modeling difficulties, problem-size difficulties, operational challenges, data challenges (access, cleaning, organization), and also change-management challenges as one shifts an enterprise from legacy systems to an AI system. The chapter provides some guidance on how to go about building an end-to-end system based on RL.
 
-# Appendix A: Moment Generating Function and it's Applications
+# Appendix A: Moment Generating Function and Its Applications
 
 Appendix author: Ashwin Rao (https://orcid.org/0000-0003-0620-3100)
 
@@ -151,7 +151,7 @@ Appendix author: Ashwin Rao (https://orcid.org/0000-0003-0620-3100)
 
 This appendix is on portfolio theory covering the mathematical foundations of balancing return versus risk in portfolios and the much-celebrated Capital Asset Pricing Model (CAPM).
 
-# Appendix C: Introduction to and Overview of Stochastic Calculus
+# Appendix C: Introduction to and Overview of Stochastic Calculus Basics
 
 Appendix author: Ashwin Rao (https://orcid.org/0000-0003-0620-3100)
 
@@ -173,7 +173,7 @@ Appendix author: Ashwin Rao (https://orcid.org/0000-0003-0620-3100)
 
 ## Abstract
 
-This appendix covers the derivation of the famous Black-Scholes equation and it's solution for Call/Put Options.
+This appendix covers the derivation of the famous Black-Scholes equation, and its solution for Call/Put Options.
 
 # Appendix F: Function Approximations as Affine Spaces
 
