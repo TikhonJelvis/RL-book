@@ -2,7 +2,7 @@
 
 ### Learning Reinforcement Learning {#sec:learning-rl}
 
-Reinforcement Learning (RL) is emerging as a practical, powerful technique for solving a variety of complex business problems across industries that involve Sequential Optimal Decisioning under Uncertainty. Although RL is classified as a branch of Machine Learning (ML), it tends to be viewed and treated quite differently from other branches of ML (Supervised and Unsupervised Learning). Indeed, **RL seems to hold the key to unlocking the promise of AI**—machines that adapt their decisions to vagaries in observed information, while continuously steering towards the optimal outcome. It’s penetration in high-profile problems like self-driving cars, robotics and strategy games points to a future where RL algorithms will have decisioning abilities far superior to humans.
+Reinforcement Learning (RL) is emerging as a practical, powerful technique for solving a variety of complex business problems across industries that involve Sequential Optimal Decisioning under Uncertainty. Although RL is classified as a branch of Machine Learning (ML), it tends to be viewed and treated quite differently from other branches of ML (Supervised and Unsupervised Learning). Indeed, **RL seems to hold the key to unlocking the promise of AI**—machines that adapt their decisions to vagaries in observed information, while continuously steering towards the optimal outcome. Its penetration in high-profile problems like self-driving cars, robotics and strategy games points to a future where RL algorithms will have decisioning abilities far superior to humans.
 
 But when it comes getting educated in RL, there seems to be a reluctance to jump right in because RL seems to have acquired a reputation of being mysterious and exotic. We often hear even technical people claim that RL involves “advanced math” and “complicated engineering”, and so there seems to be a psychological barrier to entry. While real-world RL algorithms and implementations do get fairly elaborate and complicated in overcoming the proverbial last-mile of business problems, the foundations of RL can actually be learned without heavy technical machinery. **A key goal of this book is to demystify RL by finding a balance between A) providing depth of understanding and B) keeping technical content basic**. So now we list the key features of this book that enable this balance:
 
@@ -65,7 +65,7 @@ It is also important to recognize that Reinforcement Learning is considered to b
 
 More importantly, the class of problems RL aims to solve can be described with a simple yet powerful mathematical framework known as *Markov Decision Processes* (abbreviated as MDPs). We have an entire chapter dedicated to deep coverage of MDPs, but we provide a quick high-level introduction to MDPs in the next section.
 
-### Introduction to the Markov Decision Process (MDP) framework
+### Introduction to the Markov Decision Process (MDP) Framework
 
 ![The MDP Framework \label{fig:mdp_framework}](./chapter0/MDP.png "Agent-Environment Interaction in a MDP"){height=4cm}
 
