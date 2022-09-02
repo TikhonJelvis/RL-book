@@ -99,8 +99,6 @@ $endif$
 
 \usepackage[flushmargin]{footmisc}
 
-\pagestyle{plain}
-
 \usepackage{fancyvrb}
 \DefineVerbatimEnvironment{Highlighting}{Verbatim}{
   commandchars=\\\{\},
