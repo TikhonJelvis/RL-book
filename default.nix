@@ -11,7 +11,8 @@ let
       footmisc
       titling
       xpatch
-      noto;
+      noto
+      imakeidx;
   };
 
   python-packages = ps: with ps;

@@ -27,8 +27,13 @@ $endif$
 
 % Indexing
 $if(index)$
+$if(tf-format)$
 \usepackage{makeidx}
 \makeindex
+$else$
+\usepackage{imakeidx}
+\makeindex[intoc]
+$endif$
 $endif$
 
 
@@ -351,7 +356,9 @@ $if(biblatex)$
 $endif$
 
 $if(index)$
+$if(tf-format)$
 \addcontentsline{toc}{fm}{Index}
+$endif$
 \printindex
 $endif$
 
