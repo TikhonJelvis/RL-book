@@ -8,11 +8,13 @@ let
   tex-packages = {
     inherit (pkgs.texlive)
       scheme-medium
+
+      appendix
       footmisc
-      titling
-      xpatch
+      imakeidx
       noto
-      imakeidx;
+      titling
+      xpatch ;
   };
 
   python-packages = ps: with ps;

@@ -36,6 +36,16 @@ $else$
 $endif$
 $endif$
 
+$if(tf-format)$
+\newcommand{\startappendix}{\appendix}
+$else$
+\usepackage{appendix}
+\newcommand{\startappendix}{%
+  \appendix
+  \appendixpage
+  \addappheadtotoc
+}
+$endif$
 
 % Symbols:
 % Pandoc imports the extensive `amsmath` collection of symbols
