@@ -25,17 +25,18 @@ urlcolor=blue}
 \geometry{verbose,letterpaper,tmargin=2cm,bmargin=2.5cm,lmargin=3cm,rmargin=3.5cm}
 $endif$
 
-% Indexing
-$if(index)$
+% Bibliography Header
+%% The T&F format adds the bibliography to the ToC automatically, but
+%% we need to do it explicitly for our own PDF.
 $if(tf-format)$
-\usepackage{makeidx}
-\makeindex
+\newcommand{\bibheader}{}
 $else$
-\usepackage{imakeidx}
-\makeindex[intoc]
-$endif$
+\newcommand{\bibheader}{\addcontentsline{toc}{chapter}{Bibliography}}
 $endif$
 
+% Appendecies
+%% We need an \appendixpage for our version of the PDF but not for the
+%% T&F version
 $if(tf-format)$
 \newcommand{\startappendix}{\appendix}
 $else$
@@ -45,6 +46,17 @@ $else$
   \appendixpage
   \addappheadtotoc
 }
+$endif$
+
+% Index
+$if(index)$
+$if(tf-format)$
+\usepackage{makeidx}
+\makeindex
+$else$
+\usepackage{imakeidx}
+\makeindex[intoc]
+$endif$
 $endif$
 
 % Symbols:
