@@ -3,8 +3,8 @@
 if FORMAT:match 'latex' then
    function Str(s)
       local t = s.text
-      if string.find(t, '---') or string.find(t, '—') then
-         t = string.gsub(t, '---', '\\emdash ')
+      if string.find(t, '%-%-%-') or string.find(t, '—') then
+         t = string.gsub(t, '%-%-%-', '\\emdash ')
          t = string.gsub(t, '—', '\\emdash ')
          return pandoc.RawInline('tex', t)
       end
