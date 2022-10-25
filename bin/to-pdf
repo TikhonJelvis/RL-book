@@ -115,6 +115,8 @@ def run_pandoc(target, *, out, to, tf_format, index):
                 "part",
                 "--lua-filter",
                 "../bin/alon-style-quotes.lua",
+                "--lua-filter",
+                "../bin/em-dash-hyphenation.lua",
                 "--citeproc",
                 "--bibliography",
                 "bibliography/bibliography.bib",

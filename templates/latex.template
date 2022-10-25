@@ -25,6 +25,13 @@ urlcolor=blue}
 \geometry{verbose,letterpaper,tmargin=2cm,bmargin=2.5cm,lmargin=3cm,rmargin=3.5cm}
 $endif$
 
+% em-dashes
+%% em-dashes right after words breaks hyphenation
+%%
+%% we can use a Pandoc filter to automatically emit \emdash instead of
+%% --- so that sentences with em-dashes do not go into the margin
+\newcommand{\emdash}{\nobreak---\nobreak\hskip0pt}
+
 % Bibliography Header
 %% The T&F format adds the bibliography to the ToC automatically, but
 %% we need to do it explicitly for our own PDF.
