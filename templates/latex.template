@@ -32,6 +32,9 @@ $endif$
 %% --- so that sentences with em-dashes do not go into the margin
 \newcommand{\emdash}{\nobreak---\nobreak\hskip0pt}
 
+% better to have ugly lines than lines going far into the margin
+\setlength\emergencystretch{\hsize}
+
 % Bibliography Header
 %% The T&F format adds the bibliography to the ToC automatically, but
 %% we need to do it explicitly for our own PDF.
