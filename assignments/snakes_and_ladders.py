@@ -11,7 +11,7 @@ sys.path.append(
 Transition = Mapping[int, FiniteDistribution[int]]
 
 # Define the ladders and snakes
-ladders = {1: 38, 4: 14, 9: 31, 21: 42, 28: 84, 51: 67, 72: 91, 80: 99}
+ladders = {1: 38, 4: 14, 8: 30, 21: 42, 28: 76, 50: 67, 71: 92, 80: 99}
 snakes = {32: 10, 36: 6, 48: 26, 62: 18, 88: 24, 95: 56, 97: 78}
 
 
@@ -30,6 +30,9 @@ def initialize_transition_map():
         if overshot > 0:
             next_states[s] = overshot / 6
         transition_map[s] = Categorical(next_states)
+
+    for state in range(94, 100):
+        print(transition_map[state], "\n")
 
     return transition_map
 
@@ -92,7 +95,7 @@ if __name__ == '__main__':
         ['r-', 'b-', 'g-', 'y-', 'c-'],  # Color and line style
         [f"Game #{i+1}" for i in range(5)],  # Curve labels
         "Dice Rolls",
-        "State",
+        "Board Position",
         "Simulation of Snakes and Ladders"
     )
 
