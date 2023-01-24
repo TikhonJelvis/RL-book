@@ -31,9 +31,6 @@ def initialize_transition_map():
             next_states[s] = overshot / 6
         transition_map[s] = Categorical(next_states)
 
-    for state in range(94, 100):
-        print(transition_map[state], "\n")
-
     return transition_map
 
 
