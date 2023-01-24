@@ -14,8 +14,6 @@ Transition = Mapping[int, FiniteDistribution[int]]
 ladders = {1: 38, 4: 14, 9: 31, 21: 42, 28: 84, 51: 67, 72: 91, 80: 99}
 snakes = {32: 10, 36: 6, 48: 26, 62: 18, 88: 24, 95: 56, 97: 78}
 
-# Transition Map: {s, Categorical({s': p(s'|s)})}
-
 
 def initialize_transition_map():
     transition_map: Transition = {}
@@ -34,8 +32,6 @@ def initialize_transition_map():
         transition_map[s] = Categorical(next_states)
 
     return transition_map
-
-# Transition Reward Map: {s, Categorical({(s', r): p(s'|s)})}
 
 
 def initialize_transition_reward_map(transition_map: Transition):
@@ -65,13 +61,19 @@ def initialize_frog_transition_reward_map():
 
 
 if __name__ == '__main__':
+
+    # Snakes and Ladders
+
+    # Initialize the transition_map
     transition_map: Transition = initialize_transition_map()
+
+    # Create a FiniteMarkovProcess
     fmp = FiniteMarkovProcess(transition_map)
 
     # Create a start state distribution
     start_state_distribution = fmp.transition_map[NonTerminal(0)]
 
-    # Use the traces method to generate 5 sample traces
+    # Use the traces method to generate and plot 5 sample traces
     steps = {}
     count = 0
     for trace in islice(fmp.traces(start_state_distribution), 5):
@@ -98,21 +100,23 @@ if __name__ == '__main__':
     transition_reward_map = initialize_transition_reward_map(transition_map)
     fmrp = FiniteMarkovRewardProcess(transition_reward_map)
 
-    print(transition_reward_map)
+    # Calculate the expected number of steps to reach the goal state
 
     value_function_vec = fmrp.get_value_function_vec(
         1.0)  # Discount factor of 1.0
 
-    print(len(value_function_vec))
     expected_steps = value_function_vec[0] * -1
-
     print(f"Expected number of steps: {expected_steps}")
 
-    # # Frog and Lilypad
+    # Frog and Lilypad
+
+    # Initialize the frog_transition_reward_map
+    frog_map = initialize_frog_transition_reward_map()
+
+    # Initialize the FiniteMarkovRewardProcess
+    frog_fmrp = FiniteMarkovRewardProcess(frog_map)
 
     # Calculate the expected number of steps to reach the goal state
-    frog_map = initialize_frog_transition_reward_map()
-    frog_fmrp = FiniteMarkovRewardProcess(frog_map)
     frog_value_function_vec = frog_fmrp.get_value_function_vec(
         1.0)  # Discount factor of 1.0
 
