@@ -161,6 +161,7 @@ backprop nn inputs outputs stepLength = _
 -- then we want to apply the single pass until convergence
 
 
+
 --                  layerDerivative -> stepLength
 --                         ↓             ↓
 updateLayer :: Layer ->  Matrix R       -> Double -> Layer 
@@ -173,11 +174,12 @@ updateLayer layer@(Layer{weights}) derivative stepLength =
 -- Computes the derivative-operator for layer n-1 given
 -- the operator for nth layer, incorporating the activation function and
 -- the inputs to the layer
---  derivate(n-1) = derivative(n) * activationD * I(n-1)
+--   derivate(n-1) = derivative(n) * activationD * I(n-1)
 --    dE/dW_L = dE/dW_L+1 * dW_L+1/dW_L
 --
---    dE/dW_L = dE/dW_L+1 * activationD * I(L)
---            = layerDeriv(L+1) *   activationD * I(L)
+--    dE/dW_L       = dE/dW_L+1       *   activationD * I(L)
+--    layerDeriv(L) = activationD * I(L)
+--    note that for layerDeriv(L) is only being computed with 'activationD * I(L)'
 --
 --                Layer ->  Inputs    ->  derivative
 --                            ↓             ↓       
