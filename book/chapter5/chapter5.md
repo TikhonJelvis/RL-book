@@ -161,7 +161,8 @@ Finally, we write a method `argmax` that takes as input an `Iterable` of $x$ val
 
 ```python
     def argmax(self, xs: Iterable[X]) -> X:
-        return list(xs)[np.argmax(self.evaluate(xs))]
+        args: Sequence[X] = list(xs)
+        return args[np.argmax(self.evaluate(args))]
 ```
 
 The above code for `FunctionApprox` and `Gradient` is in the file [rl/function_approx.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/function_approx.py). rl/function_approx.py also contains the convenience methods `__add__` (to add two `FunctionApprox`), `__mul__` (to multiply a `FunctionApprox` with a real-valued scalar), and `__call__` (to treat a `FunctionApprox` object syntactically as a function taking an `x: X` as input, essentially a shorthand for `evaluate` on a single $x$ value). `__add__` and `__mul__` are meant to perform element-wise addition and scalar-multiplication on the internal parameters $w$ of the Function Approximation (see Appendix [-@sec:function-space-appendix] on viewing Function Approximations as Vector Spaces). Likewise, it contains the methods `__add__` and `__mul__` for the `Gradient` class that simply delegates to the `__add__` and `__mul__` methods of the `FunctionApprox` within `Gradient`, and it also contains the method `zero` that returns a `Gradient` which is uniformly zero for each of the parameter values.
