@@ -1,10 +1,10 @@
-# Book Errata
+## Book Errata {.unnumbered}
 
 The following is the errata for the published book *Foundations of Reinforcement Learning with Applications in Finance* by *Ashwin Rao* and *Tikhon Jelvis*
 
-## Chapter 4
+### Chapter 4 {.unnumbered}
 
-### Bellman Policy Equation Derivation
+#### Bellman Policy Equation Derivation {.unnumbered}
 
 At the very first line of page 90, we say that Equation (4.3) can be obtained by combining Equation (4.1) and Equation (4.2). This is not correct. Rather, Equation (4.3) can be derived as follows:
 
@@ -25,9 +25,9 @@ Since $Q^{\pi}(s, a) = \mathbb{E}_{\pi, \mathcal{P}_R}[G_t|S_t=s, A_t=a]$, by ex
 
 The last line in the sequence of equations above is obtained by observing Equation (3.1) in Chapter 3, with the MRP Value Function expansion applied to the $\pi$-implied MRP for state $s'$.
 
-## Chapter 6
+### Chapter 6 {.unnumbered}
 
-### `argmax` code correction
+#### `argmax` code correction {.unnumbered}
 
 On page 144, the body of the code for the method `argmax` (of `class FunctionApprox`) is not correct. The correct code is shown below and can also be found in [rl/function_approximation.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/function_approximation.py). 
 
