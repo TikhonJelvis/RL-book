@@ -86,6 +86,19 @@ def run_pandoc(target, *, out, to, tf_format, index):
         else []
     )
 
+    # Settings to use when building the full book (vs a single chapter
+    # or the errata document)
+    book_settings = (
+        [
+            "--metadata",
+            "title=Foundations of Reinforcement Learning with Applications in Finance",
+            "--metadata",
+            "author=Ashwin Rao, Tikhon Jelvis",
+        ]
+        if target == "book"
+        else []
+    )
+
     try:
         os.chdir("book")
         subprocess.run(
@@ -101,10 +114,6 @@ def run_pandoc(target, *, out, to, tf_format, index):
                 "chapters",
                 "--metadata",
                 "numbersections",
-                "--metadata",
-                "title=Foundations of Reinforcement Learning with Applications in Finance",
-                "--metadata",
-                "author=Ashwin Rao, Tikhon Jelvis",
                 "--filter",
                 "pandoc-crossref",
                 "--pdf-engine",
@@ -121,6 +130,7 @@ def run_pandoc(target, *, out, to, tf_format, index):
                 "--bibliography",
                 "bibliography/bibliography.bib",
             ]
+            + book_settings
             + do_index
             + toc
             + tf_settings
