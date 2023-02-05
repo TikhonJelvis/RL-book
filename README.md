@@ -11,10 +11,13 @@ The first edition of the book is now available from Routledge. You can:
   * Buy a copy from [Routledge][buy-routledge] or [Amazon][buy-amazon]
   * Download a [PDF of the manuscript][recent-pdf]
   * Compile the latest version of the manuscript [from this repo][compile-pdf]
+  
+You can also download [errata for the print version][errata].
 
 [buy-routledge]: https://www.routledge.com/Foundations-of-Reinforcement-Learning-with-Applications-in-Finance/Rao-Jelvis/p/book/9781032124124
 [buy-amazon]: https://www.amazon.com/Foundations-Reinforcement-Learning-Applications-Finance/dp/1032124121
 [recent-pdf]: https://stanford.edu/~ashlearn/RLForFinanceBook/book.pdf
+[errata]: https://stanford.edu/~ashlearn/RLForFinanceBook/errata.pdf
 [compile-pdf]: book/README.md
 
 # Getting the Code
