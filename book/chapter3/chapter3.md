@@ -735,7 +735,24 @@ To avoid terminology confusion, we refer to $V^{\pi}$ as the *State-Value Functi
 V^{\pi}(s) = \sum_{a\in\mathcal{A}} \pi(s, a) \cdot Q^{\pi}(s, a) \text{ for all } s \in \mathcal{N} \label{eq:mdp_bellman_policy_eqn_vq}
 \end{equation}
 
-Combining Equation \eqref{eq:mdp_bellman_policy_eqn_vv} and Equation \eqref{eq:mdp_bellman_policy_eqn_vq} yields:
+Next, we expand $Q^{\pi}(s, a) = \mathbb{E}_{\pi, \mathcal{P}_R}[G_t|S_t=s, A_t=a]$ as follows:
+
+\begin{equation*}
+\begin{split}
+& \mathbb{E}_{\mathcal{P}_R}[R_{t+1}|S_t=s,A_t=a] + \gamma \cdot \mathbb{E}_{\pi, \mathcal{P}_R}[R_{t+2}|S_t=s,A_t=a] + \gamma^2 \cdot \mathbb{E}_{\pi, \mathcal{P}_R}[R_{t+3}|S_t=s,A_t=a] \\
+& \hspace{8mm} + \ldots \\
+& = \mathcal{R}(s,a) + \gamma \cdot \sum_{s'\in \mathcal{N}} \mathcal{P}(s, a, s') \sum_{a'\in \mathcal{A}} \pi(s',a') \cdot \mathcal{R}(s', a') \\
+& \hspace{4mm} + \gamma^2 \cdot \sum_{s' \in \mathcal{N}} \mathcal{P}(s, a', s') \sum_{a'\in \mathcal{A}} \pi(s',a') \sum_{s'' \in \mathcal{N}} \mathcal{P}(s', a'', s'') \sum_{a'' \in \mathcal{A}} \pi(s'',a'') \cdot \mathcal{R}(s'', a'')  \\
+& \hspace{4mm} + \ldots \\
+& = \mathcal{R}(s,a) + \gamma \cdot \sum_{s'\in \mathcal{N}} \mathcal{P}(s, a, s') \cdot \mathcal{R}^{\pi}(s') + \gamma^2 \cdot \sum_{s' \in \mathcal{N}} \mathcal{P}(s, a, s') \sum_{s'' \in \mathcal{N}} \mathcal{P}^{\pi}(s', s'') \cdot \mathcal{R}^{\pi}(s'') + \ldots  \\
+& = \mathcal{R}(s,a) + \gamma \cdot \sum_{s'\in \mathcal{N}} \mathcal{P}(s, a, s') \cdot (\mathcal{R}^{\pi}(s') + \gamma \cdot \sum_{s'' \in \mathcal{N}} \mathcal{P}^{\pi}(s', s'') \cdot \mathcal{R}^{\pi}(s'') + \ldots ) \\
+& = \mathcal{R}(s,a) + \gamma \cdot \sum_{s'\in \mathcal{N}} \mathcal{P}(s, a, s') \cdot V^{\pi}(s')
+\end{split}
+\end{equation*}
+
+The last line in the sequence of equations above is obtained by observing Equation \eqref{eq:mrp_bellman_eqn} in Chapter [-@sec:mrp-chapter], with the MRP Value Function expansion applied to the $\pi$-implied MRP for state $s'$.
+
+Thus, we have:
 \begin{equation}
 Q^{\pi}(s, a) = \mathcal{R}(s,a) + \gamma \cdot \sum_{s'\in \mathcal{N}} \mathcal{P}(s,a,s') \cdot V^{\pi}(s') \text{ for all  } s \in \mathcal{N}, a \in \mathcal{A} \label{eq:mdp_bellman_policy_eqn_qv}
 \end{equation}
