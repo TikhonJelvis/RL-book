@@ -36,10 +36,9 @@ def approx_policy_iteration(mdp, gamma, approx_0, nt_states_dist, n_states):
         p_i = greedy(vf)
         return vf, p_i
 
-        # Choose a random policy to start the iteration
-        pi_0 = {s: random.choice(mdp.actions) for s in mdp.non_terminal_states}
-
-        return iterate(update, (approx_0, pi_0))
+    # Choose a random policy to start the iteration
+    pi_0 = {s: random.choice(mdp.actions) for s in mdp.non_terminal_states}
+    return iterate(update, (approx_0, pi_0))
 
 
 # Create random MDP with s states and a actions and a Categorical probability distribution
@@ -57,6 +56,7 @@ def create_mdp(s, a):
             states[j] = Categorical(d)
         mdp[i] = states
     return mdp
+
 
 if __name__ == "__main__":
 
