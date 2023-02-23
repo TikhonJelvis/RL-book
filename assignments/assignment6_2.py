@@ -11,8 +11,37 @@ from rl.markov_decision_process import MarkovDecisionProcess
 from rl.markov_process import NonTerminal, State, Terminal
 from rl.policy import Policy
 
+# States
 S = Tuple[float, int, float, float]
+# Actions
 A = Tuple[float, float]
+
+
+@dataclass(frozen=True)
+class AvallanedaStoikovPolicy(Policy):
+    T: float
+    gamma: float
+    sigma: float
+    k: float
+
+    def act(self, state):
+        t, I, W, S = state.state
+
+        delta_b = (2 * I + 1) * self.gamma * (self.sigma ** 2) * (self.T - t) / 2 + math.log(
+            1 + self.gamma / self.k) / self.gamma
+        delta_a = (1 - 2 * I) * self.gamma * (self.sigma ** 2) * (self.T - t) / 2 + math.log(
+            1 + self.gamma / self.k) / self.gamma
+
+        return Categorical({(S + delta_a, S - delta_b): 1.0})
+
+
+@dataclass(frozen=True)
+class NaivePolicy(Policy):
+    optimal_spread: float
+
+    def act(self, state):
+        t, I, W, S = state.state
+        return Categorical({(S + self.optimal_spread / 2, S - self.optimal_spread): 1.0})
 
 
 @dataclass(frozen=True)
@@ -24,75 +53,36 @@ class Simulation(MarkovDecisionProcess):
     k: float
     c: float
 
-    def actions(self, state: NonTerminal[S]) -> Iterable[A]:
+    def actions(self, state):
         t, I, W, S = state.state
-
+        # ask
         delta_a = (2 * I + 1) * self.gamma * self.sigma ** 2 * (self.T - t) / 2 + math.log(
             1 + self.gamma / self.k) / self.gamma
+        # bid
         delta_b = (1 - 2 * I) * self.gamma * self.sigma ** 2 * (self.T - t) / 2 + math.log(
             1 + self.gamma / self.k) / self.gamma
+        return [(S + delta_a, S - delta_b)]
 
-        P_a = S + delta_a
-        P_b = S - delta_b
+    def step(self, state, action):
 
-        return [(P_a, P_b)]
-
-    def step(self, state: NonTerminal[S], action: A) \
-            -> Categorical[Tuple[State[S], float]]:
         t, I, W, S = state.state
         P_a, P_b = action
-
-        delta_a = P_a - S
-        delta_b = S - P_b
+        delta_a, delta_b = P_a - S, S - P_b
         prob_sell = self.c * math.exp(-self.k * delta_a) * self.delta
         prob_buy = self.c * math.exp(-self.k * delta_b) * self.delta
         price_change = self.sigma * math.sqrt(self.delta)
 
         if t >= self.T:
-            return Categorical({(Terminal((t, I, W, S)), W): 1.0})
+            return Categorical({((t, I, W, S), W): 1.0})
 
         return Categorical({
-            (NonTerminal((t + self.delta, I - 1, W + P_a, S + price_change)), 0): prob_sell * 0.5,
-            (NonTerminal((t + self.delta, I - 1, W + P_a, S - price_change)), 0): prob_sell * 0.5,
-            (NonTerminal((t + self.delta, I + 1, W - P_b, S + price_change)), 0): prob_buy * 0.5,
-            (NonTerminal((t + self.delta, I + 1, W - P_b, S - price_change)), 0): prob_buy * 0.5,
-            (NonTerminal((t + self.delta, I, W, S + price_change)), 0): (1 - prob_sell - prob_buy) * 0.5,
-            (NonTerminal((t + self.delta, I, W, S - price_change)), 0): (1 - prob_sell - prob_buy) * 0.5,
+            ((t + self.delta, I - 1, W + P_a, S + price_change), 0): prob_sell * 0.5,
+            ((t + self.delta, I - 1, W + P_a, S - price_change), 0): prob_sell * 0.5,
+            ((t + self.delta, I + 1, W - P_b, S + price_change), 0): prob_buy * 0.5,
+            ((t + self.delta, I + 1, W - P_b, S - price_change), 0): prob_buy * 0.5,
+            ((t + self.delta, I, W, S + price_change), 0): (1 - prob_sell - prob_buy) * 0.5,
+            ((t + self.delta, I, W, S - price_change), 0): (1 - prob_sell - prob_buy) * 0.5,
         })
-
-
-@dataclass(frozen=True)
-class AvallanedaStoikovPolicy(Policy):
-    T: float
-    gamma: float
-    sigma: float
-    k: float
-
-    def act(self, state: NonTerminal[S]) -> Categorical[A]:
-        t, I, W, S = state.state
-
-        delta_b = (2 * I + 1) * self.gamma * (self.sigma ** 2) * (self.T - t) / 2 + math.log(
-            1 + self.gamma / self.k) / self.gamma
-        delta_a = (1 - 2 * I) * self.gamma * (self.sigma ** 2) * (self.T - t) / 2 + math.log(
-            1 + self.gamma / self.k) / self.gamma
-
-        P_a = S + delta_a
-        P_b = S - delta_b
-
-        return Categorical({(P_a, P_b): 1.0})
-
-
-@dataclass(frozen=True)
-class NaivePolicy(Policy):
-    optimal_spread: float
-
-    def act(self, state: NonTerminal[S]) -> Categorical[A]:
-        t, I, W, S = state.state
-
-        P_a = S + self.optimal_spread / 2
-        P_b = S - self.optimal_spread / 2
-
-        return Categorical({(P_a, P_b): 1.0})
 
 
 if __name__ == '__main__':
@@ -119,68 +109,67 @@ if __name__ == '__main__':
     avallaneda_stoikov_policy = AvallanedaStoikovPolicy(T, gamma, sigma, k)
 
     # Plot a single simulation trace with the Avallaneda-Stoikov policy
-    ts: List[float] = []
-    prices: List[Tuple[float, float, float]] = []
-    wealth_inventory: List[Tuple[float, float, float]] = []
-    for step in sim.simulate_actions(start_state_distribution, avallaneda_stoikov_policy):
-        t, I, W, S = step.state.state
-        P_a, P_b = step.action
-        ts.append(t)
-        prices.append((P_a, S, P_b))
-        wealth_inventory.append((W, I * S, W + I * S))
+    results = sim.simulate_actions(
+        start_state_distribution, avallaneda_stoikov_policy)
+    ts = [step.state.state[0] for step in results]
+    prices = [(step.action[0], step.state.state[3], step.action[1])
+              for step in results]
+    wealth = [(step.state.state[2], step.state.state[1] * step.state.state[3],
+               step.state.state[2] + step.state.state[1] * step.state.state[3])
+              for step in results]
 
     avg_ba_spreads = []
-    account_balances_incl_inventory = []
+    balances = []
     for _ in range(10000):
-        spreads = []
-        abii = []
-        for step in sim.simulate_actions(start_state_distribution, avallaneda_stoikov_policy):
-            t, I, W, S = step.state.state
-            P_a, P_b = step.action
-            spread = P_a - P_b
-            spreads.append(spread)
-            abii.append(W + I * S)
-        avg_spread = sum(spreads) / len(spreads)
-        avg_ba_spreads.append(avg_spread)
-        account_balances_incl_inventory.append(abii)
+        # simulate the policy
+        sim_outcomes = list(sim.simulate_actions(
+            start_state_distribution, avallaneda_stoikov_policy))
+        # store the average spread
+        spreads = [step.action[0] - step.action[1] for step in sim_outcomes]
+        avg_ba_spreads.append(sum(spreads) / len(spreads))
+        # store the final balance
+        balance = [step.state.state[2] + step.state.state[1]
+                   * step.state.state[3] for step in sim_outcomes]
+        balances.append(balance)
 
     average_spread = sum(avg_ba_spreads) / len(avg_ba_spreads)
-    print(f"Average spread: {average_spread}")
 
+    # Naive Policy
     naive_policy = NaivePolicy(average_spread)
-
-    ts: List[float] = []
-    prices: List[Tuple[float, float, float]] = []
-    wealth_inventory: List[Tuple[float, float, float]] = []
+    ts = []
+    prices = []
+    wealth = []
     for step in sim.simulate_actions(start_state_distribution, naive_policy):
         t, I, W, S = step.state.state
-        P_a, P_b = step.action
         ts.append(t)
-        prices.append((P_a, S, P_b))
-        wealth_inventory.append((W, I * S, W + I * S))
+        prices.append((step.action[0], S, step.action[1]))
+        wealth.append((W, I * S, W + I * S))
+    avg_wealth_naive = []
+    for j in range(len(balances[0])):
+        avg_wealth_a = sum([balances[i][j]
+                           for i in range(len(balances))]) / len(balances)
+        avg_wealth_naive.append(avg_wealth_a)
 
-    account_balances_incl_inventory_n = []
+    balances_n = []
     for _ in range(10000):
-        abii = []
+        balance = []
         for step in sim.simulate_actions(start_state_distribution, naive_policy):
-            t, I, W, S = step.state.state
-            P_a, P_b = step.action
-            abii.append(W + I * S)
-        account_balances_incl_inventory_n.append(abii)
+            balance.append(step.state.state[2] +
+                           step.state.state[1] * step.state.state[3])
+        balances_n.append(balance)
+    avg_wealth_as = []
+    for j in range(len(balances_n[0])):
+        avg_wealth_a = sum([balances_n[i][j]
+                           for i in range(len(balances_n))]) / len(balances_n)
+        avg_wealth_as.append(avg_wealth_a)
 
-    avg_wealth_as = [
-        sum([account_balances_incl_inventory_n[i][j] for i in range(len(account_balances_incl_inventory_n))]) /
-        len(account_balances_incl_inventory_n) for j in range(len(account_balances_incl_inventory_n[0]))]
-    avg_wealth_naive = [
-        sum([account_balances_incl_inventory[i][j] for i in range(len(account_balances_incl_inventory))]) /
-        len(account_balances_incl_inventory) for j in range(len(account_balances_incl_inventory[0]))]
-
+    print("Avg spread:", average_spread)
     plot_list_of_curves(
         [ts, ts],
         [avg_wealth_as, avg_wealth_naive],
         ["r-", "b-"],
-        ['Avallaneda-Stoikov', 'Naive'],
-        'time step',
-        'wealth',
-        'Average wealth over 10000 simulation traces'
+        ['Avallaneda-Stoikov Policy', 'Naive Policy'],
+        'Time',
+        'W',
+        'Average w with 10000 simulation traces'
     )
