@@ -2,6 +2,14 @@
 
 The following is the errata for the published book *Foundations of Reinforcement Learning with Applications in Finance* by *Ashwin Rao* and *Tikhon Jelvis*
 
+### Chapter 3 {.unnumbered}
+
+#### Definition of Stationary Distribution of a Markov Process {.unnumbered}
+
+On page 58, the equation in Definition 3.7.1 that defines the Stationary Distribution of a Markov Process is incorrect. The corrected equation is as follows:
+
+$$\pi(s') = \sum_{s \in \mathcal{N}} \pi(s) \cdot \mathcal{P}(s, s') \text{ for all } s' \in \mathcal{N}$$
+
 ### Chapter 4 {.unnumbered}
 
 #### Bellman Policy Equation Derivation {.unnumbered}
