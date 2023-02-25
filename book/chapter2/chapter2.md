@@ -701,7 +701,7 @@ There is a rich and interesting theory for Markov Processes. However, we won't g
 
 \begin{definition} 
  The {\em Stationary Distribution} of a (Discrete-Time, Time-Homogeneous) Markov Process with state space $\mathcal{S} = \mathcal{N}$ and transition probability function $\mathcal{P}: \mathcal{N} \times \mathcal{N} \rightarrow [0, 1]$ is a probability distribution function $\pi: \mathcal{N} \rightarrow [0, 1]$ such that:
-  $$\pi(s) = \sum_{s'\in \mathcal{N}} \pi(s) \cdot \mathcal{P}(s, s') \text{ for all } s \in \mathcal{N}$$
+$$\pi(s') = \sum_{s \in \mathcal{N}} \pi(s) \cdot \mathcal{P}(s, s') \text{ for all } s' \in \mathcal{N}$$
 \end{definition}
 
 The intuitive view of the stationary distribution $\pi$ is that (under specific conditions we are not listing here) if we let the Markov Process run forever, then in the long run, the states occur at specific time steps with relative frequencies (probabilities) given by a distribution $\pi$ that is independent of the time step. The probability of occurrence of a specific state $s$ at a time step (asymptotically far out in the future) should be equal to the sum-product of probabilities of occurrence of all the states at the previous time step and the transition probabilities from those states to $s$. But since the states' occurrence probabilities are invariant in time, the $\pi$ distribution for the previous time step is the same as the $\pi$ distribution for the time step we considered. This argument holds for all states $s$, and that is exactly the statement of the definition of *Stationary Distribution* formalized above.
