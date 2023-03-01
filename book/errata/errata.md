@@ -44,3 +44,10 @@ On page 144, the body of the code for the method `argmax` (of `class FunctionApp
         args: Sequence[X] = list(xs)
         return args[np.argmax(self.evaluate(args))]
 ```
+
+### Chapter 13 {.unnumbered}
+
+On page 374, in the second paragraph of Section 13.7.2, we say that $\bb$ is a linear operator in vector space $\mathbb{R}^n$. This is an incorrect statement. $\bb$ is an affine operator and not a linear operator because there is a vector-shift of $\mathcal{R}^{\pi}$ after multiplying $\bv$ with the matrix $\gamma \mathcal{P}^{\pi}$. This second paragraph of Section 13.7.2 is corrected as follows:
+
+Note that $\bb$ is an [affine transformation](https://en.wikipedia.org/wiki/Affine_transformation) on vectors in $\mathbb{R}^n$. We lighten notation for application of the $\bb$ operator on any vector $\bv \in \mathbb{R}^n$ as simply $\bb \cdot \bv$ (with $\cdot$ conveying the notion of operator application). We've learnt that $\bvpi$ is the fixed point of $\bb$. Therefore, we can write:
+$$\bb \cdot \bvpi = \bvpi$$
