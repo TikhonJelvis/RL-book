@@ -1015,7 +1015,7 @@ $\brew$ refers to vector $[\brew(s_1), \brew(s_2), \ldots, \brew(s_n)]$ and $\bp
 
 In Chapter [-@sec:mdp-chapter], we introduced the Bellman Policy Operator $\bb$ for policy $\pi$ operating on any Value Function vector $\bv$. As a reminder,
 $$\bb (\bv) = \bm{\mathcal{R}}^{\pi} + \gamma \bm{\mathcal{P}}^{\pi} \cdot \bv \text{ for any VF vector } \bv \in \mathbb{R}^n$$
-Note that $\bb$ is a linear operator in vector space $\mathbb{R}^n$. So we henceforth denote and treat $\bb$ as an $n \times n$ matrix, representing the linear operator. We've learnt in Chapter [-@sec:mdp-chapter] that $\bvpi$ is the fixed point of $\bb$. Therefore, we can write:
+Note that $\bb$ is an [affine transformation](https://en.wikipedia.org/wiki/Affine_transformation) on vectors in $\mathbb{R}^n$. We lighten notation for application of the $\bb$ operator on any vector $\bv \in \mathbb{R}^n$ as simply $\bb \cdot \bv$ (with $\cdot$ conveying the notion of operator application). We've learnt in Chapter [-@sec:mdp-chapter] that $\bvpi$ is the fixed point of $\bb$. Therefore, we can write:
 $$\bb \cdot \bvpi = \bvpi$$
 \index{fixed-point theory!Banach fixed-point theorem}
 This means, if we start with an arbitrary Value Function vector $\bv$ and repeatedly apply $\bb$, by Banach Fixed-Point Theorem \ref{th:banach_fixed_point_theorem}, we will reach the fixed point $\bvpi$. We've learnt in Chapter [-@sec:mdp-chapter] that this is, in fact, the Dynamic Programming Policy Evaluation algorithm. Note that Tabular Monte Carlo also converges to $\bvpi$ (albeit slowly).
