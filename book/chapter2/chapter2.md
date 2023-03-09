@@ -1077,8 +1077,8 @@ When next state's ($S_{t+1}$) On-Hand is equal to zero, there are two possibilit
 2. The demand for the day was strictly greater than $\alpha + \beta$, meaning there's some stockout cost in addition to overnight holding cost. The exact stockout cost is an expectation calculation involving the number of units of missed demand under the corresponding Poisson probabilities of demand exceeding $\alpha + \beta$.
 
 This calculation is shown below:
-$$\mathcal{R}_T((\alpha, \beta), (0, C - (\alpha + \beta))) = - h \alpha - p (\sum_{j=\alpha+\beta+1}^{\infty} f(j) \cdot (j - (\alpha + \beta)))$$
- $$= - h \alpha - p (\lambda (1 - F(\alpha + \beta - 1)) -  (\alpha + \beta)(1 - F(\alpha + \beta)))$$ 
+$$\mathcal{R}_T((\alpha, \beta), (0, C - (\alpha + \beta))) = - h \alpha - p \frac {\sum_{j=\alpha + \beta + 1}^{\infty} f(j) \cdot (j - (\alpha + \beta))} {\sum_{j=\alpha + \beta}^{\infty} f(j)}$$
+ $$= - h \alpha - p (\lambda -  (\alpha + \beta) (1 - \frac{f(\alpha + \beta)} {1 - F(\alpha + \beta - 1)}))$$ 
 
 So now we have a specification of $\mathcal{R}_T$, but when it comes to our coding interface, we are expected to specify $\mathcal{P}_R$ as that is the interface through which we create a `FiniteMarkovRewardProcess`. Fear not—a specification of $\mathcal{P}_R$ is easy once we have a specification of $\mathcal{R}_T$. We simply create 4-tuples $(s,r,s',p)$ for all $s \in \mathcal{N}, s' \in \mathcal{S}$ such that $r=\mathcal{R}_T(s, s')$ and $p=\mathcal{P}(s,s')$ (we know $\mathcal{P}$ along with $\mathcal{R}_T$), and the set of all these 4-tuples (for all $s \in \mathcal{N}, s' \in \mathcal{S}$) constitute the specification of $\mathcal{P}_R$, i.e., $\mathcal{P}_R(s,r,s') = p$. This turns our reward-definition-altered mathematical model of a Finite Markov Reward Process into a programming model of the `FiniteMarkovRewardProcess` class. This reward-definition-altered model enables us to gain from the fact that we can leverage the algorithms we'll be  writing for Finite Markov Reward Processes (including some simple and elegant linear-algebra-solver-based solutions). The downside of this reward-definition-altered model is that it prevents us from generating samples of the specific rewards encountered when transitioning from one state to another (because we no longer capture the probabilities of individual reward outcomes). Note that we can indeed generate sampling traces, but each transition step in the sampling trace will only show us the "mean reward" (specifically, the expected reward conditioned on current state and next state).
 
@@ -1132,9 +1132,9 @@ class SimpleInventoryMRPFinite(FiniteMarkovRewardProcess[InventoryState]):
                     {(InventoryState(ip - i, beta1), base_reward):
                      self.poisson_distr.pmf(i) for i in range(ip)}
                 probability = 1 - self.poisson_distr.cdf(ip - 1)
-                reward = base_reward - self.stockout_cost *\
-                    (probability * (self.poisson_lambda - ip) +
-                     ip * self.poisson_distr.pmf(ip))
+                reward = base_reward - self.stockout_cost * \
+                    (self.poisson_lambda - ip *
+                     (1 - self.poisson_distr.pmf(ip) / probability))
                 sr_probs_map[(InventoryState(0, beta1), reward)] = probability
                 d[state] = Categorical(sr_probs_map)
         return d
@@ -1220,23 +1220,23 @@ Let us write some code to implement the calculation of Equation \eqref{eq:mrp_be
 Invoking this `get_value_function_vec` method on `SimpleInventoryMRPFinite` for the simple case of capacity $C=2$, Poisson mean $\lambda = 1.0$, holding cost $h=1.0$, stockout cost $p=10.0$, and discount factor $\gamma=0.9$ yields the following result:
 
 ```
-{NonTerminal(state=InventoryState(on_hand=0, on_order=0)): -35.511,
- NonTerminal(state=InventoryState(on_hand=0, on_order=1)): -27.932,
- NonTerminal(state=InventoryState(on_hand=0, on_order=2)): -28.345,
- NonTerminal(state=InventoryState(on_hand=1, on_order=0)): -28.932,
- NonTerminal(state=InventoryState(on_hand=1, on_order=1)): -29.345,
- NonTerminal(state=InventoryState(on_hand=2, on_order=0)): -30.345}
- ```
+ {NonTerminal(state=InventoryState(on_hand=0, on_order=0)): -43.596,
+ NonTerminal(state=InventoryState(on_hand=0, on_order=1)): -37.971,
+ NonTerminal(state=InventoryState(on_hand=0, on_order=2)): -37.329,
+ NonTerminal(state=InventoryState(on_hand=1, on_order=0)): -38.971,
+ NonTerminal(state=InventoryState(on_hand=1, on_order=1)): -38.329,
+ NonTerminal(state=InventoryState(on_hand=2, on_order=0)): -39.329}
+```
 
 The corresponding values of the attribute `reward_function_vec` (i.e., $\mathcal{R}$) are:
 
 ```
-{NonTerminal(state=InventoryState(on_hand=1, on_order=0)): -3.325,
- NonTerminal(state=InventoryState(on_hand=0, on_order=0)): -10.0,
- NonTerminal(state=InventoryState(on_hand=0, on_order=1)): -2.325,
- NonTerminal(state=InventoryState(on_hand=0, on_order=2)): -0.274,
- NonTerminal(state=InventoryState(on_hand=1, on_order=1)): -1.274,
- NonTerminal(state=InventoryState(on_hand=2, on_order=0)): -2.274}  
+{NonTerminal(state=InventoryState(on_hand=0, on_order=0)): -10.0,
+ NonTerminal(state=InventoryState(on_hand=0, on_order=1)): -3.679,
+ NonTerminal(state=InventoryState(on_hand=0, on_order=2)): -1.036,
+ NonTerminal(state=InventoryState(on_hand=1, on_order=0)): -4.679,
+ NonTerminal(state=InventoryState(on_hand=1, on_order=1)): -2.036,
+ NonTerminal(state=InventoryState(on_hand=2, on_order=0)): -3.036}
 ```
 
 This tells us that On-Hand of 0 and On-Order of 2 has the highest expected reward. However, the Value Function is highest for On-Hand of 0 and On-Order of 1.
