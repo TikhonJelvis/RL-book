@@ -56,9 +56,9 @@ class SimpleInventoryMDPCap(FiniteMarkovDecisionProcess[InventoryState, int]):
                          self.poisson_distr.pmf(i) for i in range(ip)}
 
                     probability: float = 1 - self.poisson_distr.cdf(ip - 1)
-                    reward: float = base_reward - self.stockout_cost *\
-                        (probability * (self.poisson_lambda - ip) +
-                         ip * self.poisson_distr.pmf(ip))
+                    reward: float = base_reward - self.stockout_cost * \
+                        (self.poisson_lambda - ip * 
+                        (1 - self.poisson_distr.pmf(ip) / probability))
                     sr_probs_dict[(InventoryState(0, order), reward)] = \
                         probability
                     d1[order] = Categorical(sr_probs_dict)
