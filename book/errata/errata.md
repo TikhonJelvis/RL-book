@@ -10,7 +10,42 @@ On page 58, the equation in Definition 3.7.1 that defines the Stationary Distrib
 
 $$\pi(s') = \sum_{s \in \mathcal{N}} \pi(s) \cdot \mathcal{P}(s, s') \text{ for all } s' \in \mathcal{N}$$
 
+#### Definition of $\mathcal{R}_T$ for `SimpleInventoryMRPFinite` {.unnumbered}
+
+On page 67, there is an error in the equation for $\mathcal{R}_T$ for the case when the next state's ($S_{t+1}$) On-Hand is equal to 0. The corrected equation is as follows:
+
+$$\mathcal{R}_T((\alpha, \beta), (0, C - (\alpha + \beta))) = - h \alpha - p \frac {\sum_{j=\alpha + \beta + 1}^{\infty} f(j) \cdot (j - (\alpha + \beta))} {\sum_{j=\alpha + \beta}^{\infty} f(j)}$$
+ $$= - h \alpha - p (\lambda -  (\alpha + \beta) (1 - \frac{f(\alpha + \beta)} {1 - F(\alpha + \beta - 1)}))$$ 
+
+The corresponding correction to the code on page 68 involves changing the assignment to the variable `reward` according to the following code:
+
+```python
+reward = base_reward - self.stockout_cost * \
+    (self.poisson_lambda - ip *
+     (1 - self.poisson_distr.pmf(ip) / probability))
+```
+
+The full body of this (corrected) code can be found in: [rl/chapter2/simple_inventory_mrp.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/chapter2/simple_inventory_mrp.py). 
+
+
 ### Chapter 4 {.unnumbered}
+
+#### Definition of $\mathcal{R}_T$ for `SimpleInventoryMDPCap` {.unnumbered}
+
+On page 86, there is an error in the equation for $\mathcal{R}_T$ for the case when the next state's ($S_{t+1}$) On-Hand is equal to 0. The corrected equation is as follows:
+
+$$\mathcal{R}_T((\alpha, \beta), \theta, (0, \theta)) = - h \alpha - p \frac {\sum_{j=\alpha+\beta+1}^{\infty} f(j) \cdot (j - (\alpha + \beta))} {\sum_{j=\alpha + \beta}^{\infty} f(j)}$$
+ $$= - h \alpha - p (\lambda -  (\alpha + \beta) (1 - \frac{f(\alpha + \beta)} {1 - F(\alpha + \beta - 1)}))$$ 
+
+The corresponding correction to the code on page 87 involves changing the assignment to the variable `reward` according to the following code:
+
+```python
+reward: float = base_reward - self.stockout_cost * \
+    (self.poisson_lambda - ip * 
+     (1 - self.poisson_distr.pmf(ip) / probability))
+```
+
+The full body of this (corrected) code can be found in: [rl/chapter3/simple_inventory_mdp_cap.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/chapter3/simple_inventory_mdp_cap.py). 
 
 #### Bellman Policy Equation Derivation {.unnumbered}
 

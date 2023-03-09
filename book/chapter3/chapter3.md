@@ -580,8 +580,8 @@ When next state's ($S_{t+1}$) On-Hand is equal to zero, there are two possibilit
 2. The demand for the day was strictly greater than $\alpha + \beta$, meaning there's some stockout cost in addition to overnight holding cost. The exact stockout cost is an expectation calculation involving the number of units of missed demand under the corresponding Poisson probabilities of demand exceeding $\alpha + \beta$.
 
 This calculation is shown below:
-$$\mathcal{R}_T((\alpha, \beta), \theta, (0, \theta)) = - h \alpha - p (\sum_{j=\alpha+\beta+1}^{\infty} f(j) \cdot (j - (\alpha + \beta)))$$
- $$= - h \alpha - p (\lambda (1 - F(\alpha + \beta - 1)) -  (\alpha + \beta)(1 - F(\alpha + \beta)))$$ 
+$$\mathcal{R}_T((\alpha, \beta), \theta, (0, \theta)) = - h \alpha - p \frac {\sum_{j=\alpha+\beta+1}^{\infty} f(j) \cdot (j - (\alpha + \beta))} {\sum_{j=\alpha + \beta}^{\infty} f(j)}$$
+ $$= - h \alpha - p (\lambda -  (\alpha + \beta) (1 - \frac{f(\alpha + \beta)} {1 - F(\alpha + \beta - 1)}))$$ 
 
 So now we have a specification of $\mathcal{R}_T$, but when it comes to our coding interface, we are expected to specify $\mathcal{P}_R$ as that is the interface through which we create a `FiniteMarkovDecisionProcess`. Fear not—a specification of $\mathcal{P}_R$ is easy once we have a specification of $\mathcal{R}_T$. We simply create 5-tuples $(s,a,r,s',p)$ for all $s \in \mathcal{N}, s' \in \mathcal{S}, a \in \mathcal{A}$ such that $r=\mathcal{R}_T(s,a,s')$ and $p=\mathcal{P}(s,a,s')$ (we know $\mathcal{P}$ along with $\mathcal{R}_T$), and the set of all these 5-tuples (for all $s \in \mathcal{N}, s'\in \mathcal{S}, a \in \mathcal{A}$) constitute the specification of $\mathcal{P}_R$, i.e., $\mathcal{P}_R(s,a,r,s') = p$. This turns our reward-definition-altered mathematical model of a Finite Markov Decision Process into a programming model of the `FiniteMarkovDecisionProcess` class. This reward-definition-altered model enables us to gain from the fact that we can leverage the algorithms we'll be writing for Finite Markov Decision Processes (specifically, the classical Dynamic Programming algorithms—covered in Chapter [-@sec:dp-chapter]). The downside of this reward-definition-altered model is that it prevents us from generating sampling traces of the specific rewards encountered when transitioning from one state to another (because we no longer capture the probabilities of individual reward outcomes). Note that we can indeed perform simulations, but each transition step in the sampling trace will only show us the "mean reward" (specifically, the expected reward conditioned on current state, action and next state).
 
@@ -634,9 +634,9 @@ class SimpleInventoryMDPCap(FiniteMarkovDecisionProcess[InventoryState, int]):
                          self.poisson_distr.pmf(i) for i in range(ip)}
 
                     probability: float = 1 - self.poisson_distr.cdf(ip - 1)
-                    reward: float = base_reward - self.stockout_cost *\
-                        (probability * (self.poisson_lambda - ip) +
-                         ip * self.poisson_distr.pmf(ip))
+                    reward: float = base_reward - self.stockout_cost * \
+                        (self.poisson_lambda - ip * 
+                        (1 - self.poisson_distr.pmf(ip) / probability))
                     sr_probs_dict[(InventoryState(0, order), reward)] = \
                         probability
                     d1[order] = Categorical(sr_probs_dict)

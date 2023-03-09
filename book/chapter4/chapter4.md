@@ -755,14 +755,13 @@ pprint(evaluate_mrp_result(implied_mrp, gamma=user_gamma))
 ```
 
 This prints the following Value Function.
-
 ```
-{NonTerminal(state=InventoryState(on_hand=0, on_order=0)): -35.510518165628724,
- NonTerminal(state=InventoryState(on_hand=0, on_order=1)): -27.93217421014731,
- NonTerminal(state=InventoryState(on_hand=0, on_order=2)): -28.345029758390766,
- NonTerminal(state=InventoryState(on_hand=1, on_order=0)): -28.93217421014731,
- NonTerminal(state=InventoryState(on_hand=1, on_order=1)): -29.345029758390766,
- NonTerminal(state=InventoryState(on_hand=2, on_order=0)): -30.345029758390766}
+{NonTerminal(state=InventoryState(on_hand=0, on_order=0)): -43.59563313047815,
+ NonTerminal(state=InventoryState(on_hand=0, on_order=1)): -37.97111179441265,
+ NonTerminal(state=InventoryState(on_hand=0, on_order=2)): -37.3284904356655,
+ NonTerminal(state=InventoryState(on_hand=1, on_order=0)): -38.97111179441265,
+ NonTerminal(state=InventoryState(on_hand=1, on_order=1)): -38.3284904356655,
+ NonTerminal(state=InventoryState(on_hand=2, on_order=0)): -39.3284904356655}
 ```
    
 Next, let's run Policy Iteration.
@@ -779,14 +778,14 @@ print(opt_policy_pi)
 This prints the following Optimal Value Function and Optimal Policy.
 
 ```
-{NonTerminal(state=InventoryState(on_hand=1, on_order=0)): -28.660960231637507,
- NonTerminal(state=InventoryState(on_hand=0, on_order=2)): -27.991900091403533,
- NonTerminal(state=InventoryState(on_hand=0, on_order=1)): -27.660960231637507,
- NonTerminal(state=InventoryState(on_hand=0, on_order=0)): -34.894855781630035,
- NonTerminal(state=InventoryState(on_hand=1, on_order=1)): -28.991900091403533,
- NonTerminal(state=InventoryState(on_hand=2, on_order=0)): -29.991900091403533}
+{NonTerminal(state=InventoryState(on_hand=0, on_order=1)): -37.97111179441265,
+ NonTerminal(state=InventoryState(on_hand=0, on_order=2)): -37.3284904356655,
+ NonTerminal(state=InventoryState(on_hand=1, on_order=0)): -38.97111179441265,
+ NonTerminal(state=InventoryState(on_hand=1, on_order=1)): -38.3284904356655,
+ NonTerminal(state=InventoryState(on_hand=2, on_order=0)): -39.3284904356655,
+ NonTerminal(state=InventoryState(on_hand=0, on_order=0)): -43.59563313047815}
 
-For State InventoryState(on_hand=0, on_order=0): Do Action 1
+For State InventoryState(on_hand=0, on_order=0): Do Action 2
 For State InventoryState(on_hand=0, on_order=1): Do Action 1
 For State InventoryState(on_hand=0, on_order=2): Do Action 0
 For State InventoryState(on_hand=1, on_order=0): Do Action 1

@@ -307,13 +307,13 @@ si_mrp.display_value_function(gamma=user_gamma)
 This prints the following:   
 
 ```
-{NonTerminal(state=InventoryState(on_hand=0, on_order=0)): -35.511,
- NonTerminal(state=InventoryState(on_hand=0, on_order=1)): -27.932,
- NonTerminal(state=InventoryState(on_hand=0, on_order=2)): -28.345,
- NonTerminal(state=InventoryState(on_hand=1, on_order=0)): -28.932,
- NonTerminal(state=InventoryState(on_hand=1, on_order=1)): -29.345,
- NonTerminal(state=InventoryState(on_hand=2, on_order=0)): -30.345}
- ```
+{NonTerminal(state=InventoryState(on_hand=0, on_order=0)): -43.596,
+ NonTerminal(state=InventoryState(on_hand=0, on_order=1)): -37.971,
+ NonTerminal(state=InventoryState(on_hand=0, on_order=2)): -37.329,
+ NonTerminal(state=InventoryState(on_hand=1, on_order=0)): -38.971,
+ NonTerminal(state=InventoryState(on_hand=1, on_order=1)): -38.329,
+ NonTerminal(state=InventoryState(on_hand=2, on_order=0)): -39.329}
+```
     
 Next, we run Monte-Carlo Prediction by first generating a stream of trace experiences (in the form of sampling traces) from the MRP, and then calling `mc_prediction` using `Tabular` with equal-weights-learning-rate (i.e., default `count_to_weight_func` of `lambda n: 1.0 / n`).
 
@@ -327,8 +327,8 @@ from rl.monte_carlo import mc_prediction
 from itertools import islice
 from pprint import pprint
 
-traces: Iterable[Iterable[TransitionStep[S]]] = \
-        mrp.reward_traces(Choose(si_mrp.non_terminal_states))
+traces: Iterable[Iterable[TransitionStep[InventoryState]]] = \
+        si_mrp.reward_traces(Choose(si_mrp.non_terminal_states))
 it: Iterator[ValueFunctionApprox[InventoryState]] = mc_prediction(
     traces=traces,
     approx_0=Tabular(),
@@ -345,14 +345,14 @@ pprint({s: round(last_func.evaluate([s])[0], 3)
  
 This prints the following:
 
-``` 
-{NonTerminal(state=InventoryState(on_hand=1, on_order=1)): -29.341,
- NonTerminal(state=InventoryState(on_hand=2, on_order=0)): -30.349,
- NonTerminal(state=InventoryState(on_hand=0, on_order=0)): -35.52,
- NonTerminal(state=InventoryState(on_hand=0, on_order=1)): -27.931,
- NonTerminal(state=InventoryState(on_hand=0, on_order=2)): -28.355,
- NonTerminal(state=InventoryState(on_hand=1, on_order=0)): -28.93}   
-```   
+```
+{NonTerminal(state=InventoryState(on_hand=0, on_order=0)): -43.598,
+ NonTerminal(state=InventoryState(on_hand=0, on_order=1)): -37.983,
+ NonTerminal(state=InventoryState(on_hand=0, on_order=2)): -37.331,
+ NonTerminal(state=InventoryState(on_hand=1, on_order=0)): -38.991,
+ NonTerminal(state=InventoryState(on_hand=1, on_order=1)): -38.347,
+ NonTerminal(state=InventoryState(on_hand=2, on_order=0)): -39.343}
+```
      
 We see that the Value Function computed by Tabular Monte-Carlo Prediction with 60000 trace experiences is within 0.01 of the exact Value Function, for each of the states.
 
@@ -504,9 +504,9 @@ half_life: float = 1000.0
 exponent: float = 0.5
 gamma: float = 0.9
 
-episodes: Iterable[Iterable[TransitionStep[S]]] = \
+episodes: Iterable[Iterable[TransitionStep[InventoryState]]] = \
     fmrp_episodes_stream(si_mrp)
-td_experiences: Iterable[TransitionStep[S]] = \
+td_experiences: Iterable[TransitionStep[InventoryState]] = \
     unit_experiences_from_episodes(
         episodes,
         episode_length
@@ -516,7 +516,7 @@ learning_rate_func: Callable[[int], float] = learning_rate_schedule(
     half_life=half_life,
     exponent=exponent
 )
-td_vfs: Iterator[ValueFunctionApprox[S]] = td.td_prediction(
+td_vfs: Iterator[ValueFunctionApprox[InventoryState]] = td.td_prediction(
     transitions=td_experiences,
     approx_0=Tabular(count_to_weight_func=learning_rate_func),
     gamma=gamma
@@ -524,7 +524,7 @@ td_vfs: Iterator[ValueFunctionApprox[S]] = td.td_prediction(
 
 num_episodes = 60000
 
-final_td_vf: ValueFunctionApprox[S] = \
+final_td_vf: ValueFunctionApprox[InventoryState] = \
     iterate.last(itertools.islice(td_vfs, episode_length * num_episodes))
 pprint({s: round(final_td_vf(s), 3) for s in si_mrp.non_terminal_states})
 ```
@@ -532,12 +532,12 @@ pprint({s: round(final_td_vf(s), 3) for s in si_mrp.non_terminal_states})
 This prints the following:
 
 ```
-{NonTerminal(state=InventoryState(on_hand=0, on_order=0)): -35.529,
- NonTerminal(state=InventoryState(on_hand=0, on_order=1)): -27.868,
- NonTerminal(state=InventoryState(on_hand=0, on_order=2)): -28.344,
- NonTerminal(state=InventoryState(on_hand=1, on_order=0)): -28.935,
- NonTerminal(state=InventoryState(on_hand=1, on_order=1)): -29.386,
- NonTerminal(state=InventoryState(on_hand=2, on_order=0)): -30.305}
+{NonTerminal(state=InventoryState(on_hand=0, on_order=0)): -43.564,
+ NonTerminal(state=InventoryState(on_hand=0, on_order=1)): -38.117,
+ NonTerminal(state=InventoryState(on_hand=0, on_order=2)): -37.314,
+ NonTerminal(state=InventoryState(on_hand=1, on_order=0)): -39.12,
+ NonTerminal(state=InventoryState(on_hand=1, on_order=1)): -38.551,
+ NonTerminal(state=InventoryState(on_hand=2, on_order=0)): -39.38}
 ```
 
 Thus, we see that our implementation of TD prediction with the above settings fetches us an estimated Value Function within 0.065 of the true Value Function after 60,000 episodes.
@@ -1265,25 +1265,26 @@ half_life: float = 1000.0
 exponent: float = 0.5
 lambda_param = 0.3
 
-episodes: Iterable[Iterable[TransitionStep[S]]] = \
+episodes: Iterable[Iterable[TransitionStep[InventoryState]]] = \
     fmrp_episodes_stream(si_mrp)
-curtailed_episodes: Iterable[Iterable[TransitionStep[S]]] = \
+curtailed_episodes: Iterable[Iterable[TransitionStep[InventoryState]]] = \
         (itertools.islice(episode, episode_length) for episode in episodes)
 learning_rate_func: Callable[[int], float] = learning_rate_schedule(
     initial_learning_rate=initial_learning_rate,
     half_life=half_life,
     exponent=exponent
 )
-td_lambda_vfs: Iterator[ValueFunctionApprox[S]] = td_lambda.td_lambda_prediction(
-    traces=curtailed_episodes,
-    approx_0=Tabular(count_to_weight_func=learning_rate_func),
-    gamma=gamma,
-    lambd=lambda_param
-)
+td_lambda_vfs: Iterator[ValueFunctionApprox[InventoryState]] = \
+    td_lambda.td_lambda_prediction(
+        traces=curtailed_episodes,
+        approx_0=Tabular(count_to_weight_func=learning_rate_func),
+        gamma=gamma,
+        lambd=lambda_param
+    )
 
 num_episodes = 60000
 
-final_td_lambda_vf: ValueFunctionApprox[S] = \
+final_td_lambda_vf: ValueFunctionApprox[InventoryState] = \
     iterate.last(itertools.islice(td_lambda_vfs, episode_length * num_episodes))
 pprint({s: round(final_td_lambda_vf(s), 3) for s in si_mrp.non_terminal_states})
 ```
@@ -1291,12 +1292,12 @@ pprint({s: round(final_td_lambda_vf(s), 3) for s in si_mrp.non_terminal_states})
 This prints the following:
 
 ```
-{NonTerminal(state=InventoryState(on_hand=0, on_order=0)): -35.545,
- NonTerminal(state=InventoryState(on_hand=0, on_order=1)): -27.97,
- NonTerminal(state=InventoryState(on_hand=0, on_order=2)): -28.396,
- NonTerminal(state=InventoryState(on_hand=1, on_order=0)): -28.943,
- NonTerminal(state=InventoryState(on_hand=1, on_order=1)): -29.506,
- NonTerminal(state=InventoryState(on_hand=2, on_order=0)): -30.339}
+{NonTerminal(state=InventoryState(on_hand=0, on_order=0)): -43.513,
+ NonTerminal(state=InventoryState(on_hand=0, on_order=1)): -37.878,
+ NonTerminal(state=InventoryState(on_hand=0, on_order=2)): -37.215,
+ NonTerminal(state=InventoryState(on_hand=1, on_order=0)): -38.948,
+ NonTerminal(state=InventoryState(on_hand=1, on_order=1)): -38.34,
+ NonTerminal(state=InventoryState(on_hand=2, on_order=0)): -39.45}
 ```
 
 Thus, we see that our implementation of TD($\lambda$) Prediction with the above settings fetches us an estimated Value Function fairly close to the true Value Function. As ever, we encourage you to play with various settings for TD($\lambda$) Prediction to develop an intuition for how the results change as you change the settings, and particularly as you change the $\lambda$ parameter. You can play with the code in the file [rl/chapter10/simple_inventory_mrp.py](https://github.com/TikhonJelvis/RL-book/blob/master/rl/chapter10/simple_inventory_mrp.py).

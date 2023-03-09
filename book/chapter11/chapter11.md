@@ -289,7 +289,7 @@ First, let's run Value Iteration so we can determine the true Optimal Value Func
 
 ```python
 from rl.dynamic_programming import value_iteration_result
-true_opt_vf, true_opt_policy = value_iteration_result(fmdp, gamma=gamma)
+true_opt_vf, true_opt_policy = value_iteration_result(si_mdp, gamma=gamma)
 print("True Optimal Value Function")
 pprint(true_opt_vf)
 print("True Optimal Policy")
@@ -300,19 +300,19 @@ This prints:
 
 ```
 True Optimal Value Function
-{NonTerminal(state=InventoryState(on_hand=0, on_order=0)): -34.894855194671294,
- NonTerminal(state=InventoryState(on_hand=0, on_order=1)): -27.66095964467877,
- NonTerminal(state=InventoryState(on_hand=0, on_order=2)): -27.99189950444479,
- NonTerminal(state=InventoryState(on_hand=1, on_order=0)): -28.66095964467877,
- NonTerminal(state=InventoryState(on_hand=1, on_order=1)): -28.99189950444479,
- NonTerminal(state=InventoryState(on_hand=2, on_order=0)): -29.991899504444792}
+{NonTerminal(state=InventoryState(on_hand=0, on_order=0)): -43.59563313047815,
+ NonTerminal(state=InventoryState(on_hand=0, on_order=1)): -37.97111179441265,
+ NonTerminal(state=InventoryState(on_hand=0, on_order=2)): -37.3284904356655,
+ NonTerminal(state=InventoryState(on_hand=1, on_order=0)): -38.97111179441265,
+ NonTerminal(state=InventoryState(on_hand=1, on_order=1)): -38.3284904356655,
+ NonTerminal(state=InventoryState(on_hand=2, on_order=0)): -39.3284904356655}
 True Optimal Policy
-For State InventoryState(on_hand=0, on_order=0): Do Action 1
+For State InventoryState(on_hand=0, on_order=0): Do Action 2
 For State InventoryState(on_hand=0, on_order=1): Do Action 1
 For State InventoryState(on_hand=0, on_order=2): Do Action 0
 For State InventoryState(on_hand=1, on_order=0): Do Action 1
 For State InventoryState(on_hand=1, on_order=1): Do Action 0
-For State InventoryState(on_hand=2, on_order=0): Do Action 0  
+For State InventoryState(on_hand=2, on_order=0): Do Action 0
 ```
 
 Now let's run GLIE MC Control with the following parameters:
@@ -336,7 +336,7 @@ learning_rate_func: Callable[[int], float] = learning_rate_schedule(
     half_life=half_life,
     exponent=exponent
 )
-qvfs: Iterator[QValueFunctionApprox[InventoryState, int] = glie_mc_control(
+qvfs: Iterator[QValueFunctionApprox[InventoryState, int]] = glie_mc_control(
     mdp=si_mdp,
     states=Choose(si_mdp.non_terminal_states),
     approx_0=Tabular(
@@ -390,19 +390,19 @@ This prints:
 
 ```
 GLIE MC Optimal Value Function with 10000 episodes
-{NonTerminal(state=InventoryState(on_hand=0, on_order=0)): -34.76212336633032,
- NonTerminal(state=InventoryState(on_hand=0, on_order=1)): -27.90668364332291,
- NonTerminal(state=InventoryState(on_hand=0, on_order=2)): -28.306190508518398,
- NonTerminal(state=InventoryState(on_hand=1, on_order=0)): -28.548284937363526,
- NonTerminal(state=InventoryState(on_hand=1, on_order=1)): -28.864409885059185,
- NonTerminal(state=InventoryState(on_hand=2, on_order=0)): -30.23156422557605}
+{NonTerminal(state=InventoryState(on_hand=0, on_order=0)): -44.38581299284649,
+ NonTerminal(state=InventoryState(on_hand=0, on_order=1)): -38.39628366868024,
+ NonTerminal(state=InventoryState(on_hand=0, on_order=2)): -38.181915947627736,
+ NonTerminal(state=InventoryState(on_hand=1, on_order=0)): -39.45527081570233,
+ NonTerminal(state=InventoryState(on_hand=1, on_order=1)): -38.68329079171965,
+ NonTerminal(state=InventoryState(on_hand=2, on_order=0)): -39.137125440510395}
 GLIE MC Optimal Policy with 10000 episodes
-For State InventoryState(on_hand=0, on_order=0): Do Action 1
+For State InventoryState(on_hand=0, on_order=0): Do Action 2
 For State InventoryState(on_hand=0, on_order=1): Do Action 1
 For State InventoryState(on_hand=0, on_order=2): Do Action 0
 For State InventoryState(on_hand=1, on_order=0): Do Action 1
 For State InventoryState(on_hand=1, on_order=1): Do Action 0
-For State InventoryState(on_hand=2, on_order=0): Do Action 0  
+For State InventoryState(on_hand=2, on_order=0): Do Action 0
 ```
 
 We see that this reasonably converges to the true Value Function (and reaches the true Optimal Policy) as produced by Value Iteration.
@@ -590,14 +590,14 @@ This prints:
 
 ```
 GLIE SARSA Optimal Value Function with 1000000 updates
-{NonTerminal(state=InventoryState(on_hand=0, on_order=0)): -35.05830797041331,
- NonTerminal(state=InventoryState(on_hand=0, on_order=1)): -27.8507256742493,
- NonTerminal(state=InventoryState(on_hand=0, on_order=2)): -27.735579652721434,
- NonTerminal(state=InventoryState(on_hand=1, on_order=0)): -28.984534974043097,
- NonTerminal(state=InventoryState(on_hand=1, on_order=1)): -29.325829885558885,
- NonTerminal(state=InventoryState(on_hand=2, on_order=0)): -30.236704327526777}
+{NonTerminal(state=InventoryState(on_hand=0, on_order=0)): -43.817646320648024,
+ NonTerminal(state=InventoryState(on_hand=0, on_order=1)): -38.11210464879219,
+ NonTerminal(state=InventoryState(on_hand=0, on_order=2)): -37.70591171072857,
+ NonTerminal(state=InventoryState(on_hand=1, on_order=0)): -38.86183198287357,
+ NonTerminal(state=InventoryState(on_hand=1, on_order=1)): -38.520518737438664,
+ NonTerminal(state=InventoryState(on_hand=2, on_order=0)): -39.413922616794196}
 GLIE SARSA Optimal Policy with 1000000 updates
-For State InventoryState(on_hand=0, on_order=0): Do Action 1
+For State InventoryState(on_hand=0, on_order=0): Do Action 2
 For State InventoryState(on_hand=0, on_order=1): Do Action 1
 For State InventoryState(on_hand=0, on_order=2): Do Action 0
 For State InventoryState(on_hand=1, on_order=0): Do Action 1
