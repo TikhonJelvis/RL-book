@@ -21,22 +21,28 @@ PositionOnHandMapping = Mapping[
 ]
 
 
-class SimpleTacMDP(FiniteMarkovDecisionProcess[TacState, int]):
+def initialize_transition_map():
+    transition_map: PositionOnHandMapping = {}
 
-    def __init__(
-            self,
-            position: int
-    ):
-        self.position: int = position
-        super().__init__(self.get_action_transition_reward_map())
+    for position in range(0, 20):
+        next_position = {}
+        for card in range(1, 5):
+            next_position[card] = Categorical(
+                {(TacState(position+card, 0), 0): 1})
+        transition_map[TacState(position, 0)] = next_position
 
-    def get_action_transition_reward_map(self) -> PositionOnHandMapping:
+    return transition_map
 
 
 if __name__ == '__main__':
 
-    tac_mdp: FiniteMarkovDecisionProcess[TacState, int] = SimpleTacMDP(0)
+    transition_map = initialize_transition_map()
 
-    print("Tac MDP")
+    print("Transition Map")
     print("-------------")
-    print(tac_mdp)
+    for state in transition_map:
+        print(state)
+        for action in transition_map[state]:
+            print("Action: ", action)
+            print(transition_map[state][action])
+        print("-------------")
