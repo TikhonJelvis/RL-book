@@ -1,10 +1,13 @@
+
 from dataclasses import dataclass
-from typing import Tuple, Dict, Mapping
-from rl.markov_decision_process import FiniteMarkovDecisionProcess
-from rl.policy import FiniteDeterministicPolicy
-from rl.markov_process import FiniteMarkovProcess, FiniteMarkovRewardProcess
-from rl.distribution import Categorical
+from typing import Dict, Mapping, Tuple
+
 from scipy.stats import poisson
+
+from rl.distribution import Categorical
+from rl.markov_decision_process import FiniteMarkovDecisionProcess
+from rl.markov_process import FiniteMarkovProcess, FiniteMarkovRewardProcess
+from rl.policy import FiniteDeterministicPolicy
 
 
 @dataclass(frozen=True)
@@ -83,7 +86,7 @@ if __name__ == '__main__':
             poisson_lambda=user_poisson_lambda,
             holding_cost=user_holding_cost,
             stockout_cost=user_stockout_cost
-        )
+    )
 
     print("MDP Transition Map")
     print("------------------")
@@ -128,9 +131,9 @@ if __name__ == '__main__':
     implied_mrp.display_value_function(gamma=user_gamma)
     print()
 
-    from rl.dynamic_programming import evaluate_mrp_result
-    from rl.dynamic_programming import policy_iteration_result
-    from rl.dynamic_programming import value_iteration_result
+    from rl.dynamic_programming import (evaluate_mrp_result,
+                                        policy_iteration_result,
+                                        value_iteration_result)
 
     print("Implied MRP Policy Evaluation Value Function")
     print("--------------")
