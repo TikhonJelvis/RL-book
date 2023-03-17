@@ -2,6 +2,43 @@
 
 The following is the errata for the published book *Foundations of Reinforcement Learning with Applications in Finance* by *Ashwin Rao* and *Tikhon Jelvis*
 
+### Chapter 2 {.unnumbered}
+
+On page 35, the two definitions of `sqrt` need to initialize `x_n`:
+
+``` python
+def sqrt(a: float) -> float:
+    x = a / 2 # initial guess
+    x_n = a
+    while abs(x_n - x) > 0.01:
+        x_n = (x + (a / x)) / 2
+        x = x_n
+    return x_n
+```
+
+and
+
+``` python
+def sqrt(a: float, threshold: float) -> float:
+    x = a / 2 # initial guess
+    x_n = a
+    while abs(x_n - x) > threshold:
+        x_n = (x + (a / x)) / 2
+        x = x_n
+    return x_n
+```
+
+On page 37, the definition of `converge` needs one level less indentation:
+
+``` python
+def converge(values: Iterator[float], threshold: float) -> Iterator[float]:
+    for a, b in itertools.pairwise(values):
+        yield a
+
+        if abs(a - b) < threshold:
+            break
+```
+
 ### Chapter 3 {.unnumbered}
 
 #### Definition of Stationary Distribution of a Markov Process {.unnumbered}
