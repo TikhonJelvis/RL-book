@@ -716,8 +716,10 @@ At each iteration, $x_{n + 1}$ gets closer to the right answer by smaller and sm
 ``` python
 def sqrt(a: float) -> float:
     x = a / 2 # initial guess
+    x_n = a
     while abs(x_n - x) > 0.01:
         x_n = (x + (a / x)) / 2
+        x = x_n
     return x_n
 ```
 
@@ -730,8 +732,10 @@ The first improvement we can make is to turn the `0.01` into an extra parameter:
 ``` python
 def sqrt(a: float, threshold: float) -> float:
     x = a / 2 # initial guess
+    x_n = a
     while abs(x_n - x) > threshold:
         x_n = (x + (a / x)) / 2
+        x = x_n
     return x_n
 ```
 
@@ -820,11 +824,11 @@ A fixed number of iterations can be useful for exploration, but we probably want
 
 ``` python
 def converge(values: Iterator[float], threshold: float) -> Iterator[float]:
-        for a, b in itertools.pairwise(values):
-            yield a
+    for a, b in itertools.pairwise(values):
+        yield a
 
-            if abs(a - b) < threshold:
-                break
+        if abs(a - b) < threshold:
+            break
 ```
 
 For older versions of Python, we'd have to implement our version of `pairwise` as well:
