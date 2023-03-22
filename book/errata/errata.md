@@ -11,8 +11,8 @@ def sqrt(a: float) -> float:
     x = a / 2 # initial guess
     x_n = a
     while abs(x_n - x) > 0.01:
-        x_n = (x + (a / x)) / 2
         x = x_n
+        x_n = (x + (a / x)) / 2
     return x_n
 ```
 
@@ -23,8 +23,8 @@ def sqrt(a: float, threshold: float) -> float:
     x = a / 2 # initial guess
     x_n = a
     while abs(x_n - x) > threshold:
-        x_n = (x + (a / x)) / 2
         x = x_n
+        x_n = (x + (a / x)) / 2
     return x_n
 ```
 
