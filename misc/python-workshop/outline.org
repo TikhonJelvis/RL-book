@@ -1,0 +1,106 @@
+* General Idea
+  1. introduce Python features to build up a little framework
+  2. intersperse exercises to *use* and *extend* the framework
+
+** Concepts
+Split concepts into two categories:
+  - abstracting over *data*
+  - abstracting over *computation*
+
+Depending on timing, this might work well for day 1 vs day 2.
+
+* Outline
+
+** What's the point of abstracting?
+     - closer mapping between how you *think* about a domain and your code
+       - easier debugging
+       - useful tool for design + problem-solving
+         - example: case analysis to catch edge-cases/combinations you
+           might otherwise miss
+     - more flexible/extensible code
+       - cover different sorts of behavior with the same code (eg
+         tabular vs sampling distributions)
+       - this is useful even for short-term, "one-off" work
+         - if it's easy to reuse your code, it's easy to add a new
+           benchmark/experiment right before a deadline :)
+     - TODO: more up-front explanation or add more examples/details
+       throught the rest of the topics
+
+*** How are we going to cover this?
+     - Python has a number of features that support this approach to programming
+     - we'll demonstrate the features, building up a simple framework
+       for DP + RL
+       - not meant for "production" use...
+       - ...but flexible enough to be extended into "real" frameworks
+
+** Abstracting over Data
+
+*** Classes + Dataclasses
+    - simple example of classes
+      - mostly for probability distributions?
+    - how dataclasses make this simpler
+    - cover immutability?
+      - not sure we want to emphasize this too much because it's hard
+        to explain /why it matters/ without more context—instead, we
+        can just have examples in an functional style without harping
+        on it too much
+
+**** Exercises
+     - we could have people implement additional types of probability
+       distributions?
+     - alternatively, have people write classes to represent something
+       else?
+     - another option: combine this exercise section with
+       interitance/interfaces
+
+*** Inheritance/interfaces
+    - how can we captured shared structure between different
+      types/concepts/etc?
+
+**** Exercises
+    - implement multiple classes that share an interface (eg different
+      types of distributions)
+    - write code that works for multiple types
+      - either a standalone function or as methods on the base class
+        (or both?)
+
+*** Types
+    - why are type hints and checking useful?
+      - act as documentation
+      - catch mistakes
+        - need some good examples here
+    - how can we demonstrate static typing in Colab?
+
+**** Generics
+    - use probability distributions to show why we need type variables
+
+**** Exercises
+    - make code written in previous steps fully typed?
+
+** Abstracting over Computation
+
+*** Why?
+    - we've talked about different types of data, but what about
+      behavior/algorithms/etc?
+    - example: iterative algorithms, dynamic programming
+    - probably start introducing basic MDP + dynamic programming
+      framework here?
+      - seems like there are fewer topics for Day 2, so we could spend
+        more time on programming + exercises, bringing all the ideas
+        together
+
+*** First-class Functions
+    - functions are values
+    - example: policies
+
+*** Iterators and generators
+    - how do we represent iterative algorithms + convergence?
+    - example: compare dynamic programming with and without iterators
+      - useful example: show how we'd need to copy/paste lots of code
+        if we couldn't separate the stopping criterion from the base
+        DP/RL algorithm
+
+**** Exercises
+    - implement simple iterative algorithms
+    - maybe try real DP/RL algorithms too?
+
