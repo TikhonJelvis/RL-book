@@ -22,5 +22,5 @@ Few thoughts:
   - For simulations, we can use iterators/generators.
   - We can treat the maximizing function as a first-class object and create higher-level functions for optimization and backtesting.
   - Show how dataclasses simplify the code by writing a class first without dataclass, and then with a dataclass (follow the pattern of the example in Chapter 2 of the book).
-  - We could split the case on Day 2 into breakout groups, each led by a teacher (instructors + TA, so about 6 breakout groups), and have each breakout group work on one of the modules listed above (even though these modules are sequential). It is important to have some scaffolding of code so that the actual work done by the students in the 3 hours is not a lot of code. So lots of code-scaffolding and lots of hints/comments (3 hours is far too less to do anything from scratch).
+  - We could split the class on Day 2 into breakout groups, each led by a teacher (instructors + TA, so about 6 breakout groups), and have each breakout group work on one of the modules listed above (even though these modules are sequential). It is important to have some scaffolding of code so that the actual work done by the students in the 3 hours is not a lot of code. So lots of code-scaffolding and lots of hints/comments (3 hours is far too less to do anything from scratch).
 
