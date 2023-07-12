@@ -167,6 +167,22 @@ def sqrt(a: float) -> Iterator[float]:
 
 When you call `sqrt(n)`, you don't get a number out and it doesn't do any computation. Instead, you can get an iterator where each element corresponds to one iteration of the algorithm. Another way to think about it is that `yield` gives us a point where we can *pause* and *resume* the function: when you ask for a value from the iterator, it will run the code in the function until it hits a `yield` and will return that value. Then, when you get the *next* value from the iterator, the code will start again at that `yield` and run until it hits a `yield` again. (Aside: this is an example of a more general feature called a "coroutine" which other languages support as well.)
 
+Example: (add note about `itertools` and `itertools.islice`)
+
+``` python
+>>> approx = sqrt(37)
+>>> next(approx)
+10.25
+>>> next(approx)
+6.929878048780488
+>>> next(approx)
+6.134538672432479
+>>> next(approx)
+6.082981028300877
+>>> next(approx)
+6.082762534222396
+```
+
 Ultimately, this code is nice because we can write the iterative part of our algorithm in a natural style, but still separate the logic for *iterating* from the logic for what we *do* with each iteration—we can iterate until we hit some stopping point, graph intermediate values, print every 100th iteration... etc.
 
 ## Iterators as Values
@@ -178,7 +194,34 @@ For example, we can use an iterator to represent a series (ie an infinite polyno
 We can express this as an iterator where each value is a subsequent coefficient of the polynomial:
 
 ``` python
-def exp(x) -> Iterator[float]:
+Polynomial = Iterator[float]
+
+def exp() -> Polynomial:
     for n in itertools.count(start=0):
-        yield (x ** n) / fact(n) # not efficient!
+        yield 1 / fact(n) # not efficient!
+```
+
+We can then write useful functions that take these iterators as inputs and produce them as outputs. For example, we can add two infinite series:
+
+``` python
+def add(a: Polynomial, b: Polynomial) -> Polynomial:
+    for a_i, b_i in zip(a, b):
+        yield a_i + b_i
+```
+
+We can also implement other operations like multiplying by a constant or getting the first derivative of a series. Give it at try:
+
+``` python
+def scale(n: float, a: Polynomial) -> Polynomial:
+    ...
+
+def deriv(a: Polynomial) -> Polynomial:
+    ...
+```
+
+Finally, for this to be useful, we want some way to approximate `f(x)` by taking `n` terms from a series:
+
+``` python
+def evaluate(a: Polynomial, x: float, steps: int) -> float:
+    ...
 ```
