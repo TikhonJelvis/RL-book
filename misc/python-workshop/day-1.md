@@ -134,8 +134,6 @@ The first part of our solution for `sqrt`:
   1. Make the code for calculating subsequent $x_{n + 1}$ values into an iterator
  2. Make the code for deciding when to stop into functions that take an iterator as an input.
 
-#### Convergence
-
 #### Generators
 
 Under the hood, a Python iterator is an object that implements a `__next__` method. `__next__` returns the next value or throws a `StopIteration` exception if there are no more values to return. In principle, we could write an iterator for our `sqrt` function this way:
@@ -167,8 +165,6 @@ def sqrt(a: float) -> Iterator[float]:
 
 When you call `sqrt(n)`, you don't get a number out and it doesn't do any computation. Instead, you can get an iterator where each element corresponds to one iteration of the algorithm. Another way to think about it is that `yield` gives us a point where we can *pause* and *resume* the function: when you ask for a value from the iterator, it will run the code in the function until it hits a `yield` and will return that value. Then, when you get the *next* value from the iterator, the code will start again at that `yield` and run until it hits a `yield` again. (Aside: this is an example of a more general feature called a "coroutine" which other languages support as well.)
 
-Example: (add note about `itertools` and `itertools.islice`)
-
 ``` python
 >>> approx = sqrt(37)
 >>> next(approx)
@@ -184,6 +180,80 @@ Example: (add note about `itertools` and `itertools.islice`)
 ```
 
 Ultimately, this code is nice because we can write the iterative part of our algorithm in a natural style, but still separate the logic for *iterating* from the logic for what we *do* with each iteration—we can iterate until we hit some stopping point, graph intermediate values, print every 100th iteration... etc.
+
+#### Iterator Functions
+
+We can write functions that operate on iterators. For example, we might want a function that gets us just the first *n* values from an iterator:
+
+``` python
+def take(iterator, n):
+    for _ in range(n):
+        yield next(iterator)
+```
+
+We can try this with our `sqrt` example above:
+
+``` python
+>>> take(sqrt(37), 5)
+<generator object take at 0x7f976590a510>
+```
+
+This gives us a generator object; Python does not print the *values* of the generator by default. To see all the values, we can turn the generator into a list:
+
+
+``` python
+>>> list(take(sqrt(37), 5))
+[10.25, 6.929878048780488, 6.134538672432479, 6.082981028300877, 6.082762534222396]
+```
+
+##### Exercise
+
+Write a `pairs` function that returns subsequent pairs of elements from an iterator, such that:
+
+``` python
+>>> list(pairs(iter(range(6))))
+[(0, 1), (2, 3), (4, 5)]
+>>> list(pairs(iter(range(5))))
+[(0, 1), (2, 3)]
+```
+
+Hint: you'll have to handle the case where the input iterator runs out values. You can do this by catching the `StopIteration` exception or providing a default value to `next`:
+
+``` python
+>>> next(iter(range(0)))
+Traceback (most recent call last):
+  File "<stdin>", line 1, in <module>
+StopIteration
+>>> next(iter(range(0)), None) == None
+True
+```
+
+#### Convergence
+
+So far, we've seen one get a finite result from our infinite iterator: taking *n* values with `take`. However, we don't always know how many steps of the algorithm to run. Let's write a `converge` function that takes an iterator and stops producing values as soon as $|x_n - x_{n + 1}| \le \epsilon|$.
+
+``` python
+def converge(iterator, epsilon):
+    ...
+```
+
+We can use this function to evaluate our approximate square root to some epsilon:
+
+```
+>>> converge(sqrt(37), 0.01)
+6.08276253029822 
+```
+
+Try implementing a version of `converge`. Hint: you can use the `pairs` function we implemented earlier to make this easier.
+
+With functions like `take` and `converge`, the *user* of our `sqrt` function can decide how to approximate the final answer—when we're implementing `sqrt`, we don't have to know ahead of time how much precision our users will need.
+
+Another advantage is that we can combine multiple functions like this. For example, we can use *both* `take` *and* `converge` so that we get an answer after 1000 steps even if it has not converged yet:
+
+``` python
+>>> converge(take(1000, sqrt(37)))
+...
+```
 
 ## Iterators as Values
 
