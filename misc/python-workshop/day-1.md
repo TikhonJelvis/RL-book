@@ -201,11 +201,95 @@ produces (in this case, `float` values, hence `Iterator[float]`).
 
 When you call `sqrt(n)`, you don't get a number out and it doesn't do any computation. Instead, you can get an iterator where each element corresponds to one iteration of the algorithm. Another way to think about it is that `yield` gives us a point where we can *pause* and *resume* the function: when you ask for a value from the iterator, it will run the code in the function until it hits a `yield` and will return that value. Then, when you get the *next* value from the iterator, the code will start again at that `yield` and run until it hits a `yield` again. (Aside: this is an example of a more general feature called a "coroutine" which other languages support as well.)
 
+``` python
+>>> approx = sqrt(37)
+>>> next(approx)
+10.25
+>>> next(approx)
+6.929878048780488
+>>> next(approx)
+6.134538672432479
+>>> next(approx)
+6.082981028300877
+>>> next(approx)
+6.082762534222396
+```
+
 Ultimately, this code is nice because we can write the iterative part of our algorithm in a natural style, but still separate the logic for *iterating* from the logic for what we *do* with each iteration—we can iterate until we hit some stopping point, graph intermediate values, print every 100th iteration... etc.
+
+#### Iterator Functions
+
+We can write functions that operate on iterators. For example, we might want a function that gets us just the first *n* values from an iterator:
+
+``` python
+def take(iterator, n):
+    for _ in range(n):
+        yield next(iterator)
+```
+
+We can try this with our `sqrt` example above:
+
+``` python
+>>> take(sqrt(37), 5)
+<generator object take at 0x7f976590a510>
+```
+
+This gives us a generator object; Python does not print the *values* of the generator by default. To see all the values, we can turn the generator into a list:
+
+
+``` python
+>>> list(take(sqrt(37), 5))
+[10.25, 6.929878048780488, 6.134538672432479, 6.082981028300877, 6.082762534222396]
+```
+
+##### Exercise
+
+Write a `pairs` function that returns subsequent pairs of elements from an iterator, such that:
+
+``` python
+>>> list(pairs(iter(range(6))))
+[(0, 1), (2, 3), (4, 5)]
+>>> list(pairs(iter(range(5))))
+[(0, 1), (2, 3)]
+```
+
+Hint: you'll have to handle the case where the input iterator runs out values. You can do this by catching the `StopIteration` exception or providing a default value to `next`:
+
+``` python
+>>> next(iter(range(0)))
+Traceback (most recent call last):
+  File "<stdin>", line 1, in <module>
+StopIteration
+>>> next(iter(range(0)), None) == None
+True
+```
 
 #### Convergence
 
-<!-- TODO: ... -->
+So far, we've seen one get a finite result from our infinite iterator: taking *n* values with `take`. However, we don't always know how many steps of the algorithm to run. Let's write a `converge` function that takes an iterator and stops producing values as soon as $|x_n - x_{n + 1}| \le \epsilon|$.
+
+``` python
+def converge(iterator, epsilon):
+    ...
+```
+
+We can use this function to evaluate our approximate square root to some epsilon:
+
+```
+>>> converge(sqrt(37), 0.01)
+6.08276253029822 
+```
+
+Try implementing a version of `converge`. Hint: you can use the `pairs` function we implemented earlier to make this easier.
+
+With functions like `take` and `converge`, the *user* of our `sqrt` function can decide how to approximate the final answer—when we're implementing `sqrt`, we don't have to know ahead of time how much precision our users will need.
+
+Another advantage is that we can combine multiple functions like this. For example, we can use *both* `take` *and* `converge` so that we get an answer after 1000 steps even if it has not converged yet:
+
+``` python
+>>> converge(take(1000, sqrt(37)))
+...
+```
 
 ## Iterators as Values
 
@@ -216,7 +300,34 @@ For example, we can use an iterator to represent a series (ie an infinite polyno
 We can express this as an iterator where each value is a subsequent coefficient of the polynomial:
 
 ``` python
-def exp(x) -> Iterator[float]:
+Polynomial = Iterator[float]
+
+def exp() -> Polynomial:
     for n in itertools.count(start=0):
-        yield (x ** n) / fact(n) # not efficient!
+        yield 1 / fact(n) # not efficient!
+```
+
+We can then write useful functions that take these iterators as inputs and produce them as outputs. For example, we can add two infinite series:
+
+``` python
+def add(a: Polynomial, b: Polynomial) -> Polynomial:
+    for a_i, b_i in zip(a, b):
+        yield a_i + b_i
+```
+
+We can also implement other operations like multiplying by a constant or getting the first derivative of a series. Give it at try:
+
+``` python
+def scale(n: float, a: Polynomial) -> Polynomial:
+    ...
+
+def deriv(a: Polynomial) -> Polynomial:
+    ...
+```
+
+Finally, for this to be useful, we want some way to approximate `f(x)` by taking `n` terms from a series:
+
+``` python
+def evaluate(a: Polynomial, x: float, steps: int) -> float:
+    ...
 ```
