@@ -65,6 +65,10 @@ def sqrt(a: float) -> float:
     return x_n
 ```
 
+**Side note**: type annotations let us specify what types of arguments a function takes and what type of values it returns. In base Python type annotations just act as documentation, but external tools can also use them to find inconsistencies in your code. For example, a typechecker would flag `sqrt("10")` as an error without needing to run the code.
+
+We'll use type annotations in our example code both because it makes the inputs/outputs clear *and* because it is a useful habit when writing Python.
+
 We could make ϵ a parameter:
 
 ``` python
@@ -127,14 +131,39 @@ for x in range(3): print(x)
 
 Note how the iterator for the set (`{3, 2, 1}`) prints `1 2 3` rather than `3 2 1`—sets do not preserve the order in which elements are added, so they iterate over elements in some kind of internally defined order instead.
 
-Iterators don't have to iterate over a concrete data structure like a list, set or range: we can write our own custom logic to produce values instead. Unlike lists, iterators can create values one-by-one—we don't have to have everything in memory all at once and we can produce an infinite (well, *unbounded*) number of values.
+We can iterate over more than containers and numbers:
+
+``` python
+for char in "abc": print(char)
+for line in open("example.txt"): print(line)
+```
+
+Note: none of these things are iterators *themselves*. Instead, values that we can iterate over are **iterables**, which means that we can get an iterator for the value. 
+
+``` python
+x_list = [1,2,3]
+print(x_list)
+
+x_iterator = iter(list)
+print(x_iterator)
+```
+
+Any value that supports `iter` is an **iterable**. Iterators are iterables themselves, where `iter` returns a reference to the same iterator (*not* a fresh copy).
+
+``` python
+print(iter(x_iterator))
+```
+
+#### Approximate `sqrt` as an Iterator
+
+We can write our own custom iterators as well. Unlike data structures that store data directly, iterators can create values one-by-one—we don't have to have everything in memory all at once and we can produce an infinite (well, *unbounded*) number of values.
 
 The first part of our solution for `sqrt`:
 
   1. Make the code for calculating subsequent $x_{n + 1}$ values into an iterator
  2. Make the code for deciding when to stop into functions that take an iterator as an input.
 
-#### Convergence
+ To do 1, we'll have to understand what iterators *are* and how we can write our own.
 
 #### Generators
 
@@ -147,7 +176,7 @@ class Sqrt:
         self.x = a / 2 # initial guess
         self.x_n = a
 
-    def __next__(self):
+    def __next__(self) -> float:
         self.x = self.x_n
         self.x_n = (self.x + (self.a / self.x)) / 2
         return self.x_n
@@ -165,9 +194,18 @@ def sqrt(a: float) -> Iterator[float]:
         yield x
 ```
 
+**Side note**: Iterators can produce different types of values. To
+express this in our type annotations, the `Iterator` type can take a
+type *argument* that specifies what kind of values the iterator
+produces (in this case, `float` values, hence `Iterator[float]`).
+
 When you call `sqrt(n)`, you don't get a number out and it doesn't do any computation. Instead, you can get an iterator where each element corresponds to one iteration of the algorithm. Another way to think about it is that `yield` gives us a point where we can *pause* and *resume* the function: when you ask for a value from the iterator, it will run the code in the function until it hits a `yield` and will return that value. Then, when you get the *next* value from the iterator, the code will start again at that `yield` and run until it hits a `yield` again. (Aside: this is an example of a more general feature called a "coroutine" which other languages support as well.)
 
 Ultimately, this code is nice because we can write the iterative part of our algorithm in a natural style, but still separate the logic for *iterating* from the logic for what we *do* with each iteration—we can iterate until we hit some stopping point, graph intermediate values, print every 100th iteration... etc.
+
+#### Convergence
+
+<!-- TODO: ... -->
 
 ## Iterators as Values
 
