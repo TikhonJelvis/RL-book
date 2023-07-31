@@ -138,7 +138,7 @@ for char in "abc": print(char)
 for line in open("example.txt"): print(line)
 ```
 
-Note: none of these things are iterators *themselves*. Instead, values that we can iterate over are **iterables**, which means that we can get an iterator for the value. 
+Note: none of these things are iterators *themselves*. Instead, values that we can iterate over are **iterables**, which means that we can get an iterator for the value.
 
 ``` python
 x_list = [1,2,3]
@@ -303,6 +303,41 @@ def product(a: Iterator[A]) -> Iterator[Tuple[A, A]]:
     ...
 ```
 
+#### First-Class Functions
+
+Another way we can abstract over computation in Python is by using functions *as values*. We can pass functions into other functions as arguments or store them in variables and data structures.
+
+A number of standard library functions follow this pattern. For example, `map` and `filter` let us use a function to operate on the elements of an iterable like a list. Note that the result of a `map` or `filter` is an iterable itself rather than the type of container that was passed in:
+
+``` python
+def add1(x: float) -> float:
+    return x + 1
+
+>>> map(add1, [1,2,3])
+<map object at 0x7f1820fe2350>
+>>> map(add1, [1,2,3])
+[2, 3, 4]
+list(map(add1, {1,3,2}))
+[2, 3, 4]
+```
+
+``` python
+def is_even(x: float) -> bool:
+    return x % 2 == 0
+
+>>> list(filter(is_even, [1,2,3,4]))
+[2, 4]
+```
+
+To make using functions like `map` and `filter` more convenient, Python has a shorthand syntax for defining a function without giving it a name. Functions like this are called "lambdas" (thanks to [the lambda calculus][lambda]), so Python uses the `lambda` keyword to introduce them:
+
+``` python
+>>> list(map(lambda x: x + 1, [1,2,3]))
+[2, 3, 4]
+>>> list(filter(lambda x: x % 2 == 0, [1,2,3,4]))
+[2, 4]
+```
+
 #### Convergence
 
 So far, we've seen one get a finite result from our infinite iterator: taking *n* values with `take`. However, we don't always know how many steps of the algorithm to run. Let's write a `converge` function that takes an iterator and stops producing values as soon as $|x_n - x_{n + 1}| \le \epsilon|$.
@@ -316,7 +351,7 @@ We can use this function to evaluate our approximate square root to some epsilon
 
 ```
 >>> converge(sqrt(37), 0.01)
-6.08276253029822 
+6.08276253029822
 ```
 
 Try implementing a version of `converge`. Hint: you can use the `pairs` function we implemented earlier to make this easier.
@@ -329,6 +364,8 @@ Another advantage is that we can combine multiple functions like this. For examp
 >>> converge(take(1000, sqrt(37)))
 ...
 ```
+
+In more complicated algorithms, we might want to converge based on some criterion other than a fixed epsilon value. Try writing a generalized version of converge that takes a comparison function instead of a threshold.
 
 ## Iterators as Values
 
