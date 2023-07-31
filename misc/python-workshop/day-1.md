@@ -295,22 +295,26 @@ Another advantage is that we can combine multiple functions like this. For examp
 
 So far, I've talked about iterators as representing *computation* rather than *data*, but that's really just a matter of perspective. Iterators themselves are values that we can operate on just like any other value in Python, and we can use them to represent constructs we don't normally think of as computations.
 
-For example, we can use an iterator to represent a series (ie an infinite polynomial). Consider $$e^x = \sum_{n = 0}^{\infty} x^n / n! = 1 + x + \frac{1}{2}x^2 + \frac{1}{6}x^3 + \cdots$$
+For example, we can use an iterator to represent a series (ie an infinite polynomial). (Idea inspired by Douglas McIlroy's *Power Series, Power Serious* paper.)
 
-We can express this as an iterator where each value is a subsequent coefficient of the polynomial:
+Consider $$e^x = \sum_{n = 0}^{\infty} x^n / n! = 1 + x + \frac{1}{2}x^2 + \frac{1}{6}x^3 + \cdots$$
+
+We can express this as an iterator where each value is a subsequent coefficient of the series:
 
 ``` python
-Polynomial = Iterator[float]
+import math
 
-def exp() -> Polynomial:
+Series = Iterator[float]
+
+def exp() -> Series:
     for n in itertools.count(start=0):
-        yield 1 / fact(n) # not efficient!
+        yield 1 / math.factorial(n) # not efficient!
 ```
 
 We can then write useful functions that take these iterators as inputs and produce them as outputs. For example, we can add two infinite series:
 
 ``` python
-def add(a: Polynomial, b: Polynomial) -> Polynomial:
+def add(a: Series, b: Series) -> Series:
     for a_i, b_i in zip(a, b):
         yield a_i + b_i
 ```
@@ -318,16 +322,27 @@ def add(a: Polynomial, b: Polynomial) -> Polynomial:
 We can also implement other operations like multiplying by a constant or getting the first derivative of a series. Give it at try:
 
 ``` python
-def scale(n: float, a: Polynomial) -> Polynomial:
+def scale(n: float, a: Series) -> Series:
     ...
 
-def deriv(a: Polynomial) -> Polynomial:
+def deriv(a: Series) -> Series:
     ...
 ```
 
 Finally, for this to be useful, we want some way to approximate `f(x)` by taking `n` terms from a series:
 
 ``` python
-def evaluate(a: Polynomial, x: float, steps: int) -> float:
+def evaluate(a: Series, x: float, steps: int) -> float:
     ...
 ```
+
+Bonus (hard) challenge: implement multiplication (the [Cauchy Product][cauchy]) of two power series.
+
+``` python
+def multiply(a: Series, b: Series) -> Series:
+    ...
+```
+
+Hint: consider how we could do this with operations we've previously defined for `Series`.
+
+[cauchy]: https://en.wikipedia.org/wiki/Cauchy_product
