@@ -222,10 +222,16 @@ Ultimately, this code is nice because we can write the iterative part of our alg
 We can write functions that operate on iterators. For example, we might want a function that gets us just the first *n* values from an iterator:
 
 ``` python
-def take(iterator, n):
+from typing import TypeVar
+
+A = TypeVar("A")
+
+def take(iterator: Iterator[A], n: int) -> Iterator[A]:
     for _ in range(n):
         yield next(iterator)
 ```
+
+**Side note**: Iterators have some type for their values, but functions like `take` work for *any* type value. The values produced by the iterator returned from `take` will have the same type as the input iterator. We need to create a "type variable" `A` to reflect that behavior.
 
 We can try this with our `sqrt` example above:
 
@@ -243,6 +249,13 @@ This gives us a generator object; Python does not print the *values* of the gene
 ```
 
 ##### Exercise
+
+Implement `drop` that *drops* the first *n* elements of an iterator, returning an iterator that starts from the n + 1th element:
+
+``` python
+def drop(iterator: Iterator[A], n: int) -> Iterator[A]:
+    ...
+```
 
 Write a `pairs` function that returns subsequent pairs of elements from an iterator, such that:
 
@@ -262,6 +275,32 @@ Traceback (most recent call last):
 StopIteration
 >>> next(iter(range(0)), None) == None
 True
+```
+
+The Python `itertools` package has a number of useful functions for working with iterators. Let's try implementing a few of these functions ourselves to get some practice with iterators.
+
+Implement `chain` which takes two iterators and outputs the values from the first iterator followed by the values from the second iterator. This is like append for iterators:
+
+``` python
+>>> list(chain(iter([1,2,3]), iter([4,5,6])))
+[1, 2, 3, 4, 5, 6]
+
+def chain(a: Iterator[A], b: Iterator[A]) -> Iterator[A]:
+    ...
+```
+
+Implement `product` which gives us all possible pairs of values from an iterator (the Cartesian product), such that:
+
+``` python
+>>> list(product(iter([1,2])))
+[(1, 1), (1, 2), (2, 1), (2, 2)]
+```
+
+``` python
+from typing import Tuple
+
+def product(a: Iterator[A]) -> Iterator[Tuple[A, A]]:
+    ...
 ```
 
 #### Convergence
@@ -308,7 +347,7 @@ Series = Iterator[float]
 
 def exp() -> Series:
     for n in itertools.count(start=0):
-        yield 1 / math.factorial(n) # not efficient!
+        yield 1 / math.factorial(n)
 ```
 
 We can then write useful functions that take these iterators as inputs and produce them as outputs. For example, we can add two infinite series:
@@ -335,6 +374,14 @@ Finally, for this to be useful, we want some way to approximate `f(x)` by taking
 def evaluate(a: Series, x: float, steps: int) -> float:
     ...
 ```
+
+Bonus challenge: implement the series for `sin` and `cos`:
+
+$$\sin x = x - \frac{x^3}{3!} + \frac{x^5}{5!} - \cdots$$
+
+$$\cos x = 1 - \frac{x^2}{2!} + \frac{x^4}{4!} - \cdots$$
+
+Can you implement one in terms of the other?
 
 Bonus (hard) challenge: implement multiplication (the [Cauchy Product][cauchy]) of two power series.
 
