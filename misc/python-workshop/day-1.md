@@ -36,6 +36,8 @@
 
 # Abstracting over Computation
 
+<!-- TODO: add quick intro to type annotations near the beginning here -->
+
 ## Iterative Algorithms
    - Many algorithms follow a simple pattern: do some set step
      repeatedly until we hit some stopping condition
@@ -162,6 +164,8 @@ The first part of our solution for `sqrt`:
 
   1. Make the code for calculating subsequent $x_{n + 1}$ values into an iterator
  2. Make the code for deciding when to stop into functions that take an iterator as an input.
+ 
+ <!-- TODO: add a break/exercise portion here -->
 
  To do 1, we'll have to understand what iterators *are* and how we can write our own.
 

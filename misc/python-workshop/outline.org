@@ -44,10 +44,6 @@ Depending on timing, this might work well for day 1 vs day 2.
         more time on programming + exercises, bringing all the ideas
         together
 
-*** First-class Functions
-    - functions are values
-    - example: policies
-
 *** Iterators and generators
     - how do we represent iterative algorithms + convergence?
     - example: compare dynamic programming with and without iterators
@@ -62,6 +58,10 @@ Depending on timing, this might work well for day 1 vs day 2.
     - maybe try real DP/RL algorithms too?
     - see [[https://swtch.com/~rsc/thread/squint.pdf][power series examples]]
     - see [[https://mitp-content-server.mit.edu/books/content/sectbyfn/books_pres_0/6515/sicp.zip/full-text/book/book-Z-H-24.html#%_sec_3.5][streams in SICP]]
+
+*** First-class Functions
+    - functions are values
+    - example: policies
 
 ** Abstracting over Data
 
