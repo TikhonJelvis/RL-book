@@ -17,22 +17,22 @@
       thinking about the problem
       - or even give you *better* ways to think about the problem
 
-## Schedule:
+# Schedule:
 
-### Day 1: Abstracting over Computation
-    - we'll look at how to abstract over computation: how can we
-      organize code for algorithms?
-      - iterative algorithms
-        - generators
-        - iterators
-        - iterator operations
-      - first-class functions
-        - using first-class functions (+ lambdas) on iterators
+## Day 1: Abstracting over Computation
+  - we'll look at how to abstract over computation: how can we
+    organize code for algorithms?
+    - iterative algorithms
+      - generators
+      - iterators
+      - iterator operations
+    - first-class functions
+      - using first-class functions (+ lambdas) on iterators
 
-### Day 2: Abstracting over Data
-    - we'll look at how to abstract over data: how do we structure the
-      data our code works with
-      - classes/types/etc
+## Day 2: Abstracting over Data
+  - we'll look at how to abstract over data: how do we structure the
+    data our code works with
+    - classes/types/etc
 
 # Abstracting over Computation
 
