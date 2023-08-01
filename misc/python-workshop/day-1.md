@@ -36,26 +36,26 @@
 
 # Abstracting over Computation
 
-<!-- TODO: add quick intro to type annotations near the beginning here -->
-
 ## Iterative Algorithms
-   - Many algorithms follow a simple pattern: do some set step
-     repeatedly until we hit some stopping condition
-   - Examples:
-     - Gradient descent
-     - Root finding
-     - Dynamic programming/reinforcement learning
-     - Fixed-point iteration
-     - ...etc
+
+Many algorithms follow a simple pattern: do some set step repeatedly until we hit some stopping condition:
+   - Gradient descent
+   - Root finding
+   - Dynamic programming/reinforcement learning
+   - Fixed-point iteration
+   - ...etc
+   
+How can we work with iterative algorithms in Python? Let's work through an example.
 
 ### Sqrt
-   - Iterative approximation of $\sqrt{n}$:
-     $$
-     x_{n + 1} = \frac{x_n + \frac{a}{x_n}}{2}
-     $$
-     - TODO: illustration
-     - calculate $x_{n + 1}$ until $|x_{n + 1} - x| < \epsilon$
-   - Simple code:
+
+Iterative approximation of $\sqrt{n}$:
+
+$$
+x_{n + 1} = \frac{x_n + \frac{a}{x_n}}{2}
+$$
+
+Calculate $x_{n + 1}$ until $|x_{n + 1} - x| < \epsilon$:
 
 ``` python
 def sqrt(a: float) -> float:
@@ -115,13 +115,13 @@ This is not great!
   - When the algorithm doesn't converge, how do we debug it?
     - How would you graph the steps of =sqrt(n)=?
 
-### Separate Concepts
+## Separate Concepts
 
 The fundamental problem is that our code has conflated two concepts that we want to consider separately: how we iterate at each step and how we stop iterating. Can we separate the code for *producing* values from the code for *consuming* them?
 
 Python gives us two related tools to fix this: **iterators** and **generators**.
 
-#### Iterators
+### Iterators
 
 Iterators are a way to *iteratively* produce values in Python. You might not realize it, but chances are your Python code uses iterators all the time. Python's `for` loop uses an iterator under the hood to get each value it's looping over—this is how `for` loops work for lists, dictionaries, sets, ranges and even custom types. Try it out:
 
@@ -156,7 +156,7 @@ Any value that supports `iter` is an **iterable**. Iterators are iterables thems
 print(iter(x_iterator))
 ```
 
-#### Approximate `sqrt` as an Iterator
+### Approximate `sqrt` as an Iterator
 
 We can write our own custom iterators as well. Unlike data structures that store data directly, iterators can create values one-by-one—we don't have to have everything in memory all at once and we can produce an infinite (well, *unbounded*) number of values.
 
@@ -164,12 +164,10 @@ The first part of our solution for `sqrt`:
 
   1. Make the code for calculating subsequent $x_{n + 1}$ values into an iterator
  2. Make the code for deciding when to stop into functions that take an iterator as an input.
- 
- <!-- TODO: add a break/exercise portion here -->
 
  To do 1, we'll have to understand what iterators *are* and how we can write our own.
 
-#### Generators
+### What is an iterator?
 
 Under the hood, a Python iterator is an object that implements a `__next__` method. `__next__` returns the next value or throws a `StopIteration` exception if there are no more values to return. In principle, we could write an iterator for our `sqrt` function this way:
 
@@ -187,6 +185,8 @@ class Sqrt:
 ```
 
 However, this is pretty awkward: now `Sqrt` is a class rather than a function for some reason and we have a bunch of distracting boilerplate in the definition. This solves the problems with our initial `sqrt` code but at the cost of making the actual algorithm code a lot more awkward.
+
+### Generators
 
 Luckily, Python provides a much better way to write this style of code: **generators**. Generators are functions that behave like iterators, so we can write our iterative algorithm in a normal state, but instead of returning one value at the end, we can output a bunch of values as an iterator.
 
@@ -268,6 +268,13 @@ Write a `pairs` function that returns subsequent pairs of elements from an itera
 [(0, 1), (2, 3), (4, 5)]
 >>> list(pairs(iter(range(5))))
 [(0, 1), (2, 3)]
+```
+
+``` python
+from typing import Iterator
+
+def pairs(iterator: Iterator[A]) -> Iterator[Tuple[A, A]]:
+    ...
 ```
 
 Hint: you'll have to handle the case where the input iterator runs out values. You can do this by catching the `StopIteration` exception or providing a default value to `next`:
@@ -434,3 +441,10 @@ def multiply(a: Series, b: Series) -> Series:
 Hint: consider how we could do this with operations we've previously defined for `Series`.
 
 [cauchy]: https://en.wikipedia.org/wiki/Cauchy_product
+
+Bonus (harder?): implement division, such that $f = q \times g$ if $\frac{f}{g} = q$.
+
+``` python
+def divide(f: Series, g: Series) -> Series:
+    ...
+```
