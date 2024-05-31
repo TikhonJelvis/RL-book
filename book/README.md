@@ -22,11 +22,17 @@ On macOS, first install the XCode command-line tools:
 xcode-select --install
 ```
 
-the install Nix with:
+then install Nix with:
 
 
 ```
 sh <(curl https://nixos.org/nix/install) --darwin-use-unencrypted-nix-store-volume
+```
+
+Or, on older macs try:
+
+```
+sh <(curl https://nixos.org/nix/install)
 ```
 
 On Linux, install Nix with:
